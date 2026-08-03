@@ -2,6 +2,7 @@
 
 import { createElement } from "react";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { JobProgress } from "@/app/(protected)/jobs/[jobId]/_components/job-progress";
@@ -46,11 +47,57 @@ describe("JobProgress", () => {
     expect(screen.getAllByText("Lấy hoặc tạo transcript").length).toBeGreaterThan(0);
     expect(screen.getByText("How to build a better learning habit")).toBeVisible();
     await waitFor(() =>
+      expect(fetchMock).toHaveBeenCalledWith(`/api/jobs/${job.id}`, {
+        cache: "no-store",
+      }),
+    );
+  });
+
+  it("retries a failed dispatch through the idempotent create command", async () => {
+    const failedJob: PublicGenerationJob = {
+      ...job,
+      status: "queued",
+      currentStage: "queued",
+      dispatchStatus: "failed",
+    };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url === "/api/jobs" && init?.method === "POST") {
+        return new Response(
+          JSON.stringify({ jobId: failedJob.id, reused: true }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        );
+      }
+      return new Response(JSON.stringify({ job, phase: "transcript" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+
+    render(
+      createElement(JobProgress, {
+        initialJob: failedJob,
+        initialPhase: "preparing",
+      }),
+    );
+
+    const retry = screen.getByRole("button", { name: "Thử lại" });
+    await user.click(retry);
+
+    await waitFor(() =>
       expect(fetchMock).toHaveBeenCalledWith(
-        `/api/jobs/${job.id}`,
-        { cache: "no-store" },
+        "/api/jobs",
+        expect.objectContaining({ method: "POST" }),
       ),
     );
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("heading", { name: "Chưa thể bắt đầu tiến trình" }),
+      ).not.toBeInTheDocument(),
+    );
+    expect(screen.getAllByText("Lấy hoặc tạo transcript").length).toBeGreaterThan(0);
   });
 
   it("does not poll a terminal job", async () => {
