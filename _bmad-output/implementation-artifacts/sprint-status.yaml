@@ -1,5 +1,5 @@
 # generated: 2026-08-03T22:49:00+07:00
-# last_updated: 2026-08-03T17:36:03+00:00
+# last_updated: 2026-08-04T00:50:00+07:00
 # project: Vidlish
 # project_key: NOKEY
 # tracking_system: file-system
@@ -35,13 +35,13 @@
 # WORKFLOW NOTES:
 # ===============
 # - Epic transitions to 'in-progress' automatically when its first story artifact is created
-# - Stories may run in parallel when dependencies and capacity permit
+# - Stories may run in parallel if dependencies and capacity permit
 # - Default flow is create story → validate story → develop → review → done
 # - The next story is usually created after the previous one is done so learnings can transfer
 # - Retrospective action items are appended under action_items when they exist
 
 generated: "2026-08-03T22:49:00+07:00"
-last_updated: "2026-08-03T17:36:03+00:00"
+last_updated: "2026-08-04T00:50:00+07:00"
 project: Vidlish
 project_key: NOKEY
 tracking_system: file-system
@@ -50,7 +50,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-truy-cap-private-beta-va-dang-nhap-an-toan: done
-  1-2-dan-va-kiem-tra-video-youtube: backlog
+  1-2-dan-va-kiem-tra-video-youtube: ready-for-dev
   1-3-chon-trinh-do-va-xac-nhan-video-san-sang: backlog
   epic-1-retrospective: optional
 
