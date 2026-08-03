@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2, 3]
+stepsCompleted: [1, 2, 3, 4]
 status: in-progress
 project: Vidlish
 date: 2026-08-03
@@ -300,3 +300,71 @@ None. Epics add implementation details, architecture references and UX constrain
 - FRs covered in epics: 46
 - Missing FRs: 0
 - Coverage: 100%
+
+## Step 4 — UX Alignment Assessment
+
+### UX Document Status
+
+**Found.** `DESIGN.md` defines the visual/design-system spine and `EXPERIENCE.md` defines information architecture, states, interaction behavior, responsive rules and accessibility.
+
+### UX ↔ PRD Alignment
+
+Strong alignment exists for:
+
+- Passwordless sign-in and protected owner-scoped surfaces.
+- Create Lesson with YouTube URL, metadata preview and required CEFR A1–C1.
+- Persisted generation URL, recoverable progress and actionable transcript fallback.
+- Consent-first tab-audio capture, no video storage and temporary-audio retention copy.
+- Core Lesson progression, source evidence, progressive transcript support, activities, retrieval, transfer and completion.
+- Library reopen without regeneration, failed-job recovery and deletion confirmation.
+- Calm Vietnamese product copy, no gamification, no AI-chat-first interface and no provider jargon.
+
+### UX ↔ Architecture Alignment
+
+Architecture supports the UX through:
+
+- Next.js App Router, Tailwind and shadcn/ui for the responsive component system.
+- Supabase SSR auth, Postgres product truth and RLS for protected surfaces and reload-safe state.
+- Inngest durable workflow, persisted stages and polling for Generation UX.
+- Provider ports and stable ProductError mapping for fallback cards without vendor jargon.
+- Private temporary storage, signed uploads and TTL cleanup for tab-audio capture.
+- Canonical transcript timing and source references for transcript rows and later player seeking.
+- Immutable published lesson versions and owner-safe reads for Lesson Viewer and Library performance.
+- Explicit responsive, accessibility, reduced-motion, focus and keyboard requirements in the derived architecture/UX inventory.
+
+No structural architecture capability required by the final UX is missing.
+
+### Alignment Issues
+
+#### UX-ALIGN-1 — Stale tagline and product promise
+
+**Severity:** High documentation drift.
+
+`DESIGN.md` uses **“Any video. Your English lesson.”** The final PRD amendment and project context require **“Any English video. Your English lesson.”** The current design wording can cause implementation copy to promise support for non-English videos, contradicting the terminal language-eligibility boundary.
+
+**Required correction:** Update the design tagline and any generic “every/public video” copy to explicitly say English-language video or enough original English speech.
+
+#### UX-ALIGN-2 — Mandatory language-check phase missing from UX phase vocabulary
+
+**Severity:** High state-model drift.
+
+`EXPERIENCE.md` lists Generation phases without **“Kiểm tra tiếng Anh”**, while the PRD amendment and architecture amendment require `checking_language` after every normalized transcript and before Lesson Engine work. Epics and derived UX requirements already include the missing phase.
+
+**Required correction:** Add `Kiểm tra tiếng Anh` between transcript acquisition and content analysis in the phase vocabulary and affected key flows.
+
+#### UX-ALIGN-3 — Unsupported-language state is not explicit in the UX state table
+
+**Severity:** Medium.
+
+The final product requires `VIDEO_LANGUAGE_UNSUPPORTED`, the standard Vietnamese message and one primary action `Chọn video khác`. The UX state patterns cover unavailable video, exhausted captions and low-confidence STT but do not explicitly define this terminal language state.
+
+**Required correction:** Add the unsupported-language state, prohibit translation mode in that state and specify the single primary action.
+
+### Warnings
+
+- Vietnamese translation/help on demand is acceptable only as clearly generated learner support; it must never be presented as original source speech or used as scored English evidence.
+- UX and architecture are otherwise aligned on performance targets, responsive behavior, accessibility, player interaction, state persistence, fallback hierarchy and data retention.
+
+### UX Alignment Verdict
+
+**Mostly aligned, with three targeted documentation corrections required before final readiness approval.** These are source-of-truth copy/state issues rather than missing architecture capabilities.
