@@ -138,13 +138,6 @@ export class SupabaseGenerationJobRepository
   async createOrReuse(
     input: CreateGenerationJobRecord,
   ): Promise<{ job: GenerationJob; created: boolean }> {
-    const existing = await this.findActive({
-      ownerUserId: input.ownerUserId,
-      videoId: input.metadata.videoId,
-      cefrLevel: input.cefrLevel,
-      pipelineVersion: input.pipelineVersion,
-    });
-
     const rpc = await this.client.rpc("create_or_reuse_lesson_job", {
       p_owner_user_id: input.ownerUserId,
       p_youtube_video_id: input.metadata.videoId,
@@ -159,10 +152,13 @@ export class SupabaseGenerationJobRepository
     if (rpc.error) throw rpc.error;
 
     const row = Array.isArray(rpc.data) ? rpc.data[0] : rpc.data;
-    const jobId = z.object({ id: z.string().uuid() }).parse(row).id;
-    const job = await this.findOwnedById(jobId, input.ownerUserId);
+    const result = z
+      .object({ job_id: z.string().uuid(), created: z.boolean() })
+      .strict()
+      .parse(row);
+    const job = await this.findOwnedById(result.job_id, input.ownerUserId);
     if (!job) throw new Error("Generation job was not readable after commit.");
-    return { job, created: existing?.id !== job.id };
+    return { job, created: result.created };
   }
 
   async findOwnedById(
