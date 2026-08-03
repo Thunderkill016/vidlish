@@ -20,30 +20,27 @@ const describedMetadataSchema = videoMetadataBaseSchema.extend({
   declaredAudioLanguage: z.string().min(1).max(35).optional(),
 });
 
+export const playableVideoMetadataSchema = describedMetadataSchema.extend({
+  availability: z.literal("playable"),
+});
+
+const optionalDescriptionSchema = describedMetadataSchema.partial({
+  title: true,
+  channelName: true,
+});
+
 export const videoMetadataSchema = z.discriminatedUnion("availability", [
-  describedMetadataSchema.extend({ availability: z.literal("playable") }),
+  playableVideoMetadataSchema,
   videoMetadataBaseSchema.extend({ availability: z.literal("not_found") }),
-  describedMetadataSchema.partial({
-    title: true,
-    channelName: true,
-  }).extend({ availability: z.literal("private") }),
-  describedMetadataSchema.partial({
-    title: true,
-    channelName: true,
-  }).extend({ availability: z.literal("restricted") }),
-  describedMetadataSchema.partial({
-    title: true,
-    channelName: true,
-  }).extend({ availability: z.literal("unavailable") }),
+  optionalDescriptionSchema.extend({ availability: z.literal("private") }),
+  optionalDescriptionSchema.extend({ availability: z.literal("restricted") }),
+  optionalDescriptionSchema.extend({ availability: z.literal("unavailable") }),
   videoMetadataBaseSchema.extend({ availability: z.literal("metadata_failed") }),
 ]);
 
 export const validateVideoUrlResponseSchema = z.object({
-  metadata: videoMetadataSchema.extract({ availability: ["playable"] }),
+  metadata: playableVideoMetadataSchema,
 });
 
 export type VideoMetadata = z.infer<typeof videoMetadataSchema>;
-export type PlayableVideoMetadata = Extract<
-  VideoMetadata,
-  { availability: "playable" }
->;
+export type PlayableVideoMetadata = z.infer<typeof playableVideoMetadataSchema>;

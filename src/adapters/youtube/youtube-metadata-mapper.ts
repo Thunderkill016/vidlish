@@ -23,8 +23,12 @@ function isRegionAllowed(
 ): boolean {
   if (!restriction) return true;
   const region = viewerRegion.toUpperCase();
-  if (restriction.allowed) return restriction.allowed.map(String.toUpperCase).includes(region);
-  if (restriction.blocked) return !restriction.blocked.map(String.toUpperCase).includes(region);
+  if (restriction.allowed) {
+    return restriction.allowed.map((code) => code.toUpperCase()).includes(region);
+  }
+  if (restriction.blocked) {
+    return !restriction.blocked.map((code) => code.toUpperCase()).includes(region);
+  }
   return true;
 }
 
