@@ -9,6 +9,19 @@ async function login(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(/\/create$/);
 }
 
+async function prepareConfirmedDraft(
+  page: import("@playwright/test").Page,
+  cefrName = "B2 Trung cấp cao",
+) {
+  await page
+    .getByLabel("Liên kết video YouTube")
+    .fill("https://youtu.be/dQw4w9WgXcQ");
+  await page.getByRole("button", { name: "Kiểm tra video" }).click();
+  await page.getByRole("button", { name: cefrName }).click();
+  await page.getByRole("button", { name: "Xác nhận lựa chọn" }).click();
+  await expect(page.getByTestId("confirmed-lesson-draft")).toBeVisible();
+}
+
 test.beforeEach(async ({ page }) => login(page));
 
 test("valid short URL shows safe metadata preview", async ({ page }) => {
@@ -55,10 +68,10 @@ test("transient fixture failure exposes one retry action", async ({ page }) => {
   await expect(page.getByRole("button", { name: "Thử lại" })).toBeVisible();
 });
 
-test("selects CEFR and confirms a session-only validated draft", async ({ page }) => {
+test("selects CEFR and keeps readiness invalidation rules", async ({ page }) => {
   const jobRequests: string[] = [];
   page.on("request", (request) => {
-    if (request.url().includes("/api/jobs")) jobRequests.push(request.url());
+    if (request.url().endsWith("/api/jobs")) jobRequests.push(request.url());
   });
 
   const input = page.getByLabel("Liên kết video YouTube");
@@ -89,7 +102,7 @@ test("selects CEFR and confirms a session-only validated draft", async ({ page }
   await expect(draft).toContainText("Sẵn sàng tạo bài học");
   await expect(draft).toContainText("trình độ B2");
   await expect(draft).toContainText("không lưu video");
-  await expect(page.getByRole("button", { name: "Tạo bài học" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Tạo bài học" })).toBeVisible();
   expect(jobRequests).toEqual([]);
 
   await input.fill("https://youtu.be/dQw4w9WgXcQ?t=10");
@@ -98,4 +111,28 @@ test("selects CEFR and confirms a session-only validated draft", async ({ page }
   await expect(
     page.getByRole("button", { name: "B2 Trung cấp cao" }),
   ).toHaveAttribute("aria-pressed", "true");
+});
+
+test("creates one durable job, redirects and survives reload", async ({ page }) => {
+  const createRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.method() === "POST" && request.url().endsWith("/api/jobs")) {
+      createRequests.push(request.url());
+    }
+  });
+
+  await prepareConfirmedDraft(page);
+  await page.getByRole("button", { name: "Tạo bài học" }).click();
+
+  await expect(page).toHaveURL(/\/jobs\/[0-9a-f-]{36}$/);
+  await expect(page.getByRole("heading", { name: "Tiến trình" })).toBeVisible();
+  await expect(page.getByText("Lấy hoặc tạo transcript", { exact: true })).toBeVisible();
+  await expect(page.getByText("How to build a better learning habit")).toBeVisible();
+  expect(createRequests).toHaveLength(1);
+
+  const jobUrl = page.url();
+  await page.reload();
+  await expect(page).toHaveURL(jobUrl);
+  await expect(page.getByText("Lấy hoặc tạo transcript", { exact: true })).toBeVisible();
+  await expect(page.getByText("Bạn có thể đóng trang này.")).toBeVisible();
 });

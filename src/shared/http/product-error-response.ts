@@ -4,6 +4,7 @@ import {
   ProductError,
   authErrors,
   toProductError,
+  type ProductErrorCode,
 } from "@/shared/errors/product-error";
 
 const statusByCode = {
@@ -20,7 +21,13 @@ const statusByCode = {
   VIDEO_RESTRICTED: 422,
   VIDEO_UNAVAILABLE: 422,
   VIDEO_METADATA_FAILED: 503,
-} as const;
+  JOB_CONCURRENCY_LIMIT: 409,
+  ACCOUNT_QUOTA_EXCEEDED: 429,
+  RATE_LIMITED: 429,
+  JOB_NOT_FOUND: 404,
+  JOB_CREATE_FAILED: 503,
+  JOB_STATUS_FAILED: 503,
+} as const satisfies Record<ProductErrorCode, number>;
 
 export function productErrorResponse(
   error: unknown,
