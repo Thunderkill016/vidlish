@@ -65,6 +65,18 @@ test("selects CEFR and confirms a session-only validated draft", async ({ page }
   await input.fill("https://youtu.be/dQw4w9WgXcQ");
   await page.getByRole("button", { name: "Kiểm tra video" }).click();
 
+  const cefrGroup = page.getByRole("group", {
+    name: "Trình độ tiếng Anh của bạn",
+  });
+  await expect(cefrGroup).toBeVisible();
+  expect(
+    await page.evaluate(
+      () =>
+        document.documentElement.scrollWidth <=
+        document.documentElement.clientWidth,
+    ),
+  ).toBe(true);
+
   const confirm = page.getByRole("button", { name: "Xác nhận lựa chọn" });
   await expect(confirm).toBeDisabled();
   const b2 = page.getByRole("button", { name: "B2 Trung cấp cao" });
