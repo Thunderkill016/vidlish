@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
+  createLessonJobResponseSchema,
   generationJobResponseSchema,
   type LearnerGenerationPhase,
   type PublicGenerationJob,
 } from "@/shared/contracts/generation";
+import { Button } from "@/shared/ui/button";
 
 const phases: ReadonlyArray<{
   id: Exclude<LearnerGenerationPhase, "completed" | "failed" | "cancelled">;
@@ -33,12 +35,35 @@ export function JobProgress({
   const [phase, setPhase] = useState(initialPhase);
   const [online, setOnline] = useState(true);
   const [pollError, setPollError] = useState(false);
+  const [retryingDispatch, setRetryingDispatch] = useState(false);
+  const [retryDispatchError, setRetryDispatchError] = useState(false);
 
   const terminal = ["completed", "failed", "cancelled"].includes(phase);
   const currentIndex = useMemo(
     () => phases.findIndex((item) => item.id === phase),
     [phase],
   );
+
+  const loadLatest = useCallback(async (): Promise<boolean> => {
+    if (!navigator.onLine) return false;
+    try {
+      const response = await fetch(`/api/jobs/${job.id}`, {
+        cache: "no-store",
+      });
+      if (!response.ok) throw new Error("poll failed");
+      const payload = generationJobResponseSchema.safeParse(
+        (await response.json()) as unknown,
+      );
+      if (!payload.success) throw new Error("invalid poll payload");
+      setJob(payload.data.job);
+      setPhase(payload.data.phase);
+      setPollError(false);
+      return true;
+    } catch {
+      setPollError(true);
+      return false;
+    }
+  }, [job.id]);
 
   useEffect(() => {
     const updateOnline = () => setOnline(navigator.onLine);
@@ -56,22 +81,8 @@ export function JobProgress({
     let cancelled = false;
 
     async function refresh() {
-      if (!navigator.onLine) return;
-      try {
-        const response = await fetch(`/api/jobs/${job.id}`, {
-          cache: "no-store",
-        });
-        if (!response.ok) throw new Error("poll failed");
-        const payload = generationJobResponseSchema.safeParse(
-          (await response.json()) as unknown,
-        );
-        if (!payload.success || cancelled) return;
-        setJob(payload.data.job);
-        setPhase(payload.data.phase);
-        setPollError(false);
-      } catch {
-        if (!cancelled) setPollError(true);
-      }
+      if (cancelled) return;
+      await loadLatest();
     }
 
     void refresh();
@@ -80,7 +91,36 @@ export function JobProgress({
       cancelled = true;
       window.clearInterval(timer);
     };
-  }, [job.id, terminal]);
+  }, [loadLatest, terminal]);
+
+  async function retryDispatch() {
+    if (retryingDispatch || job.dispatchStatus !== "failed") return;
+    setRetryingDispatch(true);
+    setRetryDispatchError(false);
+    try {
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          videoId: job.videoId,
+          cefrLevel: job.cefrLevel,
+          metadataVersion: job.metadataVersion,
+        }),
+      });
+      if (!response.ok) throw new Error("dispatch retry failed");
+      const payload = createLessonJobResponseSchema.safeParse(
+        (await response.json()) as unknown,
+      );
+      if (!payload.success || payload.data.jobId !== job.id) {
+        throw new Error("unexpected retry job");
+      }
+      if (!(await loadLatest())) throw new Error("refresh after retry failed");
+    } catch {
+      setRetryDispatchError(true);
+    } finally {
+      setRetryingDispatch(false);
+    }
+  }
 
   const currentLabel =
     phases.find((item) => item.id === phase)?.label ??
@@ -101,6 +141,30 @@ export function JobProgress({
           {job.channelName}
         </p>
       </section>
+
+      {job.dispatchStatus === "failed" && !terminal ? (
+        <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
+          <div className="space-y-1">
+            <h2 className="text-lg font-semibold">Chưa thể bắt đầu tiến trình</h2>
+            <p role="alert" className="text-sm text-[var(--muted-foreground)]">
+              Job đã được lưu an toàn nhưng chưa gửi được tới hệ thống xử lý.
+            </p>
+            {retryDispatchError ? (
+              <p className="text-sm font-medium text-red-700 dark:text-red-300">
+                Vidlish chưa thể thử lại lúc này. Job vẫn được lưu.
+              </p>
+            ) : null}
+          </div>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={!online || retryingDispatch}
+            onClick={() => void retryDispatch()}
+          >
+            {retryingDispatch ? "Đang thử lại…" : "Thử lại"}
+          </Button>
+        </section>
+      ) : null}
 
       <section
         aria-labelledby="generation-progress-heading"
