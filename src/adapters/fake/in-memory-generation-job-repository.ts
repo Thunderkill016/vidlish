@@ -155,8 +155,14 @@ export class InMemoryGenerationJobRepository
   }
 }
 
-const repository = new InMemoryGenerationJobRepository();
+declare global {
+  var __vidlishGenerationRepository:
+    | InMemoryGenerationJobRepository
+    | undefined;
+}
 
 export function getInMemoryGenerationJobRepository(): InMemoryGenerationJobRepository {
-  return repository;
+  globalThis.__vidlishGenerationRepository ??=
+    new InMemoryGenerationJobRepository();
+  return globalThis.__vidlishGenerationRepository;
 }
