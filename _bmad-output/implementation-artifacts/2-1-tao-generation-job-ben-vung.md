@@ -1,6 +1,6 @@
 # Story 2.1: Tạo generation job bền vững
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -63,14 +63,14 @@ Unit tests cover lifecycle/policy/event IDs; repository/database tests cover tra
 
 ## Tasks / Subtasks
 
-- [ ] Add strict job/event/read schemas and lifecycle contract.
-- [ ] Add generation domain, policy, repository and dispatcher ports.
-- [ ] Add Supabase migration, atomic create RPC, repository and pgTAP/RLS tests.
-- [ ] Add Inngest v4 client, typed event, durable function and App Router serve endpoint.
-- [ ] Add authenticated create/read routes with no-store semantics.
-- [ ] Replace readiness placeholder with `Tạo bài học`; add `/jobs/[jobId]` persisted progress page.
-- [ ] Add fake adapters and unit/integration/E2E coverage without live providers.
-- [ ] Run targeted checks during fixes and one full CI before merge.
+- [x] Add strict job/event/read schemas and lifecycle contract.
+- [x] Add generation domain, policy, repository and dispatcher ports.
+- [x] Add Supabase migration, atomic create RPC, repository and pgTAP/RLS tests.
+- [x] Add Inngest v4 client, typed event, durable function and App Router serve endpoint.
+- [x] Add authenticated create/read routes with no-store semantics.
+- [x] Replace readiness placeholder with `Tạo bài học`; add `/jobs/[jobId]` persisted progress page.
+- [x] Add fake adapters and unit/integration/E2E coverage without live providers.
+- [x] Run targeted checks during fixes and one full CI before merge.
 
 ## Validation Record
 
@@ -78,3 +78,11 @@ Unit tests cover lifecycle/policy/event IDs; repository/database tests cover tra
 - Scope ends before transcript acquisition provider execution.
 - Canonical language gate remains after normalization and before Lesson Engine.
 - Inngest event IDs are defense in depth; database idempotency remains authoritative because event idempotency is time-bounded.
+
+## Completion Record
+
+- PR: #4 — `Story 2.1: Durable generation job`.
+- Squash merge: `6e4a3b60c845c036c80fc1b9a9dff89f1d27b97d`.
+- Final CI: run `30848315048`; quality, Chromium journeys and Supabase migration/RLS jobs passed.
+- Adversarial review fixes: atomic RPC `created` flag, dispatch-retry UI, non-masking job-read errors, concurrent fake transaction lock and complete quota/rate tests.
+- Open findings: none.
