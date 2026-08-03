@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vidlish UX Key Screens</title>
+  <style>
+    :root {
+      --bg:#f8fafc; --card:#fff; --text:#111827; --muted:#64748b; --border:#e2e8f0;
+      --primary:#4338ca; --accent:#0f766e; --evidence:#b45309; --danger:#b91c1c;
+      --radius:16px; --shadow:0 14px 36px rgba(15,23,42,.08);
+    }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,sans-serif;line-height:1.5}
+    header{position:sticky;top:0;z-index:20;background:rgba(248,250,252,.94);backdrop-filter:blur(12px);border-bottom:1px solid var(--border)}
+    .bar{max-width:1280px;margin:auto;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}.brand{font-weight:800;font-size:20px}.nav{display:flex;gap:8px}.nav span{padding:8px 12px;border-radius:10px}.nav .active{background:#eef2ff;color:var(--primary);font-weight:700}
+    main{max-width:1400px;margin:auto;padding:36px 20px 80px}.screen-title{max-width:1280px;margin:42px auto 16px;font-size:14px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-weight:800}
+    .frame{max-width:1280px;margin:auto;background:var(--card);border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);overflow:hidden;min-height:620px}
+    .frame-top{padding:12px 18px;border-bottom:1px solid var(--border);font-size:13px;color:var(--muted);display:flex;gap:8px}.dot{width:10px;height:10px;border-radius:50%;background:#cbd5e1}.content{padding:42px}
+    h1{font-size:40px;line-height:1.1;letter-spacing:-.03em;margin:0 0 12px} h2{font-size:26px;letter-spacing:-.02em;margin:0 0 12px} h3{margin:0 0 8px}.lead{color:var(--muted);font-size:18px;margin:0 0 32px}
+    .form{max-width:720px;margin:40px auto}.label{font-weight:700;margin-bottom:8px}.input{height:54px;border:1px solid #cbd5e1;border-radius:12px;padding:0 16px;display:flex;align-items:center;color:#475569;background:white}.levels{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin:10px 0 24px}.level{padding:11px;border:1px solid var(--border);border-radius:12px;text-align:center;font-weight:700}.level.active{background:var(--primary);color:white;border-color:var(--primary)}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:46px;padding:0 18px;border-radius:12px;background:var(--primary);color:white;font-weight:800}.btn.secondary{background:white;color:var(--text);border:1px solid var(--border)}.btn.accent{background:var(--accent)}
+    .meta{display:grid;grid-template-columns:140px 1fr;gap:18px;border:1px solid var(--border);border-radius:16px;padding:14px;margin:22px 0}.thumb{background:linear-gradient(135deg,#1e293b,#475569);border-radius:10px;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center;color:white;font-size:28px}.small{font-size:13px;color:var(--muted)}
+    .stepper{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin:28px 0}.step{height:7px;background:#e2e8f0;border-radius:99px}.step.done{background:var(--accent)}.step.active{background:var(--primary)}
+    .fallback{max-width:680px;margin:28px auto;border:1px solid #f59e0b;background:#fffbeb;border-radius:16px;padding:24px}.fallback p{color:#78350f}.options{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+    .capture{display:grid;grid-template-columns:1fr 240px;gap:24px;margin-top:24px}.capture-panel{border:1px solid var(--border);border-radius:16px;padding:20px}.meter{height:10px;background:#e2e8f0;border-radius:99px;overflow:hidden}.meter span{display:block;width:62%;height:100%;background:var(--accent)}
+    .lesson{display:grid;grid-template-columns:minmax(340px,42%) 1fr;min-height:760px}.media{background:#f1f5f9;border-right:1px solid var(--border);padding:24px}.player{aspect-ratio:16/9;background:#111827;color:white;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:42px}.phase-nav{display:flex;gap:6px;flex-wrap:wrap;margin:20px 0}.phase{font-size:12px;padding:7px 10px;border-radius:99px;border:1px solid var(--border);background:white}.phase.active{background:var(--primary);color:white}.transcript{border:1px solid var(--border);border-radius:14px;background:white;overflow:hidden}.row{display:grid;grid-template-columns:64px 1fr;gap:10px;padding:12px;border-bottom:1px solid var(--border);font-size:14px}.row.active{background:#ecfdf5;border-left:3px solid var(--accent)}.time{font-family:ui-monospace,monospace;color:var(--evidence);font-weight:800}
+    .lesson-body{padding:34px;max-width:760px}.outcomes,.card{border:1px solid var(--border);border-radius:16px;padding:20px;margin-bottom:18px}.card h3{font-size:18px}.quote{border-left:3px solid var(--accent);padding-left:12px;color:#334155}.chip{display:inline-flex;padding:5px 9px;border-radius:99px;background:var(--evidence);color:white;font:700 12px ui-monospace,monospace}.answer{display:grid;gap:8px;margin-top:14px}.choice{padding:11px;border:1px solid var(--border);border-radius:10px}.choice.selected{border-color:var(--primary);background:#eef2ff}
+    .library-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:22px}.filters{display:flex;gap:8px}.filter{padding:8px 12px;border:1px solid var(--border);border-radius:99px}.filter.active{background:#eef2ff;color:var(--primary);border-color:#c7d2fe}.list{display:grid;gap:12px}.lesson-row{display:grid;grid-template-columns:130px 1fr auto;gap:18px;align-items:center;border:1px solid var(--border);border-radius:16px;padding:14px}.status{font-size:12px;font-weight:800;padding:6px 9px;border-radius:99px;background:#ecfdf5;color:#065f46}.status.processing{background:#eef2ff;color:var(--primary)}.status.failed{background:#fef2f2;color:var(--danger)}
+    .note{max-width:1280px;margin:14px auto 0;color:var(--muted);font-size:13px}
+    @media(max-width:820px){.content{padding:24px}.levels{grid-template-columns:repeat(3,1fr)}.lesson{grid-template-columns:1fr}.media{border-right:0;border-bottom:1px solid var(--border)}.capture{grid-template-columns:1fr}.lesson-row{grid-template-columns:96px 1fr}.lesson-row>div:last-child{grid-column:2}.stepper{grid-template-columns:1fr;gap:4px}.step{height:5px}.nav{display:none}h1{font-size:32px}}
+  </style>
+</head>
+<body>
+<header><div class="bar"><div class="brand">Vidlish</div><div class="nav"><span class="active">Tạo bài học</span><span>Thư viện</span><span>Minh ▾</span></div></div></header>
+<main>
+  <div class="screen-title">01 · Create Lesson</div>
+  <section class="frame"><div class="frame-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i> vidlish.app/create</div><div class="content">
+    <div class="form"><h1>Any video.<br>Your English lesson.</h1><p class="lead">Dán video YouTube bạn muốn học. Vidlish sẽ lấy hoặc tạo transcript, rồi xây một bài học có bằng chứng từ video.</p>
+      <div class="label">Video YouTube</div><div class="input">https://www.youtube.com/watch?v=example</div>
+      <div class="meta"><div class="thumb">▶</div><div><strong>How people really speak in everyday English</strong><div class="small">Everyday English · 18:42 · Video công khai</div><div class="small" style="margin-top:8px">Vidlish sẽ tự chọn cách lấy hoặc tạo transcript.</div></div></div>
+      <div class="label">Trình độ của bạn</div><div class="levels"><div class="level">A1</div><div class="level">A2</div><div class="level active">B1</div><div class="level">B2</div><div class="level">C1</div></div>
+      <div class="btn">Tạo bài học</div><p class="small">Vidlish không lưu video. Transcript và audio tạm được xử lý theo chính sách dữ liệu của private beta.</p>
+    </div>
+  </div></section><p class="note">Single task surface. Metadata confirms the target; one primary action starts a persisted job.</p>
+
+  <div class="screen-title">02 · Generation fallback / tab audio</div>
+  <section class="frame"><div class="frame-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i> vidlish.app/jobs/job_1248</div><div class="content" style="max-width:920px;margin:auto">
+    <h2>Đang tạo bài học</h2><p class="lead">Vidlish giữ trạng thái này ngay cả khi bạn tải lại trang.</p><div class="stepper"><span class="step done"></span><span class="step active"></span><span class="step"></span><span class="step"></span><span class="step"></span><span class="step"></span><span class="step"></span></div>
+    <div class="fallback"><h3>Video này không có phụ đề dùng được</h3><p>Vidlish có thể nghe audio của tab YouTube để tạo transcript. Video không được lưu; audio tạm được xóa sau khi chuyển thành văn bản.</p><div class="options"><div class="btn accent">Chọn tab YouTube</div><div class="btn secondary">Cách khác</div></div></div>
+    <div class="capture"><div class="capture-panel"><strong>Đang nghe tab: YouTube</strong><p class="small">Phát video để Vidlish nghe phần cần xử lý. Bạn có thể dừng bất cứ lúc nào.</p><div class="meter"><span></span></div><p class="small">11:38 / 18:42 đã chuyển thành transcript</p></div><div class="capture-panel"><strong>Quyền riêng tư</strong><p class="small">Chỉ audio mà trình duyệt cung cấp từ tab đã chọn. Không lưu video. Không ghi toàn bộ transcript vào log.</p></div></div>
+  </div></section><p class="note">One recommended fallback, clear consent, persisted job and non-technical copy.</p>
+
+  <div class="screen-title">03 · Lesson Viewer</div>
+  <section class="frame"><div class="frame-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i> vidlish.app/lessons/lesson_982</div><div class="lesson">
+    <aside class="media"><div class="player">▶</div><h3 style="margin-top:16px">How people really speak</h3><div class="small">B1 · khoảng 16 phút</div><div class="phase-nav"><span class="phase">Bắt đầu</span><span class="phase active">Ý chính</span><span class="phase">Ngôn ngữ</span><span class="phase">Luyện tập</span><span class="phase">Vận dụng</span></div>
+      <div class="transcript"><div class="row"><span class="time">00:42</span><span>People don't always speak in complete textbook sentences.</span></div><div class="row active"><span class="time">02:14</span><span>You might run into expressions that sound unfamiliar at first.</span></div><div class="row"><span class="time">02:20</span><span>Context usually tells you more than a direct translation.</span></div></div>
+    </aside>
+    <article class="lesson-body"><div class="outcomes"><strong>Sau bài này, bạn có thể</strong><ol><li>Hiểu ý chính về tiếng Anh giao tiếp tự nhiên.</li><li>Nhận biết và dùng 8 cụm từ B1 quan trọng.</li><li>Nghe ra một số reduced forms trong đoạn hội thoại.</li></ol></div>
+      <div class="card"><div class="small">PHASE 2 · HIỂU Ý CHÍNH</div><h2>Người nói muốn nhấn mạnh điều gì?</h2><div class="answer"><div class="choice selected">Ngữ cảnh quan trọng hơn việc dịch từng từ.</div><div class="choice">Người học chỉ nên dùng câu hoàn chỉnh.</div><div class="choice">Mọi cụm từ lạ đều là slang.</div></div><div class="btn" style="margin-top:14px">Nộp câu trả lời</div></div>
+      <div class="card"><div class="small">NGÔN NGỮ ĐÁNG HỌC</div><h3>run into something</h3><p><strong>gặp phải / tình cờ bắt gặp</strong> — một cụm động từ phổ biến trong giao tiếp.</p><p class="quote">“You might run into expressions that sound unfamiliar at first.”</p><span class="chip">▶ 02:14</span><p class="small"><strong>Ví dụ mới:</strong> You may run into a few problems at the beginning.</p></div>
+      <div class="card"><div class="small">RETRIEVAL</div><h3>Không nhìn đáp án: hoàn thành câu</h3><p>When you watch real conversations, you may ______ expressions you have never seen in a textbook.</p><div class="input">Nhập câu trả lời…</div></div>
+      <div class="card"><div class="small">TRANSFER</div><h3>Dùng cụm từ trong tình huống mới</h3><p>Viết một câu về vấn đề bạn có thể gặp khi học một kỹ năng mới.</p><ul class="small"><li>Dùng “run into”.</li><li>Câu phải mô tả một tình huống mới.</li><li>Kiểm tra thì và chủ ngữ.</li></ul></div>
+    </article>
+  </div></section><p class="note">Desktop split layout keeps evidence near learning activity. On mobile this stacks into one column.</p>
+
+  <div class="screen-title">04 · Library</div>
+  <section class="frame"><div class="frame-top"><i class="dot"></i><i class="dot"></i><i class="dot"></i> vidlish.app/library</div><div class="content">
+    <div class="library-head"><div><h1 style="font-size:34px">Thư viện</h1><p class="lead" style="margin:0">Các bài học và job đang xử lý của bạn.</p></div><div class="btn">Tạo bài học</div></div>
+    <div class="filters"><span class="filter active">Tất cả</span><span class="filter">Đang học</span><span class="filter">Hoàn thành</span><span class="filter">Cần xử lý</span></div>
+    <div class="list" style="margin-top:18px"><div class="lesson-row"><div class="thumb">▶</div><div><strong>How people really speak in everyday English</strong><div class="small">B1 · tạo hôm nay · transcript từ caption</div></div><span class="status">Sẵn sàng</span></div>
+      <div class="lesson-row"><div class="thumb">▶</div><div><strong>Inside a Tokyo convenience store</strong><div class="small">A2 · đang tạo transcript từ audio tab</div></div><span class="status processing">Đang xử lý</span></div>
+      <div class="lesson-row"><div class="thumb">▶</div><div><strong>Why habits are hard to change</strong><div class="small">B2 · cần chọn lại tab có audio</div></div><span class="status failed">Cần xử lý</span></div></div>
+  </div></section><p class="note">Library recovers jobs as well as lessons; failed rows return to actionable fallback states.</p>
+</main>
+</body>
+</html>
