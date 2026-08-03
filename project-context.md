@@ -9,10 +9,11 @@
 - Architecture: final; initial implementation adapters locked in `IMPLEMENTATION-DECISIONS.md`.
 - Epics & Stories: final; 5 epics / 29 stories; coverage and quality validation PASS.
 - Implementation Readiness rerun: **READY/PASS**.
-- Sprint Planning: next required workflow.
+- Sprint Planning: complete; canonical tracking exists at `_bmad-output/implementation-artifacts/sprint-status.yaml`.
+- Story 1.1: next story to create and validate.
 - Product code: not started.
 
-No product scaffold, migration or provider integration begins until Sprint Planning creates the implementation sequence and Story 1.1 enters the normal create/validate/dev cycle.
+No product scaffold, migration or provider integration begins until the Story 1.1 implementation artifact is created, validated and moved to `ready-for-dev`.
 
 ## Product promise
 
@@ -98,12 +99,13 @@ input eligible English video
 
 No translation-based lesson mode, AI tutor chat, pronunciation scoring, gamification, payment, classroom management, mobile-native app or public sharing is part of MVP.
 
-## Readiness evidence
+## Readiness and tracking evidence
 
 - Canonical backlog: `_bmad-output/planning-artifacts/epics.md`
 - Backlog validation: `_bmad-output/planning-artifacts/epics/final-validation.md`
 - Readiness PASS: `_bmad-output/planning-artifacts/implementation-readiness-report-2026-08-03-rerun.md`
+- Sprint tracking: `_bmad-output/implementation-artifacts/sprint-status.yaml`
 
 ## Next workflow
 
-Run `bmad-sprint-planning`. After the sprint status artifact exists, create and validate the Story 1.1 implementation artifact, then begin development.
+Run `bmad-create-story` for `1-1-truy-cap-private-beta-va-dang-nhap-an-toan`, validate the story artifact, then begin development only after its sprint status becomes `ready-for-dev`.
