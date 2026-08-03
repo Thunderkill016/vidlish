@@ -1,6 +1,6 @@
 # Story 2.2: Lấy caption gốc và tạo canonical transcript
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -34,15 +34,23 @@ so that flow tiếp tục nhanh mà không cần input thủ công.
 
 ## Tasks
 
-- [ ] Contracts và strategy/repository ports.
-- [ ] Supadata native adapter + fixture.
-- [ ] Deterministic normalizer.
-- [ ] Migration, atomic RPC, RLS và repositories.
-- [ ] Workflow integration.
-- [ ] Unit, adapter, SQL/RLS và workflow tests.
-- [ ] Targeted checks và một full CI trước merge.
+- [x] Contracts và strategy/repository ports.
+- [x] Supadata native adapter + fixture.
+- [x] Deterministic normalizer.
+- [x] Migration, atomic RPC, RLS và repositories.
+- [x] Workflow integration.
+- [x] Unit, adapter, SQL/RLS và workflow tests.
+- [x] Targeted checks và một full CI trước merge.
 
 ## Validation Record
 
 - Result: PASS.
 - Story kết thúc tại committed transcript và `checking_language`; chưa chạy language detector.
+
+## Completion Record
+
+- PR: #5 — `Story 2.2: Native captions and canonical transcript`.
+- Squash merge: `104edbd1e5f9e8812e592c9a9d4c5b3f6d39f22e`.
+- Final CI: run `30851142219`; quality, Chromium journeys và Supabase migration/RLS jobs passed.
+- Adversarial review fixes: valid fixture video IDs, composite segment identity scoped per transcript, and inline workflow parity through native-caption acquisition.
+- Open findings: none.
