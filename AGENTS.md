@@ -1,32 +1,17 @@
 # AGENTS.md
 
-## Vai trò của Codex trong dự án
+## Vai trò của Codex
 
-Vidlish sử dụng BMAD Method theo **Full BMad greenfield track**. `IDEA.md` là nguồn ý tưởng ban đầu; các artifact BMAD đã final và `project-context.md` là nguồn yêu cầu, kiến trúc và invariant trực tiếp cho downstream workflows.
+Vidlish dùng BMAD Method 6.10.0 theo Full BMad greenfield track. `project-context.md` là nguồn bối cảnh bắt buộc; planning authorities nằm trong `_bmad-output/planning-artifacts/`, sprint/story tracking nằm trong `_bmad-output/implementation-artifacts/`.
 
 ## Trạng thái hiện tại
 
-- BMAD Method 6.10.0 đã được cài cho Codex.
-- Project context bắt buộc:
-  `project-context.md`
-- PRD đã `final`:
-  `_bmad-output/planning-artifacts/prds/prd-vidlish-2026-08-03/prd.md`
-- PRD language amendment:
-  `_bmad-output/planning-artifacts/prds/prd-vidlish-2026-08-03/language-eligibility-amendment.md`
-- UX đã `final`:
-  - `_bmad-output/planning-artifacts/ux-designs/ux-vidlish-2026-08-03/DESIGN.md`
-  - `_bmad-output/planning-artifacts/ux-designs/ux-vidlish-2026-08-03/EXPERIENCE.md`
-  - `_bmad-output/planning-artifacts/ux-designs/ux-vidlish-2026-08-03/language-eligibility-amendment.md`
-- Lesson Engine SPEC:
-  `_bmad-output/specs/spec-vidlish-lesson-engine/SPEC.md`
-- Lesson Engine language companion:
-  `_bmad-output/specs/spec-vidlish-lesson-engine/language-eligibility.md`
-- Architecture spine đã `final`:
-  `_bmad-output/planning-artifacts/architecture/architecture-vidlish-2026-08-03/ARCHITECTURE-SPINE.md`
-- Architecture language amendment:
-  `_bmad-output/planning-artifacts/architecture/architecture-vidlish-2026-08-03/language-eligibility-amendment.md`
-- Product code và Next.js scaffold **chưa được tạo**.
-- Workflow tiếp theo: `bmad-create-epics-and-stories`.
+- PRD, UX, Architecture, Epics/Stories: final.
+- Implementation Readiness: READY/PASS.
+- Sprint Planning: complete.
+- Epic 1: in progress.
+- Story hiện tại: `1-1-truy-cap-private-beta-va-dang-nhap-an-toan`.
+- Product code chỉ được thay đổi theo story artifact hiện tại và chuỗi create/validate/dev/review.
 
 ## Invariant nguồn tiếng Anh
 
@@ -40,57 +25,42 @@ Không đủ tiếng Anh → VIDEO_LANGUAGE_UNSUPPORTED → chọn video khác.
 Bắt buộc:
 
 - Detect language sau transcript normalization và trước Lesson Engine.
-- Mixed-language chỉ được dùng khi phần tiếng Anh tự nó đủ tạo một Core Lesson hợp lệ.
-- Non-English segments không được làm source quote, listening evidence, grammar evidence hoặc scored evidence.
-- Không dịch video không phải tiếng Anh để tạo lesson.
-- Không tạo English TTS/dub/learning track thay thế audio gốc.
-- Không trình bày generated English như lời nói trong video.
+- Mixed-language chỉ dùng khi phần tiếng Anh tự nó đủ cho một Core Lesson hợp lệ.
+- Non-English segments không làm source quote, listening, grammar hoặc scored evidence.
+- Không dịch video không phải tiếng Anh, không tạo dub/TTS thay audio gốc, không trình bày generated English như source speech.
 
-## Quy tắc làm việc
+Story 1.1 chưa triển khai pipeline này nhưng không được tạo cấu trúc làm yếu invariant.
 
-1. Trước mọi planning/implementation task, đọc `project-context.md`, PRD final + amendment, UX spines + amendment, Lesson Engine SPEC cùng companions và Architecture Spine + amendment.
-2. `project-context.md` và language eligibility amendments thắng nếu artifact cũ còn câu chữ rộng hơn hoặc mâu thuẫn.
-3. Architecture Decision `AD-*` và amendment AD-22 là invariant bắt buộc; không được âm thầm thay đổi hoặc làm yếu đi trong epic, story hay code.
-4. Ưu tiên các skill trong `.agents/skills/` và đúng chuỗi BMAD.
-5. Không tự mở rộng MVP ngoài vòng giá trị:
-   `nhập video tiếng Anh → lấy/tạo transcript tiếng Anh gốc → tạo bài học → học → lưu/mở lại/xóa`.
-6. Tự đưa ra giả định cho chi tiết nhỏ và ghi lại trong artifact sở hữu quyết định đó.
-7. Chỉ hỏi product owner về quyết định sản phẩm lớn, pháp lý, API key, tài khoản, nhà cung cấp có chi phí hoặc thanh toán.
-8. Không viết code hoặc scaffold ứng dụng trước khi:
-   - `bmad-create-epics-and-stories` hoàn tất;
-   - `bmad-check-implementation-readiness` đạt;
-   - `bmad-sprint-planning` hoàn tất;
-   - story hiện tại được create và validate.
-9. Lưu planning artifact trong `_bmad-output/planning-artifacts/` và implementation artifact trong `_bmad-output/implementation-artifacts/`.
-10. Giao tiếp với product owner bằng tiếng Việt; code, identifier và tài liệu kỹ thuật có thể dùng tiếng Anh.
-11. Không sửa tay artifact có memlog làm nguồn quyết định; cập nhật qua workflow sở hữu artifact đó.
-12. Không gọi provider thật trong unit test hoặc CI mặc định. Dùng fixtures/fakes theo Architecture AD-19.
-13. Không đưa API key, service-role key, transcript đầy đủ hoặc prompt chứa transcript vào log hoặc client bundle.
+## Quy tắc implementation
 
-## Chuỗi workflow bắt buộc
+1. Đọc `project-context.md` và story artifact trước khi sửa code.
+2. Dependency hướng vào trong: App/route handlers → application → ports; adapter Supabase/Next.js ở ngoài domain.
+3. Chỉ config modules đọc `process.env`; service/secret key không vào client bundle.
+4. Mọi owner-scoped table/bucket sau này phải có server ownership check và RLS.
+5. Không gọi provider thật trong CI; dùng fixtures/fakes/local services.
+6. Không log API key, OTP, auth token, cookie, email thô, transcript hoặc prompt chứa transcript.
+7. Không mở rộng MVP sang payment, AI chat, gamification, classroom, public sharing hoặc mobile native.
+8. Không tạo trước Job, Transcript, Lesson hoặc Activity entities khi story chưa sở hữu chúng.
+9. Chỉ đánh dấu task/story hoàn tất khi tests và acceptance criteria thực sự đạt.
+10. Giao tiếp product-owner bằng tiếng Việt; code/identifier kỹ thuật dùng tiếng Anh.
+
+## Chuỗi workflow
 
 ```text
-IDEA.md
-→ bmad-prd                       [done]
-→ bmad-ux                        [done]
-→ bmad-architecture              [done]
-→ language eligibility amendment [done]
-→ bmad-create-epics-and-stories  [next]
-→ bmad-check-implementation-readiness
-→ bmad-sprint-planning
-→ bmad-create-story:create
-→ bmad-create-story:validate
-→ bmad-dev-story
-→ bmad-code-review
+create-story
+→ validate-create-story
+→ dev-story
+→ code-review
+→ story done
+→ create story kế tiếp
 ```
 
-## Hành động tiếp theo
+## Nguồn chuẩn
 
-Chạy `bmad-create-epics-and-stories` với các nguồn bắt buộc:
-
-1. `project-context.md`.
-2. PRD final và `language-eligibility-amendment.md`.
-3. UX `DESIGN.md`, `EXPERIENCE.md` và UX language amendment.
-4. Lesson Engine `SPEC.md`, toàn bộ companions và `language-eligibility.md`.
-5. `ARCHITECTURE-SPINE.md`, architecture memlog và architecture language amendment.
-6. Không tạo story implementation trước khi epic map đã truy vết toàn bộ FR, CAP, AD và language eligibility gate.
+- `project-context.md`
+- `_bmad-output/planning-artifacts/epics.md`
+- `_bmad-output/planning-artifacts/architecture/architecture-vidlish-2026-08-03/ARCHITECTURE-SPINE.md`
+- `_bmad-output/planning-artifacts/architecture/architecture-vidlish-2026-08-03/LANGUAGE-ELIGIBILITY-AMENDMENT.md`
+- `_bmad-output/planning-artifacts/architecture/architecture-vidlish-2026-08-03/IMPLEMENTATION-DECISIONS.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- Story artifact hiện tại.
