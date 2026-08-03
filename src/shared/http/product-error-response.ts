@@ -26,6 +26,7 @@ const statusByCode = {
   RATE_LIMITED: 429,
   JOB_NOT_FOUND: 404,
   JOB_CREATE_FAILED: 503,
+  JOB_STATUS_FAILED: 503,
 } as const satisfies Record<ProductErrorCode, number>;
 
 export function productErrorResponse(
