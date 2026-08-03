@@ -19,6 +19,7 @@ companions:
   - epics/requirements-inventory.md
   - epics/architecture-ux-requirements.md
   - epics/epic-1.md
+  - epics/epic-2.md
 status: draft
 ---
 
@@ -169,4 +170,10 @@ Người dùng có thể xem lesson/job theo trạng thái, mở lại không g�
 
 ### Epic 2
 
-- Story breakdown — drafting.
+- [Story 2.1 — Tạo generation job bền vững](epics/epic-2.md#story-21--tạo-generation-job-bền-vững) — approved.
+- Story 2.2 — Lấy caption và tạo canonical transcript — drafting.
+- Story 2.3 — Kiểm tra video có đủ tiếng Anh gốc — pending.
+- Story 2.4 — Thử các transcript provider phía server — pending.
+- Story 2.5 — Nhận transcript hoặc subtitle từ người dùng — pending.
+- Story 2.6 — Tạo transcript từ audio của tab — pending.
+- Story 2.7 — Xử lý video dài và hoàn thiện độ tin cậy — pending.
