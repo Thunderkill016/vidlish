@@ -1,199 +1,199 @@
 # Epic 4 — Học và luyện tập trực tiếp với video
 
-Người dùng có thể tương tác với video và lesson, bấm timestamp, làm hoạt động, nhận feedback, luyện retrieval/transfer và đánh dấu hoàn thành.
+Người học có thể điều khiển video bằng evidence, làm hoạt động, nhận feedback, luyện retrieval/transfer và lưu completion.
 
-**FRs covered:** FR35, FR36, FR37, FR38.
+**FRs covered:** FR35–FR38.  
+**Dependency:** published lesson persistence (Story 3.6) và readable viewer (Story 3.7).
 
 ## Story 4.1 — Điều hướng video bằng timestamp evidence
 
-**As a** người học đang đọc lesson,
-**I want** bấm vào bằng chứng để phát đúng đoạn video liên quan,
-**So that** tôi có thể nghe lại lời nói thật thay vì học tách rời khỏi ngữ cảnh.
+**As a** người học đang đọc lesson,  
+**I want** kích hoạt evidence để mở đúng đoạn video,  
+**So that** tôi nghe lại lời nói thật trong ngữ cảnh.
 
-**Requirements:** FR35 · NFR11, NFR13–14 · AR21, AR23, AR25, AR27 · UX-DR15–16, UX-DR19–20, UX-DR27–32.
+**Requirements:** FR35 · NFR11, NFR13–14 · AD-12–14, AD-19 · UX-DR15–16, UX-DR19–20, UX-DR27–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** published lesson có source refs với timestamp hợp lệ
-**When** Lesson Viewer hiển thị
-**Then** video player dùng canonical YouTube video ID từ server data
-**And** player không nhận arbitrary embed URL từ lesson content
-**And** transcript/source text không được render như HTML không kiểm soát.
+#### AC1 — Safe player source
 
-**Given** người dùng kích hoạt EvidenceChip bằng click, Enter hoặc Space
-**When** source ref có timestamp
-**Then** player seek tới thời điểm đó và bắt đầu phát theo interaction policy
-**And** focus không bị mất
-**And** screen reader nhận thông báo ngắn về đoạn được mở
-**And** interaction không phụ thuộc màu.
+**Given** owner mở published lesson  
+**When** player render  
+**Then** dùng canonical YouTube video ID từ server DTO  
+**And** không nhận arbitrary embed URL/HTML từ lesson content.
 
-**Given** evidence có start và optional end timestamp
-**When** player phát
-**Then** UI có thể highlight segment active trong transcript/source panel
-**And** highlight dùng text/icon/background có contrast phù hợp
-**And** end timestamp không buộc player tự dừng nếu điều đó gây gián đoạn, trừ activity yêu cầu đoạn nghe giới hạn.
+#### AC2 — Keyboard/click seek
 
-**Given** source ref không có timing chính xác
-**When** viewer render
-**Then** EvidenceChip không giả vờ seek được
-**And** hiển thị source text/reference không tương tác hoặc copy giải thích phù hợp
-**And** không bịa timestamp.
+**Given** source ref có reliable timestamp  
+**When** user click hoặc nhấn Enter/Space  
+**Then** player seek tới start time và phát theo interaction policy  
+**And** focus không mất  
+**And** screen reader nhận thông báo ngắn.
 
-**Given** YouTube player chưa sẵn sàng hoặc bị chặn
-**When** người dùng kích hoạt evidence
-**Then** action được queue tối đa trong thời gian cấu hình hoặc trả lỗi có thể thử lại
-**And** lesson content vẫn đọc được
+#### AC3 — Active segment
+
+**Given** player time thay đổi  
+**When** transcript sync bật  
+**Then** active segment xác định từ canonical timestamps  
+**And** highlight dùng text/icon/background có contrast  
+**And** screen reader không bị spam.
+
+#### AC4 — No-timing behavior
+
+**Given** source ref không có timing đủ tin cậy  
+**When** viewer render  
+**Then** hiển thị non-interactive source reference  
+**And** không bịa timestamp hoặc giả seek được.
+
+#### AC5 — Player not ready/blocked
+
+**Given** iframe chưa sẵn sàng hoặc playback bị chặn  
+**When** evidence kích hoạt  
+**Then** queue bounded hoặc trả retryable product feedback  
+**And** lesson content vẫn đọc được  
 **And** không reload toàn trang.
 
-**Given** mobile layout
-**When** evidence được kích hoạt
-**Then** player được đưa vào vùng nhìn thấy hợp lý mà không gây focus trap
-**And** sticky/player behavior không che nội dung hoặc control hệ thống
-**And** touch target đạt tối thiểu 44×44 CSS pixels.
+#### AC6 — Mobile/accessibility/privacy
 
-**Given** transcript panel hiển thị source segments
-**When** playback time thay đổi
-**Then** active segment được tính từ canonical timestamps
-**And** low-confidence segment có visual/copy distinction khi dữ liệu cho phép
-**And** non-English excluded segment không được nhấn mạnh như English lesson evidence.
+**Given** mobile/keyboard user  
+**When** evidence activated  
+**Then** player được đưa vào view hợp lý không focus trap  
+**And** target ≥44px, no color-only state  
+**And** telemetry chỉ ghi source-ref ID/timestamp band/result, không transcript text/watch history chi tiết.
 
-**Given** telemetry interaction được ghi
-**When** user seek bằng evidence
-**Then** chỉ ghi lesson ID, source ref ID, timestamp band và interaction result
-**And** không gửi transcript text hoặc YouTube watch history chi tiết ngoài nhu cầu sản phẩm.
+#### AC7 — Tests
 
-**Given** Story 4.1 được đưa vào CI
-**When** tests chạy
-**Then** có keyboard, focus, seek, player-not-ready, no-timing, mobile và active-segment tests
-**And** YouTube player được mock, không gọi player thật trong CI.
+**Given** Story 4.1 vào CI  
+**When** suite chạy  
+**Then** có player mock tests cho seek, keyboard/focus, not-ready, no-timing, active segment và mobile behavior.
 
 ## Story 4.2 — Làm hoạt động và nhận feedback
 
-**As a** người học,
-**I want** trả lời các hoạt động trong lesson và nhận feedback ngay,
-**So that** tôi biết mình hiểu đúng phần nghe và ngôn ngữ trong video hay chưa.
+**As a** người học,  
+**I want** nộp câu trả lời và nhận feedback ngay,  
+**So that** tôi biết mình hiểu đúng nội dung/ngôn ngữ hay chưa.
 
-**Requirements:** FR36 · NFR2, NFR11, NFR13–16 · AR19–21, AR23, AR26–27 · UX-DR21–22, UX-DR27–32.
+**Requirements:** FR36 · NFR2, NFR11, NFR13–16 · AD-12–14, AD-19 · UX-DR21–22, UX-DR27–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** published lesson có activity definitions đã pass Final Quality Gate
-**When** viewer render
-**Then** chỉ các activity type nằm trong versioned catalog được khởi tạo
-**And** unknown hoặc malformed activity fail closed thay vì chạy code động
-**And** activity data không được phép inject HTML/script.
+#### AC1 — Versioned activity catalog
 
-**Given** một hoạt động trắc nghiệm, matching, ordering, fill hoặc short guided response được hỗ trợ
-**When** người dùng submit
-**Then** server/client evaluator dùng answer contract đã publish, không gọi model để quyết định đúng sai cho deterministic activity
-**And** trạng thái unanswered, selected, submitted, correct, incorrect và reviewed được phân biệt bằng text/icon cùng màu semantic.
+**Given** published activity definitions  
+**When** viewer render  
+**Then** chỉ allowed versioned activity types được khởi tạo  
+**And** unknown/malformed type fail closed  
+**And** content không inject HTML/script.
 
-**Given** activity dựa trên đoạn nghe
-**When** người dùng chọn `Nghe lại`
-**Then** player phát đúng source range có timing đủ chất lượng
-**And** số lần nghe không bị giới hạn theo cơ chế gamification
-**And** activity không tiết lộ đáp án chỉ vì player lỗi.
+#### AC2 — Deterministic scoring
 
-**Given** câu trả lời đúng hoặc sai
-**When** feedback hiển thị
-**Then** feedback giải thích ngắn gọn dựa trên source/explanation đã publish
-**And** sai không dùng copy mang tính phán xét
-**And** source và generated feedback được phân biệt khi cần
-**And** raw validator/model metadata không xuất hiện.
+**Given** supported scored activity  
+**When** user submit  
+**Then** evaluator dùng published answer contract, không model call  
+**And** unanswered/selected/submitted/correct/incorrect/reviewed states có text/icon cùng semantic color  
+**And** browser không tự ghi `isCorrect`.
 
-**Given** activity có nhiều lần thử theo definition
-**When** learner thử lại
-**Then** state transition deterministic và không thay đáp án chuẩn
-**And** reset không xóa progress của activity khác
-**And** duplicate submit do double click/retry không ghi hai attempt.
+#### AC3 — Listening evidence
 
-**Given** attempt được persist
-**When** request thành công
-**Then** record thuộc owner + lesson version + activity ID
-**And** RLS ngăn cross-user read/write
-**And** browser không thể ghi `isCorrect` tùy ý; server xác minh deterministic answer khi activity được chấm điểm.
+**Given** listening activity có reliable source range  
+**When** user chọn `Nghe lại`  
+**Then** player mở đúng range  
+**And** playback failure không tiết lộ đáp án  
+**And** không giới hạn lượt nghe bằng gamification.
 
-**Given** mạng mất trong lúc làm activity
-**When** kết nối trở lại
-**Then** local pending response có thể retry bằng idempotency key
-**And** UI cho biết chưa đồng bộ
-**And** không tự đánh dấu hoàn thành sai.
+#### AC4 — Feedback and retry
 
-**Given** learner dùng bàn phím hoặc screen reader
-**When** thao tác activity
-**Then** group/label/instruction/error được liên kết đúng
-**And** focus tới feedback hợp lý mà không trap
-**And** ordering/matching có phương án keyboard tương đương drag
-**And** motion feedback tôn trọng reduced-motion.
+**Given** answer đúng/sai  
+**When** feedback hiển thị  
+**Then** giải thích ngắn dựa trên published evidence/explanation  
+**And** copy không phán xét  
+**And** retry/reset deterministic và không đổi answer key.
 
-**Given** Story 4.2 được đưa vào CI
-**When** tests chạy
-**Then** có contract tests cho catalog activity, deterministic scoring, retry/idempotency, RLS, offline state và accessibility
-**And** có E2E làm đúng, làm sai, nghe lại và thử lại
-**And** CI không gọi model/provider thật.
+#### AC5 — Persistence/idempotency/offline
+
+**Given** attempt submit/retry/double-click/offline  
+**When** server sync  
+**Then** record owner + lesson version + activity ID, protected by RLS  
+**And** idempotency key ngăn duplicate  
+**And** pending response có unsynced state rõ ràng.
+
+#### AC6 — Accessibility
+
+**Given** keyboard/screen-reader user  
+**When** làm activity  
+**Then** group/label/instruction/error liên kết đúng  
+**And** focus tới feedback hợp lý  
+**And** ordering/matching có keyboard alternative  
+**And** reduced-motion respected.
+
+#### AC7 — Tests
+
+**Given** Story 4.2 vào CI  
+**When** suite chạy  
+**Then** có catalog-contract, deterministic scoring, RLS, idempotency/offline, accessibility và E2E correct/incorrect/replay/retry tests  
+**And** no live model/provider.
 
 ## Story 4.3 — Retrieval, transfer và hoàn thành lesson
 
-**As a** người học,
-**I want** tự nhớ lại, áp dụng điều đã học và kết thúc lesson với trạng thái rõ ràng,
-**So that** tôi biến việc xem video thành một vòng học hoàn chỉnh chứ không chỉ đọc giải thích.
+**As a** người học,  
+**I want** nhớ lại, vận dụng và kết thúc lesson với trạng thái rõ ràng,  
+**So that** việc xem video trở thành một vòng học hoàn chỉnh.
 
-**Requirements:** FR37, FR38 · NFR2, NFR11, NFR13–16 · AR19–21, AR23, AR26, AR29 · UX-DR17, UX-DR23, UX-DR26–32.
+**Requirements:** FR37, FR38 · NFR2, NFR11, NFR13–16 · AD-12–14, AD-20 · UX-DR17, UX-DR23, UX-DR26–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** learner đi tới phần cuối Core Lesson
-**When** retrieval activity hiển thị
-**Then** prompt yêu cầu nhớ lại ý/ngôn ngữ trước khi xem đáp án hoặc gợi ý
-**And** reveal state do learner chủ động kích hoạt
-**And** prompt liên kết outcomes đã publish.
+#### AC1 — Retrieval before reveal
 
-**Given** transfer prompt hiển thị
-**When** learner phản hồi
-**Then** họ có thể tạo câu/ý áp dụng vào ngữ cảnh mới
-**And** MVP cho phép self-check theo checklist/rubric đã publish hoặc lưu reflection text
-**And** generated open response không bị chấm đúng/sai giả tạo bằng string matching
-**And** nếu không có AI feedback đáng tin, UI nói rõ đây là tự đánh giá.
+**Given** learner tới retrieval phase  
+**When** prompt hiển thị  
+**Then** target content/answer được ẩn đến khi learner chủ động attempt/reveal  
+**And** prompt liên kết published outcomes.
 
-**Given** exit ticket hiển thị
-**When** learner trả lời
-**Then** có câu hỏi ngắn kiểm tra takeaway hoặc confidence theo definition của lesson
-**And** feedback không biến confidence thành điểm năng lực khách quan
-**And** learner có thể xem lại source evidence trước khi kết thúc.
+#### AC2 — Transfer/self-check
 
-**Given** learner chưa hoàn thành required activity tối thiểu
-**When** chọn hoàn thành
-**Then** UI chỉ ra phần còn thiếu hoặc cho phép `Hoàn thành dù chưa làm hết` nếu completion policy cho phép
-**And** policy rõ ràng, không ép streak/XP.
+**Given** transfer prompt  
+**When** learner trả lời  
+**Then** họ áp dụng ngôn ngữ vào context mới  
+**And** dùng 2–4 published self-check criteria  
+**And** open response không bị fake-grade bằng string match/model ngoài scope.
 
-**Given** completion criteria đạt hoặc learner xác nhận theo policy
-**When** chọn `Hoàn thành bài học`
-**Then** tạo/ cập nhật một completion record idempotent cho owner + lesson version
-**And** lưu completedAt và summary progress cần thiết
-**And** không sửa immutable lesson content.
+#### AC3 — Exit ticket
 
-**Given** lesson đã hoàn thành
-**When** learner mở lại
-**Then** trạng thái completion và activity attempts được khôi phục
-**And** learner vẫn có thể nghe/xem lại và luyện lại
-**And** luyện lại không tự xóa completedAt trừ khi product policy versioned quy định.
+**Given** lesson kết thúc  
+**When** exit ticket render  
+**Then** có takeaway/confidence prompt ngắn  
+**And** confidence không bị coi là điểm năng lực khách quan  
+**And** learner có thể xem lại evidence.
 
-**Given** completion action thành công
-**When** UI phản hồi
-**Then** hiển thị trạng thái bình tĩnh, không confetti/streak/XP
-**And** primary action phù hợp là quay lại thư viện hoặc xem lại lesson
-**And** trạng thái không chỉ thể hiện bằng màu.
+#### AC4 — Completion policy
 
-**Given** reflection hoặc transfer text được lưu
-**When** persistence chạy
-**Then** dữ liệu thuộc owner, có RLS và retention/delete dependency cùng lesson
-**And** không gửi nội dung riêng tư vào analytics logs
-**And** browser không đọc reflection người khác.
+**Given** required interactions còn thiếu  
+**When** user chọn complete  
+**Then** UI chỉ ra phần thiếu hoặc cho explicit complete-anyway nếu policy cho phép  
+**And** không ép streak/XP.
 
-**Given** Story 4.3 được đưa vào CI
-**When** tests chạy
-**Then** có tests cho retrieval reveal, self-check, completion policy, idempotent completion, reopen state, RLS và accessibility
-**And** có E2E hoàn thành và mở lại lesson
-**And** CI không gọi model thật.
+#### AC5 — Idempotent completion
 
-Epic 4 hoàn tất khi learner có thể nghe đúng đoạn, làm activity, nhận feedback, thực hiện retrieval/transfer và lưu completion state.
+**Given** completion criteria/xác nhận đạt  
+**When** submit  
+**Then** create/update completion record cho owner + lesson version idempotently  
+**And** lưu `completedAt` và summary progress cần thiết  
+**And** không mutate immutable lesson.
+
+#### AC6 — Reopen and privacy
+
+**Given** completed lesson mở lại  
+**When** viewer load  
+**Then** attempts/completion/reflection được khôi phục  
+**And** learner vẫn luyện lại được  
+**And** private transfer/reflection text có RLS/retention dependency và không vào analytics logs.
+
+#### AC7 — Calm completion UX and tests
+
+**Given** completion thành công  
+**When** UI phản hồi  
+**Then** no confetti/streak/XP; action phù hợp là Library hoặc xem lại  
+**And** tests cover retrieval reveal, self-check, completion policy/idempotency, reopen, RLS, accessibility and E2E completion.
+
+Epic 4 hoàn tất khi learner có thể seek evidence, làm activities, retrieval/transfer và lưu completion.
