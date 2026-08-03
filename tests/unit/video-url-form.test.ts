@@ -26,7 +26,10 @@ describe("VideoUrlForm", () => {
     const user = userEvent.setup();
     render(createElement(VideoUrlForm));
 
-    await user.type(screen.getByLabelText("Liên kết video YouTube"), "https://evil.example");
+    await user.type(
+      screen.getByLabelText("Liên kết video YouTube"),
+      "https://evil.example",
+    );
     await user.click(screen.getByRole("button", { name: "Kiểm tra video" }));
 
     expect(screen.getByRole("alert")).toHaveTextContent("không hợp lệ");
@@ -114,5 +117,51 @@ describe("VideoUrlForm", () => {
       "chưa thể kiểm tra video",
     );
     expect(screen.queryByTestId("video-metadata-preview")).not.toBeInTheDocument();
+  });
+
+  it("confirms a validated CEFR draft without creating a job", async () => {
+    const fetchMock = vi.fn(async () =>
+      new Response(JSON.stringify({ metadata }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      }),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const user = userEvent.setup();
+    render(createElement(VideoUrlForm));
+
+    const input = screen.getByLabelText("Liên kết video YouTube");
+    await user.type(input, "https://youtu.be/dQw4w9WgXcQ");
+    await user.click(screen.getByRole("button", { name: "Kiểm tra video" }));
+
+    const confirm = await screen.findByRole("button", {
+      name: "Xác nhận lựa chọn",
+    });
+    expect(confirm).toBeDisabled();
+
+    const b1 = screen.getByRole("button", { name: "B1 Trung cấp" });
+    await user.click(b1);
+    expect(b1).toHaveAttribute("aria-pressed", "true");
+    expect(confirm).toBeEnabled();
+
+    await user.click(confirm);
+    expect(screen.getByTestId("confirmed-lesson-draft")).toHaveTextContent(
+      "Sẵn sàng tạo bài học",
+    );
+    expect(screen.getByTestId("confirmed-lesson-draft")).toHaveTextContent(
+      "trình độ B1",
+    );
+    expect(screen.queryByRole("button", { name: "Tạo bài học" })).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledOnce();
+
+    await user.type(input, "x");
+    expect(screen.queryByTestId("confirmed-lesson-draft")).not.toBeInTheDocument();
+
+    await user.clear(input);
+    await user.type(input, "https://youtu.be/dQw4w9WgXcQ");
+    await user.click(screen.getByRole("button", { name: "Kiểm tra video" }));
+    expect(
+      await screen.findByRole("button", { name: "B1 Trung cấp" }),
+    ).toHaveAttribute("aria-pressed", "true");
   });
 });
