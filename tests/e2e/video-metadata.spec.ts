@@ -26,7 +26,7 @@ test("invalid URL is rejected locally and can be corrected", async ({ page }) =>
   const input = page.getByLabel("Liên kết video YouTube");
   await input.fill("https://youtube.com.evil.example/watch?v=dQw4w9WgXcQ");
   await page.getByRole("button", { name: "Kiểm tra video" }).click();
-  await expect(page.getByRole("alert")).toContainText("không hợp lệ");
+  await expect(page.locator("#video-url-error")).toContainText("không hợp lệ");
 
   await input.fill("https://www.youtube.com/watch?v=dQw4w9WgXcQ");
   await page.getByRole("button", { name: "Kiểm tra video" }).click();
@@ -38,7 +38,7 @@ test("unavailable video shows actionable safe copy", async ({ page }) => {
     .getByLabel("Liên kết video YouTube")
     .fill("https://youtu.be/notfound001");
   await page.getByRole("button", { name: "Kiểm tra video" }).click();
-  await expect(page.getByRole("alert")).toContainText(
+  await expect(page.locator("#video-url-error")).toContainText(
     "Không tìm thấy hoặc không thể truy cập",
   );
   await expect(page.getByRole("button", { name: "Thử lại" })).toHaveCount(0);
@@ -49,6 +49,8 @@ test("transient fixture failure exposes one retry action", async ({ page }) => {
     .getByLabel("Liên kết video YouTube")
     .fill("https://youtu.be/retryfail01");
   await page.getByRole("button", { name: "Kiểm tra video" }).click();
-  await expect(page.getByRole("alert")).toContainText("chưa thể kiểm tra video");
+  await expect(page.locator("#video-url-error")).toContainText(
+    "chưa thể kiểm tra video",
+  );
   await expect(page.getByRole("button", { name: "Thử lại" })).toBeVisible();
 });
