@@ -4,6 +4,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type {
+  ActiveGenerationJobKey,
   CreateGenerationJobRecord,
   GenerationJobRepository,
   GenerationPolicySnapshot,
@@ -16,6 +17,14 @@ import {
   type GenerationJobStatus,
 } from "@/shared/contracts/generation";
 
+const rawVideoSchema = z.object({
+  youtube_video_id: z.string(),
+  title: z.string(),
+  channel_name: z.string(),
+  thumbnail_url: z.string().nullable(),
+  duration_ms: z.coerce.number().nullable(),
+});
+
 const rawJobSchema = z.object({
   id: z.string().uuid(),
   owner_user_id: z.string().uuid(),
@@ -27,29 +36,20 @@ const rawJobSchema = z.object({
   dispatch_status: z.enum(["pending", "sent", "failed"]),
   created_at: z.string(),
   updated_at: z.string(),
-  videos: z.object({
-    youtube_video_id: z.string(),
-    title: z.string(),
-    channel_name: z.string(),
-    thumbnail_url: z.string().nullable(),
-    duration_ms: z.number().nullable(),
-  }),
+  videos: z.union([rawVideoSchema, z.array(rawVideoSchema).length(1)]),
 });
 
 function mapJob(raw: unknown): GenerationJob {
   const row = rawJobSchema.parse(raw);
+  const video = Array.isArray(row.videos) ? row.videos[0] : row.videos;
   return generationJobSchema.parse({
     id: row.id,
     ownerUserId: row.owner_user_id,
-    videoId: row.videos.youtube_video_id,
-    videoTitle: row.videos.title,
-    channelName: row.videos.channel_name,
-    ...(row.videos.thumbnail_url
-      ? { thumbnailUrl: row.videos.thumbnail_url }
-      : {}),
-    ...(row.videos.duration_ms !== null
-      ? { durationMs: row.videos.duration_ms }
-      : {}),
+    videoId: video.youtube_video_id,
+    videoTitle: video.title,
+    channelName: video.channel_name,
+    ...(video.thumbnail_url ? { thumbnailUrl: video.thumbnail_url } : {}),
+    ...(video.duration_ms !== null ? { durationMs: video.duration_ms } : {}),
     cefrLevel: row.cefr_level,
     metadataVersion: row.metadata_version,
     pipelineVersion: row.pipeline_version,
@@ -85,6 +85,20 @@ export class SupabaseGenerationJobRepository
   implements GenerationJobRepository
 {
   constructor(private readonly client: SupabaseClient) {}
+
+  async findActive(input: ActiveGenerationJobKey): Promise<GenerationJob | null> {
+    const result = await this.client
+      .from("lesson_jobs")
+      .select(jobSelect)
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("cefr_level", input.cefrLevel)
+      .eq("pipeline_version", input.pipelineVersion)
+      .eq("videos.youtube_video_id", input.videoId)
+      .in("status", [...activeGenerationJobStatuses])
+      .maybeSingle();
+    if (result.error) throw result.error;
+    return result.data ? mapJob(result.data) : null;
+  }
 
   async getPolicySnapshot(ownerUserId: string): Promise<GenerationPolicySnapshot> {
     const now = new Date();
@@ -124,27 +138,12 @@ export class SupabaseGenerationJobRepository
   async createOrReuse(
     input: CreateGenerationJobRecord,
   ): Promise<{ job: GenerationJob; created: boolean }> {
-    const existingVideo = await this.client
-      .from("videos")
-      .select("id")
-      .eq("youtube_video_id", input.metadata.videoId)
-      .maybeSingle();
-    if (existingVideo.error) throw existingVideo.error;
-
-    let existingJobId: string | undefined;
-    if (existingVideo.data?.id) {
-      const existing = await this.client
-        .from("lesson_jobs")
-        .select("id")
-        .eq("owner_user_id", input.ownerUserId)
-        .eq("video_id", existingVideo.data.id)
-        .eq("cefr_level", input.cefrLevel)
-        .eq("pipeline_version", input.pipelineVersion)
-        .in("status", [...activeGenerationJobStatuses])
-        .maybeSingle();
-      if (existing.error) throw existing.error;
-      existingJobId = existing.data?.id;
-    }
+    const existing = await this.findActive({
+      ownerUserId: input.ownerUserId,
+      videoId: input.metadata.videoId,
+      cefrLevel: input.cefrLevel,
+      pipelineVersion: input.pipelineVersion,
+    });
 
     const rpc = await this.client.rpc("create_or_reuse_lesson_job", {
       p_owner_user_id: input.ownerUserId,
@@ -163,7 +162,7 @@ export class SupabaseGenerationJobRepository
     const jobId = z.object({ id: z.string().uuid() }).parse(row).id;
     const job = await this.findOwnedById(jobId, input.ownerUserId);
     if (!job) throw new Error("Generation job was not readable after commit.");
-    return { job, created: existingJobId !== job.id };
+    return { job, created: existing?.id !== job.id };
   }
 
   async findOwnedById(
