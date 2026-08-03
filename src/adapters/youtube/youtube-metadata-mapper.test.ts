@@ -123,6 +123,11 @@ describe("YouTube metadata mapper", () => {
       "VN",
       "list-etag",
     );
+
+    expect(result.availability).toBe("playable");
+    if (result.availability !== "playable") {
+      throw new Error("Expected playable metadata fixture");
+    }
     expect(result.thumbnailUrl).toBeUndefined();
   });
 });
