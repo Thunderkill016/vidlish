@@ -8,7 +8,7 @@
 
 1. PRD and PRD language-eligibility amendment define product behavior.
 2. Architecture spine and language-eligibility amendment define invariants and boundaries.
-3. This file selects initial implementations behind those boundaries.
+3. This file selects initial implementations behind those boundaries and resolves implementation-level contract extensions.
 4. Provider behavior never overrides canonical validation, normalization, ownership, privacy, or fail-closed rules.
 
 ## ID-1 — Authentication
@@ -108,6 +108,30 @@ pnpm build
 ```
 
 Provider tests use fixtures/fakes. Preview deployment and repository branch-protection configuration are separate operational settings and are not falsely claimed by Story 1.1.
+
+## ID-12 — Canonical lifecycle and ProductError actions
+
+The Architecture Language Eligibility Amendment owns the canonical job lifecycle. Implementations must include `checking_language` after `normalizing_transcript` and before `analyzing_video`, regardless of the stale list in the original spine.
+
+The canonical safe action union is extended to:
+
+```ts
+type ProductErrorAction =
+  | "retry"
+  | "capture_audio"
+  | "provide_transcript"
+  | "choose_another_video"
+  | "create_new_job"
+  | "contact_support";
+```
+
+Rules:
+
+- `VIDEO_LANGUAGE_UNSUPPORTED` always uses `choose_another_video` and `retryable: false`.
+- Caption absence/provider exhaustion must not use `choose_another_video` as a language conclusion unless the user simply elects to abandon the job.
+- Incompatible stale job/pipeline may use `create_new_job`.
+- UI still exposes at most one primary action for each state.
+- Database enum, domain schema, workflow event and UI mapping use the same versioned contract.
 
 ## Official implementation references
 
