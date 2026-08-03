@@ -1,0 +1,162 @@
+import { z } from "zod";
+
+import { cefrLevelSchema } from "@/shared/contracts/lesson-draft";
+import { videoIdSchema } from "@/shared/contracts/video";
+
+export const GENERATION_PIPELINE_VERSION = "generation-pipeline:v1" as const;
+
+export const generationJobStatusSchema = z.enum([
+  "queued",
+  "validating_video",
+  "acquiring_transcript",
+  "awaiting_user_input",
+  "normalizing_transcript",
+  "checking_language",
+  "analyzing_video",
+  "mining_language",
+  "planning_lesson",
+  "composing_activities",
+  "validating_lesson",
+  "repairing_lesson",
+  "publishing",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+export type GenerationJobStatus = z.infer<typeof generationJobStatusSchema>;
+
+export const activeGenerationJobStatuses: readonly GenerationJobStatus[] = [
+  "queued",
+  "validating_video",
+  "acquiring_transcript",
+  "awaiting_user_input",
+  "normalizing_transcript",
+  "checking_language",
+  "analyzing_video",
+  "mining_language",
+  "planning_lesson",
+  "composing_activities",
+  "validating_lesson",
+  "repairing_lesson",
+  "publishing",
+] as const;
+
+export const learnerGenerationPhaseSchema = z.enum([
+  "preparing",
+  "transcript",
+  "language_check",
+  "video_analysis",
+  "lesson_plan",
+  "activities",
+  "quality_check",
+  "publishing",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
+export type LearnerGenerationPhase = z.infer<typeof learnerGenerationPhaseSchema>;
+
+export function toLearnerGenerationPhase(
+  status: GenerationJobStatus,
+): LearnerGenerationPhase {
+  switch (status) {
+    case "queued":
+    case "validating_video":
+      return "preparing";
+    case "acquiring_transcript":
+    case "awaiting_user_input":
+    case "normalizing_transcript":
+      return "transcript";
+    case "checking_language":
+      return "language_check";
+    case "analyzing_video":
+    case "mining_language":
+      return "video_analysis";
+    case "planning_lesson":
+      return "lesson_plan";
+    case "composing_activities":
+      return "activities";
+    case "validating_lesson":
+    case "repairing_lesson":
+      return "quality_check";
+    case "publishing":
+      return "publishing";
+    case "completed":
+      return "completed";
+    case "failed":
+      return "failed";
+    case "cancelled":
+      return "cancelled";
+  }
+}
+
+export const createLessonJobRequestSchema = z
+  .object({
+    videoId: videoIdSchema,
+    cefrLevel: cefrLevelSchema,
+    metadataVersion: z.string().min(1).max(256),
+  })
+  .strict();
+
+export type CreateLessonJobRequest = z.infer<
+  typeof createLessonJobRequestSchema
+>;
+
+export const createLessonJobResponseSchema = z
+  .object({
+    jobId: z.string().uuid(),
+    reused: z.boolean(),
+  })
+  .strict();
+
+export type CreateLessonJobResponse = z.infer<
+  typeof createLessonJobResponseSchema
+>;
+
+export const generationJobSchema = z
+  .object({
+    id: z.string().uuid(),
+    ownerUserId: z.string().uuid(),
+    videoId: videoIdSchema,
+    videoTitle: z.string().min(1).max(500),
+    channelName: z.string().min(1).max(300),
+    thumbnailUrl: z.string().url().optional(),
+    durationMs: z.number().int().nonnegative().optional(),
+    cefrLevel: cefrLevelSchema,
+    metadataVersion: z.string().min(1).max(256),
+    pipelineVersion: z.literal(GENERATION_PIPELINE_VERSION),
+    status: generationJobStatusSchema,
+    currentStage: z.string().min(1).max(100),
+    dispatchStatus: z.enum(["pending", "sent", "failed"]),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+  })
+  .strict();
+
+export type GenerationJob = z.infer<typeof generationJobSchema>;
+
+export const generationJobResponseSchema = z
+  .object({
+    job: generationJobSchema,
+    phase: learnerGenerationPhaseSchema,
+  })
+  .strict();
+
+export const generationRequestedEventSchema = z
+  .object({
+    jobId: z.string().uuid(),
+    pipelineVersion: z.literal(GENERATION_PIPELINE_VERSION),
+  })
+  .strict();
+
+export type GenerationRequestedEvent = z.infer<
+  typeof generationRequestedEventSchema
+>;
+
+export function generationRequestedEventId(
+  event: GenerationRequestedEvent,
+): string {
+  return `lesson-generation:${event.jobId}:${event.pipelineVersion}`;
+}
