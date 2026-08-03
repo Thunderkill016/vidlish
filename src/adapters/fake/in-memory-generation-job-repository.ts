@@ -31,16 +31,22 @@ export class InMemoryGenerationJobRepository
 {
   private readonly jobs = new Map<string, GenerationJob>();
   private readonly activeKeys = new Map<string, string>();
+  private createQueue: Promise<void> = Promise.resolve();
 
-  async findActive(input: ActiveGenerationJobKey): Promise<GenerationJob | null> {
-    const existingId = this.activeKeys.get(activeKey(input));
+  private findActiveNow(input: ActiveGenerationJobKey): GenerationJob | null {
+    const key = activeKey(input);
+    const existingId = this.activeKeys.get(key);
     if (!existingId) return null;
     const existing = this.jobs.get(existingId);
     if (existing && activeGenerationJobStatuses.includes(existing.status)) {
       return existing;
     }
-    this.activeKeys.delete(activeKey(input));
+    this.activeKeys.delete(key);
     return null;
+  }
+
+  async findActive(input: ActiveGenerationJobKey): Promise<GenerationJob | null> {
+    return this.findActiveNow(input);
   }
 
   async getPolicySnapshot(ownerUserId: string): Promise<GenerationPolicySnapshot> {
@@ -66,40 +72,51 @@ export class InMemoryGenerationJobRepository
   async createOrReuse(
     input: CreateGenerationJobRecord,
   ): Promise<{ job: GenerationJob; created: boolean }> {
-    const keyInput = {
-      ownerUserId: input.ownerUserId,
-      videoId: input.metadata.videoId,
-      cefrLevel: input.cefrLevel,
-      pipelineVersion: input.pipelineVersion,
-    };
-    const existing = await this.findActive(keyInput);
-    if (existing) return { job: existing, created: false };
-
-    const timestamp = nowIso();
-    const job = generationJobSchema.parse({
-      id: crypto.randomUUID(),
-      ownerUserId: input.ownerUserId,
-      videoId: input.metadata.videoId,
-      videoTitle: input.metadata.title,
-      channelName: input.metadata.channelName,
-      ...(input.metadata.thumbnailUrl
-        ? { thumbnailUrl: input.metadata.thumbnailUrl }
-        : {}),
-      ...(input.metadata.durationMs !== undefined
-        ? { durationMs: input.metadata.durationMs }
-        : {}),
-      cefrLevel: input.cefrLevel,
-      metadataVersion: input.metadata.metadataVersion,
-      pipelineVersion: input.pipelineVersion,
-      status: "queued",
-      currentStage: "queued",
-      dispatchStatus: "pending",
-      createdAt: timestamp,
-      updatedAt: timestamp,
+    const previous = this.createQueue;
+    let release!: () => void;
+    this.createQueue = new Promise<void>((resolve) => {
+      release = resolve;
     });
-    this.jobs.set(job.id, job);
-    this.activeKeys.set(activeKey(keyInput), job.id);
-    return { job, created: true };
+    await previous;
+
+    try {
+      const keyInput: ActiveGenerationJobKey = {
+        ownerUserId: input.ownerUserId,
+        videoId: input.metadata.videoId,
+        cefrLevel: input.cefrLevel,
+        pipelineVersion: input.pipelineVersion,
+      };
+      const existing = this.findActiveNow(keyInput);
+      if (existing) return { job: existing, created: false };
+
+      const timestamp = nowIso();
+      const job = generationJobSchema.parse({
+        id: crypto.randomUUID(),
+        ownerUserId: input.ownerUserId,
+        videoId: input.metadata.videoId,
+        videoTitle: input.metadata.title,
+        channelName: input.metadata.channelName,
+        ...(input.metadata.thumbnailUrl
+          ? { thumbnailUrl: input.metadata.thumbnailUrl }
+          : {}),
+        ...(input.metadata.durationMs !== undefined
+          ? { durationMs: input.metadata.durationMs }
+          : {}),
+        cefrLevel: input.cefrLevel,
+        metadataVersion: input.metadata.metadataVersion,
+        pipelineVersion: input.pipelineVersion,
+        status: "queued",
+        currentStage: "queued",
+        dispatchStatus: "pending",
+        createdAt: timestamp,
+        updatedAt: timestamp,
+      });
+      this.jobs.set(job.id, job);
+      this.activeKeys.set(activeKey(keyInput), job.id);
+      return { job, created: true };
+    } finally {
+      release();
+    }
   }
 
   async findOwnedById(
