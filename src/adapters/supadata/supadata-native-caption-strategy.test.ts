@@ -11,7 +11,7 @@ function response(body: unknown, status = 200): Response {
 
 describe("SupadataNativeCaptionStrategy", () => {
   it("uses the universal native timestamp endpoint without a language override", async () => {
-    const fetchMock = vi.fn(async () =>
+    const fetchMock = vi.fn<typeof fetch>(async (_input, _init) =>
       response({
         content: [
           { text: "Original speech", offset: 100, duration: 900, lang: "en" },
@@ -93,6 +93,20 @@ describe("SupadataNativeCaptionStrategy", () => {
     expect(await strategy.acquire({ videoId: "dQw4w9WgXcQ" })).toEqual({
       kind,
       reason,
+    });
+  });
+
+  it("classifies an aborted provider request as retryable timeout", async () => {
+    const strategy = new SupadataNativeCaptionStrategy({
+      apiKey: "secret",
+      timeoutMs: 1000,
+      fetchImpl: async () => {
+        throw new DOMException("Timed out", "TimeoutError");
+      },
+    });
+    expect(await strategy.acquire({ videoId: "dQw4w9WgXcQ" })).toEqual({
+      kind: "retryable_failure",
+      reason: "PROVIDER_TIMEOUT",
     });
   });
 
