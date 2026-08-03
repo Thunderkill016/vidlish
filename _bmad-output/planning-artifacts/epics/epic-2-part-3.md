@@ -1,337 +1,293 @@
 # Epic 2 — Lấy transcript tiếng Anh bằng nhiều phương án (phần 3)
 
-Companion tiếp nối `epic-2-part-2.md`, gồm Story 2.5–2.9.
+Companion tiếp nối `epic-2-part-2.md`, gồm Stories 2.7–2.10.
 
-## Story 2.5 — Nhận transcript hoặc subtitle từ người dùng
+## Story 2.7 — Nhận transcript hoặc subtitle từ người dùng
 
-**As a** người học có video mà Vidlish không thể tự lấy lời thoại,
-**I want** dán transcript hoặc tải tệp phụ đề lên cho generation job hiện tại,
-**So that** tôi có thể tiếp tục tạo bài mà không phải bắt đầu lại từ đầu.
+**As a** người học khi automatic methods chưa tạo được transcript,  
+**I want** dán transcript hoặc tải subtitle vào job hiện tại,  
+**So that** tôi tiếp tục mà không phải bắt đầu lại.
 
-**Requirements:** FR11–FR13, FR31–FR33, FR-LANG-1–FR-LANG-5 · NFR2–4, NFR7–9, NFR12–16 · AR2–8, AR11–14, AR20–21, AR28 · UX-DR9–14, UX-DR27–32.
+**Requirements:** FR11–FR13, FR31–FR33, FR-LANG-1–FR-LANG-5 · NFR2–4, NFR7–9, NFR12–16 · AD-2–8, AD-13–17, AD-20 · UX-DR9–14, UX-DR27–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** automatic transcript strategies đã cạn nhưng job còn phục hồi được
-**When** workflow yêu cầu user input
-**Then** job chuyển `awaiting_user_input` tại phase `Lấy hoặc tạo transcript`
-**And** workflow dùng durable wait/event
-**And** reload `/jobs/{jobId}` khôi phục đúng video, CEFR và fallback state.
+#### AC1 — Durable awaiting-input state
 
-**Given** fallback card hiển thị trong Story 2.5
-**When** người dùng mở hành động `Cung cấp transcript`
-**Then** chỉ hai phương án hoạt động là dán transcript và tải `.srt`/`.vtt`
-**And** tab-audio control chưa được render trước Story 2.6
-**And** UX không đề xuất dịch video.
+**Given** automatic strategies cạn nhưng job recoverable  
+**When** workflow yêu cầu input  
+**Then** job chuyển `awaiting_user_input` tại phase `Lấy hoặc tạo transcript`  
+**And** dùng durable wait/event  
+**And** reload giữ cùng job/video/CEFR.
 
-**Given** người dùng dán nội dung
-**When** transcript trống hoặc chỉ có whitespace
-**Then** hiển thị lỗi inline và không đánh thức workflow
-**And** draft chưa submit không được gửi vào analytics hay production logs.
+#### AC2 — Supported inputs
 
-**Given** pasted transcript có timestamp hợp lệ
-**When** parser chạy
-**Then** timestamp được giữ
-**And** plain text không timing được đánh dấu `timingQuality: none`
-**And** hệ thống không bịa timestamp
-**And** source không timing không hỗ trợ seek hoặc scored listening evidence cần thời gian chính xác.
+**Given** fallback card  
+**When** user mở `Cung cấp transcript`  
+**Then** hỗ trợ pasted text, `.srt` và `.vtt`  
+**And** tab-audio control chỉ xuất hiện sau Story 2.8  
+**And** UX không đề xuất translation.
 
-**Given** người dùng tải subtitle
-**When** server kiểm tra file
-**Then** validate extension, MIME signature, size, encoding, cue structure, timestamp range và cue count
-**And** executable, archive, oversized file hoặc extension/MIME mismatch bị từ chối
-**And** unsafe markup bị loại mà không rewrite, dịch hoặc paraphrase lời nói.
+#### AC3 — Paste validation and timing quality
 
-**Given** người dùng chuẩn bị submit
-**When** form hiển thị
-**Then** họ xác nhận chỉ cung cấp nội dung mình có quyền sử dụng
-**And** audit metadata lưu `confirmedByUser`, `confirmedAt` và `inputType`
-**And** copy không tuyên bố Vidlish đã xác minh quyền sở hữu.
+**Given** pasted input  
+**When** parse  
+**Then** empty/whitespace bị chặn  
+**And** supported timestamps được giữ  
+**And** plain text ghi `timingQuality: none`  
+**And** không bịa timestamps hoặc dùng source không timing cho exact seek/scored listening.
 
-**Given** input được submit
-**When** server xử lý
-**Then** xác nhận job thuộc user, chưa terminal, đang chờ đúng input và payload qua Zod
-**And** user không thể attach vào job người khác
-**And** browser không tự chọn workflow stage.
+#### AC4 — Secure subtitle upload
 
-**Given** input được lưu thành công
-**When** workflow resume
-**Then** phát `lesson.transcript-input-provided.v1` với job ID, opaque artifact ID và input version
-**And** event không chứa transcript body
-**And** stable event ID ngăn resume trùng.
+**Given** subtitle upload  
+**When** server validate  
+**Then** kiểm tra extension, MIME/signature, size, encoding, cue structure/count và timestamp ranges  
+**And** unsafe markup/executable/archive/mismatch bị từ chối  
+**And** parser không rewrite, dịch hoặc paraphrase speech.
 
-**Given** candidate hợp lệ
-**When** workflow tiếp tục
-**Then** candidate validation → deterministic normalization → canonical persistence → `checking_language`
-**And** không bỏ qua language gate
-**And** declared language không đủ để gắn English
-**And** translated transcript không được coi là original English speech.
+#### AC5 — Rights confirmation and ownership
 
-**Given** parse/validation thất bại
-**When** lỗi trả về
-**Then** job vẫn `awaiting_user_input`
-**And** user sửa text/chọn file khác trong cùng job
-**And** lỗi ổn định gồm `TRANSCRIPT_INPUT_EMPTY`, `TRANSCRIPT_FILE_UNSUPPORTED`, `TRANSCRIPT_FILE_TOO_LARGE`, `TRANSCRIPT_PARSE_FAILED`, `TRANSCRIPT_TIMESTAMPS_INVALID` và `TRANSCRIPT_INPUT_ALREADY_USED`.
+**Given** user submit  
+**When** request xử lý  
+**Then** user xác nhận có quyền sử dụng input  
+**And** server kiểm tra owner/job state/Zod schema  
+**And** cross-owner attach bị chặn  
+**And** browser không tự advance workflow.
 
-**Given** artifact user-provided được xử lý hoặc job bị cancel
-**When** cleanup chạy
-**Then** temporary artifact bị xóa theo policy
-**And** canonical transcript/provenance owner-scoped và RLS-protected
-**And** logs không chứa transcript body.
+#### AC6 — Durable resume and canonical pipeline
 
-**Given** hai tab submit gần đồng thời
-**When** server xử lý
-**Then** chỉ input đầu hợp lệ được attach
-**And** input còn lại nhận safe conflict
-**And** không tạo canonical transcript kép.
+**Given** input commit thành công  
+**When** resume  
+**Then** phát versioned signal chứa job ID + opaque artifact ID, không transcript body  
+**And** stable event ID chống resume trùng  
+**And** candidate validation → normalization → canonical persistence → `checking_language`.
 
-**Given** Story 2.5 vào CI
-**When** tests chạy
-**Then** có parser/security/MIME/size/RLS/idempotency/durable-resume tests
-**And** có E2E paste thành công và upload lỗi rồi sửa cùng job
-**And** CI không gọi provider thật.
+#### AC7 — Error correction in same job
 
-## Story 2.6 — Tạo transcript từ audio của tab
+**Given** parse/validation lỗi  
+**When** UI hiển thị  
+**Then** job vẫn `awaiting_user_input`  
+**And** user sửa/chọn file khác không tạo job mới  
+**And** stable errors gồm empty, unsupported, too large, parse failed, invalid timestamps và already used.
 
-**As a** người học không có transcript hoặc subtitle,
-**I want** cho phép Vidlish ghi âm tab YouTube mà tôi đang phát,
-**So that** hệ thống tạo transcript từ lời nói thật mà không lưu toàn bộ video.
+#### AC8 — Privacy, race and tests
 
-**Requirements:** FR10, FR12, FR13, FR31–FR33, FR-LANG-1–FR-LANG-5 · NFR1, NFR3–8, NFR12–16 · AR10–14, AR20–21, AR24, AR28–29 · UX-DR11–14, UX-DR27–32.
+**Given** temporary input hoặc concurrent submissions  
+**When** process/cancel/cleanup  
+**Then** only first valid input attaches, stale artifact is deleted, canonical data is owner-scoped/RLS-protected, logs omit content  
+**And** tests cover parsers, security, MIME/size, rights, durable resume, concurrency, language gate and E2E correction.
 
-**Acceptance Criteria:**
+## Story 2.8 — Tạo transcript từ audio của tab
 
-**Given** job đang chờ transcript và browser hỗ trợ tab capture audio
-**When** user mở `Cách khác`
-**Then** UI hiển thị `Ghi âm tab video`
-**And** giải thích scope, mục đích, start/stop và retention
-**And** không capture trước consent trực tiếp.
+**As a** người học không có transcript/subtitle,  
+**I want** cho phép Vidlish thu audio của tab YouTube tôi chọn,  
+**So that** hệ thống transcribe lời nói thật mà không lưu video.
 
-**Given** browser không hỗ trợ capability
-**When** detection chạy
-**Then** control bị ẩn/disabled có giải thích
-**And** paste/upload vẫn dùng được
-**And** capability thực được kiểm tra, không chỉ user-agent sniffing.
+**Requirements:** FR10, FR12, FR13, FR31–FR33, FR-LANG-1–FR-LANG-5 · NFR1, NFR3–8, NFR12–16 · AD-4–8, AD-13–19 · ID-8 · UX-DR11–14, UX-DR27–32.
 
-**Given** user bắt đầu capture
-**When** browser mở picker
-**Then** hướng dẫn chọn đúng tab YouTube và chia sẻ audio
-**And** Vidlish không tự chọn tab
-**And** chỉ dùng stream browser cấp quyền.
+### Acceptance Criteria
 
-**Given** permission denied, tab không audio hoặc stream kết thúc
-**When** client phát hiện
-**Then** job vẫn `awaiting_user_input`
-**And** trả lỗi `CAPTURE_PERMISSION_DENIED`, `CAPTURE_AUDIO_NOT_AVAILABLE` hoặc `CAPTURE_ENDED`
-**And** không tạo transcript rỗng hay unsupported-language result.
+#### AC1 — Capability and consent
 
-**Given** capture đang chạy
-**When** audio được thu
-**Then** chia thành bounded chunks có sequence, duration và checksum
-**And** upload private temporary storage qua authorized endpoint
-**And** không tải/persist video
-**And** không giữ một blob audio lớn trong memory.
+**Given** job chờ input  
+**When** browser capability detection chạy  
+**Then** `Ghi âm tab video` chỉ hiển thị khi supported  
+**And** giải thích scope/start-stop/retention trước picker  
+**And** không capture trước direct consent  
+**And** unsupported browser vẫn có paste/upload.
 
-**Given** chunk upload lỗi tạm thời
-**When** mạng phục hồi
-**Then** retry cùng chunk ID
-**And** server deduplicate theo job + session + sequence
-**And** user có thể stop an toàn.
+#### AC2 — Tab selection and errors
 
-**Given** capture hoàn tất
-**When** manifest hợp lệ
-**Then** workflow resume bằng versioned event chỉ chứa job ID và capture-session ID
-**And** không STT trước manifest validation
-**And** session phải thuộc đúng owner/job.
+**Given** user bắt đầu capture  
+**When** browser picker mở  
+**Then** user tự chọn YouTube tab và share audio  
+**And** Vidlish không tự chọn tab.
 
-**Given** STT adapter chạy
-**When** audio được transcribe
-**Then** dùng `SpeechToTextPort` với bounded requests, exact provider/model ID và confidence/timestamps khi có
-**And** config yêu cầu verbatim transcription, không dịch, tóm tắt, sửa grammar hay English rewrite.
+**Given** denied/no-audio/ended stream  
+**When** client phát hiện  
+**Then** job vẫn recoverable với stable error  
+**And** không tạo empty transcript hoặc unsupported-language result.
 
-**Given** nhiều STT chunks trả về
-**When** merge chạy
-**Then** ghép deterministic theo sequence/timestamp
-**And** overlap deduplicate theo versioned rule
-**And** không bịa content tại khoảng thiếu
-**And** source là `tab-audio-stt`.
+#### AC3 — Bounded private chunks
 
-**Given** candidate hợp lệ
-**When** workflow tiếp tục
-**Then** normalization → canonical persistence → `checking_language`
-**And** low-confidence speech không tự thành eligible English.
+**Given** capture chạy  
+**When** audio thu  
+**Then** chia bounded chunks có session/sequence/duration/checksum  
+**And** upload private authorized storage  
+**And** không lưu video hoặc giữ blob lớn trong memory  
+**And** retry cùng chunk ID deduplicate.
 
-**Given** capture/STT hoàn tất, lỗi, hết hạn hoặc cancel
-**When** cleanup chạy
-**Then** raw chunks và manifest tạm bị xóa
-**And** cleanup idempotent/retryable
-**And** canonical transcript/provenance được giữ theo policy
-**And** audio bytes/transcript text không vào logs.
+#### AC4 — Manifest and durable resume
 
-**Given** reload trong lúc capture
-**When** browser stream mất
-**Then** UI báo capture đã dừng và cho phép bắt đầu lại
-**And** job không đổi
-**And** stale session được cleanup, không ghi âm ẩn.
+**Given** capture stop/completed  
+**When** manifest validate  
+**Then** manifest thuộc đúng owner/job và có complete ordered chunk set  
+**And** workflow resume bằng event chỉ chứa job/capture-session ID  
+**And** STT không chạy trước manifest validation.
 
-**Given** Story 2.6 vào CI
-**When** tests chạy
-**Then** có capability, consent, permission, no-audio, stop, reload, chunk ordering/idempotency, manifest, STT fixture, cleanup và language-gate tests
-**And** CI không capture tab hoặc gọi provider thật.
+#### AC5 — Initial STT adapter
 
-## Story 2.7 — Xử lý video dài bằng budget và chunking
+**Given** valid capture session  
+**When** transcription chạy  
+**Then** dùng `SpeechToTextProvider` initial Google Cloud STT V2 model `chirp_3` tại configured region  
+**And** original-language transcription, bounded requests, exact model/location/version được ghi  
+**And** no translation, summary, grammar correction hoặc English rewrite.
 
-**As a** người học dùng video dài,
-**I want** Vidlish chia công việc có kiểm soát và không cắt nội dung âm thầm,
-**So that** kết quả phản ánh trung thực phạm vi hệ thống đã xử lý.
+#### AC6 — Merge and canonical handoff
 
-**Requirements:** FR6, FR12, FR31, FR32 · NFR7, NFR12, NFR15–17, NFR20 · AR6, AR8, AR15, AR20, AR22–24, AR29–30 · UX-DR9–10, UX-DR27, UX-DR32.
+**Given** nhiều STT chunks  
+**When** merge  
+**Then** deterministic theo sequence/timestamp, overlap dedup versioned, gaps không được bịa  
+**And** source `tab-audio-stt`  
+**And** normalization → persistence → `checking_language`.
 
-**Acceptance Criteria:**
+#### AC7 — Cleanup, reload and security
 
-**Given** video/transcript dài
-**When** GenerationPolicy đánh giá
-**Then** không dùng một hard duration cap duy nhất
-**And** áp dụng versioned budgets cho characters/tokens, segments, chunk count, provider requests, estimated cost và wall-clock
-**And** budgets nằm trong typed config.
+**Given** success/failure/cancel/TTL/reload  
+**When** cleanup  
+**Then** raw chunks/manifest bị xóa idempotently  
+**And** reload dừng browser capture và cho start lại cùng job  
+**And** no hidden recording  
+**And** audio/transcript body không vào logs.
 
-**Given** input vượt một request
-**When** chunk planner chạy
-**Then** chia deterministic theo timestamp và semantic boundary khi có
-**And** mỗi chunk có stable ID, ordinal và source range
-**And** retry được từng chunk
-**And** không silently truncate đầu, giữa hoặc cuối.
+#### AC8 — Tests
 
-**Given** budget không đủ xử lý toàn bộ source
-**When** policy dừng/chọn phạm vi
-**Then** không claim toàn video đã được xử lý
-**And** partial artifact được đánh dấu rõ và không vào Lesson Engine như complete source
-**And** phạm vi chọn phải deterministic, có provenance và product error/action rõ nếu không đủ tạo lesson.
+**Given** Story 2.8 vào CI  
+**When** suite chạy  
+**Then** có capability, consent, permission, no-audio, stop/reload, chunk ordering/idempotency, manifest ownership, `chirp_3` fixture, merge, cleanup and language-gate tests  
+**And** CI không capture/call live STT.
 
-**Given** chunk results được merge
-**When** aggregate chạy
-**Then** coverage được tính từ canonical source ranges
-**And** overlap/gap được phát hiện
-**And** missing coverage vượt threshold chặn handoff
-**And** cùng inputs/policy version tạo cùng plan/result.
+## Story 2.9 — Xử lý video dài bằng budget và chunking
 
-**Given** workflow retry
-**When** chunk đã thành công
-**Then** persisted result được tái sử dụng
-**And** stable step IDs ngăn gọi lại không cần thiết
-**And** cache key chứa source hash, chunk-plan version và provider/schema versions.
+**As a** người học dùng video dài,  
+**I want** Vidlish chia công việc có kiểm soát và không cắt nội dung âm thầm,  
+**So that** phạm vi xử lý luôn trung thực.
 
-**Given** job đạt eligible transcript handoff
-**When** Generation page cập nhật
-**Then** hiển thị `Đã chuẩn bị lời thoại tiếng Anh`
-**And** source hash, timing quality, coverage và eligible English set đã persist
-**And** Epic 3 có thể tiếp tục từ `analyzing_video`.
+**Requirements:** FR6, FR12, FR31, FR32 · NFR7, NFR12, NFR15–17, NFR20 · AD-4, AD-9, AD-15–16, AD-19, AD-21 · UX-DR9–10, UX-DR27, UX-DR32.
 
-**Given** Story 2.7 vào CI
-**When** tests chạy
-**Then** có long-input chunking, boundary, overlap/gap, no-truncation, partial-source rejection, per-chunk retry và deterministic-plan tests
-**And** CI dùng fixtures.
+### Acceptance Criteria
 
-## Story 2.8 — Kiểm soát quota, retry và cancellation
+#### AC1 — Versioned budgets
 
-**As a** người học đang tạo bài,
-**I want** job chịu lỗi, tránh request trùng và có thể hủy,
-**So that** tôi không bị kẹt hoặc phát sinh chi phí ngoài ý muốn.
+**Given** long video/transcript  
+**When** GenerationPolicy đánh giá  
+**Then** không dùng một product duration cap cố định  
+**And** dùng typed/versioned budgets cho characters/tokens, segments, chunks, requests, estimated cost và wall-clock.
 
-**Requirements:** FR31–FR33 · NFR5–8, NFR12, NFR15–16 · AR6–9, AR21, AR24, AR29–30 · UX-DR9–11, UX-DR27–28, UX-DR32.
+#### AC2 — Deterministic chunk plan
 
-**Acceptance Criteria:**
+**Given** source vượt một request  
+**When** planner chạy  
+**Then** chunk theo timestamps/semantic boundaries  
+**And** mỗi chunk có stable ID, ordinal và source range  
+**And** same input/policy version tạo same plan.
 
-**Given** job/provider stage sắp bắt đầu
-**When** GenerationPolicy chạy
-**Then** kiểm tra per-user/global concurrency, quota, rate limit, estimated cost và active jobs trước request tốn tiền
-**And** denial dùng stable ProductError
-**And** Inngest throttle chỉ là defense in depth.
+#### AC3 — No silent truncation
 
-**Given** provider timeout/rate-limit/network error
-**When** workflow xử lý
-**Then** bounded exponential retry với stable attempt ID
-**And** validation/permission/unsupported-language/policy error không retry vô hạn
-**And** circuit breaker tạm dừng provider lỗi lặp lại
-**And** strategy khác được thử khi hợp lệ.
+**Given** budget không đủ toàn bộ source  
+**When** policy dừng/chọn phạm vi  
+**Then** không claim toàn video được xử lý  
+**And** partial source được đánh dấu/provenance rõ  
+**And** không đi Lesson Engine như complete source nếu coverage không đủ.
 
-**Given** double submit/event redelivery/workflow retry
-**When** hệ thống xử lý
-**Then** active-job key, stable event ID và step result keys ngăn job/provider call trùng
-**And** user reload không tạo run mới.
+#### AC4 — Merge coverage
 
-**Given** user chọn hủy active job
-**When** cancel command được authorize/persist
-**Then** workflow quan sát cancellation trước bước tốn tiền kế tiếp
-**And** không publish transcript/lesson sau cancel
-**And** temporary artifacts được đánh dấu cleanup
-**And** terminal state là `cancelled` và phục hồi sau reload.
+**Given** chunk results  
+**When** aggregate  
+**Then** coverage tính từ canonical ranges  
+**And** overlap/gap được phát hiện  
+**And** missing coverage vượt threshold chặn handoff.
 
-**Given** cancellation trùng hoặc đến sau terminal state
-**When** server xử lý
-**Then** operation idempotent
-**And** không đổi completed/failed state sai cách
-**And** trả response an toàn.
+#### AC5 — Per-chunk retry/cache
 
-**Given** job thất bại hoặc cần action
-**When** UI hiển thị
-**Then** phân biệt exhausted methods, input required/invalid, capture/STT failure, budget exceeded, cancelled và unsupported language
-**And** mỗi state có tối đa một primary action
+**Given** workflow retry  
+**When** chunk đã pass  
+**Then** reuse persisted result bằng source hash + plan/provider/schema versions  
+**And** không gọi lại expensive step không cần thiết.
+
+#### AC6 — Honest UX and handoff
+
+**Given** long-source processing  
+**When** user theo dõi  
+**Then** UI nói video đang được chia phần  
+**And** không hứa 15 phút dạy toàn bộ video  
+**And** eligible complete handoff giữ source hash, coverage, timing quality và allowed English set.
+
+#### AC7 — Tests
+
+**Given** Story 2.9 vào CI  
+**When** suite chạy  
+**Then** có budget, stable boundary, no-truncation, partial rejection, overlap/gap, per-chunk retry/cache and deterministic plan tests.
+
+## Story 2.10 — Kiểm soát quota, retry, circuit breaker và cancellation
+
+**As a** người học đang tạo bài,  
+**I want** job chịu lỗi, không nhân chi phí và có thể hủy,  
+**So that** tôi không bị kẹt hoặc bị gọi provider ngoài ý muốn.
+
+**Requirements:** FR31–FR33 · NFR5–8, NFR12, NFR15–16 · AD-4, AD-14–16, AD-19, AD-21 · UX-DR5, UX-DR9–11, UX-DR27–28, UX-DR32.
+
+### Acceptance Criteria
+
+#### AC1 — Central GenerationPolicy
+
+**Given** job/provider/AI stage sắp chạy  
+**When** policy evaluate  
+**Then** kiểm tra per-user/global concurrency, quota, rate limit, cost estimate, active jobs và stage budget trước expensive call  
+**And** denial dùng stable ProductError  
+**And** Inngest throttle chỉ defense in depth.
+
+#### AC2 — Retry classification
+
+**Given** timeout/rate-limit/network error  
+**When** workflow xử lý  
+**Then** bounded exponential retry với stable attempt ID  
+**And** validation, permission, unsupported language, cancellation và policy denial không retry vô hạn.
+
+#### AC3 — Circuit and provider fallback
+
+**Given** provider lỗi lặp lại  
+**When** circuit threshold đạt  
+**Then** provider tạm ngừng theo configured window  
+**And** registry thử strategy khác nếu hợp lệ  
+**And** user-facing phase không lộ provider.
+
+#### AC4 — End-to-end dedup
+
+**Given** double submit, event redelivery, workflow retry hoặc provider poll retry  
+**When** xử lý  
+**Then** active-job key, stable event/attempt/step keys ngăn duplicate job/call/result  
+**And** reload không tạo run mới.
+
+#### AC5 — Cancellation
+
+**Given** active job  
+**When** authorized user chọn hủy  
+**Then** cancel persisted idempotently  
+**And** workflow kiểm tra trước expensive/publish step tiếp theo  
+**And** không publish sau cancel  
+**And** artifacts được đánh dấu cleanup  
+**And** reload hiển thị `cancelled`.
+
+#### AC6 — Actionable states
+
+**Given** failure/cancel/needs action  
+**When** UI render  
+**Then** phân biệt exhausted methods, input required/invalid, capture/STT failure, budget exceeded, quota/rate limit, cancelled và unsupported language  
+**And** mỗi state tối đa một primary action  
 **And** raw provider error không lộ.
 
-**Given** Story 2.8 vào CI
-**When** tests chạy
-**Then** có quota/concurrency, retry classification, circuit breaker, event dedup, cancellation race/idempotency và E2E cancel tests
-**And** CI dùng fakes.
+#### AC7 — Account quota summary
 
-## Story 2.9 — Dọn dữ liệu tạm và vận hành transcript pipeline
+**Given** quota data tồn tại  
+**When** account menu mở  
+**Then** có compact quota summary phù hợp beta  
+**And** không hiển thị fake precision hoặc billing UI ngoài scope  
+**And** Story 1.1 vẫn độc lập khi data chưa tồn tại.
 
-**As a** người học,
-**I want** audio/transcript data được giữ đúng thời hạn và job có thể được chẩn đoán an toàn,
-**So that** Vidlish bảo vệ dữ liệu của tôi và vận hành ổn định trong private beta.
+#### AC8 — Tests
 
-**Requirements:** FR13, FR31–FR33 · NFR3–4, NFR7, NFR15, NFR18–19 · AR3–5, AR14, AR18, AR23, AR27–30 · UX-DR27, UX-DR32.
-
-**Acceptance Criteria:**
-
-**Given** temporary audio/upload artifact tồn tại
-**When** transcript commit, job failure/cancel hoặc TTL đến hạn
-**Then** artifact được xóa idempotently
-**And** scheduled sweeper xóa orphaned/expired objects
-**And** cleanup failure retry và phát internal alert
-**And** Vidlish không lưu source video.
-
-**Given** canonical transcript/eligibility/provenance tồn tại
-**When** retention evaluator chạy
-**Then** giữ hoặc xóa theo owner/dependency/published policy
-**And** raw temporary audio không phụ thuộc lesson retention
-**And** browser không truy cập cross-owner artifact.
-
-**Given** telemetry ghi acquisition lifecycle
-**When** stage/strategy/chunk/cleanup chạy
-**Then** metrics gồm job ID, pseudonymous owner, stage duration, strategy, result, retries, coverage, cost band, budget decision và cleanup status
-**And** không log transcript text, audio bytes, credentials hoặc sensitive payload.
-
-**Given** local/staging/production
-**When** config/deploy chạy
-**Then** tách Supabase/Inngest/provider keys, buckets, quotas và data
-**And** config validate startup
-**And** CI dùng fixtures/fakes, không live provider.
-
-**Given** durable product data được backup/restore
-**When** rehearsal chạy
-**Then** bao phủ jobs, canonical transcripts và eligibility metadata
-**And** không cần backup temporary audio
-**And** restore procedure được ghi nhận trước public launch.
-
-**Given** toàn bộ Epic 2 source paths chạy regression
-**When** suite chạy
-**Then** caption, hosted provider, user input và tab audio đều đi normalization → language gate
-**And** `VIDEO_LANGUAGE_UNSUPPORTED` chỉ xuất hiện sau transcript + eligibility conclusion
-**And** eligible handoff, methods exhausted, awaiting input và cancelled đều phục hồi được.
-
-**Given** Story 2.9 vào CI
-**When** tests chạy
-**Then** có TTL/orphan cleanup, retry, RLS/storage, telemetry redaction, environment isolation và restore rehearsal tests.
-
-Epic 2 hoàn tất khi job có một durable outcome: eligible canonical English source tại `analyzing_video`, recoverable wait state, hoặc terminal/actionable state chính xác.
+**Given** Story 2.10 vào CI  
+**When** suite chạy  
+**Then** có quota/concurrency/cost-gate, retry classification, circuit, dedup, cancellation race/idempotency, account-summary and E2E cancel tests  
+**And** dùng fakes.
