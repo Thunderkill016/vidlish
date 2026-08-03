@@ -1,199 +1,217 @@
 # Epic 5 — Quay lại và quản lý thư viện bài học
 
-Người dùng có thể xem lesson/job theo trạng thái, mở lại không gọi AI, khôi phục job lỗi và xóa lesson cùng dữ liệu phụ thuộc theo retention policy.
+Người học có thể xem lesson/job theo trạng thái, mở lại không gọi provider, khôi phục job recoverable và xóa dữ liệu theo retention policy.
 
-**FRs covered:** FR40, FR41.
+**FRs covered:** FR40, FR41.  
+**Dependency:** immutable published lesson (Story 3.6) và readable viewer (Story 3.7). Epic 5 không hard-depend on Epic 4; completion metadata có thể null.
 
 ## Story 5.1 — Xem thư viện và mở lại lesson đã lưu
 
-**As a** người học đã tạo bài,
-**I want** xem lesson và job của mình trong thư viện,
-**So that** tôi quay lại học mà không nhớ URL hoặc tạo lại bài.
+**As a** người học đã tạo bài,  
+**I want** xem lesson và job của mình trong thư viện,  
+**So that** tôi quay lại đúng nội dung mà không tạo lại.
 
-**Requirements:** FR40, FR41 · NFR2, NFR7, NFR11, NFR13–16 · AR3–5, AR18, AR23–24, AR28 · UX-DR5, UX-DR25, UX-DR27–32.
+**Requirements:** FR40, FR41 · NFR2, NFR7, NFR11, NFR13–16 · AD-2, AD-12–16, AD-19 · UX-DR5, UX-DR25, UX-DR27–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** user đã đăng nhập
-**When** mở `/library`
-**Then** server chỉ trả records thuộc `auth.uid()`
-**And** gồm published lessons và jobs active/needs-action theo policy
-**And** cross-owner data không lộ qua count, title, URL hay timing.
+#### AC1 — Owner-scoped library
 
-**Given** library có data
-**When** rows/cards render
-**Then** mỗi item có thumbnail/title/channel, CEFR, trạng thái, created/updated và completion khi có
-**And** external metadata render an toàn
+**Given** authenticated user mở `/library`  
+**When** server query  
+**Then** chỉ trả records thuộc user  
+**And** gồm published lessons và jobs active/awaiting/failed theo policy  
+**And** cross-owner title/count/timing không lộ.
+
+#### AC2 — Canonical item fields
+
+**Given** library có data  
+**When** row/card render  
+**Then** hiển thị safe thumbnail/title/channel, CEFR, created/updated, canonical status và completion khi có  
 **And** mỗi item có một primary action phù hợp state.
 
-**Given** item là published lesson
-**When** user mở
-**Then** tới `/lessons/{id}` và đọc immutable saved version
-**And** không gọi Gemini/transcript/STT hoặc tạo job mới
-**And** activity/completion state được khôi phục.
+#### AC3 — Reopen published lesson
 
-**Given** item là active job
-**When** user mở
-**Then** tới `/jobs/{id}` và tiếp tục polling persisted state
-**And** không resubmit create command
-**And** reload khôi phục phase.
+**Given** item là published lesson  
+**When** mở  
+**Then** tới `/lessons/{id}` và đọc immutable saved version  
+**And** không gọi transcript/STT/Gemini/Lesson Engine hoặc tạo job  
+**And** attempt/completion state được khôi phục khi tồn tại.
 
-**Given** item `awaiting_user_input`
-**When** mở
-**Then** hiển thị đúng fallback surface của cùng job
-**And** primary action quay lại paste/upload/capture tương ứng
-**And** không tạo job mới.
+#### AC4 — Reopen job states
 
-**Given** item failed
-**When** render
-**Then** dùng Vietnamese ProductError copy và safe action khi có
-**And** không lộ provider/stack
-**And** retry interaction chi tiết thuộc Story 5.2.
+**Given** item active  
+**When** mở  
+**Then** tới `/jobs/{id}` và polling persisted state, không resubmit create.
 
-**Given** library rỗng
-**When** render
-**Then** empty state có primary action `Tạo bài học`
-**And** không dashboard/streak/XP.
+**Given** item `awaiting_user_input`  
+**When** mở  
+**Then** restore exact paste/upload/capture fallback của same job.
 
-**Given** nhiều items
-**When** query
-**Then** cursor pagination và stable default sort
-**And** target render khoảng 3 giây trong điều kiện bình thường
-**And** cache/data boundary owner-safe.
+**Given** failed  
+**When** render  
+**Then** hiển thị Vietnamese ProductError/safe action, không raw provider detail.
 
-**Given** desktop/mobile/keyboard
-**When** library hoạt động
-**Then** responsive, visible focus, labels, 44px targets, accessible truncation và no color-only states.
+#### AC5 — Empty, pagination and performance
 
-**Given** Story 5.1 vào CI
-**When** tests chạy
-**Then** có RLS/cross-owner, published reopen no-provider, active/awaiting/failed, empty, pagination, performance-budget và accessibility tests
-**And** có E2E completed lesson → library → reopen saved progress.
+**Given** library rỗng  
+**When** render  
+**Then** có `Chưa có bài học` + primary action `Tạo bài học`.
+
+**Given** nhiều items  
+**When** query  
+**Then** cursor pagination và stable reverse-chronological sort  
+**And** main data target khoảng 3 giây ở điều kiện bình thường  
+**And** caching owner-safe.
+
+#### AC6 — Responsive/accessibility
+
+**Given** desktop/mobile/keyboard user  
+**When** library hoạt động  
+**Then** responsive list/cards, visible focus, labels, 44px targets, accessible truncation và no color-only status.
+
+#### AC7 — Tests
+
+**Given** Story 5.1 vào CI  
+**When** suite chạy  
+**Then** có RLS/cross-owner, reopen-no-provider, active/awaiting/failed/empty, pagination, performance-budget, accessibility and E2E completed lesson→library→reopen tests.
 
 ## Story 5.2 — Lọc thư viện và khôi phục job lỗi
 
-**As a** người học có nhiều lesson và job,
-**I want** lọc theo trạng thái và thử lại những job có thể phục hồi,
-**So that** tôi nhanh chóng tìm đúng việc cần tiếp tục.
+**As a** người học có nhiều lesson/job,  
+**I want** lọc theo trạng thái và thử lại job recoverable,  
+**So that** tôi nhanh chóng tiếp tục đúng việc.
 
-**Requirements:** FR41 · NFR2, NFR5, NFR7, NFR11, NFR13–16 · AR3–7, AR9, AR21–24, AR29–30 · UX-DR25, UX-DR27–32.
+**Requirements:** FR41 · NFR2, NFR5, NFR7, NFR11, NFR13–16 · AD-2–5, AD-14–16, AD-19, AD-21 · UX-DR25, UX-DR27–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** library có nhiều state
-**When** user dùng filter
-**Then** hỗ trợ tối thiểu All, Ready, In progress, Needs action, Failed và Completed
-**And** filter có thể phản ánh trong URL/query an toàn
-**And** unknown filter normalize về default.
+#### AC1 — Canonical filters
 
-**Given** query filter/sort
-**When** server xử lý
-**Then** input qua schema validation
-**And** query owner-scoped, pagination ổn định
-**And** canonical job-state mapping là nguồn truth, không string UI tự phát.
+**Given** library có nhiều state  
+**When** filter render  
+**Then** hỗ trợ All, Ready, In progress, Needs action, Failed, Completed  
+**And** filter phản ánh trong validated URL/query  
+**And** unknown value normalize default.
 
-**Given** user chọn một filter
-**When** results load
-**Then** loading/empty/error states giữ filter context
-**And** keyboard/focus không reset vô lý
-**And** mobile controls accessible.
+#### AC2 — Owner-safe query
 
-**Given** job failed với `retryable: true`
-**When** user chọn `Thử lại`
-**Then** server kiểm tra ownership, terminal/current state, retry budget, quota, active concurrency và pipeline compatibility
-**And** retry dùng same job hoặc explicit versioned retry relationship theo architecture
+**Given** filter/sort/pagination request  
+**When** server xử lý  
+**Then** input qua schema  
+**And** query owner-scoped và stable  
+**And** UI mapping dùng canonical job state contract, không string tự phát.
+
+#### AC3 — Filter UX
+
+**Given** user đổi filter  
+**When** results load/error/empty  
+**Then** giữ filter context và logical focus  
+**And** mobile controls accessible  
+**And** loading không reset selection vô lý.
+
+#### AC4 — Retry authorization and policy
+
+**Given** failed job có `retryable: true`  
+**When** user chọn `Thử lại`  
+**Then** server kiểm tra ownership, current/terminal state, retry budget, quota, concurrency và pipeline compatibility  
+**And** retry dùng same job hoặc explicit versioned retry relation  
 **And** double submit không tạo provider call trùng.
 
-**Given** job `VIDEO_LANGUAGE_UNSUPPORTED`
-**When** render
-**Then** không có `Thử lại`
-**And** primary action là chọn video khác
-**And** không translation mode.
+#### AC5 — Non-retryable/stale cases
 
-**Given** job/schema/pipeline quá cũ để resume an toàn
-**When** retry requested
-**Then** system giải thích cần tạo job mới
-**And** không chạy contract không tương thích
-**And** saved lesson cũ vẫn mở nếu tồn tại.
+**Given** `VIDEO_LANGUAGE_UNSUPPORTED`  
+**When** render  
+**Then** không có `Thử lại`; sole primary action `Chọn video khác` và no translation mode.
 
-**Given** retry accepted
-**When** workflow resume
-**Then** persisted job URL/state được giữ hoặc relation mới được hiển thị rõ
-**And** progress page phục hồi sau reload
-**And** retry không xóa diagnostics/provenance cũ cần thiết.
+**Given** pipeline/schema quá cũ  
+**When** retry requested  
+**Then** giải thích cần tạo job mới  
+**And** không chạy incompatible contract  
+**And** saved lesson cũ vẫn mở được.
 
-**Given** telemetry ghi filter/retry
-**When** event xảy ra
-**Then** log safe state/action/result/latency
-**And** không log transcript/reflection text hoặc credentials.
+#### AC6 — Retry recovery and telemetry
 
-**Given** Story 5.2 vào CI
-**When** tests chạy
-**Then** có filter/query validation, pagination, retry quota/idempotency, unsupported-language, stale-version, cross-owner và accessibility tests
-**And** có E2E filter needs-action → resume same job.
+**Given** retry accepted  
+**When** workflow resume  
+**Then** job URL/state hoặc retry relation hiển thị rõ và reload-safe  
+**And** diagnostics/provenance cũ không bị xóa  
+**And** telemetry chỉ ghi safe state/action/result/latency.
+
+#### AC7 — Tests
+
+**Given** Story 5.2 vào CI  
+**When** suite chạy  
+**Then** có filter/query, pagination, retry quota/idempotency, unsupported-language, stale-version, cross-owner, accessibility and E2E needs-action→resume tests.
 
 ## Story 5.3 — Xóa lesson và dữ liệu phụ thuộc theo policy
 
-**As a** người học,
-**I want** xóa lesson hoặc job mình không cần,
-**So that** tôi kiểm soát dữ liệu cá nhân và thư viện luôn gọn.
+**As a** người học,  
+**I want** xóa lesson/job mình không cần,  
+**So that** tôi kiểm soát dữ liệu cá nhân và thư viện gọn.
 
-**Requirements:** FR41 · NFR2–4, NFR7, NFR13–15, NFR19, NFR21 · AR3–5, AR18–19, AR23, AR27–28 · UX-DR26–28, UX-DR32.
+**Requirements:** FR41 · NFR2–4, NFR7, NFR13–15, NFR19, NFR21 · AD-2, AD-8, AD-12–13, AD-20 · UX-DR26–28, UX-DR32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** user chọn xóa lesson/job
-**When** confirmation dialog mở
-**Then** nêu rõ dữ liệu sẽ xóa và dữ liệu có thể giữ theo legal/audit policy
-**And** destructive action cần xác nhận rõ
-**And** Cancel được focus ưu tiên và focus trả trigger khi đóng.
+#### AC1 — Explicit destructive confirmation
 
-**Given** user xác nhận xóa published lesson
-**When** deletion workflow chạy
-**Then** owner authorization được kiểm tra server-side
-**And** lesson pointer/version visibility, attempts, completion và reflections được xóa/tombstone theo policy
-**And** transcript/video metadata chỉ xóa khi không còn dependency hoặc policy yêu cầu
+**Given** user chọn xóa lesson/job  
+**When** dialog mở  
+**Then** nêu resource/dependent data sẽ bị xóa hoặc giữ theo policy  
+**And** confirm có nhãn cụ thể  
+**And** Cancel được focus ưu tiên, Esc/close trả focus trigger.
+
+#### AC2 — Published lesson deletion
+
+**Given** owner xác nhận xóa lesson  
+**When** deletion workflow chạy  
+**Then** authorize server-side  
+**And** lesson pointer/version visibility, attempts, completion và reflections được purge/tombstone theo policy  
+**And** transcript/video metadata chỉ xóa khi không còn dependency  
 **And** operation idempotent.
 
-**Given** user xóa active job
-**When** operation chạy
-**Then** cancel job trước
-**And** workflow không gọi provider/publish step mới
-**And** temporary artifacts được cleanup
-**And** UI phân biệt deletion pending với completed.
+#### AC3 — Active job deletion
 
-**Given** cleanup dependency tạm thất bại
-**When** transaction/workflow xử lý
-**Then** không tuyên bố xóa hoàn tất sai
-**And** resource chuyển safe pending-deletion/tombstone state
-**And** background retry + telemetry xử lý cleanup
-**And** item không mở như lesson dùng được.
+**Given** user xóa active job  
+**When** workflow chạy  
+**Then** cancel trước, không gọi provider/publish mới  
+**And** temporary artifacts enqueue cleanup  
+**And** UI phân biệt pending vs complete.
 
-**Given** user A gửi ID của user B
-**When** delete/read xử lý
-**Then** response không tiết lộ resource tồn tại
-**And** RLS/server authorization chặn thay đổi
-**And** service role chỉ dùng trong authorized server workflow.
+#### AC4 — Failure-safe tombstone
 
-**Given** deletion qua irreversible boundary
-**When** UI phản hồi
-**Then** không hứa restore nếu không thể
-**And** restore/backup procedure không vô tình khôi phục resource đã purge theo privacy policy
-**And** public-launch legal/retention text phải hoàn tất trước release.
+**Given** dependency cleanup thất bại  
+**When** delete process kết thúc tạm thời  
+**Then** không tuyên bố success sai  
+**And** resource chuyển pending-deletion/tombstone  
+**And** background retry/telemetry tiếp tục  
+**And** item không mở như usable lesson.
 
-**Given** raw temporary audio tồn tại
-**When** lesson/job bị xóa
-**Then** cleanup được yêu cầu ngay nhưng vẫn có TTL sweeper defense in depth
-**And** temporary audio không được giữ cùng lesson archive.
+#### AC5 — Ownership and irreversible boundary
 
-**Given** deletion telemetry
-**When** operation chạy
-**Then** log safe IDs, transition, result, latency và cleanup status
-**And** không log content bodies.
+**Given** user A gửi ID user B  
+**When** delete/read xử lý  
+**Then** không tiết lộ tồn tại và không mutate  
+**And** service role chỉ dùng trong authorized workflow.
 
-**Given** Story 5.3 vào CI
-**When** tests chạy
-**Then** có confirmation/cancel, dependency deletion, active-job cancel, partial cleanup, idempotency, RLS, retention và accessibility tests
-**And** có E2E delete success/pending/failure-safe paths.
+**Given** irreversible purge qua  
+**When** UI phản hồi  
+**Then** không hứa restore nếu không thể  
+**And** backup/restore process tôn trọng privacy purge policy.
 
-Epic 5 hoàn tất khi user có thư viện owner-scoped để mở lại, lọc, phục hồi và xóa dữ liệu theo policy mà không regeneration ngoài ý muốn.
+#### AC6 — Temporary audio and telemetry
+
+**Given** raw temporary audio tồn tại  
+**When** lesson/job delete  
+**Then** cleanup yêu cầu ngay và TTL sweeper defense in depth  
+**And** temporary audio không vào lesson archive  
+**And** logs chỉ có safe IDs/transition/result/latency/cleanup status.
+
+#### AC7 — Tests
+
+**Given** Story 5.3 vào CI  
+**When** suite chạy  
+**Then** có confirmation/cancel, dependency deletion, active-job cancel, partial cleanup/tombstone, idempotency, RLS, retention, accessibility and E2E success/pending/failure-safe tests.
+
+Epic 5 hoàn tất khi user có owner-scoped Library để mở lại, lọc, recover và xóa dữ liệu mà không regeneration ngoài ý muốn.
