@@ -14,6 +14,13 @@ const serverConfigSchema = z
     YOUTUBE_DATA_API_KEY: z.string().min(1).optional(),
     YOUTUBE_VIEWER_REGION: z.string().regex(/^[A-Z]{2}$/).default("VN"),
     YOUTUBE_METADATA_TIMEOUT_MS: z.coerce.number().int().min(500).max(15000).default(5000),
+    GENERATION_REPOSITORY: z.enum(["supabase", "fake"]).default("fake"),
+    GENERATION_DISPATCHER: z.enum(["inngest", "inline"]).default("inline"),
+    GENERATION_MAX_ACTIVE_JOBS: z.coerce.number().int().min(1).max(20).default(2),
+    GENERATION_MAX_JOBS_PER_DAY: z.coerce.number().int().min(1).max(1000).default(20),
+    GENERATION_MAX_JOBS_PER_MINUTE: z.coerce.number().int().min(1).max(60).default(3),
+    INNGEST_EVENT_KEY: z.string().min(1).optional(),
+    INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   })
   .superRefine((value, context) => {
     if (value.NODE_ENV === "production" && !value.CI && value.AUTH_ADAPTER === "fake") {
@@ -44,6 +51,39 @@ const serverConfigSchema = z
         message: "YouTube Data API key is required for the YouTube adapter.",
       });
     }
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.GENERATION_REPOSITORY === "fake"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["GENERATION_REPOSITORY"],
+        message: "The fake generation repository cannot run in production.",
+      });
+    }
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.GENERATION_DISPATCHER === "inline"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["GENERATION_DISPATCHER"],
+        message: "The inline generation dispatcher cannot run in production.",
+      });
+    }
+    if (
+      value.GENERATION_DISPATCHER === "inngest" &&
+      value.NODE_ENV === "production" &&
+      (!value.INNGEST_EVENT_KEY || !value.INNGEST_SIGNING_KEY)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["INNGEST_EVENT_KEY"],
+        message: "Inngest event and signing keys are required in production.",
+      });
+    }
   });
 
 export type ServerConfig = z.infer<typeof serverConfigSchema>;
@@ -64,6 +104,13 @@ export function getServerConfig(): ServerConfig {
     YOUTUBE_DATA_API_KEY: process.env.YOUTUBE_DATA_API_KEY,
     YOUTUBE_VIEWER_REGION: process.env.YOUTUBE_VIEWER_REGION,
     YOUTUBE_METADATA_TIMEOUT_MS: process.env.YOUTUBE_METADATA_TIMEOUT_MS,
+    GENERATION_REPOSITORY: process.env.GENERATION_REPOSITORY,
+    GENERATION_DISPATCHER: process.env.GENERATION_DISPATCHER,
+    GENERATION_MAX_ACTIVE_JOBS: process.env.GENERATION_MAX_ACTIVE_JOBS,
+    GENERATION_MAX_JOBS_PER_DAY: process.env.GENERATION_MAX_JOBS_PER_DAY,
+    GENERATION_MAX_JOBS_PER_MINUTE: process.env.GENERATION_MAX_JOBS_PER_MINUTE,
+    INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
+    INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
   });
 
   if (!result.success) {
