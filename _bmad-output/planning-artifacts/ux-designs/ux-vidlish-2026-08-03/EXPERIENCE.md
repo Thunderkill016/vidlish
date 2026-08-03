@@ -4,9 +4,10 @@ status: final
 updated: 2026-08-03
 sources:
   - ../../prds/prd-vidlish-2026-08-03/prd.md
-  - ../../../specs/spec-vidlish-lesson-engine/SPEC.md
-  - ../../research/technical-all-transcript-acquisition-strategies-2026-08-03.md
-  - ../../research/domain-youtube-lesson-content-design-2026-08-03.md
+  - ../../prds/prd-vidlish-2026-08-03/language-eligibility-amendment.md
+  - ../../architecture/architecture-vidlish-2026-08-03/ARCHITECTURE-SPINE.md
+  - ../../architecture/architecture-vidlish-2026-08-03/LANGUAGE-ELIGIBILITY-AMENDMENT.md
+  - ../../architecture/architecture-vidlish-2026-08-03/IMPLEMENTATION-DECISIONS.md
 design: DESIGN.md
 ---
 
@@ -14,392 +15,294 @@ design: DESIGN.md
 
 ## Foundation
 
-Vidlish is a responsive web application, desktop-first for creating and studying lessons but fully usable on modern mobile browsers. UI foundation: Next.js + Tailwind + shadcn/ui, subject to Architecture confirmation. `DESIGN.md` owns visual identity; this document owns information architecture, states, behavior, interaction and accessibility.
+Vidlish is a responsive web application for Vietnamese English learners. It is desktop-first for generation and study, but every core flow works on modern mobile browsers.
+
+Canonical promise:
+
+> **Any English video. Your English lesson.**
+
+A video is eligible only when the original speech contains enough reliable, coherent English. Missing captions are recoverable; confirmed insufficient original English is terminal for MVP.
 
 Product UX principles:
 
 1. **One job at a time.** Create, learn and manage are separate surfaces.
-2. **Progressive support.** Learners first attempt gist/recall before revealing all help.
-3. **Evidence nearby.** Claims, quotes and answers expose the video timestamp that supports them.
-4. **Fallback without blame.** Missing captions trigger another strategy, not a dead end or technical error dump.
-5. **Quality before speed.** Generation states explain that the lesson is being checked, not merely generated.
-6. **No forced completeness.** Lessons can be shorter when the video contains fewer valuable teaching moments.
+2. **Progressive support.** Gist and recall precede full transcript/reveal where appropriate.
+3. **Evidence nearby.** Source-dependent claims and answers expose the supporting timestamp/reference.
+4. **Fallback without blame.** Acquisition failures lead to the next valid method or one clear user action.
+5. **Quality before speed.** Progress communicates checking and validation, not “AI thinking.”
+6. **Original-English boundary.** Translation/support never masquerades as source speech or scored English evidence.
+7. **No forced completeness.** Lessons may be shorter when source teaching value is limited.
 
-## Information Architecture
+## Information architecture
 
-| Surface | Reached from | Purpose |
-|---|---|---|
-| Sign in | Signed-out route guard | Minimal passwordless authentication for ownership and quota |
-| Create Lesson | App open / primary nav | Paste URL, choose CEFR, inspect video and start generation |
-| Generation | Create submission / job URL | Persisted progress, fallback decisions, retry and completion redirect |
-| Tab Audio Capture | Generation fallback | Ask permission, guide user to select the correct YouTube tab with audio and show capture/transcription progress |
-| Transcript Input | Generation fallback | Paste or upload subtitle/transcript; upload owned media only when permitted |
-| Lesson Viewer | Generation complete / Library | Study Core Lesson with video, evidence, activities and completion |
-| Library | Primary nav | Open, inspect status and delete saved lessons |
-| Account/Private Beta Info | Avatar menu | Sign out, quota summary, privacy/retention explanation and beta feedback link |
+| Surface | Purpose |
+| --- | --- |
+| Sign in | Six-digit email OTP and private-beta access |
+| Create Lesson | Paste YouTube URL, verify metadata, choose CEFR and confirm readiness |
+| Generation | Persisted job progress, fallbacks, retry/cancel and completion redirect |
+| Transcript Input | Paste transcript or upload `.srt`/`.vtt` into the current job |
+| Tab Audio Capture | Consent-first capture of the selected YouTube tab’s audio |
+| Lesson Viewer | Study the published grounded Core Lesson |
+| Library | Open saved lessons/jobs, filter, recover and delete |
+| Account menu | Sign out in Story 1.1; quota and retention details appear only when owning stories exist |
 
-Primary navigation has only:
+Primary authenticated navigation:
 
 - **Tạo bài học**
 - **Thư viện**
 - Account menu
 
-No dashboard, marketplace, community, streak or settings hierarchy in MVP.
+No dashboard, marketplace, social feed, streak, XP or settings hierarchy in MVP. The beta-feedback link is deferred until a requirement assigns ownership.
 
-Desktop shell: slim top bar, content centered inside the application width. Lesson Viewer may use a split layout; other surfaces are single-column. Mobile uses the same top bar with compact nav.
+## Voice and tone
 
-## Voice and Tone
+System navigation and explanation default to Vietnamese. English is used for source speech and learning terms.
 
-Microcopy is calm, specific and action-oriented. Avoid anthropomorphizing AI.
+| Situation | Preferred copy |
+| --- | --- |
+| Empty create | “Dán video tiếng Anh bạn muốn học.” |
+| Caption missing | “Video này chưa có phụ đề dùng được. Vidlish đang thử cách khác để lấy lời thoại.” |
+| Permission | “Chỉ audio của tab bạn chọn được dùng tạm thời để tạo transcript. Vidlish không lưu video.” |
+| Long processing | “Video dài đang được chia thành các phần để xử lý.” |
+| Language check | “Đang kiểm tra video có đủ nội dung tiếng Anh để tạo bài học.” |
+| Quality check | “Đang đối chiếu câu hỏi và trích dẫn với video.” |
+| Unsupported language | “Video này không có đủ nội dung tiếng Anh để tạo bài học. Hãy chọn một video chủ yếu nói tiếng Anh.” |
+| Lesson ready | “Bài học đã sẵn sàng.” |
+| Delete | “Xóa bài học và dữ liệu phụ thuộc đã lưu?” |
 
-| Situation | Preferred copy | Avoid |
-|---|---|---|
-| Empty create | “Dán video bạn muốn học.” | “Hãy để AI biến mọi thứ thành phép màu!” |
-| Caption missing | “Video này không có phụ đề dùng được. Vidlish có thể nghe audio của tab để tạo transcript.” | “Transcript unavailable. Error 404.” |
-| Permission | “Chỉ audio của tab bạn chọn được dùng tạm thời để tạo transcript. Vidlish không lưu video.” | “Allow screen recording.” without context |
-| Long processing | “Video dài đang được chia thành các phần để xử lý.” | “Vui lòng chờ…” indefinitely |
-| Quality check | “Đang đối chiếu câu hỏi và trích dẫn với video.” | “AI đang suy nghĩ.” |
-| Lesson ready | “Bài học đã sẵn sàng.” | “Generation successful!” |
-| Low-confidence STT | “Một số đoạn nghe chưa rõ. Bài học sẽ tránh dùng các đoạn này cho câu hỏi có chấm điểm.” | “Transcript accuracy: 72%” as the only explanation |
-| Delete | “Xóa bài học và transcript đã lưu?” | “Are you sure?” |
+Avoid provider names, stack traces, “AI magic,” fake certainty and blame-oriented copy.
 
-English labels inside lesson content are allowed when they are learning terms. System navigation and explanation default to Vietnamese.
+## Global behavior
 
-## Global Component Patterns
+### App shell
 
-| Component | Use | Behavioral rules |
-|---|---|---|
-| App top bar | All authenticated surfaces | Logo returns to Create Lesson. Primary nav has Create and Library only. Account menu contains quota/privacy/sign out. |
-| Video URL field | Create | Paste-friendly. Validation waits until blur or submit, not each keystroke. Successful validation reveals metadata preview without moving the primary action far down the page. |
-| CEFR selector | Create | A1–C1 with one-sentence learner-friendly descriptions in tooltip/help. Selected level persists for the session, not global profile in MVP. |
-| Job phase stepper | Generation | Reads persisted job state. Completed, active, fallback-required and failed are distinct. Refresh resumes the same job. |
-| Fallback card | Generation | Shows one recommended next action. Alternative methods live under “Cách khác”. Provider names remain hidden unless internal debug mode. |
-| Evidence link | Lesson | Timestamp seeks the player and gives focus to the relevant transcript row. Keyboard activation supported. |
-| Support control | Lesson | Transcript support modes: hidden/keywords/full English/translation on demand where available. The lesson may prescribe an initial mode for an activity, but the user can reveal support. |
-| Activity card | Lesson | Attempt → submit → feedback. “Xem đáp án” is separate from “Nộp”. Open production prompts use self-check criteria, not fake automated scoring. |
-| Destructive dialog | Library | Names what will be deleted. Confirm button says “Xóa bài học”; focus starts on Cancel. |
+- Slim top bar with Create, Library and account menu.
+- Logo returns to Create.
+- Story 1.1 account menu contains **Đăng xuất** only.
+- Story 2.10 may add quota summary.
+- Story 2.11 may add privacy/retention explanation.
 
-## Create Lesson Surface
+### Create controls
 
-### Default state
+- URL validation waits for blur or submit.
+- Metadata preview stays close to the URL field.
+- CEFR A1–C1 is required and persists only for the current Create session.
+- Before Story 2.1, the primary action is **Xác nhận lựa chọn** and yields `Sẵn sàng tạo bài học`.
+- Story 2.1 replaces it with **Tạo bài học**, creates a persisted job and navigates to `/jobs/{id}`.
 
-Composition:
+### Generation phase vocabulary
 
-1. Brand promise and one-line explanation.
-2. YouTube URL field.
-3. CEFR selector.
-4. Primary button: **Tạo bài học**.
-5. Small privacy note: video is not stored; transcript handling link.
-6. Recent lesson shortcut only when the user already has lessons; no full dashboard.
+The learner-facing phase order is mandatory:
 
-### Valid URL state
+1. **Kiểm tra video**
+2. **Lấy hoặc tạo transcript**
+3. **Kiểm tra tiếng Anh**
+4. **Phân tích nội dung**
+5. **Chọn phần đáng học**
+6. **Tạo hoạt động**
+7. **Kiểm định bài học**
+8. **Hoàn tất**
 
-After validation, show compact metadata:
-
-- Thumbnail.
-- Title and channel.
-- Duration.
-- Availability badge.
-- Transcript strategy is not promised before the job starts; avoid misleading “captions found” unless inspection is reliable.
-
-### Submit behavior
-
-- Creates a persisted job first.
-- Navigates to `/jobs/{id}` immediately.
-- Button becomes disabled only after job ID is returned.
-- Duplicate submit with same URL/level/session uses idempotency handling and opens the existing job.
-
-## Generation Surface
-
-### Phase vocabulary
-
-1. Kiểm tra video.
-2. Lấy hoặc tạo transcript.
-3. Phân tích nội dung.
-4. Chọn phần đáng học.
-5. Tạo hoạt động.
-6. Kiểm định bài học.
-7. Hoàn tất.
-
-Do not expose internal model calls as separate user-facing steps.
+Internal provider/model calls are never exposed as separate phases.
 
 ### Persisted progress
 
-- Job page can be reopened from URL.
-- Refresh, backgrounding or temporary network loss does not reset the job.
-- If processing continues server-side, user may leave and return via Library/“Đang xử lý”. MVP may poll; realtime is optional.
+- Job page has a durable URL.
+- Refresh, backgrounding and temporary network loss do not reset the job.
+- Polling reads persisted state; it does not resubmit generation.
+- Active, waiting, failed, cancelled and completed states use text/icon plus semantic color.
 
-### Fallback decision hierarchy
+## Transcript fallback hierarchy
 
-When a strategy fails:
+1. Try enabled server-side strategies automatically.
+2. Ask the learner only when consent/input is required.
+3. Show exactly one recommended primary action.
+4. Alternatives appear under **Cách khác**.
+5. Never expose extractor/vendor terminology.
+6. Never translate a non-English video into a fake source-English lesson.
 
-1. Automatically try the next server-side strategy if policy allows.
-2. Ask the user only when permission/input is required.
-3. Recommend **Chia sẻ audio của tab** for a playable video with no usable captions.
-4. Place **Dán/upload transcript** under alternatives.
-5. Never ask the user to understand “InnerTube”, proxy or vendor errors.
+### User-provided transcript
 
-### Tab Audio Capture flow
+- Supports pasted text and `.srt`/`.vtt`.
+- Keeps the same job ID.
+- Parse/validation errors can be corrected without starting over.
+- Plain text without reliable timing does not pretend to support exact seek/listening evidence.
 
-1. Explain purpose, scope and retention before opening the browser picker.
-2. Primary button: **Chọn tab YouTube**.
-3. Browser picker opens only from a direct user action.
-4. After selection, verify an audio track exists.
-5. Show live state: waiting for playback / capturing / transcribing / completed.
-6. The user can stop capture; completed chunks remain usable.
-7. Explain that the YouTube video may need to play through the required portion.
-8. On permission denial, keep the job and offer retry/paste/upload.
+### Tab-audio capture
 
-Privacy copy must state:
+- Capability-detected; Chromium desktop is the primary beta target.
+- Explain scope and retention before the browser picker.
+- Picker opens only from direct user action.
+- User selects the YouTube tab and shares audio.
+- Permission denied, no audio, stop or reload keep the job recoverable.
+- Video is not stored; temporary audio is deleted after transcription/failure or TTL.
 
-- Vidlish receives audio from the selected tab only when the browser provides it.
-- Video is not stored.
-- Temporary audio is deleted after transcription or failure according to retention policy.
+## Language eligibility states
 
-### Long video behavior
+### Checking
 
-- Show that the video is being divided into sections.
-- If a single Core Lesson would exceed the learning budget, generation result becomes an overview lesson plus micro-lesson candidates.
-- MVP may initially publish only the overview and first micro-lesson, but UX must not imply the whole video was taught in 15 minutes.
+While the job is `checking_language`, the phase stepper shows **Kiểm tra tiếng Anh**. Internal thresholds and detector jargon are hidden.
+
+### Eligible
+
+- Continue to **Phân tích nội dung**.
+- Mixed-language videos pass only when their English portions independently support a valid lesson.
+- Only eligible English segments can support source quotes, listening, grammar and scored evidence.
+
+### Unsupported language
+
+Product error:
+
+```text
+VIDEO_LANGUAGE_UNSUPPORTED
+```
+
+Preferred message:
+
+> Video này không có đủ nội dung tiếng Anh để tạo bài học. Hãy chọn một video chủ yếu nói tiếng Anh.
+
+Rules:
+
+- Terminal for the current job.
+- Sole primary action: **Chọn video khác**.
+- No retry button when the conclusion is reliable.
+- No translation lesson mode, dubbing, synthetic audio or generated-English substitute.
+- Status is conveyed with text/icon, not color alone.
+
+### Low confidence
+
+Low transcript/detector confidence is not automatically the same as unsupported language. The product may request a better transcript method; it fails closed rather than assuming English.
 
 ## Lesson Viewer
 
-### Desktop composition
+### Desktop
 
-- Left/sticky media rail: player, video map/chapters, transcript support controls and compact progress.
-- Right reading rail: Core Lesson phases in sequence.
-- Player remains visible while studying, but does not occupy more than roughly 42% of viewport width.
+- Sticky media rail 38–42% and reading rail 58–62%.
+- Player, video map and transcript controls on the media side.
+- Core Lesson phases remain in sequence on the reading side.
 
-### Mobile composition
+### Mobile
 
-- Player at top, not permanently sticky after significant scroll.
-- Compact lesson phase navigation below player.
-- Evidence timestamp taps scroll back to player and seek.
-- Transcript opens in an inline accordion or bottom sheet; never forces a side-by-side layout.
+- Player at top and not permanently sticky after meaningful scroll.
+- Lesson phases stack below.
+- Transcript/video map use inline Accordion or Sheet.
+- Evidence activation can return to player without creating a focus trap.
 
-### Lesson opening
-
-Show:
+### Opening sequence
 
 1. Title, CEFR and estimated time.
 2. Up to three learning outcomes.
 3. Activation/prediction.
-4. Gist activity before full transcript is automatically expanded.
+4. Gist before full transcript is automatically expanded.
 
-The user may skip an activity, but skip is explicit and does not fabricate a score.
+### Source distinction
 
-### Phase navigation
+- Original English source speech is labeled/styled as source-backed.
+- Generated explanations/examples use a distinct label such as **Ví dụ mới**.
+- Vietnamese translation/support is assistance only and never source evidence.
+- Non-English source context is never styled as an English teaching quote.
 
-A compact phase rail shows:
+### Activities
 
-- Bắt đầu.
-- Hiểu ý chính.
-- Ngôn ngữ đáng học.
-- Luyện tập.
-- Nhớ lại.
-- Vận dụng.
-- Kết thúc.
-
-Clicking a phase scrolls to it. A phase is marked complete when required interactions are attempted or explicitly skipped; the system does not require perfect answers.
-
-### Transcript behavior
-
-Support modes:
-
-- Hidden.
-- Keyword support.
-- Full English transcript.
-- Vietnamese explanation/translation on demand where generated.
-
-Rules:
-
-- Gist starts with transcript hidden by default.
-- Evidence links can reveal the relevant segment without expanding the entire transcript.
-- Current playback segment may highlight when reliable timing is available.
-- Low-confidence segments show a subtle warning only when the user opens them; they are excluded from scored evidence.
-
-### Language item behavior
-
-Each item displays:
-
-- Term/chunk.
-- Type/register.
-- Vietnamese meaning and level-appropriate English definition.
-- Source quote with evidence timestamp.
-- Context explanation.
-- Generated example clearly labeled.
-
-Cards expand for details rather than showing every field by default. Item order follows lesson goals, not alphabetic order.
-
-### Activity behavior
-
-Scored activities:
-
-- One clear action per card.
-- Feedback explains why, with evidence timestamp when video-dependent.
-- Retry is allowed within the session.
-- Correct answer is not revealed before submission unless user chooses “Xem đáp án”.
-
-Open activities:
-
-- Retrieval prompt hides target content until the user attempts mentally or in a text field.
-- Transfer/production gives 2–4 self-check criteria.
-- MVP does not pretend to grade open speaking/writing accurately.
+- Attempt → submit → feedback.
+- Deterministic scored activities use published answer contracts.
+- Open production uses self-check criteria, not fake AI/string scoring.
+- Listening activities require adequate timing quality.
+- Learners may retry without gamification pressure.
 
 ### Completion
 
-End with:
-
+- Retrieval.
+- Transfer/production prompt.
 - Exit ticket.
-- Three key takeaways at most.
-- Mark complete toggle/button.
-- Link back to Library.
+- Mark complete/incomplete.
+- Return to Library.
 
-No confetti, streak or forced share prompt.
+No confetti, streak or forced share.
 
 ## Library
 
-Default: reverse chronological list.
+Default sort: reverse chronological.
 
-Each row/card includes:
+Each item may show thumbnail, title/channel, CEFR, created/updated time, status, completion and source summary when relevant.
 
-- Thumbnail.
-- Video title/channel.
-- CEFR.
-- Created date.
-- Status: processing / ready / failed / completed.
-- Transcript source summary only when relevant to retry or quality.
+Canonical filters:
+
+- All
+- Ready
+- In progress
+- Needs action
+- Failed
+- Completed
 
 Behavior:
 
-- Ready row opens Lesson.
-- Processing row opens Job page.
-- Failed row opens the failure/fallback state, not a dead detail page.
-- Delete action is in overflow menu; confirmation names dependent transcript deletion.
-- MVP supports basic filter: All / In progress / Completed / Failed. No search requirement unless the library becomes large in beta.
+- Ready opens saved Lesson without provider calls.
+- Active opens the persisted Job.
+- Awaiting input restores the exact fallback.
+- Retryable failed jobs expose **Thử lại** only after quota/version checks.
+- `VIDEO_LANGUAGE_UNSUPPORTED` exposes **Chọn video khác**, not retry.
+- Delete confirmation names affected data and prioritizes Cancel focus.
 
-## State Patterns
+## State patterns
 
-| State | Surface | Treatment |
-|---|---|---|
-| Cold load | All | Layout-matched Skeleton, not spinner-only full page |
-| Signed out | Protected route | Preserve intended URL, redirect to Sign in, return after auth |
-| Empty Library | Library | “Chưa có bài học.” + one primary action “Tạo bài đầu tiên” |
-| URL invalid | Create | Inline message with examples of accepted YouTube URLs |
-| Video unavailable | Generation | Explain private/deleted/restricted and return to URL field |
-| Caption path exhausted | Generation | Automatically transition to recommended user-permission fallback |
-| Permission denied | Capture | Keep job, explain nothing was captured, offer Retry and Other methods |
-| No audio track | Capture | Ask user to reselect the YouTube tab and ensure “Share tab audio” is enabled where available |
-| STT low confidence | Generation/Lesson | Continue only if quality gates can avoid weak segments; otherwise ask for another input method |
-| AI/schema failure | Generation | One bounded repair happens automatically; then user sees retry action without raw JSON |
-| Quality gate failure | Generation | “Bài học chưa đạt kiểm tra chất lượng.” Offer regenerate; do not publish partial lesson |
-| Offline | Global | Toast + persisted state; disable only actions requiring network |
-| Delete success | Library | Remove row and show undo only if backend supports safe soft-delete; otherwise confirmation is final |
+| State | Treatment |
+| --- | --- |
+| Cold load | Layout-matched skeleton |
+| Signed out | Preserve intended URL, redirect to Sign in, return after OTP |
+| Empty Library | “Chưa có bài học.” + `Tạo bài học` |
+| URL invalid | Inline accepted-format guidance |
+| Video unavailable | Explain private/deleted/restricted/non-embeddable and return to URL |
+| Acquisition methods exhausted | Keep job and present the next permitted input/capture action |
+| Permission denied/no audio | Keep job; retry capture or choose another input method |
+| Language unsupported | Terminal copy + only `Chọn video khác` |
+| Quality gate failure | Do not publish partial lesson; offer allowed regeneration/retry |
+| Offline | Persisted state and clear unsynced actions |
+| Delete pending | Do not claim completion until dependency cleanup succeeds |
 
-## Interaction Primitives
+## Accessibility floor
 
-- `Tab` order follows reading/visual order.
-- `Enter` submits URL form only when validation requirements are met.
-- `Space`/`Enter` activates evidence timestamps and CEFR segmented buttons.
-- `Esc` closes the topmost Dialog/Sheet and returns focus to trigger.
-- `/` may focus Library search only if search is added; no hidden shortcut dependency in MVP.
-- Player keyboard controls remain owned by YouTube iframe when focused.
-- No drag-and-drop requirement.
-- No hover-only actions on mobile; overflow menu remains tappable.
-- Modal stack depth maximum one. Browser share picker is external and must not be covered by another dialog.
+- WCAG 2.2 AA for core flows.
+- Visible labels; placeholders are not labels.
+- Visible focus and logical Tab order.
+- `aria-live` announces concise state changes without rereading the full stepper.
+- Minimum 44×44 CSS-pixel primary touch targets.
+- `Esc` closes the topmost dialog/sheet and returns focus.
+- Keyboard alternatives exist for matching/ordering interactions.
+- Reduced motion is respected.
+- Vietnamese UI and English source text use appropriate language attributes where practical.
 
-## Accessibility Floor
-
-- WCAG 2.2 AA target for core responsive web flows.
-- Every form control has visible label; placeholders are not labels.
-- Status changes announced through `aria-live` without repeatedly reading the entire phase list.
-- Stepper uses text and icon/state, not color alone.
-- Evidence chips have accessible name such as “Mở video tại 02:14”.
-- Activity feedback states “Đúng/Sai/Chưa hoàn thành” in text.
-- Transcript rows are navigable as a list; current row state is announced only when user opts into synchronized transcript to avoid noisy screen-reader output.
-- Reduced motion respected; no required animation.
-- Minimum touch target 44×44 CSS pixels for primary mobile controls.
-- Browser capture permission explanation is readable before the picker opens.
-- Language attributes distinguish Vietnamese UI and English lesson text when practical.
-
-## Responsive & Platform
+## Responsive rules
 
 | Width | Behavior |
-|---|---|
-| ≥ 1100px | Lesson uses sticky two-column media/content layout; Create remains centered single column; Library may use two-column cards if content remains readable |
-| 768–1099px | Lesson uses narrower media rail or stacked layout depending on viewport height; phase navigation remains visible |
-| < 768px | All surfaces single column; top nav compact; transcript and video map use Accordion/Sheet; player non-sticky after initial viewport |
+| --- | --- |
+| ≥1100px | Sticky split Lesson Viewer; Create remains single-column |
+| 768–1099px | Narrow split or stacked based on viewport; phase navigation remains usable |
+| <768px | Single-column surfaces; compact nav; transcript/map in Accordion/Sheet |
 
-Primary beta target: Chromium desktop because tab-audio behavior is most capable there. Create, caption-based generation, Lesson and Library must still work in other modern browsers; audio fallback availability is capability-detected and explained.
+Caption-based Create, Generation, Lesson and Library work in modern browsers. Tab-audio availability is capability-detected and never promised where unsupported.
 
-## Inspiration & Anti-patterns
+## Key flows
 
-### Patterns adopted
+### Caption fast path
 
-- Language Reactor: precise video/transcript interaction and contextual evidence.
-- Yabla: deliberate listening activities and replayable chunks.
-- British Council: pre-viewing → while-viewing → post-viewing progression.
-- TED-Ed: watch/think/deepen/transfer structure.
-- Edpuzzle: timestamped questions and persisted activity state.
-- shadcn/ui: accessible default components rather than a custom widget system.
+Sign in → paste English video → choose CEFR → create job → caption acquisition → normalize → **Kiểm tra tiếng Anh** → Lesson Engine → quality gate → Lesson Viewer.
 
-### Patterns rejected
+### No-caption recovery
 
-- Always-on bilingual subtitles.
-- AI chat as the primary lesson interface.
-- Summary + 20 words + random quiz template.
-- Streaks, XP, confetti and notification pressure.
-- Dashboard analytics before users have meaningful lesson history.
-- Provider/debug terminology in user-facing errors.
-- Publishing partial lessons when quality gates fail.
+Server strategies fail → one recommended fallback → capture tab audio or provide transcript → same job resumes → normalize → **Kiểm tra tiếng Anh** → continue only if eligible.
 
-## Key Flows
+### Unsupported source language
 
-### Flow 1 — Caption fast path (Minh, B1 learner, laptop)
+Transcript acquired → language gate concludes insufficient original English → terminal message → **Chọn video khác** → no Lesson Engine call and no translation substitute.
 
-1. Minh signs in and lands on Create Lesson.
-2. He pastes a public YouTube interview URL and selects B1.
-3. Metadata preview confirms title/channel; Minh presses **Tạo bài học**.
-4. Job page shows video check, then transcript acquisition. A caption provider succeeds; no permission is requested.
-5. The stepper advances through analysis, selection, activities and quality validation.
-6. **Climax:** Lesson Viewer opens with three outcomes and a gist question before the transcript is expanded. Minh can immediately see this is a guided lesson, not a transcript dump.
-7. He answers gist, clicks a timestamp on a phrasal verb and the video seeks to the evidence.
+### Return and recover
 
-Failure: provider one times out; the job silently tries provider two and only shows “Đang thử nguồn transcript khác” if the delay becomes noticeable.
+Library → open saved lesson without regeneration, or reopen exact active/awaiting/retryable job state → delete after explicit confirmation.
 
-### Flow 2 — No-caption audio fallback (Lan, A2 learner, Chrome desktop)
+## Handoff authority
 
-1. Lan pastes a vlog with no captions.
-2. Server-side strategies fail. Generation page displays one recommended card: **Tạo transcript từ audio của tab**.
-3. Lan reads that video is not stored and temporary audio is deleted, then presses **Chọn tab YouTube**.
-4. Browser picker opens; she selects the YouTube tab with audio enabled.
-5. Capture state says “Phát video để Vidlish nghe phần cần xử lý.” The progress bar follows captured/transcribed duration.
-6. **Climax:** The capture finishes and the same job automatically continues into lesson analysis; Lan does not restart or paste the URL again.
-7. The final lesson uses simpler explanations and avoids low-confidence audio segments for scored questions.
-
-Failure: Lan selects a tab without audio. The UI asks her to reselect and keeps paste/upload alternatives available.
-
-### Flow 3 — Learning with progressive support (Huy, B2 learner, phone)
-
-1. Huy opens a saved Lesson on mobile.
-2. Player appears first; learning outcomes and a gist question follow. Transcript is hidden.
-3. After answering, he opens the video map and replays a difficult 45-second segment.
-4. A listening-decoding activity offers keyword support, then full transcript only after his attempt.
-5. He studies two discourse markers, completes a retrieval task without visible answers and writes a short transfer response using self-check criteria.
-6. **Climax:** At the exit ticket, Huy can explain the speaker’s position and use one target expression in a new context; the lesson’s phases feel connected.
-7. He marks complete and returns to Library.
-
-### Flow 4 — Return and recover (Mai, A1 learner, next day)
-
-1. Mai opens Library and sees one ready lesson, one completed lesson and one failed transcript job.
-2. She opens the failed row; it restores the exact fallback state and offers paste/upload instead of starting over.
-3. She opens the completed lesson; no provider call runs and all evidence links still work.
-4. **Climax:** Mai trusts that Vidlish is a library of stable lessons, not a disposable AI generator.
-5. She deletes an unwanted lesson after a dialog explains the saved transcript will also be removed when no other lesson uses it.
-
-## Handoff Notes
-
-- Architecture must preserve persisted job URLs, capability detection for tab audio and provider-independent error mapping.
-- Lesson Engine companions are authoritative for schema, CEFR and quality behavior.
-- Exact color/typography implementation follows `DESIGN.md`; behavior wins over mockups on conflict.
-- Mockups are composition references only and must not introduce new product requirements.
+- `DESIGN.md` owns visual identity.
+- This document owns IA, states, interaction, responsive behavior and accessibility.
+- PRD/architecture language amendments override stale language assumptions.
+- `IMPLEMENTATION-DECISIONS.md` selects initial adapters but provider details remain hidden from learner UX.
