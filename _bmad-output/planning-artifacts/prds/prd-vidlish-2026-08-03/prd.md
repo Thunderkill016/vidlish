@@ -1,9 +1,13 @@
 ---
 title: Vidlish MVP
-status: draft
+status: final
 created: 2026-08-03
 updated: 2026-08-03
-source: IDEA.md
+source:
+  - IDEA.md
+  - _bmad-output/planning-artifacts/research/technical-all-transcript-acquisition-strategies-2026-08-03.md
+  - _bmad-output/planning-artifacts/research/domain-youtube-lesson-content-design-2026-08-03.md
+  - _bmad-output/specs/spec-vidlish-lesson-engine/SPEC.md
 track: Full BMad Method - Greenfield
 working_mode: Fast path
 ---
@@ -12,435 +16,407 @@ working_mode: Fast path
 
 ## 0. Mục đích tài liệu
 
-Tài liệu này khóa yêu cầu sản phẩm cho MVP Vidlish trước khi thực hiện UX, kiến trúc, chia epic/story hoặc viết code. Nguồn chính là `IDEA.md`. Các chi tiết nhỏ chưa được xác nhận được ghi bằng `[ASSUMPTION]`; các quyết định sản phẩm lớn, pháp lý, nhà cung cấp API, tài khoản và chi phí được giữ trong phần Câu hỏi mở để người sở hữu sản phẩm quyết định.
+Tài liệu này khóa yêu cầu sản phẩm của Vidlish MVP trước UX, Architecture, Epics/Stories và implementation. Vidlish phải chứng minh một vòng giá trị duy nhất: người dùng chọn một video YouTube họ quan tâm, hệ thống lấy hoặc tạo transcript, biến transcript thành một bài học tiếng Anh có chất lượng, rồi cho phép học, lưu, mở lại và xóa.
+
+Chi tiết thuật toán Lesson Engine nằm trong `_bmad-output/specs/spec-vidlish-lesson-engine/` và là contract bắt buộc cho downstream workflows.
 
 ## 1. Tầm nhìn
 
-Vidlish là ứng dụng web biến một video YouTube công khai có transcript thành một bài học tiếng Anh có cấu trúc dành cho người Việt Nam tự học.
+Vidlish là ứng dụng web biến video YouTube công khai mà người dùng có thể phát thành bài học tiếng Anh cá nhân hóa cho người Việt Nam tự học.
 
-Người học không cần tự chép transcript, chọn từ vựng hoặc soạn bài tập. Họ dán URL, chọn trình độ và nhận một bài học dựa trên nội dung thực tế của video, gồm tóm tắt, transcript có timestamp, từ vựng, cụm từ, ngữ pháp và bài tập ngắn.
+Sản phẩm không chỉ tóm tắt video hoặc liệt kê từ khó. Vidlish phải chọn đúng đoạn và ngôn ngữ đáng học, lập learning outcomes phù hợp CEFR, tạo chuỗi hoạt động từ hiểu nội dung đến nhớ lại và sử dụng, rồi chỉ publish bài học khi vượt qua các quality gate về grounding, level, teaching value và exercise validity.
 
-MVP chỉ chứng minh một lời hứa: **một video người dùng quan tâm có thể trở thành một bài học tiếng Anh hữu ích, dễ hoàn thành và có thể mở lại sau này**.
+Lời hứa của MVP:
+
+> Dán một video YouTube công khai có thể phát, chọn trình độ và nhận một Core Lesson 10–20 phút có bằng chứng từ video, có thể học và mở lại.
+
+Việc video không có caption không phải lỗi cuối cùng. Hệ thống phải chuyển sang phương án transcript khác, bao gồm audio-to-text khi người dùng cấp quyền phù hợp.
 
 ## 2. Người dùng mục tiêu
 
 ### 2.1 Người dùng chính
 
-Người Việt Nam tự học tiếng Anh ở trình độ A1-C1, thường xem YouTube và muốn biến nội dung họ chủ động lựa chọn thành tài liệu học có hướng dẫn.
+Người Việt Nam tự học tiếng Anh ở mức A1–C1, thường xem YouTube và muốn biến nội dung họ chủ động chọn thành một bài học có hướng dẫn thay vì xem thụ động.
 
 ### 2.2 Jobs To Be Done
 
-- Khi tìm thấy một video tiếng Anh thú vị, tôi muốn nhanh chóng biết nội dung chính và những phần đáng học để không xem thụ động.
-- Khi video nói nhanh hoặc có cách diễn đạt tự nhiên, tôi muốn xem transcript theo thời gian và hiểu các từ/cụm từ quan trọng.
-- Khi học xong, tôi muốn làm một bài kiểm tra ngắn để biết mình có hiểu nội dung hay không.
-- Khi quay lại, tôi muốn mở lại bài học đã tạo mà không cần xử lý lại video.
+- Khi tìm thấy video tiếng Anh đáng quan tâm, tôi muốn biến nó thành bài học mà không tự chép transcript hoặc soạn bài tập.
+- Khi người nói nhanh hoặc dùng ngôn ngữ tự nhiên, tôi muốn biết đoạn nào đáng học và hiểu cách dùng trong ngữ cảnh.
+- Khi học, tôi muốn đi từ hiểu ý chính đến nhớ và dùng được ngôn ngữ quan trọng.
+- Khi quay lại, tôi muốn mở đúng bài học cũ mà không trả chi phí tạo lại.
 
 ### 2.3 Không phải người dùng của MVP
 
-- Giáo viên cần quản lý lớp học hoặc giao bài.
+- Giáo viên cần quản lý lớp, giao bài hoặc chấm học sinh.
 - Trẻ em cần chế độ kiểm soát nội dung chuyên biệt.
-- Người cần luyện và chấm phát âm tự động.
-- Người cần học từ video riêng tư, video trả phí hoặc video không có transcript.
-- Người cần ứng dụng mobile native, extension hoặc học nhóm.
+- Người cần chấm phát âm tự động, AI tutor chat hoặc học nhóm.
+- Người cần xử lý video private/restricted mà họ không có quyền truy cập.
+- Người cần mobile native, marketplace hoặc subscription.
 
-### 2.4 Hành trình người dùng
+## 3. Hành trình người dùng
 
-#### UJ-1. Minh biến một video thành bài học
+### UJ-1 — Minh tạo bài học từ video
 
-- **Bối cảnh:** Minh là người Việt Nam học tiếng Anh trình độ Intermediate và vừa tìm thấy một video YouTube tiếng Anh muốn học.
-- **Trạng thái vào:** Minh truy cập trang tạo bài học. `[ASSUMPTION: người dùng phải đăng nhập trước khi tạo bài học.]`
-- **Luồng:** Minh dán URL → hệ thống kiểm tra video → Minh chọn trình độ → nhấn **Tạo bài học** → thấy trạng thái xử lý theo từng bước.
-- **Khoảnh khắc giá trị:** Trang bài học xuất hiện với video, tóm tắt, transcript có timestamp, từ vựng, cụm từ, ngữ pháp và bài tập.
-- **Kết quả:** Bài học được lưu tự động vào thư viện của Minh.
-- **Lỗi chính:** Nếu video không hợp lệ, không công khai, quá dài hoặc không có transcript phù hợp, Minh nhận thông báo cụ thể và có thể nhập URL khác.
+Minh đã đăng nhập, dán URL YouTube và chọn trình độ. Vidlish kiểm tra video, thử lấy caption theo waterfall. Nếu không lấy được caption, hệ thống hướng Minh sang phương án fallback phù hợp như chia sẻ audio của tab hoặc cung cấp transcript/audio mà Minh có quyền sử dụng. Hệ thống hiển thị tiến trình, tạo transcript chuẩn hóa, chạy Lesson Engine và tự lưu bài học khi qua quality gate.
 
-#### UJ-2. Minh học và kiểm tra hiểu biết
+**Khoảnh khắc giá trị:** Minh thấy một Core Lesson có learning outcomes, video map, nội dung chọn lọc, hoạt động nghe hiểu, retrieval và transfer thay vì một danh sách AI ngẫu nhiên.
 
-- **Trạng thái vào:** Minh mở một bài học đã tạo.
-- **Luồng:** Minh xem tóm tắt → phát video hoặc bấm timestamp để nhảy đến đoạn tương ứng → đọc từ vựng/cụm từ/ngữ pháp → làm trắc nghiệm và bài điền từ.
-- **Khoảnh khắc giá trị:** Minh nhận kết quả và lời giải ngay sau khi nộp bài.
-- **Kết quả:** Minh có thể đánh dấu bài học đã hoàn thành.
+### UJ-2 — Minh học bài
 
-#### UJ-3. Minh quay lại thư viện
+Minh mở bài học, làm activation/gist trước khi phụ thuộc hoàn toàn vào transcript, xem các đoạn quan trọng theo timestamp, học language items có evidence, làm comprehension, retrieval và transfer. Minh nhận đáp án/lời giải cho hoạt động có chấm điểm và có thể đánh dấu hoàn thành.
 
-- **Trạng thái vào:** Minh đã có ít nhất một bài học.
-- **Luồng:** Minh mở thư viện → xem danh sách bài học theo ngày tạo → mở lại hoặc xóa một bài học.
-- **Kết quả:** Bài học đã mở giữ nguyên nội dung; bài học đã xóa không còn trong tài khoản.
+### UJ-3 — Minh quản lý thư viện
 
-## 3. Thuật ngữ
+Minh xem các bài học của mình, mở lại mà không gọi lại transcript/AI, lọc theo trạng thái cơ bản và xóa bài học sau xác nhận. Dữ liệu phụ thuộc được xóa theo chính sách retention của MVP.
 
-- **Video hợp lệ** — Video YouTube công khai, tồn tại, không bị chặn với hệ thống và có transcript được MVP hỗ trợ.
-- **Transcript** — Danh sách đoạn văn bản của video, mỗi đoạn có thời điểm bắt đầu và nội dung.
-- **Bài học** — Nội dung được tạo từ một Video hợp lệ cho một trình độ cụ thể và được lưu cho một người dùng.
-- **Trình độ** — Một trong năm lựa chọn: Beginner, Elementary, Intermediate, Upper Intermediate, Advanced.
-- **Nội dung bài học** — Tóm tắt, transcript, từ vựng, cụm từ, điểm ngữ pháp, câu hỏi trắc nghiệm và bài điền từ.
-- **Thư viện** — Màn hình liệt kê các Bài học đã lưu của người dùng hiện tại.
-- **Hoàn thành** — Trạng thái nhị phân do người dùng đặt cho một Bài học; MVP không tính phần trăm tiến độ.
-- **Tạo bài học** — Quy trình kiểm tra video, lấy transcript, tạo Nội dung bài học, xác thực dữ liệu và lưu kết quả.
+## 4. Thuật ngữ
 
-## 4. Tính năng và yêu cầu chức năng
+- **Video hợp lệ** — Video YouTube công khai, tồn tại và có thể phát trong ngữ cảnh người dùng; không bị xóa, private hoặc chặn quyền truy cập bắt buộc.
+- **Transcript Acquisition Waterfall** — Chuỗi phương án lấy caption hoặc tạo transcript, tự chuyển bước khi một phương án thất bại.
+- **Transcript** — Các segment văn bản có stable ID, timestamp, nguồn và confidence khi có.
+- **Core Lesson** — Bài học 10–20 phút theo progression activation → gist → noticing → practice → retrieval → transfer → reflection.
+- **Language Item** — Từ, chunk, collocation, phrasal verb, idiom, grammar hoặc pragmatic insight được chọn vì teaching value.
+- **Evidence Segment** — Segment transcript chứng minh một claim, source quote hoặc đáp án.
+- **Lesson Engine** — Pipeline phân tích, chọn nội dung, lập mục tiêu, tạo hoạt động, kiểm tra và sửa bài học trước publish.
+- **Quality Gate** — Điều kiện bắt buộc về schema, grounding, level fit, exercise validity và quality score.
+- **Trình độ** — A1, A2, B1, B2 hoặc C1; UI có thể dùng nhãn thân thiện nhưng dữ liệu lưu theo CEFR.
+- **Thư viện** — Danh sách bài học thuộc tài khoản hiện tại.
 
-### 4.1 Nhập và kiểm tra video
+## 5. Tính năng và yêu cầu chức năng
 
-**Mô tả:** Người dùng nhập một URL YouTube và chọn Trình độ. MVP không yêu cầu các tùy chỉnh khác. `[ASSUMPTION: mục tiêu học mặc định là học toàn diện và không hiển thị thành lựa chọn trong MVP.]`
+### 5.1 Xác thực và quyền sở hữu
 
-#### FR-1: Nhập URL YouTube
+#### FR-1 — Đăng nhập trước khi tạo
 
-Người dùng có thể dán URL YouTube vào biểu mẫu tạo bài học.
+Người dùng phải đăng nhập trước khi bắt đầu một generation job.
 
-**Hệ quả kiểm thử được:**
-- Chấp nhận các dạng URL YouTube phổ biến có thể suy ra video ID.
-- Loại bỏ khoảng trắng đầu/cuối.
-- Không bắt đầu xử lý khi trường URL trống.
+**Chấp nhận:**
+- Hỗ trợ đăng ký, đăng nhập và đăng xuất tối thiểu.
+- Job, Transcript và Lesson luôn có owner.
+- Người dùng khác không thể đọc, sửa hoặc xóa dữ liệu không thuộc mình.
 
-#### FR-2: Chọn Trình độ
+#### FR-2 — Private beta
 
-Người dùng phải chọn một Trình độ trước khi tạo bài học.
+MVP được phát hành dưới dạng private beta để kiểm chứng coverage, chất lượng lesson, chi phí và rủi ro trước public launch.
 
-**Hệ quả kiểm thử được:**
-- Chỉ chấp nhận năm giá trị đã định nghĩa trong Thuật ngữ.
-- Trình độ được lưu cùng Bài học và được dùng khi tạo nội dung.
+### 5.2 Nhập và kiểm tra video
 
-#### FR-3: Kiểm tra tính hợp lệ của video
+#### FR-3 — Nhập URL YouTube
 
-Hệ thống phải kiểm tra URL và điều kiện xử lý trước khi gửi transcript tới AI.
+Người dùng có thể dán các dạng URL YouTube phổ biến; hệ thống suy ra video ID và từ chối input không hợp lệ.
 
-**Hệ quả kiểm thử được:**
-- Phân biệt được URL sai định dạng, video không tồn tại, video riêng tư, video bị giới hạn, video không có transcript phù hợp và video vượt giới hạn.
-- Không tạo bản ghi Bài học hoàn chỉnh khi kiểm tra thất bại.
+#### FR-4 — Chọn trình độ
 
-#### FR-4: Hiển thị metadata cơ bản
+Người dùng chọn một level A1–C1 trước khi tạo. Đây là personalization control bắt buộc duy nhất của MVP.
 
-Sau khi video được chấp nhận, hệ thống lưu và hiển thị tối thiểu tiêu đề, kênh, thumbnail và thời lượng khi dữ liệu có sẵn.
+#### FR-5 — Metadata và khả năng phát
 
-### 4.2 Lấy và chuẩn hóa Transcript
+Hệ thống lấy tối thiểu title, channel, thumbnail và duration khi có, đồng thời phân biệt video không tồn tại, private, restricted hoặc không thể phát.
 
-#### FR-5: Lấy Transcript có sẵn
+#### FR-6 — Không đặt trần thời lượng cứng ở cấp sản phẩm
 
-Hệ thống lấy Transcript từ phụ đề có sẵn của Video hợp lệ.
+MVP không từ chối video chỉ vì vượt một số phút cố định. Hệ thống phải dùng token/cost budget, chunking và xử lý bất đồng bộ. Video dài có thể tạo overview lesson và các micro-lesson thay vì nhồi toàn bộ vào một Core Lesson.
 
-**Hệ quả kiểm thử được:**
-- Mỗi đoạn Transcript có nội dung và timestamp bắt đầu.
-- Không tải hoặc lưu file video/audio.
-- Video không có Transcript được hỗ trợ trả về lỗi rõ ràng.
+**Chấp nhận:**
+- Không silently truncate transcript.
+- Trước khi chạy tác vụ tốn kém, hệ thống có thể báo ước tính thời gian hoặc yêu cầu xác nhận nếu vượt quota cấu hình.
+- Architecture được phép đặt hard safety limit kỹ thuật để bảo vệ hệ thống, nhưng không biến nó thành lời hứa sản phẩm cố định.
 
-#### FR-6: Chuẩn hóa Transcript
+### 5.3 Transcript Acquisition Waterfall
 
-Hệ thống làm sạch Transcript trước khi gửi tới AI mà không làm thay đổi ý nghĩa của nội dung.
+#### FR-7 — Caption fast path
 
-**Hệ quả kiểm thử được:**
-- Bỏ đoạn trống và chuẩn hóa khoảng trắng.
-- Giữ quan hệ giữa nội dung và timestamp.
-- Không tự bịa đoạn bị thiếu.
+Hệ thống ưu tiên manual caption và auto-caption có sẵn, giữ nguồn và confidence.
 
-#### FR-7: Áp dụng giới hạn đầu vào
+#### FR-8 — Hosted transcript provider fallback
 
-Hệ thống từ chối hoặc cắt xử lý theo chính sách rõ ràng khi video/transcript vượt giới hạn cho phép. `[ASSUMPTION: giới hạn ban đầu là video tối đa 30 phút; cần xác nhận ở OQ-3.]`
+Khi fast path thất bại, hệ thống có thể gọi transcript provider đã cấu hình phía server.
 
-### 4.3 Tạo Nội dung bài học bằng AI
+#### FR-9 — Unofficial extractor fallback
 
-#### FR-8: Tạo đầu ra có cấu trúc
+Private beta có thể dùng extractor không chính thức sau abstraction provider, với timeout, retry có giới hạn và khả năng thay thế khi YouTube thay đổi.
 
-Hệ thống gửi Transcript và Trình độ tới AI, yêu cầu đầu ra JSON theo schema được phiên bản hóa.
+#### FR-10 — Audio-to-text fallback
 
-#### FR-9: Tạo tóm tắt
+`NO_CAPTIONS` không phải trạng thái thất bại cuối. Hệ thống phải cung cấp ít nhất một đường audio-to-text có sự đồng ý của người dùng, ưu tiên web tab-audio capture; extension hoặc desktop companion nằm ngoài MVP web nhưng kiến trúc không được ngăn cản chúng.
 
-Mỗi Bài học có một tóm tắt tiếng Việt và một tóm tắt tiếng Anh ngắn, bám sát Transcript.
+#### FR-11 — User-provided fallback
 
-#### FR-10: Tạo từ vựng
+Người dùng có thể paste transcript hoặc upload subtitle; upload audio/video chỉ áp dụng cho nội dung họ có quyền sử dụng.
 
-Mỗi Bài học có 10-20 mục từ vựng hoặc cụm từ quan trọng.
+#### FR-12 — Chuẩn hóa Transcript
 
-Mỗi mục tối thiểu gồm:
-- thuật ngữ;
-- loại từ khi phù hợp;
-- nghĩa tiếng Việt;
-- định nghĩa tiếng Anh đơn giản;
-- câu gốc từ Transcript;
-- một ví dụ mới phù hợp Trình độ.
+Mỗi segment có stable ID, text, start timestamp, end/duration khi có, source và confidence khi có. Hệ thống loại segment trống, duplicate/corrupt và không bịa phần bị thiếu.
 
-#### FR-11: Tạo cụm từ tự nhiên
+#### FR-13 — Chính sách lưu dữ liệu
 
-Mỗi Bài học có đúng 5 collocation, phrasal verb, idiom, slang hoặc cách diễn đạt tự nhiên lấy từ hoặc được chứng minh bởi Transcript.
+MVP lưu Transcript chuẩn hóa cần thiết để mở Lesson mà không gọi lại provider. Không lưu video. Audio capture chỉ tồn tại tạm thời trong thời gian transcription và bị xóa sau khi Transcript được tạo hoặc job thất bại.
 
-#### FR-12: Tạo điểm ngữ pháp
+Khi Lesson cuối cùng phụ thuộc vào Transcript bị xóa, Transcript và dữ liệu tạm liên quan được xóa theo retention job. Legal review bắt buộc trước public launch.
 
-Mỗi Bài học có 1-3 điểm ngữ pháp xuất hiện trong Transcript, gồm giải thích ngắn, câu trích dẫn và ví dụ bổ sung.
+### 5.4 Lesson Engine
 
-#### FR-13: Tạo câu hỏi trắc nghiệm
+#### FR-14 — Deterministic preprocessing
 
-Mỗi Bài học có đúng 5 câu hỏi trắc nghiệm kiểm tra hiểu nội dung, mỗi câu có đáp án đúng và lời giải.
+Transcript phải được normalize, gắn segment ID, hash, source/confidence và đánh dấu là untrusted input trước khi gửi model.
 
-#### FR-14: Tạo bài điền từ
+#### FR-15 — Phân tích video
 
-Mỗi Bài học có một bài điền từ ngắn dựa trên Transcript, kèm đáp án.
+Lesson Engine phân loại genre, topic, structure, difficulty, semantic sections, listening challenges và low-confidence regions. Mọi claim phải có evidence segment.
 
-#### FR-15: Ràng buộc chống bịa đặt
+#### FR-16 — Khai thác language candidates
 
-Trích dẫn được gắn là “câu trong video” phải tồn tại trong Transcript hoặc khớp với một đoạn sau chuẩn hóa.
+Engine tạo candidate pool lớn hơn số item cần publish, bao gồm form, kind, CEFR, register, context meaning, evidence, usefulness và transferability.
 
-#### FR-16: Xác thực và phục hồi đầu ra AI
+#### FR-17 — Chọn learning outcomes
 
-Hệ thống phải xác thực JSON trước khi lưu hoặc hiển thị.
+Engine chọn tối đa ba learning outcomes dựa trên video và level. Mọi section/activity phải phục vụ ít nhất một outcome.
 
-**Hệ quả kiểm thử được:**
-- Dữ liệu thiếu trường hoặc sai kiểu không được coi là Bài học hoàn chỉnh.
-- Hệ thống được phép thử sửa/tạo lại theo giới hạn cấu hình.
-- Khi vẫn thất bại, người dùng nhận trạng thái lỗi có thể thử lại.
+#### FR-18 — Chọn teachable moments
 
-### 4.4 Trạng thái xử lý
+Engine chọn language items theo teaching value, không chỉ theo độ khó. Proper noun, item quá chuyên ngành hoặc item không chuyển giao được bị loại trừ trừ khi cần để hiểu video.
 
-#### FR-17: Hiển thị tiến trình
+#### FR-19 — Core Lesson co giãn
 
-Trong khi Tạo bài học, giao diện hiển thị các trạng thái:
-1. Đang kiểm tra video.
-2. Đang lấy transcript.
-3. Đang phân tích nội dung.
-4. Đang tạo từ vựng và bài tập.
-5. Đang hoàn thiện bài học.
-6. Bài học đã sẵn sàng.
+Core Lesson có progression:
 
-#### FR-18: Phục hồi sau tải lại trang
+1. Activation/prediction.
+2. Gist.
+3. Summary/video map.
+4. Noticing language.
+5. Guided practice/listening decoding.
+6. Comprehension.
+7. Retrieval.
+8. Transfer/production.
+9. Reflection/exit ticket.
 
-Nếu người dùng tải lại trang trong khi xử lý, hệ thống phải có thể hiển thị lại trạng thái hiện tại hoặc kết quả cuối cùng thay vì làm mất yêu cầu đã tạo.
+Số lượng item co giãn theo level và teaching value. Engine không bịa nội dung để đạt quota.
 
-### 4.5 Trải nghiệm Bài học
+#### FR-20 — Cá nhân hóa CEFR thực chất
 
-#### FR-19: Hiển thị Bài học
+Cùng một video phải tạo ra lesson khác nhau về mức hỗ trợ, số item, loại câu hỏi, độ sâu giải thích và production demand giữa A1, B1 và C1; không chỉ đổi wording.
 
-Trang Bài học hiển thị:
-- metadata và video nhúng;
-- tóm tắt tiếng Việt và tiếng Anh;
-- Transcript có timestamp;
-- từ vựng;
-- cụm từ;
-- điểm ngữ pháp;
-- câu hỏi trắc nghiệm;
-- bài điền từ.
+#### FR-21 — Grounding bằng segment ID
 
-#### FR-20: Điều hướng bằng timestamp
+Source quote, factual claim, detail question, grammar evidence và answer rationale phải tham chiếu segment ID tồn tại. Generated example được đánh dấu riêng với source quote.
 
-Người dùng có thể bấm một timestamp để mở hoặc điều khiển video đến vị trí tương ứng trong khả năng của trình phát nhúng.
+#### FR-22 — Structured output và versioning
 
-#### FR-21: Làm bài tập
+Mọi stage AI trả dữ liệu theo schema version hóa. Lesson lưu `schema_version`, `pipeline_version`, `prompt_version`, `model_id`, `transcript_hash` và quality report.
 
-Người dùng có thể chọn đáp án, nộp bài và xem kết quả cùng lời giải trong phiên hiện tại.
+#### FR-23 — Multi-stage generation
 
-`[ASSUMPTION: MVP không lưu từng đáp án hoặc điểm kiểm tra; chỉ lưu trạng thái Hoàn thành của Bài học.]`
+Production path bắt buộc là:
 
-#### FR-22: Đánh dấu Hoàn thành
+`Video Analyst → Language Miner → Objective Planner → Activity Composer → Validators → Reviewer → Targeted Repair → Final Gate`.
 
-Người dùng có thể chuyển Bài học giữa hai trạng thái chưa hoàn thành và Hoàn thành.
+Không cho phép one-shot `transcript → complete lesson → publish`.
 
-### 4.6 Lưu và quản lý Bài học
+#### FR-24 — Provider independence
 
-#### FR-23: Lưu Bài học
+Gemini là implementation của `LessonGenerationProvider`, không phải domain contract. Hệ thống có thể thay provider mà không thay Lesson schema và deterministic validators.
 
-Bài học được lưu tự động sau khi đầu ra AI vượt qua xác thực.
+### 5.5 Validation và quality gate
 
-#### FR-24: Xem Thư viện
+#### FR-25 — Structural validation
 
-Người dùng có thể xem Bài học của chính mình, tối thiểu gồm tiêu đề video, thumbnail, Trình độ, ngày tạo và trạng thái Hoàn thành.
+Lesson sai schema, field type, enum hoặc relationship không được lưu thành Lesson hoàn chỉnh.
 
-#### FR-25: Mở lại Bài học
+#### FR-26 — Grounding validation
 
-Người dùng có thể mở lại một Bài học đã lưu mà không gọi lại AI.
+Segment ID không tồn tại, source quote không khớp hoặc claim thiếu evidence là hard failure.
 
-#### FR-26: Xóa Bài học
+#### FR-27 — Exercise validity
 
-Người dùng có thể xóa một Bài học sau bước xác nhận.
+Mỗi activity có chấm điểm phải có answer key, rationale và evidence/acceptance criteria. Multiple-choice phải có đúng một đáp án tốt nhất.
 
-**Hệ quả kiểm thử được:**
-- Không còn truy cập được Bài học từ tài khoản sau khi xóa.
-- Dữ liệu phụ thuộc được xóa hoặc vô hiệu hóa theo chính sách dữ liệu.
+#### FR-28 — Quality score
 
-### 4.7 Danh tính và quyền sở hữu
+Lesson chỉ publish khi vượt mọi hard gate và đạt tối thiểu 14/16 theo rubric. Grounding và exercise validity phải đạt mức tối đa.
 
-#### FR-27: Xác thực người dùng
+#### FR-29 — Targeted repair
 
-Hệ thống cung cấp cơ chế đăng ký, đăng nhập và đăng xuất. `[ASSUMPTION: email magic link là cơ chế mặc định để giảm scope; cần xác nhận ở OQ-1.]`
+Khi một module lỗi, hệ thống sửa đúng module đó với lỗi validation cụ thể. Tối đa một vòng structural repair và một vòng semantic repair trước khi fail closed.
 
-#### FR-28: Cô lập dữ liệu
+#### FR-30 — Golden regression set
 
-Người dùng chỉ có thể xem, sửa trạng thái hoặc xóa Bài học thuộc tài khoản của mình.
+Thay đổi model, prompt, schema hoặc selector phải chạy regression evaluation trên tối thiểu 10 video đa genre và nhiều level trước production.
 
-## 5. Kiến trúc thông tin và bề mặt sản phẩm
+### 5.6 Trạng thái xử lý
 
-MVP có đúng ba bề mặt chính:
+#### FR-31 — Generation job bền vững
 
-1. **Tạo bài học** — URL, Trình độ, nút Tạo bài học, trạng thái xử lý và lỗi.
-2. **Bài học** — video, Nội dung bài học, bài tập và trạng thái Hoàn thành.
-3. **Thư viện** — danh sách, mở lại và xóa Bài học.
+Hệ thống tạo job có ID và idempotency key trước khi gọi provider. Reload không làm mất trạng thái hoặc tạo lại job ngoài ý muốn.
 
-Các màn hình xác thực tối thiểu được xem là bề mặt hỗ trợ, không phải tính năng sản phẩm độc lập.
+#### FR-32 — Trạng thái người dùng hiểu được
 
-## 6. Yêu cầu phi chức năng
+UI hiển thị các stage phù hợp, tối thiểu: kiểm tra video, lấy/tạo transcript, phân tích video, chọn nội dung học, tạo hoạt động, kiểm định và hoàn tất.
 
-### 6.1 Khả dụng và responsive
+#### FR-33 — Lỗi có hành động tiếp theo
 
-- Các luồng chính sử dụng được trên trình duyệt desktop và mobile hiện đại.
-- Biểu mẫu, trạng thái lỗi và nội dung bài học phải dùng được bằng bàn phím.
-- Mục tiêu accessibility ban đầu: các thành phần cốt lõi đáp ứng WCAG 2.1 AA ở mức thực dụng.
+Mỗi lỗi đã biết được map sang thông báo tiếng Việt và hành động cụ thể: thử provider khác, chia sẻ tab, paste/upload transcript, thử lại hoặc chọn video khác.
 
-### 6.2 Hiệu năng
+### 5.7 Trải nghiệm Lesson
 
-- Phản hồi kiểm tra URL phải bắt đầu trong vòng 2 giây ở điều kiện bình thường.
-- Trang Thư viện và Bài học đã lưu phải hiển thị dữ liệu chính trong vòng 3 giây ở điều kiện bình thường.
-- Tạo bài học có thể mất lâu hơn nhưng phải luôn hiển thị trạng thái và không để request treo vô thời hạn.
+#### FR-34 — Lesson Viewer
 
-### 6.3 Độ tin cậy
+Trang Lesson hiển thị video/player, learning outcomes, summary/video map, Transcript có timestamp, language items, activities, đáp án/lời giải và quality/provenance tối thiểu cần thiết cho debug nội bộ.
 
-- Một yêu cầu tạo Bài học phải có định danh để tránh tạo trùng khi người dùng tải lại trang.
-- Lỗi từ transcript provider hoặc AI provider phải được phân loại và ghi log.
-- Không hiển thị đầu ra AI chưa qua schema validation.
+#### FR-35 — Timestamp interaction
 
-### 6.4 Bảo mật
+Bấm evidence/timestamp điều khiển video đến đoạn tương ứng khi player hỗ trợ.
 
-- API key chỉ tồn tại phía server và không được gửi tới trình duyệt.
-- Mọi truy cập Bài học đều phải kiểm tra quyền sở hữu phía server.
-- Có rate limit cơ bản cho thao tác Tạo bài học.
-- Không ghi API key, token đăng nhập hoặc toàn bộ nội dung nhạy cảm vào log.
+#### FR-36 — Làm hoạt động
 
-### 6.5 Quan sát hệ thống
+Người dùng làm gist/comprehension/listening/retrieval activities, nộp câu có chấm điểm và xem feedback. MVP không cần lưu từng đáp án dài hạn.
 
-Tối thiểu phải ghi nhận:
-- yêu cầu tạo bài học bắt đầu/thành công/thất bại;
-- loại lỗi;
-- thời gian từng giai đoạn;
-- số lần AI phải tạo lại do schema lỗi;
-- lượng đầu vào/đầu ra nếu provider cung cấp để theo dõi chi phí.
+#### FR-37 — Transfer và reflection
 
-## 7. Ràng buộc và guardrail
+Lesson có ít nhất một transfer/production prompt và một exit ticket; các prompt mở có tiêu chí tự đánh giá nhưng chưa cần AI chấm.
 
-### 7.1 Nội dung và tính trung thực
+#### FR-38 — Hoàn thành
 
-- Nội dung phải dựa trên Transcript.
-- Không tuyên bố một câu nằm trong video nếu không đối chiếu được với Transcript.
-- Ví dụ mới do AI tạo phải được phân biệt rõ với câu gốc.
-- MVP dùng tiếng Việt để giải thích và tiếng Anh cho nội dung học.
+Người dùng có thể đánh dấu Lesson hoàn thành hoặc chưa hoàn thành.
 
-### 7.2 Pháp lý và dữ liệu
+### 5.8 Thư viện
 
-- Không tải hoặc lưu video/audio.
-- Chỉ xử lý video công khai mà hệ thống được phép truy cập.
-- Cần quyết định chính thức về việc lưu toàn bộ Transcript trước khi PRD được final. Xem OQ-4.
-- Khi người dùng xóa Bài học, dữ liệu liên quan phải tuân theo chính sách xóa được xác nhận.
-- Trước public launch phải có Privacy Policy và Terms of Use phù hợp với cách dùng YouTube, Transcript và AI provider.
+#### FR-39 — Lưu tự động
 
-### 7.3 Chi phí và lạm dụng
+Lesson được publish và lưu tự động chỉ sau khi Final Quality Gate pass.
 
-- Transcript phải có giới hạn trước khi gửi AI.
-- Yêu cầu tạo bài học phải có quota/rate limit.
-- MVP không có thanh toán.
-- Nhà cung cấp AI, model và ngân sách chưa được khóa trong PRD; sẽ được quyết định ở Architecture khi có tài khoản/API key.
+#### FR-40 — Mở lại không tạo lại
 
-## 8. Không phải mục tiêu
+Người dùng mở Lesson đã lưu mà không gọi lại transcript hoặc Lesson Engine.
 
-MVP không:
+#### FR-41 — Danh sách và xóa
 
-- tạo transcript bằng speech-to-text;
-- hỗ trợ video không có transcript phù hợp;
-- chấm hoặc phân tích phát âm;
-- ghi âm người dùng;
-- cung cấp hội thoại với giáo viên AI;
-- cung cấp flashcard độc lập hoặc spaced repetition;
-- lưu điểm chi tiết, streak hoặc gamification;
-- hỗ trợ học nhóm, giáo viên hoặc lớp học;
-- chia sẻ Bài học công khai;
-- có thanh toán hoặc subscription;
-- có ứng dụng mobile native;
-- có browser extension;
-- hỗ trợ podcast URL hoặc nguồn video ngoài YouTube;
-- cung cấp marketplace;
-- cho phép tùy chỉnh số từ vựng, độ dài bài hoặc ngôn ngữ giải thích trong MVP.
+Thư viện hiển thị title, thumbnail, level, ngày tạo, trạng thái và generation source cơ bản. Người dùng có thể mở và xóa Lesson sau xác nhận.
 
-## 9. Phạm vi MVP
+## 6. Kiến trúc thông tin
 
-### 9.1 Trong phạm vi
+MVP có ba bề mặt sản phẩm chính:
 
-- Web responsive.
-- Xác thực tối thiểu và dữ liệu riêng theo người dùng.
-- Nhập URL YouTube và chọn Trình độ.
-- Kiểm tra Video hợp lệ.
-- Lấy và hiển thị Transcript có timestamp.
-- Tạo Nội dung bài học có cấu trúc.
-- Trạng thái xử lý và lỗi rõ ràng.
-- Video nhúng và timestamp điều hướng.
-- Làm trắc nghiệm và bài điền từ trong phiên.
-- Lưu, mở lại, đánh dấu Hoàn thành và xóa Bài học.
-- Thư viện Bài học.
+1. **Create Lesson** — URL, CEFR, metadata, generation stages và fallback transcript.
+2. **Lesson Viewer** — video, lesson progression, transcript/evidence và activities.
+3. **Library** — danh sách, mở lại, trạng thái và xóa.
 
-### 9.2 Ngoài phạm vi
+Bề mặt hỗ trợ:
 
-Mọi mục trong §8 và mọi tính năng không trực tiếp phục vụ vòng giá trị:
+- Authentication.
+- Tab-audio permission/capture flow.
+- Paste/upload transcript fallback.
+- Error/retry dialogs.
 
-`nhập video → tạo bài học → học → lưu/mở lại/xóa`.
+## 7. Yêu cầu phi chức năng
 
-## 10. Tiêu chí thành công
+### 7.1 Bảo mật và riêng tư
 
-### Chỉ số chính
+- API key, service role và provider credentials chỉ ở server.
+- Ownership được kiểm tra ở server và database policy.
+- Transcript/audio được coi là dữ liệu người dùng lựa chọn; không log toàn bộ prompt hoặc transcript.
+- Audio tạm bị xóa theo retention ngắn.
+- Có rate limit và quota theo account/job.
 
-- **SM-1 — Tỷ lệ tạo bài học thành công:** ít nhất 80% đối với tập video thử nghiệm đáp ứng điều kiện Video hợp lệ. Xác thực FR-3 đến FR-18.
-- **SM-2 — Thời gian tạo bài học:** median dưới 90 giây đối với video trong giới hạn MVP, không tính sự cố provider. Xác thực FR-5 đến FR-18.
-- **SM-3 — Hoàn thành vòng giá trị:** ít nhất 60% phiên tạo thành công dẫn đến việc người dùng mở phần bài tập hoặc đánh dấu Hoàn thành trong giai đoạn beta. Xác thực FR-19 đến FR-22.
+### 7.2 Độ tin cậy
 
-### Chỉ số phụ
+- Provider nằm sau adapter và có timeout/retry/circuit breaker hợp lý.
+- Job state không chỉ nằm trong memory của một request.
+- Fail closed khi Lesson chưa đạt quality gate.
+- Hệ thống ghi provider/model/prompt/schema versions để tái tạo lỗi.
 
-- **SM-4 — Mở lại:** ít nhất 25% người dùng beta mở lại một Bài học đã lưu trong vòng 7 ngày. Xác thực FR-23 đến FR-25.
-- **SM-5 — Ổn định schema AI:** ít nhất 95% lượt tạo nhận đầu ra hợp lệ sau tối đa số lần retry cho phép. Xác thực FR-8 và FR-16.
-- **SM-6 — Tỷ lệ lỗi có thể hiểu:** 100% lỗi đã biết trong `IDEA.md` được ánh xạ thành thông báo người dùng cụ thể. Xác thực FR-3, FR-5, FR-7, FR-16 và FR-18.
+### 7.3 Hiệu năng
+
+- Kiểm tra URL/metadata phải phản hồi hoặc bắt đầu phản hồi trong khoảng 2 giây ở điều kiện bình thường.
+- Lesson/Library đã lưu hiển thị dữ liệu chính trong khoảng 3 giây ở điều kiện bình thường.
+- Generation dài chạy bất đồng bộ và luôn có trạng thái; không để request treo vô thời hạn.
+
+### 7.4 Accessibility
+
+Các luồng cốt lõi dùng được bằng bàn phím, có transcript, labels, focus states và responsive web. Mục tiêu thực dụng: WCAG 2.1 AA cho các thành phần chính.
+
+### 7.5 Observability và chi phí
+
+Mỗi job ghi latency từng stage, acquisition strategy, transcript source/confidence, model/provider, token usage, retry/repair, quality result và cost estimate. Không log secrets hoặc full transcript.
+
+## 8. Non-goals của MVP
+
+- Chấm phát âm hoặc speech scoring.
+- AI tutor chat.
+- Adaptive sequencing theo từng câu trả lời trong thời gian thực.
+- Spaced repetition hoặc flashcard deck độc lập.
+- Lưu điểm chi tiết, streak hoặc gamification.
+- Giáo viên/lớp học, social hoặc public sharing.
+- Subscription/payment.
+- Mobile native.
+- Chrome extension và desktop companion như deliverable MVP; kiến trúc chỉ cần mở đường cho chúng.
+- Podcast/nguồn video ngoài YouTube.
+- Tùy chỉnh sâu focus mode, lesson length hoặc language of explanation trong UI MVP.
+
+## 9. Tiêu chí thành công
+
+### Primary
+
+- **SM-1 — Acquisition coverage:** ít nhất 90% tập video public/playable đại diện có thể tạo Transcript qua ít nhất một strategy; `NO_CAPTIONS` không kết thúc flow nếu audio fallback khả dụng.
+- **SM-2 — Grounded lesson:** 100% Lesson publish không có segment ID giả hoặc source quote không khớp.
+- **SM-3 — Exercise validity:** ít nhất 98% scored items trong benchmark có đáp án hợp lệ; lỗi còn lại bị gate chặn trước publish.
+- **SM-4 — Lesson quality:** ít nhất 80% lesson trong golden evaluation đạt rubric 14/16 trở lên mà không cần human repair.
+- **SM-5 — Core loop completion:** ít nhất 60% generation thành công dẫn đến người dùng mở activity hoặc đánh dấu hoàn thành trong private beta.
+
+### Secondary
+
+- **SM-6 — Reopen:** ít nhất 25% beta users mở lại một Lesson trong 7 ngày.
+- **SM-7 — Generation recovery:** reload/retry không tạo trùng Lesson và phục hồi đúng trạng thái trong 100% E2E test.
+- **SM-8 — Provider resilience:** lỗi của một transcript strategy được chuyển sang strategy tiếp theo hoặc UX fallback đúng theo policy.
 
 ### Counter-metrics
 
-- **SM-C1 — Không tối ưu số bài học bằng cách bỏ chất lượng:** số bài học tạo ra không được đánh đổi bằng trích dẫn sai hoặc nội dung không bám Transcript.
-- **SM-C2 — Không tối ưu tốc độ bằng cách bỏ xác thực:** đầu ra AI chưa hợp lệ không được hiển thị để giảm thời gian chờ.
-- **SM-C3 — Không tối ưu retention bằng thông báo gây phiền:** MVP không thêm email marketing hoặc notification ngoài luồng cốt lõi.
+- Không tối ưu coverage bằng cách âm thầm tải/lưu video hoặc bỏ qua quyền người dùng.
+- Không tối ưu tốc độ bằng cách bỏ validators hoặc publish lesson chất lượng thấp.
+- Không tối ưu số lượng language items bằng cách chọn item không có teaching value.
+- Không tối ưu engagement bằng notification gây phiền hoặc gamification ngoài scope.
 
-## 11. Tiêu chí chấp nhận MVP
+## 10. MVP Acceptance
 
-MVP được xem là sẵn sàng sử dụng thật khi:
+MVP sẵn sàng private beta khi:
 
-1. Người dùng có thể hoàn thành UJ-1, UJ-2 và UJ-3 trên desktop và mobile browser.
-2. Tất cả FR-1 đến FR-28 được triển khai hoặc một FR được loại bỏ bằng quyết định sản phẩm có ghi nhận.
-3. Các lỗi phổ biến trong `IDEA.md` có hành vi và thông báo rõ ràng.
-4. Đầu ra AI được schema-validation và không bịa trích dẫn được gắn là câu gốc.
-5. Dữ liệu Bài học được cô lập theo tài khoản.
-6. Bài học đã lưu mở lại được mà không gọi lại AI.
-7. Có kiểm thử tự động cho URL parsing, schema AI, quyền sở hữu và luồng E2E cốt lõi.
-8. Privacy Policy/Terms of Use và quyết định lưu Transcript đã được xử lý trước public launch.
+1. UJ-1, UJ-2 và UJ-3 chạy được trên desktop và mobile browser.
+2. Caption, auto-caption và ít nhất một audio-to-text fallback chạy được end-to-end.
+3. Lesson Engine tuân thủ `SPEC-vidlish-lesson-engine` và toàn bộ companion.
+4. Mọi Lesson publish vượt hard gates và lưu quality report.
+5. Ownership isolation, idempotency và xóa dữ liệu vượt test.
+6. Có unit/integration/E2E test cho URL parsing, transcript normalization, acquisition fallback, schema, grounding, exercise validity, RLS/ownership và core loop.
+7. Private beta có quota, observability và cost telemetry.
+8. Privacy Policy/Terms/legal review được hoàn thành trước public launch, không chặn private beta nội bộ có kiểm soát.
 
-## 12. Câu hỏi mở
+## 11. Quyết định đã chốt
 
-### Câu hỏi chặn final PRD
+- Bắt buộc đăng nhập trước generation.
+- Private beta trước public launch.
+- Không đặt giới hạn thời lượng video cố định ở cấp sản phẩm; dùng budget/chunking/series.
+- Chấp nhận manual caption, auto-caption và STT transcript, giữ source/confidence.
+- `NO_CAPTIONS` kích hoạt fallback, không kết thúc flow.
+- Lưu Transcript chuẩn hóa; không lưu video; audio chỉ tạm thời.
+- Core Lesson 10–20 phút và nội dung co giãn theo teaching value/CEFR.
+- Lesson Engine multi-stage, provider-independent, deterministic hard gates.
+- Explanation language mặc định tiếng Việt; target/source content tiếng Anh.
 
-- **OQ-1 — Mô hình đăng nhập:** bắt buộc đăng nhập trước khi tạo Bài học, hay cho phép khách tạo một bài rồi yêu cầu đăng nhập để lưu? Đây là quyết định sản phẩm lớn ảnh hưởng UX, dữ liệu và chống lạm dụng.
-- **OQ-2 — Chế độ phát hành đầu tiên:** private beta có danh sách người dùng hay public beta? Quyết định này ảnh hưởng quota, abuse protection, pháp lý và mức độ observability.
-- **OQ-3 — Giới hạn video:** xác nhận thời lượng tối đa. PRD đang giả định 30 phút.
-- **OQ-4 — Lưu Transcript:** lưu toàn bộ Transcript để mở lại Bài học, chỉ lưu các đoạn được dùng, hay lấy lại Transcript khi mở? Đây là quyết định pháp lý, dữ liệu và trải nghiệm.
-- **OQ-5 — Phụ đề tự động:** MVP có chấp nhận auto-generated captions của YouTube hay chỉ phụ đề do chủ kênh cung cấp? Điều này ảnh hưởng coverage và chất lượng.
+## 12. Câu hỏi chuyển sang Architecture
 
-### Câu hỏi được trì hoãn tới Architecture
+Các mục dưới đây không chặn PRD final; chúng cần tài khoản, API key, chi phí hoặc đánh giá triển khai:
 
-- **OQ-6 — AI provider/model/API key và ngân sách hàng tháng.**
-- **OQ-7 — Transcript provider hoặc thư viện cụ thể.**
-- **OQ-8 — Tài khoản Supabase/database và hosting/deployment.**
-- **OQ-9 — Chính sách quota cụ thể cho mỗi tài khoản/ngày.**
+- Gemini model/API key và ngân sách tháng.
+- Transcript provider thương mại nào được phép dùng trong private beta.
+- STT provider mặc định và chính sách audio retention cụ thể.
+- Hosting, database/auth project và background job mechanism.
+- Quota account/day và cost ceiling/job.
+- Hard safety limits kỹ thuật theo model/platform.
 
-## 13. Chỉ mục giả định
+## 13. Cổng triển khai
 
-- §2.4 — Người dùng đăng nhập trước khi tạo Bài học.
-- §4.1 — Mục tiêu học mặc định là học toàn diện và không có selector trong MVP.
-- FR-7 — Video tối đa 30 phút.
-- FR-21 — Không lưu đáp án hoặc điểm chi tiết; chỉ lưu trạng thái Hoàn thành.
-- FR-27 — Email magic link là cơ chế xác thực mặc định.
-- Toàn tài liệu — Giải thích cố định bằng tiếng Việt trong MVP.
-- Toàn tài liệu — Chỉ hỗ trợ YouTube công khai có Transcript phù hợp.
+PRD này đã final. Không viết code trước khi hoàn thành:
 
-## 14. Cổng chuyển pha
-
-Không viết code và không scaffold ứng dụng trước khi:
-
-1. OQ-1 đến OQ-5 được quyết định;
-2. PRD được cập nhật, review và chuyển `status: final`;
-3. `bmad-ux` hoàn tất ba bề mặt chính;
-4. `bmad-architecture`, `bmad-create-epics-and-stories` và `bmad-check-implementation-readiness` hoàn tất.
+1. `bmad-ux`.
+2. `bmad-architecture`.
+3. `bmad-create-epics-and-stories`.
+4. `bmad-check-implementation-readiness`.
+5. `bmad-sprint-planning`.
