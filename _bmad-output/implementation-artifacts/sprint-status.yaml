@@ -1,5 +1,5 @@
 # generated: 2026-08-03T22:49:00+07:00
-# last_updated: 2026-08-04T01:52:30+07:00
+# last_updated: 2026-08-04T01:56:00+07:00
 # project: Vidlish
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective action items are appended under action_items when they exist
 
 generated: "2026-08-03T22:49:00+07:00"
-last_updated: "2026-08-04T01:52:30+07:00"
+last_updated: "2026-08-04T01:56:00+07:00"
 project: Vidlish
 project_key: NOKEY
 tracking_system: file-system
@@ -51,7 +51,7 @@ development_status:
   epic-1: in-progress
   1-1-truy-cap-private-beta-va-dang-nhap-an-toan: done
   1-2-dan-va-kiem-tra-video-youtube: done
-  1-3-chon-trinh-do-va-xac-nhan-video-san-sang: backlog
+  1-3-chon-trinh-do-va-xac-nhan-video-san-sang: in-progress
   epic-1-retrospective: optional
 
   epic-2: backlog
