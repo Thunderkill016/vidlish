@@ -13,7 +13,9 @@ describe("SignInFlow", () => {
     const user = userEvent.setup();
     vi.stubGlobal(
       "fetch",
-      vi.fn(async () => new Response(JSON.stringify({ status: "accepted" }), { status: 202 })),
+      vi.fn(async () =>
+        new Response(JSON.stringify({ status: "accepted" }), { status: 202 }),
+      ),
     );
 
     render(<SignInFlow intendedPath="/library" cooldownSeconds={60} />);
@@ -24,7 +26,9 @@ describe("SignInFlow", () => {
       "autocomplete",
       "one-time-code",
     );
-    expect(screen.getByText("Nếu email của bạn được mời, mã đăng nhập sẽ được gửi.")).toBeVisible();
+    expect(
+      screen.getByText("Nếu email của bạn được mời, mã đăng nhập sẽ được gửi."),
+    ).toBeVisible();
   });
 
   it("shows mapped Vietnamese error without provider details", async () => {
@@ -36,7 +40,8 @@ describe("SignInFlow", () => {
           JSON.stringify({
             error: {
               code: "AUTH_TEMPORARILY_UNAVAILABLE",
-              messageVi: "Vidlish chưa thể xử lý yêu cầu đăng nhập. Hãy thử lại sau ít phút.",
+              messageVi:
+                "Vidlish chưa thể xử lý yêu cầu đăng nhập. Hãy thử lại sau ít phút.",
             },
           }),
           { status: 503 },

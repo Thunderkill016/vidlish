@@ -2,6 +2,7 @@
   "name": "vidlish",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "description": "Turn English-language YouTube videos into grounded, personalized English lessons.",
   "packageManager": "pnpm@10.15.0",
   "engines": {
