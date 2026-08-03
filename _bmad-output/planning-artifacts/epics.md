@@ -34,7 +34,7 @@ status: final-validation-pending
 
 ## Overview
 
-Tài liệu này là index chuẩn tắc cho epic/story breakdown của Vidlish. Requirements, implementation clarifications và story details được shard thành companion files để implementation agents có thể đọc đúng phạm vi mà không phải tải một file đơn khối quá lớn.
+Đây là index chuẩn tắc cho epic/story breakdown của Vidlish. Requirements, clarifications và story details được shard thành companion files để implementation agents chỉ tải phần cần thiết.
 
 ## Requirements Inventory
 
@@ -45,8 +45,8 @@ Tài liệu này là index chuẩn tắc cho epic/story breakdown của Vidlish.
 Reference convention:
 
 - `AD-*` = canonical architecture decisions/invariants.
-- `AR*` = derived implementation requirements used for traceability.
-- Language-related conflicts are resolved by the PRD, architecture and Lesson Engine language-eligibility amendments.
+- `AR*` = derived implementation requirements.
+- Language conflicts are resolved by the PRD, architecture and Lesson Engine language-eligibility amendments.
 
 ## FR Coverage Map
 
@@ -59,26 +59,26 @@ FR6: Epic 2 — Long-video budgets, deterministic chunking và no silent truncat
 FR7: Epic 2 — Manual/auto caption fast path.
 FR8: Epic 2 — Hosted transcript provider fallback.
 FR9: Epic 2 — Policy-gated unofficial extractor.
-FR10: Epic 2 — Original-audio transcription và user-approved tab-audio/STT fallback.
-FR11: Epic 2 — Paste transcript và upload subtitle fallback.
+FR10: Epic 2 — Original-audio transcription và consent-based tab-audio/STT.
+FR11: Epic 2 — Paste transcript và upload subtitle.
 FR12: Epic 2 — Canonical transcript normalization.
 FR13: Epic 2 — Transcript/audio persistence, privacy và retention.
-FR14: Epic 3 — Deterministic transcript preprocessing và untrusted-input treatment.
+FR14: Epic 3 — Deterministic preprocessing và untrusted-input treatment.
 FR15: Epic 3 — Evidence-linked video analysis.
 FR16: Epic 3 — Language candidate pool.
-FR17: Epic 3 — Tối đa ba measurable learning outcomes.
+FR17: Epic 3 — Tối đa ba measurable outcomes.
 FR18: Epic 3 — Teachable-moment selection.
 FR19: Epic 3 — Flexible Core Lesson progression 10–20 phút.
 FR20: Epic 3 — CEFR personalization.
 FR21: Epic 3 — Segment grounding và generated/source distinction.
-FR22: Epic 3 — Structured output, provenance và versioning.
+FR22: Epic 3 — Structured outputs, provenance và versioning.
 FR23: Epic 3 — Multi-stage Lesson Engine.
 FR24: Epic 3 — Provider-independent lesson generation.
 FR25: Epic 3 — Structural validation hard gate.
 FR26: Epic 3 — Grounding validation hard gate.
 FR27: Epic 3 — Scored-activity validity.
 FR28: Epic 3 — Final quality score tối thiểu 14/16.
-FR29: Epic 3 — Targeted repair có giới hạn và fail closed.
+FR29: Epic 3 — Targeted repair bounded và fail closed.
 FR30: Epic 3 — Golden regression evaluation.
 FR31: Epic 2 — Durable, idempotent generation job.
 FR32: Epic 2 — Persisted user-facing generation stages.
@@ -91,11 +91,11 @@ FR38: Epic 4 — Completion state.
 FR39: Epic 3 — Atomic publish only after Final Quality Gate.
 FR40: Epic 5 — Reopen saved lesson without regeneration.
 FR41: Epic 5 — Library, filters, recovery và deletion.
-FR-LANG-1: Epic 2 — Transcript/segment language detection before Lesson Engine.
+FR-LANG-1: Epic 2 — Language detection before Lesson Engine.
 FR-LANG-2: Epic 2 — Sufficient coherent original-English eligibility.
-FR-LANG-3: Epic 2 — Mixed-language eligibility và evidence boundaries.
+FR-LANG-3: Epic 2 — Mixed-language eligibility/evidence boundaries.
 FR-LANG-4: Epic 2 — `VIDEO_LANGUAGE_UNSUPPORTED` + `choose_another_video`.
-FR-LANG-5: Epic 2 — No translation/dubbing/generated-source substitution.
+FR-LANG-5: Epic 2 — No translation/dubbing/generated-source substitute.
 
 ## Epic List
 
@@ -107,25 +107,25 @@ Người học trong private beta có thể đăng nhập, dán URL YouTube, ch�
 
 ### Epic 2: Lấy transcript tiếng Anh bằng nhiều phương án
 
-Người dùng có thể tạo một job bền vững; hệ thống thử caption/provider/STT và user-input fallbacks, chuẩn hóa transcript, kiểm tra ngôn ngữ và chỉ tiếp tục khi video có đủ tiếng Anh gốc.
+Người dùng có thể tạo durable job; hệ thống thử caption/provider/STT/user-input fallbacks, chuẩn hóa transcript, kiểm tra ngôn ngữ và chỉ tiếp tục khi có đủ tiếng Anh gốc.
 
 **FRs covered:** FR6–FR13, FR31–FR33, FR-LANG-1–FR-LANG-5.
 
 ### Epic 3: Nhận một bài học tiếng Anh có căn cứ
 
-Từ transcript đủ điều kiện, người dùng nhận được Core Lesson cá nhân hóa theo CEFR, được tạo qua pipeline nhiều bước, kiểm định grounding/exercise validity và publish nguyên tử thành lesson có thể đọc.
+Từ transcript eligible, người dùng nhận Core Lesson cá nhân hóa theo CEFR, multi-stage, grounded, quality-gated và atomically published.
 
 **FRs covered:** FR14–FR30, FR34, FR39.
 
 ### Epic 4: Học và luyện tập trực tiếp với video
 
-Người dùng có thể tương tác với video và lesson, bấm timestamp, làm hoạt động, nhận feedback, luyện retrieval/transfer và đánh dấu hoàn thành.
+Người dùng bấm timestamp, làm hoạt động, nhận feedback, luyện retrieval/transfer và lưu completion.
 
 **FRs covered:** FR35–FR38.
 
 ### Epic 5: Quay lại và quản lý thư viện bài học
 
-Người dùng có thể xem lesson/job theo trạng thái, mở lại không gọi AI, khôi phục job lỗi và xóa lesson cùng dữ liệu phụ thuộc theo retention policy.
+Người dùng mở lại, lọc, phục hồi và xóa lesson/job cùng dữ liệu phụ thuộc theo policy.
 
 **FRs covered:** FR40–FR41.
 
@@ -136,23 +136,27 @@ Người dùng có thể xem lesson/job theo trạng thái, mở lại không g�
 | 1.1 | Truy cập private beta và đăng nhập an toàn | FR1, FR2 |
 | 1.2 | Dán và kiểm tra video YouTube | FR3, FR5 |
 | 1.3 | Chọn CEFR và xác nhận input sẵn sàng | FR4 |
-| 2.1 | Tạo durable/idempotent generation job | FR31–FR33 |
+| 2.1 | Durable/idempotent generation job | FR31–FR33 |
 | 2.2 | Caption fast path và canonical transcript | FR7, FR12, FR13 |
 | 2.3 | Original-English language eligibility gate | FR-LANG-1–FR-LANG-5 |
-| 2.4 | Hosted/unofficial/Gemini server transcript strategies | FR8, FR9, FR10, FR12, FR13 |
+| 2.4 | Hosted/unofficial/Gemini transcript strategies | FR8–FR10, FR12, FR13 |
 | 2.5 | Paste transcript và upload SRT/VTT | FR11–FR13 |
 | 2.6 | Consent-based tab audio capture + STT | FR10, FR12, FR13 |
-| 2.7 | Long-video budgets, reliability, cancellation và cleanup | FR6, FR13, FR31–FR33 |
+| 2.7 | Long-video budgets và deterministic chunking | FR6, FR12, FR31, FR32 |
+| 2.8 | Quota, retry, dedup và cancellation | FR31–FR33 |
+| 2.9 | Retention cleanup, telemetry và operational resilience | FR13, FR31–FR33 |
 | 3.1 | Preprocess và evidence-linked video analysis | FR14, FR15, FR22–FR24 |
-| 3.2 | Candidate mining, CEFR filter, moments và outcomes | FR16–FR18, FR20–FR22 |
-| 3.3 | Multi-stage grounded Core Lesson composition | FR19, FR21–FR24 |
-| 3.4 | Structural/grounding/exercise gates và targeted repair | FR25–FR29 |
-| 3.5 | Golden regression, atomic publish và readable viewer | FR30, FR34, FR39 |
+| 3.2 | Candidate mining, CEFR, moments và outcomes | FR16–FR18, FR20–FR22 |
+| 3.3 | Multi-stage grounded lesson composition | FR19, FR21–FR24 |
+| 3.4 | Structural/grounding/exercise gates và repair | FR25–FR29 |
+| 3.5 | Golden regression và release quality gate | FR30 |
+| 3.6 | Atomic publish và readable Lesson Viewer | FR34, FR39 |
 | 4.1 | Timestamp evidence điều khiển player | FR35 |
 | 4.2 | Interactive activities và feedback | FR36 |
 | 4.3 | Retrieval, transfer, exit ticket và completion | FR37, FR38 |
 | 5.1 | Library và reopen saved lesson/job | FR40, FR41 |
-| 5.2 | Filters, retry/recovery và owner-authorized deletion | FR41 |
+| 5.2 | Filters và recover retryable jobs | FR41 |
+| 5.3 | Owner-authorized deletion và dependency cleanup | FR41 |
 
 ## Story Index
 
@@ -170,7 +174,9 @@ Người dùng có thể xem lesson/job theo trạng thái, mở lại không g�
 - [Story 2.4 — Thử các transcript provider phía server](epics/epic-2-part-2.md#story-24--thử-các-transcript-provider-phía-server)
 - [Story 2.5 — Nhận transcript hoặc subtitle từ người dùng](epics/epic-2-part-3.md#story-25--nhận-transcript-hoặc-subtitle-từ-người-dùng)
 - [Story 2.6 — Tạo transcript từ audio của tab](epics/epic-2-part-3.md#story-26--tạo-transcript-từ-audio-của-tab)
-- [Story 2.7 — Xử lý video dài và hoàn thiện độ tin cậy](epics/epic-2-part-3.md#story-27--xử-lý-video-dài-và-hoàn-thiện-độ-tin-cậy)
+- [Story 2.7 — Xử lý video dài bằng budget và chunking](epics/epic-2-part-3.md#story-27--xử-lý-video-dài-bằng-budget-và-chunking)
+- [Story 2.8 — Kiểm soát quota, retry và cancellation](epics/epic-2-part-3.md#story-28--kiểm-soát-quota-retry-và-cancellation)
+- [Story 2.9 — Dọn dữ liệu tạm và vận hành transcript pipeline](epics/epic-2-part-3.md#story-29--dọn-dữ-liệu-tạm-và-vận-hành-transcript-pipeline)
 
 ### Epic 3 — complete
 
@@ -178,7 +184,8 @@ Người dùng có thể xem lesson/job theo trạng thái, mở lại không g�
 - [Story 3.2 — Chọn ngôn ngữ đáng học và mục tiêu bài học](epics/epic-3.md#story-32--chọn-ngôn-ngữ-đáng-học-và-mục-tiêu-bài-học)
 - [Story 3.3 — Soạn Core Lesson qua pipeline nhiều bước](epics/epic-3.md#story-33--soạn-core-lesson-qua-pipeline-nhiều-bước)
 - [Story 3.4 — Kiểm định, chấm chất lượng và sửa có giới hạn](epics/epic-3.md#story-34--kiểm-định-chấm-chất-lượng-và-sửa-có-giới-hạn)
-- [Story 3.5 — Publish nguyên tử và hiển thị Lesson Viewer](epics/epic-3.md#story-35--publish-nguyên-tử-và-hiển-thị-lesson-viewer)
+- [Story 3.5 — Chạy golden regression và khóa release chất lượng](epics/epic-3.md#story-35--chạy-golden-regression-và-khóa-release-chất-lượng)
+- [Story 3.6 — Publish nguyên tử và hiển thị Lesson Viewer](epics/epic-3.md#story-36--publish-nguyên-tử-và-hiển-thị-lesson-viewer)
 
 ### Epic 4 — complete
 
@@ -189,16 +196,17 @@ Người dùng có thể xem lesson/job theo trạng thái, mở lại không g�
 ### Epic 5 — complete
 
 - [Story 5.1 — Xem thư viện và mở lại lesson đã lưu](epics/epic-5.md#story-51--xem-thư-viện-và-mở-lại-lesson-đã-lưu)
-- [Story 5.2 — Lọc, khôi phục và xóa dữ liệu theo policy](epics/epic-5.md#story-52--lọc-khôi-phục-và-xóa-dữ-liệu-theo-policy)
+- [Story 5.2 — Lọc thư viện và khôi phục job lỗi](epics/epic-5.md#story-52--lọc-thư-viện-và-khôi-phục-job-lỗi)
+- [Story 5.3 — Xóa lesson và dữ liệu phụ thuộc theo policy](epics/epic-5.md#story-53--xóa-lesson-và-dữ-liệu-phụ-thuộc-theo-policy)
 
 ## Dependency Flow
 
 ```text
 Epic 1: authenticated + validated video/CEFR input
-→ Epic 2: durable job + eligible canonical English transcript
+→ Epic 2: durable job + eligible canonical English source
 → Epic 3: grounded quality-gated published Core Lesson
 → Epic 4: interactive learning + completion
 → Epic 5: reopen, manage, recover and delete
 ```
 
-Within each epic, every story has a safe standalone completion state and only consumes outputs from earlier stories. Incremental visibility rules and entity timing are defined in `implementation-clarifications.md`.
+Every canonical story has a safe standalone completion state and consumes only outputs from earlier stories. Incremental visibility and entity timing are defined in `implementation-clarifications.md`.
