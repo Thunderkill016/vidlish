@@ -116,7 +116,7 @@ select is((select created from second_persist), false, 'retry reuses canonical a
 select is((select count(*)::integer from public.transcripts), 1, 'retry does not duplicate transcript');
 
 set local role authenticated;
-select set_config('request.jwt.claim.sub', '22222222-2222-4222-8222-222222222222', true);
+set local "request.jwt.claim.sub" = '22222222-2222-4222-8222-222222222222';
 select is((select count(*)::integer from public.transcripts), 0, 'cross-owner transcript read is hidden');
 reset role;
 
