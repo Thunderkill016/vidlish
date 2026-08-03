@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2]
+stepsCompleted: [1, 2, 3]
 status: in-progress
 project: Vidlish
 date: 2026-08-03
@@ -230,3 +230,73 @@ NFR21: Public launch cần Privacy Policy, Terms và legal review về transcrip
 ### PRD Completeness Assessment
 
 The PRD is complete enough for implementation-readiness traceability. Product scope, user journeys, functional behavior, quality gates, success metrics, non-goals and release gates are explicit. The language amendment resolves the only material product-boundary ambiguity by defining original-English eligibility, mixed-language handling and the terminal unsupported-language behavior.
+
+## Step 3 — Epic Coverage Validation
+
+The canonical epic index and all story shards were read. The Story Coverage Matrix was compared against every functional requirement extracted from the PRD.
+
+### Coverage Matrix
+
+| FR | PRD requirement | Epic/story coverage | Status |
+| --- | --- | --- | --- |
+| FR1 | Auth, required sign-in and owner isolation | Epic 1 / Story 1.1 | ✓ Covered |
+| FR2 | Private beta boundary | Epic 1 / Story 1.1 | ✓ Covered |
+| FR3 | Parse and validate YouTube URLs | Epic 1 / Story 1.2 | ✓ Covered |
+| FR4 | Required CEFR A1–C1 selection | Epic 1 / Story 1.3 | ✓ Covered |
+| FR5 | Metadata and playability states | Epic 1 / Story 1.2 | ✓ Covered |
+| FR6 | Long-video budget/chunking; no silent truncation | Epic 2 / Story 2.7 | ✓ Covered |
+| FR7 | Manual/auto caption fast path | Epic 2 / Story 2.2 | ✓ Covered |
+| FR8 | Hosted transcript provider fallback | Epic 2 / Story 2.4 | ✓ Covered |
+| FR9 | Policy-gated unofficial extractor | Epic 2 / Story 2.4 | ✓ Covered |
+| FR10 | Consent-based audio-to-text fallback | Epic 2 / Stories 2.4, 2.6 | ✓ Covered |
+| FR11 | Paste/upload transcript fallback | Epic 2 / Story 2.5 | ✓ Covered |
+| FR12 | Canonical transcript normalization | Epic 2 / Stories 2.2, 2.4–2.7 | ✓ Covered |
+| FR13 | Transcript/audio persistence and retention | Epic 2 / Stories 2.2, 2.4–2.6, 2.9 | ✓ Covered |
+| FR14 | Deterministic preprocessing and untrusted input | Epic 3 / Story 3.1 | ✓ Covered |
+| FR15 | Evidence-linked video analysis | Epic 3 / Story 3.1 | ✓ Covered |
+| FR16 | Language candidate pool | Epic 3 / Story 3.2 | ✓ Covered |
+| FR17 | Maximum three learning outcomes | Epic 3 / Story 3.2 | ✓ Covered |
+| FR18 | Teachable-moment selection | Epic 3 / Story 3.2 | ✓ Covered |
+| FR19 | Flexible Core Lesson progression | Epic 3 / Story 3.3 | ✓ Covered |
+| FR20 | Material CEFR personalization | Epic 3 / Story 3.2 | ✓ Covered |
+| FR21 | Segment grounding and generated/source distinction | Epic 3 / Stories 3.2–3.4 | ✓ Covered |
+| FR22 | Structured outputs and provenance versions | Epic 3 / Stories 3.1–3.3 | ✓ Covered |
+| FR23 | Mandatory multi-stage generation | Epic 3 / Stories 3.1–3.3 | ✓ Covered |
+| FR24 | Provider-independent lesson generation | Epic 3 / Stories 3.1–3.3 | ✓ Covered |
+| FR25 | Structural validation hard gate | Epic 3 / Story 3.4 | ✓ Covered |
+| FR26 | Grounding validation hard gate | Epic 3 / Story 3.4 | ✓ Covered |
+| FR27 | Scored-activity answer validity | Epic 3 / Story 3.4 | ✓ Covered |
+| FR28 | Quality score ≥14/16 plus hard gates | Epic 3 / Story 3.4 | ✓ Covered |
+| FR29 | Bounded targeted repair and fail closed | Epic 3 / Story 3.4 | ✓ Covered |
+| FR30 | Golden regression before promotion | Epic 3 / Story 3.5 | ✓ Covered |
+| FR31 | Durable, idempotent generation job | Epic 2 / Stories 2.1, 2.7–2.9 | ✓ Covered |
+| FR32 | Persisted user-facing stages | Epic 2 / Stories 2.1, 2.3, 2.7–2.9 | ✓ Covered |
+| FR33 | Stable actionable product errors | Epic 2 / Stories 2.1, 2.3–2.9 | ✓ Covered |
+| FR34 | Readable Lesson Viewer | Epic 3 / Story 3.6 | ✓ Covered |
+| FR35 | Timestamp/evidence seeks player | Epic 4 / Story 4.1 | ✓ Covered |
+| FR36 | Interactive scored/guided activities | Epic 4 / Story 4.2 | ✓ Covered |
+| FR37 | Retrieval, transfer and exit ticket | Epic 4 / Story 4.3 | ✓ Covered |
+| FR38 | Completion state | Epic 4 / Story 4.3 | ✓ Covered |
+| FR39 | Atomic publish only after Final Gate | Epic 3 / Story 3.6 | ✓ Covered |
+| FR40 | Reopen saved lesson without regeneration | Epic 5 / Story 5.1 | ✓ Covered |
+| FR41 | Library metadata, filters, recovery and deletion | Epic 5 / Stories 5.1–5.3 | ✓ Covered |
+| FR-LANG-1 | Transcript/segment language detection | Epic 2 / Story 2.3 | ✓ Covered |
+| FR-LANG-2 | Sufficient coherent original English | Epic 2 / Story 2.3 | ✓ Covered |
+| FR-LANG-3 | Mixed-language eligibility boundary | Epic 2 / Story 2.3 | ✓ Covered |
+| FR-LANG-4 | Unsupported-language terminal state/action | Epic 2 / Story 2.3 | ✓ Covered |
+| FR-LANG-5 | No translation/dubbing/generated substitute | Epic 2 / Stories 2.3–2.6 | ✓ Covered |
+
+### Missing Requirements
+
+None. Every PRD functional requirement has at least one explicit story implementation path and acceptance-criteria coverage.
+
+### Extra Epic Requirements Not Present in PRD
+
+None. Epics add implementation details, architecture references and UX constraints, but do not introduce an unapproved product capability outside the PRD.
+
+### Coverage Statistics
+
+- Total PRD FRs: 46
+- FRs covered in epics: 46
+- Missing FRs: 0
+- Coverage: 100%
