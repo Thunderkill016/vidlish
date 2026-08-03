@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2, 3, 4]
+stepsCompleted: [1, 2, 3, 4, 5]
 status: in-progress
 project: Vidlish
 date: 2026-08-03
@@ -368,3 +368,120 @@ The final product requires `VIDEO_LANGUAGE_UNSUPPORTED`, the standard Vietnamese
 ### UX Alignment Verdict
 
 **Mostly aligned, with three targeted documentation corrections required before final readiness approval.** These are source-of-truth copy/state issues rather than missing architecture capabilities.
+
+## Step 5 — Epic Quality Review
+
+### Epic Structure and User Value
+
+All five epics are outcome-oriented rather than technical milestones:
+
+1. The learner accesses Vidlish and confirms a usable video/level.
+2. The learner obtains an eligible original-English transcript or an actionable state.
+3. The learner receives a grounded, quality-gated published lesson.
+4. The learner studies interactively and records completion.
+5. The learner reopens, recovers and deletes saved work.
+
+Hard dependency flow is valid: `Epic 1 → Epic 2 → Epic 3`, then Epic 4 and Epic 5 independently consume published Epic 3 lessons. No circular epic dependency was found.
+
+### Best-Practice Compliance by Epic
+
+| Epic | User value | Independent at its boundary | FR traceability | Verdict |
+| --- | --- | --- | --- | --- |
+| 1 | Yes | Yes after the standalone-ready clarification | Complete | Pass with document correction |
+| 2 | Yes | Yes: eligible source, recoverable wait or actionable terminal state | Complete | Pass with sizing/provider prerequisites |
+| 3 | Yes | Yes: immutable published lesson | Complete | Pass with sizing correction |
+| 4 | Yes | Yes using published lesson | Complete | Pass |
+| 5 | Yes | Yes using published lesson; completion is optional/nullable | Complete | Pass with reference correction |
+
+### Critical Violations
+
+None. There is no technical-only epic, circular dependency or functional requirement with no implementation path.
+
+### Major Issues
+
+#### EPIC-MAJOR-1 — Story 1.3 contains a canonical action contradiction
+
+Story 1.3 AC5 enables **`Tạo bài học`**, while AC8 explicitly forbids creating a job and the normative clarification replaces the pre-2.1 action with **`Xác nhận lựa chọn`**. A development agent reading the story file alone can ship a dead or misleading primary action.
+
+**Remediation:** Edit Story 1.3 directly so the pre-2.1 acceptance criteria use `Xác nhận lựa chọn` and visible `Sẵn sàng tạo bài học`; Story 2.1 should be the first story that exposes the job-creating `Tạo bài học` command.
+
+#### EPIC-MAJOR-2 — Invalid architecture reference in Story 2.3
+
+Story 2.3 cites `AD-22`, but the canonical architecture spine defines AD-1 through AD-21. The language gate is governed by the architecture amendment and derived AR12/AR13, not a nonexistent AD-22.
+
+**Remediation:** Replace `AD-22` with explicit amendment authority and/or the valid derived language requirements.
+
+#### EPIC-MAJOR-3 — Normative clarification has stale story numbers
+
+`implementation-clarifications.md` still states that Story 3.5 publishes/renders lesson data and creates lesson identity/version, but publishing is now Story 3.6. It also assigns deletion/tombstone timing to Story 5.2, while deletion is Story 5.3. These references can cause migrations and UI behavior to be implemented in the wrong story.
+
+**Remediation:** Update viewer interaction and entity-timing sections to reference Stories 3.6 and 5.3.
+
+#### EPIC-MAJOR-4 — First implementation stories leave product-critical adapter choices unresolved
+
+The architecture intentionally defers exact vendors, but several stories require a real adapter without a selected implementation:
+
+- Story 1.2: metadata/playability provider and method.
+- Story 2.3: segment-language detector implementation.
+- Story 2.4: hosted transcript provider.
+- Story 2.6: STT provider.
+
+Fixtures make tests possible but do not satisfy the end-to-end story outcome. Story 1.1 also leaves two auth experiences (`OTP hoặc magic link`) and the private-beta allowlist storage/administration mechanism undecided.
+
+**Remediation:** Before sprint planning, create a short implementation-decision companion that selects the initial auth mode, beta-access mechanism, metadata adapter, language detector, hosted transcript provider and STT adapter—or explicitly marks provider-dependent stories blocked while fixture-only infrastructure is built.
+
+#### EPIC-MAJOR-5 — Story 2.4 is larger than a single-agent story
+
+It combines hosted transcript integration, unofficial extraction policy, Gemini URL/audio transcription, cost gating, retries, circuit breaker, deterministic result selection, provenance, security, telemetry and cross-strategy tests.
+
+**Remediation:** Split into at least:
+
+1. Hosted transcript provider + canonical registry integration.
+2. Policy-gated unofficial extractor.
+3. Gemini URL/audio transcription.
+4. Shared retry/circuit/cost behavior may remain in Story 2.8 or a narrowly scoped infrastructure story.
+
+#### EPIC-MAJOR-6 — Story 3.6 combines two substantial deliverables
+
+Story 3.6 includes relational lesson/version schema, atomic publish transaction, rollback/idempotency/RLS and a complete responsive/accessibility Lesson Viewer with performance/caching requirements. This is likely too large for one dev agent and makes review failure domains unclear.
+
+**Remediation:** Split into `Atomic publish and immutable lesson persistence` followed by `Readable Lesson Viewer`. The viewer can consume a seeded/published fixture from the previous story without forward dependency.
+
+#### EPIC-MAJOR-7 — Story 2.9 is an oversized operational bundle
+
+The story combines temporary-artifact cleanup, transcript retention, telemetry, environment isolation, backup/restore rehearsal and full Epic 2 regression. It is user-protective but contains multiple independently testable operational capabilities.
+
+**Remediation:** Split cleanup/retention from environment/backup/operational readiness, or move public-launch-only backup/legal checks to a release-readiness story while preserving private-beta cleanup requirements.
+
+### Minor Concerns
+
+#### EPIC-MINOR-1 — Acceptance-criteria formatting changes mid-backlog
+
+Stories 1.1–2.4 use numbered AC headings; Stories 2.5 onward use repeated Given/When/Then blocks without AC IDs. The criteria are testable, but stable AC IDs improve implementation, test and review traceability.
+
+**Remediation:** Number acceptance criteria consistently before story creation/sprint planning.
+
+#### EPIC-MINOR-2 — Greenfield CI/CD setup is implied, not explicit
+
+Story 1.1 requires tests to run in CI but does not explicitly name the CI workflow, preview deployment or branch protection baseline.
+
+**Remediation:** Add a minimal CI acceptance criterion: install, typecheck, lint, unit/integration tests and build on pull requests. Preview deployment may remain optional for the first story.
+
+#### EPIC-MINOR-3 — UX account-menu details are not clearly assigned
+
+`EXPERIENCE.md` places quota summary, privacy/retention explanation and beta feedback in the account menu, but Story 1.1 only explicitly requires sign-out and the three navigation items.
+
+**Remediation:** Either remove those account-menu details from MVP UX or assign them to Story 1.1/2.8/2.9 with explicit acceptance criteria.
+
+### Dependency and Entity Timing Assessment
+
+- No canonical story requires a table or output introduced only by a later story after applying the intended clarifications.
+- Tables are generally introduced when first needed rather than in one upfront schema story.
+- The original architecture seed is not a third-party starter template; Story 1.1 correctly performs the greenfield scaffold.
+- Story 2.2 and 2.3 have safe standalone terminal/handoff states before later transcript strategies exist.
+- Story 3.6 explicitly keeps timestamps non-interactive until Story 4.1.
+- Epic 5 can function without Epic 4 because completion metadata is optional.
+
+### Epic Quality Verdict
+
+**Not yet clean enough for unconditional implementation readiness.** The epic structure and FR coverage are sound, but the canonical contradictions, stale references, unresolved first-adapter decisions and three oversized stories must be corrected or explicitly accepted as implementation risks before sprint planning.
