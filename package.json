@@ -2,13 +2,53 @@
   "name": "vidlish",
   "version": "0.1.0",
   "private": true,
-  "description": "Turn any YouTube video into a personalized English lesson.",
+  "type": "module",
+  "description": "Turn English-language YouTube videos into grounded, personalized English lessons.",
+  "packageManager": "pnpm@10.15.0",
+  "engines": {
+    "node": ">=24.0.0 <25"
+  },
   "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "test:db": "supabase test db",
     "bmad:install": "npx --yes bmad-method@6.10.0 install --directory . --modules bmm --tools codex --yes --communication-language Vietnamese --document-output-language Vietnamese --output-folder _bmad-output",
     "bmad:tools": "npx --yes bmad-method@6.10.0 install --list-tools",
     "bmad:update": "npx --yes bmad-method@6.10.0 install --directory . --action quick-update --yes"
   },
-  "engines": {
-    "node": ">=20.12.0"
+  "dependencies": {
+    "@supabase/ssr": "0.12.3",
+    "@supabase/supabase-js": "2.110.8",
+    "class-variance-authority": "0.7.1",
+    "clsx": "2.1.1",
+    "next": "16.2.12",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "0.0.1",
+    "tailwind-merge": "3.3.1",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.61.1",
+    "@tailwindcss/postcss": "4.3.3",
+    "@testing-library/jest-dom": "6.9.1",
+    "@testing-library/react": "16.3.0",
+    "@testing-library/user-event": "14.6.1",
+    "@types/node": "24.3.0",
+    "@types/react": "19.2.7",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.3",
+    "eslint-config-next": "16.2.12",
+    "jsdom": "27.0.0",
+    "postcss": "8.5.22",
+    "tailwindcss": "4.3.3",
+    "typescript": "6.0.3",
+    "vitest": "4.1.10"
   }
 }

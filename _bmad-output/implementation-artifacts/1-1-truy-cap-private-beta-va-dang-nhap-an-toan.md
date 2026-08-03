@@ -1,6 +1,6 @@
 # Story 1.1: Truy cập private beta và đăng nhập an toàn
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -120,99 +120,99 @@ Story này tạo nền ứng dụng greenfield và ranh giới truy cập riêng
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Merge official Next.js scaffold vào repository hiện tại** (AC1, AC9)
-  - [ ] Dùng official `create-next-app` output hoặc manual equivalent làm structural seed; không dùng third-party starter repository.
-  - [ ] Không chạy scaffold theo cách overwrite repo hiện tại. Repo đã có `package.json`, `README.md`, `.gitignore`, BMAD scripts và planning artifacts.
-  - [ ] Merge `package.json` và giữ nguyên các scripts `bmad:install`, `bmad:tools`, `bmad:update`.
-  - [ ] Khóa Node 24 LTS bằng `.nvmrc`/`.node-version`, `engines.node` và GitHub Actions; khóa exact pnpm 10.x bằng `packageManager`/Corepack.
-  - [ ] Tạo và commit `pnpm-lock.yaml`; không tạo npm/yarn/bun lockfile cạnh tranh.
-  - [ ] Cấu hình Next.js 16 App Router, React 19, TypeScript 6, Tailwind 4, ESLint và import alias `@/*`.
-  - [ ] Giữ `moduleResolution: "bundler"` theo Next/TypeScript; không dùng deprecated `node10`, `classic` hoặc `outFile`.
-  - [ ] Cấu hình Tailwind 4 bằng `@tailwindcss/postcss` và `@import "tailwindcss"`.
-  - [ ] Khởi tạo shadcn/ui theo kiểu copy-in, alias UI tới `src/shared/ui`; chỉ thêm components cần cho sign-in/app shell.
+- [x] **Task 1 — Merge official Next.js scaffold vào repository hiện tại** (AC1, AC9)
+  - [x] Dùng official `create-next-app` output hoặc manual equivalent làm structural seed; không dùng third-party starter repository.
+  - [x] Không chạy scaffold theo cách overwrite repo hiện tại. Repo đã có `package.json`, `README.md`, `.gitignore`, BMAD scripts và planning artifacts.
+  - [x] Merge `package.json` và giữ nguyên các scripts `bmad:install`, `bmad:tools`, `bmad:update`.
+  - [x] Khóa Node 24 LTS bằng `.nvmrc`/`.node-version`, `engines.node` và GitHub Actions; khóa exact pnpm 10.x bằng `packageManager`/Corepack.
+  - [x] Tạo và commit `pnpm-lock.yaml`; không tạo npm/yarn/bun lockfile cạnh tranh.
+  - [x] Cấu hình Next.js 16 App Router, React 19, TypeScript 6, Tailwind 4, ESLint và import alias `@/*`.
+  - [x] Giữ `moduleResolution: "bundler"` theo Next/TypeScript; không dùng deprecated `node10`, `classic` hoặc `outFile`.
+  - [x] Cấu hình Tailwind 4 bằng `@tailwindcss/postcss` và `@import "tailwindcss"`.
+  - [x] Khởi tạo shadcn/ui theo kiểu copy-in, alias UI tới `src/shared/ui`; chỉ thêm components cần cho sign-in/app shell.
 
-- [ ] **Task 2 — Tạo module identity và contract boundaries** (AC1, AC3, AC4, AC7)
-  - [ ] Tạo `src/modules/identity/domain`, `application`, `ports` và public module export.
-  - [ ] Tạo use cases tối thiểu: request OTP, verify OTP, resolve current access, sign out.
-  - [ ] Định nghĩa provider/repository ports để application/domain không import Next.js hoặc Supabase SDK.
-  - [ ] Tạo Zod contracts cho email, six-digit OTP, request/response và safe intended path.
-  - [ ] Tạo stable `ProductError` codes/copy cho invalid email, invalid-or-expired code, cooldown, temporary auth failure, missing session và revoked beta access.
-  - [ ] Không log raw email, OTP, auth token, cookie hoặc Supabase payload; chỉ dùng redacted/pseudonymous context khi thật sự cần.
+- [x] **Task 2 — Tạo module identity và contract boundaries** (AC1, AC3, AC4, AC7)
+  - [x] Tạo `src/modules/identity/domain`, `application`, `ports` và public module export.
+  - [x] Tạo use cases tối thiểu: request OTP, verify OTP, resolve current access, sign out.
+  - [x] Định nghĩa provider/repository ports để application/domain không import Next.js hoặc Supabase SDK.
+  - [x] Tạo Zod contracts cho email, six-digit OTP, request/response và safe intended path.
+  - [x] Tạo stable `ProductError` codes/copy cho invalid email, invalid-or-expired code, cooldown, temporary auth failure, missing session và revoked beta access.
+  - [x] Không log raw email, OTP, auth token, cookie hoặc Supabase payload; chỉ dùng redacted/pseudonymous context khi thật sự cần.
 
-- [ ] **Task 3 — Tạo typed environment configuration** (AC1, AC7, AC9)
-  - [ ] Tạo `src/platform/config/public.ts` cho `NEXT_PUBLIC_SUPABASE_URL` và publishable key.
-  - [ ] Tạo `src/platform/config/server.ts` với `server-only` cho Supabase secret/service key và server-only settings.
-  - [ ] Chỉ các config modules được đọc `process.env`; mọi consumer import typed config.
-  - [ ] Tạo `.env.example` không chứa secret thật và mô tả local/staging/production isolation.
-  - [ ] App phải fail fast với lỗi cấu hình có kiểm soát; không render secret/config value ra UI.
+- [x] **Task 3 — Tạo typed environment configuration** (AC1, AC7, AC9)
+  - [x] Tạo `src/platform/config/public.ts` cho `NEXT_PUBLIC_SUPABASE_URL` và publishable key.
+  - [x] Tạo `src/platform/config/server.ts` với `server-only` cho Supabase secret/service key và server-only settings.
+  - [x] Chỉ các config modules được đọc `process.env`; mọi consumer import typed config.
+  - [x] Tạo `.env.example` không chứa secret thật và mô tả local/staging/production isolation.
+  - [x] App phải fail fast với lỗi cấu hình có kiểm soát; không render secret/config value ra UI.
 
-- [ ] **Task 4 — Tạo Supabase clients đúng boundary** (AC3–AC7)
-  - [ ] Browser client dùng `@supabase/ssr` và publishable key.
-  - [ ] Server client được tạo theo từng request với cookie adapter; không dùng module-level singleton cho user session.
-  - [ ] `src/proxy.ts` dùng Supabase SSR để refresh cookie và `getClaims()` cho optimistic session check; không tạo `middleware.ts`.
-  - [ ] Proxy không query `beta_access`, không làm full authorization và không chứa slow business logic.
-  - [ ] Protected layouts/routes/commands re-check claims/session và active beta access server-side.
-  - [ ] Admin allowlist client dùng server-only `@supabase/supabase-js` client tách biệt, không dùng SSR cookie adapter; tắt persist/refresh/detect-session để user cookie không thay Authorization header.
-  - [ ] Không dùng `getSession()` làm server authorization source.
+- [x] **Task 4 — Tạo Supabase clients đúng boundary** (AC3–AC7)
+  - [x] Browser client dùng `@supabase/ssr` và publishable key.
+  - [x] Server client được tạo theo từng request với cookie adapter; không dùng module-level singleton cho user session.
+  - [x] `src/proxy.ts` dùng Supabase SSR để refresh cookie và `getClaims()` cho optimistic session check; không tạo `middleware.ts`.
+  - [x] Proxy không query `beta_access`, không làm full authorization và không chứa slow business logic.
+  - [x] Protected layouts/routes/commands re-check claims/session và active beta access server-side.
+  - [x] Admin allowlist client dùng server-only `@supabase/supabase-js` client tách biệt, không dùng SSR cookie adapter; tắt persist/refresh/detect-session để user cookie không thay Authorization header.
+  - [x] Không dùng `getSession()` làm server authorization source.
 
-- [ ] **Task 5 — Tạo migration, local config và beta seed** (AC2, AC7, AC10)
-  - [ ] Khởi tạo `supabase/config.toml`, migrations, `seed.sql` và database tests.
-  - [ ] Tạo `public.beta_access` với `email_normalized text primary key`, `is_active boolean not null default true`, timestamps và constraint bảo đảm `lower(trim(email))`.
-  - [ ] Enable RLS và revoke access của `anon`/`authenticated`; không tạo browser read/write policy.
-  - [ ] Grant/admin access chỉ cho server role thích hợp; không tạo learner-facing allowlist management UI.
-  - [ ] Seed chỉ dùng email test giả, không commit email cá nhân thật.
-  - [ ] Không tạo profile, Job, Transcript, Lesson hoặc Activity tables chỉ để “chuẩn bị trước”.
-  - [ ] Cấu hình local email template dùng `{{ .Token }}` để phát OTP code thay vì magic link; document hosted-template requirement.
+- [x] **Task 5 — Tạo migration, local config và beta seed** (AC2, AC7, AC10)
+  - [x] Khởi tạo `supabase/config.toml`, migrations, `seed.sql` và database tests.
+  - [x] Tạo `public.beta_access` với `email_normalized text primary key`, `is_active boolean not null default true`, timestamps và constraint bảo đảm `lower(trim(email))`.
+  - [x] Enable RLS và revoke access của `anon`/`authenticated`; không tạo browser read/write policy.
+  - [x] Grant/admin access chỉ cho server role thích hợp; không tạo learner-facing allowlist management UI.
+  - [x] Seed chỉ dùng email test giả, không commit email cá nhân thật.
+  - [x] Không tạo profile, Job, Transcript, Lesson hoặc Activity tables chỉ để “chuẩn bị trước”.
+  - [x] Cấu hình local email template dùng `{{ .Token }}` để phát OTP code thay vì magic link; document hosted-template requirement.
 
-- [ ] **Task 6 — Implement private-beta admission và OTP request** (AC2, AC3, AC7)
-  - [ ] Normalize/validate email ở application boundary trước mọi provider/database call.
-  - [ ] Server kiểm tra active `beta_access` trước khi gọi Supabase Auth.
-  - [ ] Với email được phép, gọi `signInWithOtp` theo ID-1; cho phép tạo user chỉ sau khi admission đã pass.
-  - [ ] Với email không được phép, không gọi Auth provider nhưng trả cùng valid-email HTTP status/body như allowed path.
-  - [ ] Copy trung tính: ví dụ “Nếu email của bạn được mời, mã đăng nhập sẽ được gửi.”; không dùng “email không được mời”.
-  - [ ] Provider/infrastructure outage được map thành generic retryable error, không giả thành successful acceptance.
-  - [ ] Respect Supabase cooldown/expiry; UI chỉ enable resend khi cooldown kết thúc và không hardcode con số khác config/test contract.
-  - [ ] Bảo vệ POST mutation bằng same-origin validation phù hợp; không chấp nhận arbitrary callback URL.
+- [x] **Task 6 — Implement private-beta admission và OTP request** (AC2, AC3, AC7)
+  - [x] Normalize/validate email ở application boundary trước mọi provider/database call.
+  - [x] Server kiểm tra active `beta_access` trước khi gọi Supabase Auth.
+  - [x] Với email được phép, gọi `signInWithOtp` theo ID-1; cho phép tạo user chỉ sau khi admission đã pass.
+  - [x] Với email không được phép, không gọi Auth provider nhưng trả cùng valid-email HTTP status/body như allowed path.
+  - [x] Copy trung tính: ví dụ “Nếu email của bạn được mời, mã đăng nhập sẽ được gửi.”; không dùng “email không được mời”.
+  - [x] Provider/infrastructure outage được map thành generic retryable error, không giả thành successful acceptance.
+  - [x] Respect Supabase cooldown/expiry; UI chỉ enable resend khi cooldown kết thúc và không hardcode con số khác config/test contract.
+  - [x] Bảo vệ POST mutation bằng same-origin validation phù hợp; không chấp nhận arbitrary callback URL.
 
-- [ ] **Task 7 — Implement OTP verification, intended redirect và logout** (AC4–AC7)
-  - [ ] OTP input contract chỉ nhận đúng sáu chữ số.
-  - [ ] Re-check active allowlist trước verify và sau session creation để xử lý revoke/race.
-  - [ ] Gọi `verifyOtp({ email, token, type: "email" })` qua adapter và để SSR response persist cookies.
-  - [ ] Khi allowlist bị revoke sau verify, sign out/clear auth cookies và deny access.
-  - [ ] Sanitize `next`/intended path: chỉ relative same-origin path bắt đầu `/`; reject `//`, absolute URL, auth loops và malformed encoding; fallback `/create`.
-  - [ ] Logout dùng POST/application command, hủy Supabase session, vô hiệu protected cache state và redirect `/sign-in`.
-  - [ ] Auth response/route có private/no-store semantics; không để CDN/shared cache phát `Set-Cookie` hoặc protected HTML cho user khác.
+- [x] **Task 7 — Implement OTP verification, intended redirect và logout** (AC4–AC7)
+  - [x] OTP input contract chỉ nhận đúng sáu chữ số.
+  - [x] Re-check active allowlist trước verify và sau session creation để xử lý revoke/race.
+  - [x] Gọi `verifyOtp({ email, token, type: "email" })` qua adapter và để SSR response persist cookies.
+  - [x] Khi allowlist bị revoke sau verify, sign out/clear auth cookies và deny access.
+  - [x] Sanitize `next`/intended path: chỉ relative same-origin path bắt đầu `/`; reject `//`, absolute URL, auth loops và malformed encoding; fallback `/create`.
+  - [x] Logout dùng POST/application command, hủy Supabase session, vô hiệu protected cache state và redirect `/sign-in`.
+  - [x] Auth response/route có private/no-store semantics; không để CDN/shared cache phát `Set-Cookie` hoặc protected HTML cho user khác.
 
-- [ ] **Task 8 — Build sign-in UX và protected app shell** (AC3–AC8)
-  - [ ] Tạo route groups `src/app/(auth)` và `src/app/(protected)`; `/sign-in` ngoài protected layout.
-  - [ ] Root route redirect tới `/create` khi access hợp lệ, ngược lại `/sign-in`.
-  - [ ] Sign-in flow có hai bước rõ ràng: email → OTP; dùng tiếng Việt bình tĩnh, không provider jargon.
-  - [ ] Dùng một OTP input accessible với `inputMode="numeric"`, `autoComplete="one-time-code"`, `maxLength=6`, visible label và linked help/error; không bắt buộc six-box widget.
-  - [ ] Có loading, accepted, cooldown, invalid/expired và temporary-error states; focus chuyển hợp lý và aria-live không đọc lặp toàn form.
-  - [ ] Protected app shell chỉ có logo/Create, Library và account dropdown với `Đăng xuất`.
-  - [ ] Tạo placeholder protected pages `/create` và `/library` đủ để kiểm tra route protection; không thêm URL field, CEFR, job hoặc dashboard.
-  - [ ] Áp dụng Geist Sans/Mono, Learning Indigo/Evidence Teal/Timestamp Amber tokens, radii/spacing từ Design Spine; không gradient, mascot, gamification.
-  - [ ] Root HTML `lang="vi"`; tagline English dùng `lang="en"` và canonical text “Any English video. Your English lesson.”
-  - [ ] Mobile và desktop có 44×44 targets, visible focus, responsive top bar và no color-only state.
+- [x] **Task 8 — Build sign-in UX và protected app shell** (AC3–AC8)
+  - [x] Tạo route groups `src/app/(auth)` và `src/app/(protected)`; `/sign-in` ngoài protected layout.
+  - [x] Root route redirect tới `/create` khi access hợp lệ, ngược lại `/sign-in`.
+  - [x] Sign-in flow có hai bước rõ ràng: email → OTP; dùng tiếng Việt bình tĩnh, không provider jargon.
+  - [x] Dùng một OTP input accessible với `inputMode="numeric"`, `autoComplete="one-time-code"`, `maxLength=6`, visible label và linked help/error; không bắt buộc six-box widget.
+  - [x] Có loading, accepted, cooldown, invalid/expired và temporary-error states; focus chuyển hợp lý và aria-live không đọc lặp toàn form.
+  - [x] Protected app shell chỉ có logo/Create, Library và account dropdown với `Đăng xuất`.
+  - [x] Tạo placeholder protected pages `/create` và `/library` đủ để kiểm tra route protection; không thêm URL field, CEFR, job hoặc dashboard.
+  - [x] Áp dụng Geist Sans/Mono, Learning Indigo/Evidence Teal/Timestamp Amber tokens, radii/spacing từ Design Spine; không gradient, mascot, gamification.
+  - [x] Root HTML `lang="vi"`; tagline English dùng `lang="en"` và canonical text “Any English video. Your English lesson.”
+  - [x] Mobile và desktop có 44×44 targets, visible focus, responsive top bar và no color-only state.
 
-- [ ] **Task 9 — Implement unit, database, integration và E2E coverage** (AC2–AC10)
-  - [ ] Vitest unit tests: normalize email, schema validation, safe redirect, error mapping và neutral admission result.
-  - [ ] Database/pgTAP or equivalent tests: normalized constraint, RLS enabled, anon/auth cannot select or mutate, server admin can perform allowed operations.
-  - [ ] Adapter/integration tests: allowed request invokes OTP provider once; disallowed request invokes zero provider calls but returns same public response; admin client never inherits user cookie/session.
-  - [ ] Local Supabase integration: OTP request/verify cookie session through Mailpit or deterministic local auth fixture.
-  - [ ] Playwright E2E: allowed first-time login, neutral non-allowed request, invalid and expired-code UI, protected deep-link redirect/return, refresh persistence, revoked beta access, logout and back/refresh denial.
-  - [ ] Test mobile viewport, keyboard-only flow, labels/error linkage and basic accessibility assertions.
-  - [ ] No test calls live external providers; production secrets are absent in CI.
+- [x] **Task 9 — Implement unit, database, integration và E2E coverage** (AC2–AC10)
+  - [x] Vitest unit tests: normalize email, schema validation, safe redirect, error mapping và neutral admission result.
+  - [x] Database/pgTAP or equivalent tests: normalized constraint, RLS enabled, anon/auth cannot select or mutate, server admin can perform allowed operations.
+  - [x] Adapter/integration tests: allowed request invokes OTP provider once; disallowed request invokes zero provider calls but returns same public response; admin client never inherits user cookie/session.
+  - [x] Local Supabase integration: OTP request/verify cookie session through Mailpit or deterministic local auth fixture.
+  - [x] Playwright E2E: allowed first-time login, neutral non-allowed request, invalid and expired-code UI, protected deep-link redirect/return, refresh persistence, revoked beta access, logout and back/refresh denial.
+  - [x] Test mobile viewport, keyboard-only flow, labels/error linkage and basic accessibility assertions.
+  - [x] No test calls live external providers; production secrets are absent in CI.
 
-- [ ] **Task 10 — Add PR CI and update repository documentation safely** (AC1, AC3, AC9, AC10)
-  - [ ] Tạo `.github/workflows/ci.yml` với Node 24, exact pnpm cache/setup, frozen install, typecheck, ESLint, tests và build.
-  - [ ] Start/reset local Supabase for database/integration/E2E jobs; install only required Playwright browser/dependencies.
-  - [ ] Ensure cleanup runs even after test failure and no local secret/artifact is uploaded.
-  - [ ] Update `README.md` canonical tagline và local setup, giữ BMAD installation guidance còn đúng.
-  - [ ] Update current root `package.json` description/engines/scripts by merge; preserve every `bmad:*` script.
-  - [ ] Extend `.gitignore` for `.next`, build output, coverage, Playwright reports/results và Supabase temp while preserving `_bmad-output` tracking rules.
-  - [ ] Update stale stage/reference text in `AGENTS.md` only as needed so it points to current `project-context.md`, final planning/readiness/sprint artifacts and the normal story cycle; do not weaken any language invariant.
-  - [ ] Do not claim branch protection, hosted SMTP, hosted Supabase project configuration or preview deployment unless actually configured and verified.
+- [x] **Task 10 — Add PR CI and update repository documentation safely** (AC1, AC3, AC9, AC10)
+  - [x] Tạo `.github/workflows/ci.yml` với Node 24, exact pnpm cache/setup, frozen install, typecheck, ESLint, tests và build.
+  - [x] Start/reset local Supabase for database/integration/E2E jobs; install only required Playwright browser/dependencies.
+  - [x] Ensure cleanup runs even after test failure and no local secret/artifact is uploaded.
+  - [x] Update `README.md` canonical tagline và local setup, giữ BMAD installation guidance còn đúng.
+  - [x] Update current root `package.json` description/engines/scripts by merge; preserve every `bmad:*` script.
+  - [x] Extend `.gitignore` for `.next`, build output, coverage, Playwright reports/results và Supabase temp while preserving `_bmad-output` tracking rules.
+  - [x] Update stale stage/reference text in `AGENTS.md` only as needed so it points to current `project-context.md`, final planning/readiness/sprint artifacts and the normal story cycle; do not weaken any language invariant.
+  - [x] Do not claim branch protection, hosted SMTP, hosted Supabase project configuration or preview deployment unless actually configured and verified.
 
 ## Dev Notes
 
@@ -505,29 +505,116 @@ Recheck exact patch versions when implementation runs; do not replace the archit
 
 ## Definition of Done
 
-- [ ] All AC1–AC10 are demonstrably satisfied.
-- [ ] `pnpm install --frozen-lockfile`, typecheck, lint, unit/integration tests and production build pass from a clean checkout.
-- [ ] Required Playwright flows pass against local/test infrastructure without live external providers.
-- [ ] No secret, OTP, auth cookie or real user email exists in committed files/logs/artifacts.
-- [ ] No Job, Transcript, Lesson, Activity, YouTube or generation functionality is added.
-- [ ] Existing BMAD scripts and artifacts remain intact.
-- [ ] Story implementation is ready for independent code review.
+- [x] All AC1–AC10 are demonstrably satisfied.
+- [x] `pnpm install --frozen-lockfile`, typecheck, lint, unit/integration tests and production build pass from a clean checkout.
+- [x] Required Playwright flows pass against local/test infrastructure without live external providers.
+- [x] No secret, OTP, auth cookie or real user email exists in committed files/logs/artifacts.
+- [x] No Job, Transcript, Lesson, Activity, YouTube or generation functionality is added.
+- [x] Existing BMAD scripts and artifacts remain intact.
+- [x] Story implementation is ready for independent code review.
 
 ## Dev Agent Record
 
 ### Agent Model Used
 
-To be recorded by `dev-story`.
+GPT-5.6 Thinking
 
 ### Debug Log References
 
-To be recorded during implementation.
+- GitHub Actions CI: run `30837087757`
+- Code review: `1-1-truy-cap-private-beta-va-dang-nhap-an-toan.code-review.md`
 
 ### Completion Notes List
 
 - Ultimate context engine analysis completed — comprehensive developer guide created.
-- No previous implementation story or product-code baseline exists.
+- Implemented Next.js/Supabase identity foundation, private-beta admission, OTP UX, RLS, CI and protected shell.
+- Adversarial review findings were patched, including cookie propagation, error classification, bounded JSON, logout history revalidation and learner-facing copy.
+- CI run `30837087757` passed typecheck, lint, tests, build, Playwright and pgTAP.
 
 ### File List
 
-To be completed by the dev agent with every created, modified and deleted file.
+- `.env.example`
+- `.github/workflows/ci.yml`
+- `.gitignore`
+- `.node-version`
+- `.npmrc`
+- `.nvmrc`
+- `AGENTS.md`
+- `README.md`
+- `_bmad-output/implementation-artifacts/1-1-truy-cap-private-beta-va-dang-nhap-an-toan.code-review.md`
+- `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- `components.json`
+- `eslint.config.mjs`
+- `next-env.d.ts`
+- `next.config.ts`
+- `package.json`
+- `playwright.config.ts`
+- `pnpm-lock.yaml`
+- `postcss.config.mjs`
+- `src/adapters/fake/cookie-store.ts`
+- `src/adapters/fake/fake-beta-access-repository.ts`
+- `src/adapters/fake/fake-identity-provider.ts`
+- `src/adapters/supabase/admin-client.ts`
+- `src/adapters/supabase/beta-access-repository.ts`
+- `src/adapters/supabase/browser-client.ts`
+- `src/adapters/supabase/proxy-session.ts`
+- `src/adapters/supabase/server-client.ts`
+- `src/adapters/supabase/supabase-identity-provider.ts`
+- `src/app/(auth)/sign-in/_components/sign-in-flow.tsx`
+- `src/app/(auth)/sign-in/page.tsx`
+- `src/app/(protected)/_components/app-shell.tsx`
+- `src/app/(protected)/_components/session-revalidator.tsx`
+- `src/app/(protected)/create/page.tsx`
+- `src/app/(protected)/layout.tsx`
+- `src/app/(protected)/library/page.tsx`
+- `src/app/api/auth/request-code/route.ts`
+- `src/app/api/auth/session/route.ts`
+- `src/app/api/auth/sign-out/route.ts`
+- `src/app/api/auth/verify-code/route.ts`
+- `src/app/globals.css`
+- `src/app/layout.tsx`
+- `src/app/page.tsx`
+- `src/modules/identity/application/identity-service.test.ts`
+- `src/modules/identity/application/identity-service.ts`
+- `src/modules/identity/domain/identity-user.ts`
+- `src/modules/identity/index.ts`
+- `src/modules/identity/ports/beta-access-repository.ts`
+- `src/modules/identity/ports/identity-provider.ts`
+- `src/platform/config/proxy.ts`
+- `src/platform/config/public.ts`
+- `src/platform/config/server.ts`
+- `src/platform/identity/create-identity-service.ts`
+- `src/proxy.ts`
+- `src/shared/contracts/auth.test.ts`
+- `src/shared/contracts/auth.ts`
+- `src/shared/errors/product-error.test.ts`
+- `src/shared/errors/product-error.ts`
+- `src/shared/http/json-body.test.ts`
+- `src/shared/http/json-body.ts`
+- `src/shared/http/product-error-response.ts`
+- `src/shared/http/same-origin.test.ts`
+- `src/shared/http/same-origin.ts`
+- `src/shared/lib/cn.ts`
+- `src/shared/ui/button.tsx`
+- `src/shared/ui/card.tsx`
+- `src/shared/ui/input.tsx`
+- `supabase/config.toml`
+- `supabase/migrations/20260803170000_create_beta_access.sql`
+- `supabase/seed.sql`
+- `supabase/templates/magic_link.html`
+- `supabase/tests/beta_access_rls.test.sql`
+- `tests/e2e/auth.spec.ts`
+- `tests/integration/sql-contract.test.ts`
+- `tests/setup.ts`
+- `tests/unit/sign-in-flow.test.ts`
+- `tsconfig.json`
+- `vitest.config.ts`
+
+
+## Final Implementation Record
+
+- Baseline commit: `e01978c11d55ea41ccd89f78bc48164d7336cfce`
+- Final reviewed head before record sync: `9bd44db5a22591d281e2db24ad3522b52a571c1c`
+- CI run: `30837087757` — all jobs passed.
+- Code review result: PASS; no open findings.
+- Story status: `done`.
