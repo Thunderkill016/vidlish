@@ -115,3 +115,4 @@ describe("VideoUrlForm", () => {
     );
     expect(screen.queryByTestId("video-metadata-preview")).not.toBeInTheDocument();
   });
+});
