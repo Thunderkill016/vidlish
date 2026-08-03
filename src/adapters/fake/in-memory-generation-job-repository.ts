@@ -1,0 +1,151 @@
+import "server-only";
+
+import type {
+  CreateGenerationJobRecord,
+  GenerationJobRepository,
+  GenerationPolicySnapshot,
+} from "@/modules/generation/ports/generation-job-repository";
+import {
+  activeGenerationJobStatuses,
+  generationJobSchema,
+  type GenerationJob,
+  type GenerationJobStatus,
+} from "@/shared/contracts/generation";
+
+function nowIso(): string {
+  return new Date().toISOString();
+}
+
+function activeKey(input: CreateGenerationJobRecord): string {
+  return [
+    input.ownerUserId,
+    input.metadata.videoId,
+    input.cefrLevel,
+    input.pipelineVersion,
+  ].join(":");
+}
+
+export class InMemoryGenerationJobRepository
+  implements GenerationJobRepository
+{
+  private readonly jobs = new Map<string, GenerationJob>();
+  private readonly activeKeys = new Map<string, string>();
+
+  async getPolicySnapshot(ownerUserId: string): Promise<GenerationPolicySnapshot> {
+    const now = Date.now();
+    const dayStart = new Date();
+    dayStart.setUTCHours(0, 0, 0, 0);
+    const owned = [...this.jobs.values()].filter(
+      (job) => job.ownerUserId === ownerUserId,
+    );
+    return {
+      activeJobCount: owned.filter((job) =>
+        activeGenerationJobStatuses.includes(job.status),
+      ).length,
+      jobsCreatedToday: owned.filter(
+        (job) => Date.parse(job.createdAt) >= dayStart.getTime(),
+      ).length,
+      jobsCreatedLastMinute: owned.filter(
+        (job) => now - Date.parse(job.createdAt) < 60_000,
+      ).length,
+    };
+  }
+
+  async createOrReuse(
+    input: CreateGenerationJobRecord,
+  ): Promise<{ job: GenerationJob; created: boolean }> {
+    const key = activeKey(input);
+    const existingId = this.activeKeys.get(key);
+    if (existingId) {
+      const existing = this.jobs.get(existingId);
+      if (existing && activeGenerationJobStatuses.includes(existing.status)) {
+        return { job: existing, created: false };
+      }
+      this.activeKeys.delete(key);
+    }
+
+    const timestamp = nowIso();
+    const job = generationJobSchema.parse({
+      id: crypto.randomUUID(),
+      ownerUserId: input.ownerUserId,
+      videoId: input.metadata.videoId,
+      videoTitle: input.metadata.title,
+      channelName: input.metadata.channelName,
+      ...(input.metadata.thumbnailUrl
+        ? { thumbnailUrl: input.metadata.thumbnailUrl }
+        : {}),
+      ...(input.metadata.durationMs !== undefined
+        ? { durationMs: input.metadata.durationMs }
+        : {}),
+      cefrLevel: input.cefrLevel,
+      metadataVersion: input.metadata.metadataVersion,
+      pipelineVersion: input.pipelineVersion,
+      status: "queued",
+      currentStage: "queued",
+      dispatchStatus: "pending",
+      createdAt: timestamp,
+      updatedAt: timestamp,
+    });
+    this.jobs.set(job.id, job);
+    this.activeKeys.set(key, job.id);
+    return { job, created: true };
+  }
+
+  async findOwnedById(
+    jobId: string,
+    ownerUserId: string,
+  ): Promise<GenerationJob | null> {
+    const job = this.jobs.get(jobId);
+    return job?.ownerUserId === ownerUserId ? job : null;
+  }
+
+  async advanceStory21(jobId: string): Promise<GenerationJob | null> {
+    const job = this.jobs.get(jobId);
+    if (!job) return null;
+    if (job.status !== "queued" && job.status !== "validating_video") {
+      return job;
+    }
+    await this.updateStatus(jobId, "validating_video", "validating_video");
+    return this.updateStatus(
+      jobId,
+      "acquiring_transcript",
+      "acquiring_transcript",
+    );
+  }
+
+  async markDispatch(
+    jobId: string,
+    status: "sent" | "failed",
+  ): Promise<void> {
+    const job = this.jobs.get(jobId);
+    if (!job) return;
+    this.jobs.set(jobId, {
+      ...job,
+      dispatchStatus: status,
+      updatedAt: nowIso(),
+    });
+  }
+
+  async updateStatus(
+    jobId: string,
+    status: GenerationJobStatus,
+    currentStage: string,
+  ): Promise<GenerationJob | null> {
+    const job = this.jobs.get(jobId);
+    if (!job) return null;
+    const updated = generationJobSchema.parse({
+      ...job,
+      status,
+      currentStage,
+      updatedAt: nowIso(),
+    });
+    this.jobs.set(jobId, updated);
+    return updated;
+  }
+}
+
+const repository = new InMemoryGenerationJobRepository();
+
+export function getInMemoryGenerationJobRepository(): InMemoryGenerationJobRepository {
+  return repository;
+}
