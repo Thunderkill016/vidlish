@@ -61,3 +61,15 @@ export class InMemoryTranscriptRepository implements TranscriptRepository {
     return this.attempts.size;
   }
 }
+
+declare global {
+  var __vidlishTranscriptRepository: InMemoryTranscriptRepository | undefined;
+}
+
+export function getInMemoryTranscriptRepository(
+  generationRepository: GenerationJobRepository,
+): InMemoryTranscriptRepository {
+  globalThis.__vidlishTranscriptRepository ??=
+    new InMemoryTranscriptRepository(generationRepository);
+  return globalThis.__vidlishTranscriptRepository;
+}
