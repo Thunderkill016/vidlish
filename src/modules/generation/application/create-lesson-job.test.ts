@@ -7,7 +7,6 @@ import { GenerationPolicy } from "@/modules/generation/application/generation-po
 import type { GenerationDispatcher } from "@/modules/generation/ports/generation-dispatcher";
 import type { VideoMetadataProvider } from "@/modules/video/ports/video-metadata-provider";
 import type { PlayableVideoMetadata } from "@/shared/contracts/video";
-import { ProductError } from "@/shared/errors/product-error";
 
 function metadata(videoId: string): PlayableVideoMetadata {
   return {
@@ -54,6 +53,31 @@ describe("CreateLessonJob", () => {
     const job = await repository.findOwnedById(first.jobId, "fake-owner");
     expect(job?.status).toBe("acquiring_transcript");
     expect(job?.dispatchStatus).toBe("sent");
+    expect(await repository.findOwnedById(first.jobId, "other-owner")).toBeNull();
+  });
+
+  it("collapses concurrent create calls into one active job", async () => {
+    const repository = new InMemoryGenerationJobRepository();
+    const useCase = new CreateLessonJob(
+      repository,
+      { lookup: async (videoId) => metadata(videoId) },
+      new InlineGenerationDispatcher(repository),
+      policy(),
+    );
+    const input = {
+      videoId: "dQw4w9WgXcQ",
+      cefrLevel: "B2" as const,
+      metadataVersion: "fixture:v1",
+    };
+
+    const results = await Promise.all([
+      useCase.execute("fake-owner", input),
+      useCase.execute("fake-owner", input),
+    ]);
+
+    expect(new Set(results.map((result) => result.jobId)).size).toBe(1);
+    expect(results.filter((result) => result.reused)).toHaveLength(1);
+    expect(results.filter((result) => !result.reused)).toHaveLength(1);
   });
 
   it("applies active-job policy only to genuinely new work", async () => {
@@ -80,7 +104,7 @@ describe("CreateLessonJob", () => {
         cefrLevel: "B1",
         metadataVersion: "fixture:two",
       }),
-    ).rejects.toMatchObject<ProductError>({ code: "JOB_CONCURRENCY_LIMIT" });
+    ).rejects.toMatchObject({ code: "JOB_CONCURRENCY_LIMIT" });
   });
 
   it("keeps a committed queued job retryable when dispatch fails", async () => {
