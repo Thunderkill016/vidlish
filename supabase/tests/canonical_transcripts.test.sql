@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(18);
+select plan(19);
 
 select has_table('public', 'transcripts', 'transcripts exists');
 select has_table('public', 'transcript_segments', 'transcript_segments exists');
