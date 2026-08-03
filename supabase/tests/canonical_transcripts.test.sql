@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(19);
+select plan(22);
 
 select has_table('public', 'transcripts', 'transcripts exists');
 select has_table('public', 'transcript_segments', 'transcript_segments exists');
@@ -51,11 +51,19 @@ insert into public.videos (
 insert into public.lesson_jobs (
   id, owner_user_id, video_id, cefr_level, metadata_version,
   pipeline_version, status, current_stage, dispatch_status
-) values (
+) values
+(
   '44444444-4444-4444-8444-444444444444',
   '11111111-1111-4111-8111-111111111111',
   '33333333-3333-4333-8333-333333333333',
   'B1', 'fixture:v1', 'generation-pipeline:v1',
+  'normalizing_transcript', 'normalizing_transcript', 'sent'
+),
+(
+  '55555555-5555-4555-8555-555555555555',
+  '11111111-1111-4111-8111-111111111111',
+  '33333333-3333-4333-8333-333333333333',
+  'A2', 'fixture:v1', 'generation-pipeline:v1',
   'normalizing_transcript', 'normalizing_transcript', 'sent'
 );
 
@@ -114,6 +122,33 @@ select * from public.persist_canonical_transcript(
 
 select is((select created from second_persist), false, 'retry reuses canonical artifact');
 select is((select count(*)::integer from public.transcripts), 1, 'retry does not duplicate transcript');
+
+create temporary table other_job_persist as
+select * from public.persist_canonical_transcript(
+  'attempt:success:two',
+  '11111111-1111-4111-8111-111111111111',
+  '55555555-5555-4555-8555-555555555555',
+  'dQw4w9WgXcQ',
+  'supadata-native-caption',
+  'supadata',
+  'native_caption',
+  'en',
+  array['en'],
+  'unknown',
+  'unknown',
+  repeat('a', 64),
+  'transcript-normalization:v1',
+  3000,
+  42,
+  '[
+    {"id":"seg_11111111111111111111111111111111","position":0,"startMs":0,"endMs":1200,"text":"First source line","detectedLanguage":"en"},
+    {"id":"seg_22222222222222222222222222222222","position":1,"startMs":1500,"endMs":3000,"text":"Second source line","detectedLanguage":"en"}
+  ]'::jsonb
+);
+
+select is((select created from other_job_persist), true, 'same stable segment IDs can be reused by another job');
+select is((select count(*)::integer from public.transcripts), 2, 'different jobs keep separate transcript artifacts');
+select is((select count(*)::integer from public.transcript_segments), 4, 'segment IDs are unique within each transcript, not globally');
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = '22222222-2222-4222-8222-222222222222';
