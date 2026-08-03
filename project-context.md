@@ -11,10 +11,9 @@
 - Implementation Readiness rerun: **READY/PASS**.
 - Sprint Planning: complete; canonical tracking exists at `_bmad-output/implementation-artifacts/sprint-status.yaml`.
 - Epic 1: `in-progress`.
-- Story 1.1 implementation artifact: created and `ready-for-dev` at `_bmad-output/implementation-artifacts/1-1-truy-cap-private-beta-va-dang-nhap-an-toan.md`.
-- Product code: not started.
-
-Story 1.1 must pass the dedicated story-validation workflow before development begins.
+- Story 1.1: implemented, reviewed, CI green and ready to merge.
+- Story 1.2: next automatic create/validate/develop cycle.
+- Product code: started with the authenticated private-beta foundation.
 
 ## Product promise
 
