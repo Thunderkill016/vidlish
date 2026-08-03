@@ -1,8 +1,10 @@
 ---
-stepsCompleted: [1, 2, 3, 4, 5]
-status: in-progress
+stepsCompleted: [1, 2, 3, 4, 5, 6]
+status: needs-work
 project: Vidlish
 date: 2026-08-03
+completedAt: 2026-08-03
+assessor: BMad Implementation Readiness via ChatGPT
 includedDocuments:
   prd:
     - _bmad-output/planning-artifacts/prds/prd-vidlish-2026-08-03/prd.md
@@ -31,7 +33,8 @@ includedDocuments:
 # Implementation Readiness Assessment Report
 
 **Date:** 2026-08-03  
-**Project:** Vidlish
+**Project:** Vidlish  
+**Assessor:** BMad Implementation Readiness via ChatGPT
 
 ## Step 1 — Document Discovery
 
@@ -485,3 +488,46 @@ Story 1.1 requires tests to run in CI but does not explicitly name the CI workfl
 ### Epic Quality Verdict
 
 **Not yet clean enough for unconditional implementation readiness.** The epic structure and FR coverage are sound, but the canonical contradictions, stale references, unresolved first-adapter decisions and three oversized stories must be corrected or explicitly accepted as implementation risks before sprint planning.
+
+## Summary and Recommendations
+
+### Overall Readiness Status
+
+# NEEDS WORK
+
+Vidlish has a complete product definition and 100% functional-requirement traceability, but the planning set is not yet safe for autonomous Sprint Planning and story implementation. The problems are concentrated in source-of-truth consistency, first-adapter decisions and story sizing—not in the core product concept or architecture direction.
+
+Story 1.1 should not start until its auth mode and private-beta access mechanism are made explicit. Provider-independent scaffold work is conceptually possible, but starting from ambiguous acceptance criteria would create avoidable rework.
+
+### Critical Issues Requiring Immediate Action
+
+No single critical architectural failure was found. The following **blocking major issues** require immediate action:
+
+1. **Correct canonical source drift:** Story 1.3 action contradiction, Story 2.3 invalid `AD-22`, and stale Story 3.5/3.6 and 5.2/5.3 references.
+2. **Repair UX source-of-truth drift:** canonical English-video tagline, mandatory `Kiểm tra tiếng Anh` phase and explicit unsupported-language state.
+3. **Select implementation decisions for the first adapters:** passwordless auth mode, beta allowlist mechanism, metadata/playability adapter, language detector, hosted transcript provider and STT provider.
+4. **Split oversized stories:** Story 2.4, Story 2.9 and Story 3.6.
+5. **Clarify remaining UX/engineering ownership:** account-menu beta/privacy/quota content and minimum pull-request CI baseline.
+
+### Recommended Next Steps
+
+1. Run **Correct Course** on the planning artifacts and apply the targeted corrections above; this does not require changing the PRD product scope.
+2. Create a normative `implementation-decisions.md` companion that records the initial auth/beta/provider choices, fallback when credentials are absent and which stories are blocked by external account setup.
+3. Re-split and renumber the affected stories, update the Story Coverage Matrix, anchors, clarification references and final-validation artifact.
+4. Update `DESIGN.md` and `EXPERIENCE.md` for the final language-eligibility promise and state flow.
+5. Re-run **Implementation Readiness**. Only a PASS should unlock **Sprint Planning** and product code.
+
+### Issue Count
+
+- UX alignment issues: 3
+- Epic major issues: 7
+- Epic minor concerns: 3
+- Total findings requiring attention: 13
+- Critical violations: 0
+- Functional requirements missing: 0
+
+### Final Note
+
+This assessment identified **13 issues across UX alignment and epic/story implementation quality**. The product vision, requirement coverage and core architecture are strong. The current blocker is precision: development agents must not be forced to choose between contradictory actions, nonexistent references, undefined providers or stories spanning several independent delivery units.
+
+Address the blocking major issues before proceeding to implementation. The team may technically proceed as-is, but doing so would knowingly accept rework and inconsistent product behavior; that is not recommended for an autonomous AI-driven build.
