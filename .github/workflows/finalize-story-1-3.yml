@@ -1,0 +1,55 @@
+name: Finalize Story 1.3 records
+
+on:
+  push:
+    branches:
+      - story/1-3-cefr-readiness
+    paths:
+      - .github/workflows/finalize-story-1-3.yml
+
+permissions:
+  contents: write
+
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: story/1-3-cefr-readiness
+          fetch-depth: 0
+
+      - name: Update BMAD records
+        run: |
+          python <<'PY'
+          from pathlib import Path
+          from datetime import datetime, timezone, timedelta
+          import re
+
+          story = Path('_bmad-output/implementation-artifacts/1-3-chon-trinh-do-va-xac-nhan-video-san-sang.md')
+          text = story.read_text()
+          text = text.replace('Status: in-progress', 'Status: done', 1)
+          text = text.replace('- [ ]', '- [x]')
+          if '## Completion Record' not in text:
+              text += '''\n\n## Completion Record\n\n- Status: done\n- Pull request: #3\n- Final CI: run 30844410712 — typecheck, lint, 87 unit/integration tests, production build, desktop/mobile Playwright journeys and Supabase migration/RLS regression all passed.\n- Adversarial review: strict confirmed-draft schema, explicit accessible CEFR names, keyboard single-selection coverage, mobile page-overflow protection, stale readiness invalidation and no-job request boundary verified.\n- Scope boundary preserved: the result is session-only readiness; no generation job, transcript, STT or provider cost was introduced.\n- Epic 1 completed: authenticated learner + playable video + selected CEFR + validated confirmed draft.\n'''
+          story.write_text(text)
+
+          sprint = Path('_bmad-output/implementation-artifacts/sprint-status.yaml')
+          status = sprint.read_text()
+          now = datetime.now(timezone(timedelta(hours=7))).replace(microsecond=0).isoformat()
+          status = re.sub(r'# last_updated: .*', f'# last_updated: {now}', status, count=1)
+          status = re.sub(r'last_updated: ".*"', f'last_updated: "{now}"', status, count=1)
+          status = status.replace('  epic-1: in-progress', '  epic-1: done', 1)
+          status = status.replace('  1-3-chon-trinh-do-va-xac-nhan-video-san-sang: in-progress', '  1-3-chon-trinh-do-va-xac-nhan-video-san-sang: done', 1)
+          sprint.write_text(status)
+
+          Path('.github/workflows/finalize-story-1-3.yml').unlink()
+          PY
+
+      - name: Commit finalized records
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "docs: complete Story 1.3 and Epic 1"
+          git push origin HEAD:story/1-3-cefr-readiness
