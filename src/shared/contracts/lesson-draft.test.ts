@@ -18,24 +18,27 @@ describe("lesson draft contracts", () => {
     ]);
   });
 
-  it("accepts only a bounded validated draft", () => {
-    expect(
-      confirmedLessonDraftSchema.parse({
-        videoId: "dQw4w9WgXcQ",
-        cefrLevel: "B1",
-        metadataVersion: "fixture:v1",
-      }),
-    ).toEqual({
+  it("accepts only an exact bounded validated draft", () => {
+    const validDraft = {
       videoId: "dQw4w9WgXcQ",
       cefrLevel: "B1",
       metadataVersion: "fixture:v1",
-    });
+    } as const;
+
+    expect(confirmedLessonDraftSchema.parse(validDraft)).toEqual(validDraft);
 
     expect(
       confirmedLessonDraftSchema.safeParse({
         videoId: "bad",
         cefrLevel: "C2",
         metadataVersion: "",
+      }).success,
+    ).toBe(false);
+
+    expect(
+      confirmedLessonDraftSchema.safeParse({
+        ...validDraft,
+        providerPayload: "must-not-cross-the-boundary",
       }).success,
     ).toBe(false);
   });
