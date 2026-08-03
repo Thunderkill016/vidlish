@@ -1,172 +1,246 @@
 # Vidlish MVP — PRD Addendum
 
-Tài liệu này giữ các chi tiết có giá trị cho UX và Architecture nhưng không thuộc phần yêu cầu sản phẩm cốt lõi. Các lựa chọn công nghệ dưới đây là định hướng từ `IDEA.md`, chưa phải quyết định kiến trúc cuối cùng.
+Tài liệu này giữ các chi tiết có giá trị cho UX và Architecture nhưng không thuộc yêu cầu sản phẩm cốt lõi. PRD đã `final`; các lựa chọn provider/framework ở đây vẫn phải được Architecture xác nhận.
 
-## A. Định hướng kỹ thuật từ IDEA.md
+## A. Artifact bắt buộc downstream phải đọc
 
-- Web framework được đề xuất: Next.js + TypeScript.
-- UI được đề xuất: Tailwind CSS + shadcn/ui.
-- Backend có thể dùng Next.js Route Handlers hoặc Server Actions.
-- Database và authentication được đề xuất: Supabase.
-- Cần một AI API cho structured lesson generation.
-- Có thể cần YouTube Data API cho metadata và transcript library/provider cho phụ đề.
+- `prd.md`
+- `_bmad-output/specs/spec-vidlish-lesson-engine/SPEC.md`
+- Toàn bộ companion trong folder Lesson Engine Spec:
+  - `lesson-schema.md`
+  - `selection-algorithm.md`
+  - `cefr-rubrics.md`
+  - `activity-catalog.md`
+  - `generation-quality-pipeline.md`
+- Research transcript acquisition và lesson content design trong `_bmad-output/planning-artifacts/research/`.
 
-Architecture phải đánh giá lại từng lựa chọn dựa trên:
-- độ ổn định của transcript retrieval;
-- chi phí AI;
-- hỗ trợ background/long-running processing;
-- giới hạn runtime của nền tảng deploy;
-- data ownership và row-level security;
-- khả năng retry/idempotency;
-- điều khoản sử dụng của YouTube và provider.
+## B. Định hướng stack cần Architecture đánh giá
 
-## B. Mô hình dữ liệu khái niệm
+- Next.js + TypeScript cho web application.
+- Tailwind CSS + shadcn/ui cho UI.
+- Supabase Auth + Postgres + RLS cho identity và ownership.
+- YouTube metadata/player qua API hoặc embed chính thức khi phù hợp.
+- Transcript acquisition qua adapter chain, không khóa business logic vào một provider.
+- Gemini qua `LessonGenerationProvider`; structured output, schema/versioning và token telemetry.
+- Background job/state persistence để hỗ trợ generation dài, retry và reload.
+
+Architecture phải chốt dựa trên độ ổn định, chi phí, runtime limits, privacy, retention, provider terms và khả năng thay vendor.
+
+## C. Thành phần khái niệm
+
+```text
+Vidlish Web
+├── Authentication
+├── Create Lesson
+├── Transcript Fallback UX
+├── Lesson Viewer
+└── Lesson Library
+
+Application Services
+├── VideoMetadataService
+├── TranscriptAcquisitionOrchestrator
+│   ├── CaptionProvider
+│   ├── HostedTranscriptProvider
+│   ├── UnofficialExtractorProvider
+│   ├── TabAudioCaptureProvider
+│   ├── SpeechToTextProvider
+│   └── UserProvidedTranscriptProvider
+├── TranscriptNormalizer
+├── LessonGenerationOrchestrator
+├── DeterministicValidators
+├── LessonRepository
+└── JobRepository
+```
+
+## D. Mô hình dữ liệu khái niệm
 
 ### User
 
 - `id`
 - `email`
-- `name` (optional)
 - `created_at`
-
-Không lưu `english_level` hoặc `learning_goal` ở profile trong MVP nếu mỗi Bài học đã lưu Trình độ riêng.
 
 ### Video
 
 - `id`
-- `youtube_video_id` (unique)
-- `url`
+- `youtube_video_id`
+- `canonical_url`
 - `title`
 - `channel_name`
 - `thumbnail_url`
 - `duration_seconds`
-- `source_language`
-- `created_at`
+- `availability_status`
+- timestamps
 
-Quyết định lưu Transcript nằm ở OQ-4 của PRD.
-
-### LessonGeneration
-
-Bản ghi trạng thái giúp phục hồi khi tải lại và hỗ trợ retry:
+### Transcript
 
 - `id`
-- `user_id`
-- `video_id` hoặc URL tạm thời
+- `video_id`
+- `owner_id` hoặc ownership scope phù hợp
+- `source_type`: manual-caption | auto-caption | hosted-provider | extracted-caption | tab-audio-stt | uploaded-subtitle | pasted-text | uploaded-media-stt
+- `source_provider`
+- `language`
+- `confidence`
+- `transcript_hash`
+- `retention_status`
+- timestamps
+
+### TranscriptSegment
+
+- `id` hoặc stable segment ID
+- `transcript_id`
+- `position`
+- `start_ms`
+- `end_ms`
+- `text`
+- `confidence`
+
+### LessonJob
+
+- `id`
+- `owner_id`
+- `video_id`
+- `transcript_id`
 - `level`
 - `status`
 - `current_stage`
+- `acquisition_strategy`
 - `error_code`
-- `error_detail_safe`
-- `provider_request_id`
 - `attempt_count`
-- `created_at`
-- `updated_at`
+- `idempotency_key`
+- provider/model/request metadata
+- token/cost metadata
+- timestamps
 
 ### Lesson
 
 - `id`
-- `user_id`
+- `owner_id`
 - `video_id`
-- `generation_id`
+- `transcript_id`
+- `job_id`
 - `level`
 - `schema_version`
-- `summary_vi`
-- `summary_en`
-- `difficulty`
-- `vocabulary` (structured JSON)
-- `phrases` (structured JSON)
-- `grammar_points` (structured JSON)
-- `comprehension_questions` (structured JSON)
-- `fill_in_the_blank` (structured JSON)
+- `pipeline_version`
+- `prompt_version`
+- `model_id`
+- `transcript_hash`
+- `lesson_payload` hoặc normalized lesson tables
+- `quality_report`
 - `is_completed`
-- `created_at`
-- `updated_at`
+- timestamps
 
-### TranscriptSegment
+Architecture được quyền chọn JSONB hoặc normalized tables, nhưng phải giữ versioning, evidence links và khả năng mở lại không gọi provider.
 
-Chỉ áp dụng nếu quyết định lưu Transcript:
+## E. Transcript acquisition policy
 
-- `id`
-- `video_id` hoặc `lesson_id`
-- `start_seconds`
-- `duration_seconds` (optional)
-- `text`
-- `position`
+Waterfall đề xuất:
 
-## C. Schema đầu ra AI tối thiểu
-
-```json
-{
-  "schema_version": "1.0",
-  "difficulty": "Intermediate",
-  "video_summary": {
-    "vi": "",
-    "en": ""
-  },
-  "vocabulary": [
-    {
-      "term": "",
-      "part_of_speech": "",
-      "meaning_vi": "",
-      "definition_en": "",
-      "source_quote": "",
-      "source_segment_index": 0,
-      "example": ""
-    }
-  ],
-  "phrases": [],
-  "grammar_points": [],
-  "comprehension_questions": [],
-  "fill_in_the_blank": {
-    "items": [],
-    "answers": []
-  }
-}
+```text
+manual/auto caption
+→ hosted transcript provider
+→ unofficial extractor
+→ user-approved tab audio capture + STT
+→ paste/upload subtitle
+→ uploaded media owned by user + STT
 ```
 
-Architecture phải dùng schema validation ở server và lưu `schema_version` cùng Bài học.
+Quy tắc:
 
-## D. Mã lỗi sản phẩm đề xuất
+- `NO_CAPTIONS` không kết thúc job.
+- Mỗi provider có timeout/retry có giới hạn.
+- Orchestrator ghi strategy đã thử và lý do chuyển bước.
+- Không tải hoặc lưu video production mặc định.
+- Audio tạm bị xóa sau transcription hoặc job failure.
+- Video dài được chunk theo token/cost/semantic boundaries; không silently truncate.
+
+## F. Lesson generation contract
+
+Gemini không được tạo và publish lesson trong một call. Pipeline bắt buộc:
+
+```text
+Transcript Preprocessor
+→ Video Analyst
+→ Language Miner
+→ Objective Planner
+→ Activity Composer
+→ Structural Validator
+→ Grounding & Answer Validator
+→ Pedagogy/CEFR Reviewer
+→ Targeted Repair
+→ Final Quality Gate
+```
+
+Provider interface phải độc lập với Gemini. Deterministic validators quyết định hard gates.
+
+## G. Mã lỗi sản phẩm
+
+### Video
 
 - `INVALID_URL`
 - `VIDEO_NOT_FOUND`
 - `VIDEO_PRIVATE`
 - `VIDEO_RESTRICTED`
-- `TRANSCRIPT_UNAVAILABLE`
-- `TRANSCRIPT_LANGUAGE_UNSUPPORTED`
-- `VIDEO_TOO_LONG`
-- `TRANSCRIPT_TOO_LONG`
+- `VIDEO_NOT_PLAYABLE`
+
+### Transcript acquisition
+
+- `CAPTION_NOT_FOUND`
+- `CAPTION_PROVIDER_ERROR`
 - `TRANSCRIPT_PROVIDER_ERROR`
+- `EXTRACTOR_BLOCKED`
+- `TAB_CAPTURE_PERMISSION_DENIED`
+- `TAB_AUDIO_NOT_AVAILABLE`
+- `STT_PROVIDER_ERROR`
+- `TRANSCRIPT_UPLOAD_INVALID`
+- `TRANSCRIPT_LOW_CONFIDENCE`
+- `TRANSCRIPT_BUDGET_EXCEEDED`
+
+`CAPTION_NOT_FOUND` là transition signal, không phải lỗi cuối nếu còn fallback.
+
+### Lesson generation
+
 - `AI_PROVIDER_ERROR`
 - `AI_SCHEMA_INVALID`
+- `GROUNDING_FAILED`
+- `EXERCISE_INVALID`
+- `QUALITY_GATE_FAILED`
 - `GENERATION_TIMEOUT`
+- `REPAIR_LIMIT_REACHED`
+
+### Platform
+
 - `RATE_LIMITED`
 - `QUOTA_EXCEEDED`
 - `UNAUTHORIZED`
 - `LESSON_NOT_FOUND`
 - `NETWORK_ERROR`
 
-UI phải chuyển mã lỗi thành thông báo tiếng Việt có hành động tiếp theo; không hiển thị raw provider error.
+UI phải map mã lỗi thành thông báo tiếng Việt và next action; không hiển thị raw provider errors.
 
-## E. Rủi ro cần Architecture xử lý
+## H. Rủi ro Architecture phải xử lý
 
-1. **Transcript retrieval không ổn định** — cần abstraction provider và test bằng tập video đại diện.
-2. **Serverless timeout** — có thể cần job model thay vì một request đồng bộ dài.
-3. **AI trả nội dung không đúng schema hoặc bịa trích dẫn** — schema validation, quote matching và retry có giới hạn.
-4. **Chi phí không kiểm soát** — giới hạn video, quota, model selection và token telemetry.
-5. **Tạo trùng khi reload/retry** — idempotency key và trạng thái generation có persistence.
-6. **Lộ dữ liệu giữa người dùng** — server-side ownership check và database row-level security nếu dùng Supabase.
-7. **Rủi ro điều khoản/pháp lý khi lưu Transcript** — cần quyết định OQ-4 và review trước public launch.
+1. YouTube/unofficial endpoints thay đổi hoặc cloud IP bị chặn.
+2. Provider cost/latency tăng khi video dài hoặc phải STT.
+3. Browser tab-audio capture khác nhau theo browser/OS và cần user permission.
+4. Transcript/STT confidence thấp làm hỏng exercise.
+5. Gemini trả output hợp schema nhưng sai pedagogy hoặc evidence.
+6. Serverless timeout và duplicate job khi reload/retry.
+7. Transcript/audio retention và quyền sử dụng trước public launch.
+8. Vendor lock-in ở transcript, STT hoặc lesson generation.
 
-## F. Thứ tự xây dựng đề xuất sau readiness
+## I. Thứ tự triển khai sau readiness
 
-1. Foundation + authentication + database ownership.
-2. URL parsing + video eligibility + metadata.
-3. Transcript retrieval + normalization + limits.
-4. Generation state machine + AI schema.
-5. Lesson viewer + timestamp interaction.
-6. Exercises + completion state.
-7. Library + delete.
-8. Error hardening, observability and E2E tests.
+1. Foundation, auth, ownership và job persistence.
+2. URL/metadata/player.
+3. Transcript adapter contract + fixture provider.
+4. Caption/provider fast paths.
+5. Transcript normalization, source/confidence và storage.
+6. Lesson Engine domain schema + deterministic validators.
+7. Gemini adapter và multi-stage generation.
+8. Lesson Viewer và Library.
+9. Tab-audio/STT fallback.
+10. Upload/paste fallback.
+11. Observability, quotas, deletion, regression benchmark và E2E hardening.
 
-Đây chưa phải epics/stories chính thức; `bmad-create-epics-and-stories` sẽ tạo chúng sau UX và Architecture.
+Đây là input cho Architecture/Epics, chưa phải code plan cuối cùng.
