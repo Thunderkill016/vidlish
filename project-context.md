@@ -7,12 +7,12 @@
 - Lesson Engine SPEC and companions: final.
 - UX: corrected and final.
 - Architecture: final; initial implementation adapters locked in `IMPLEMENTATION-DECISIONS.md`.
-- Epics & Stories: corrected after Correct Course; 5 epics / 29 stories; backlog validation PASS.
-- Implementation Readiness: first run returned `NEEDS WORK`; re-run is the next workflow.
-- Sprint Planning: not started.
+- Epics & Stories: final; 5 epics / 29 stories; coverage and quality validation PASS.
+- Implementation Readiness rerun: **READY/PASS**.
+- Sprint Planning: next required workflow.
 - Product code: not started.
 
-No product scaffold, database migration or provider integration may begin until re-run Implementation Readiness passes and Sprint Planning is complete.
+No product scaffold, migration or provider integration begins until Sprint Planning creates the implementation sequence and Story 1.1 enters the normal create/validate/dev cycle.
 
 ## Product promise
 
@@ -98,6 +98,12 @@ input eligible English video
 
 No translation-based lesson mode, AI tutor chat, pronunciation scoring, gamification, payment, classroom management, mobile-native app or public sharing is part of MVP.
 
+## Readiness evidence
+
+- Canonical backlog: `_bmad-output/planning-artifacts/epics.md`
+- Backlog validation: `_bmad-output/planning-artifacts/epics/final-validation.md`
+- Readiness PASS: `_bmad-output/planning-artifacts/implementation-readiness-report-2026-08-03-rerun.md`
+
 ## Next workflow
 
-Run `bmad-check-implementation-readiness` against the corrected artifacts. Only a PASS unlocks `bmad-sprint-planning`, followed by Story 1.1 implementation.
+Run `bmad-sprint-planning`. After the sprint status artifact exists, create and validate the Story 1.1 implementation artifact, then begin development.
