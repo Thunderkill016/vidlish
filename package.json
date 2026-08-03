@@ -1,0 +1,14 @@
+{
+  "name": "vidlish",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Turn any YouTube video into a personalized English lesson.",
+  "scripts": {
+    "bmad:install": "npx --yes bmad-method@6.10.0 install --directory . --modules bmm --tools codex --yes --communication-language Vietnamese --document-output-language Vietnamese --output-folder _bmad-output",
+    "bmad:tools": "npx --yes bmad-method@6.10.0 install --list-tools",
+    "bmad:update": "npx --yes bmad-method@6.10.0 install --directory . --action quick-update --yes"
+  },
+  "engines": {
+    "node": ">=20.12.0"
+  }
+}
