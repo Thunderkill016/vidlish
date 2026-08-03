@@ -40,6 +40,6 @@ export async function GET(
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
-    return productErrorResponse(error, generationErrors.notFound());
+    return productErrorResponse(error, generationErrors.statusFailed());
   }
 }
