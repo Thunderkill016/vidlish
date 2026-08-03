@@ -113,7 +113,9 @@ test("selects CEFR and keeps readiness invalidation rules", async ({ page }) => 
   ).toHaveAttribute("aria-pressed", "true");
 });
 
-test("creates one durable job, redirects and survives reload", async ({ page }) => {
+test("creates a durable job, commits native captions and survives reload", async ({
+  page,
+}) => {
   const createRequests: string[] = [];
   page.on("request", (request) => {
     if (request.method() === "POST" && request.url().endsWith("/api/jobs")) {
@@ -126,13 +128,13 @@ test("creates one durable job, redirects and survives reload", async ({ page }) 
 
   await expect(page).toHaveURL(/\/jobs\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: "Tiến trình" })).toBeVisible();
-  await expect(page.getByText("Lấy hoặc tạo transcript", { exact: true })).toBeVisible();
+  await expect(page.getByText("Kiểm tra tiếng Anh", { exact: true })).toBeVisible();
   await expect(page.getByText("How to build a better learning habit")).toBeVisible();
   expect(createRequests).toHaveLength(1);
 
   const jobUrl = page.url();
   await page.reload();
   await expect(page).toHaveURL(jobUrl);
-  await expect(page.getByText("Lấy hoặc tạo transcript", { exact: true })).toBeVisible();
+  await expect(page.getByText("Kiểm tra tiếng Anh", { exact: true })).toBeVisible();
   await expect(page.getByText("Bạn có thể đóng trang này.")).toBeVisible();
 });

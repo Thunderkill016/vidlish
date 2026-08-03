@@ -1,5 +1,5 @@
 # generated: 2026-08-03T22:49:00+07:00
-# last_updated: 2026-08-04T02:30:00+07:00
+# last_updated: 2026-08-04T02:40:00+07:00
 # project: Vidlish
 # project_key: NOKEY
 # tracking_system: file-system
@@ -41,7 +41,7 @@
 # - Retrospective action items are appended under action_items when they exist
 
 generated: "2026-08-03T22:49:00+07:00"
-last_updated: "2026-08-04T02:30:00+07:00"
+last_updated: "2026-08-04T02:40:00+07:00"
 project: Vidlish
 project_key: NOKEY
 tracking_system: file-system
@@ -56,7 +56,7 @@ development_status:
 
   epic-2: in-progress
   2-1-tao-generation-job-ben-vung: done
-  2-2-lay-caption-goc-va-tao-canonical-transcript: backlog
+  2-2-lay-caption-goc-va-tao-canonical-transcript: in-progress
   2-3-kiem-tra-video-co-du-tieng-anh-goc: backlog
   2-4-lay-transcript-qua-hosted-generated-transcript-provider: backlog
   2-5-tich-hop-unofficial-extractor-theo-policy: backlog
