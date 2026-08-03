@@ -1,194 +1,213 @@
 # Epic 2 — Lấy transcript tiếng Anh bằng nhiều phương án (phần 2)
 
-Companion tiếp nối `epic-2.md`, bắt đầu từ Story 2.4.
+Companion tiếp nối `epic-2.md`, gồm Stories 2.4–2.6.
 
-## Story 2.4 — Thử các transcript provider phía server
+## Story 2.4 — Lấy transcript qua hosted generated-transcript provider
 
-**As a** người học có video không lấy được caption bằng fast path,  
-**I want** Vidlish tự thử các phương án transcript phía server theo thứ tự an toàn,  
-**So that** tôi vẫn có cơ hội tạo transcript mà không phải thao tác thủ công ngay lập tức.
+**As a** người học có video không có native caption,  
+**I want** Vidlish thử một hosted transcription provider phía server,  
+**So that** tôi vẫn có transcript mà chưa cần thao tác thủ công.
 
-**Requirements:** FR8, FR9, FR10, FR12, FR13, FR31–FR33 · NFR1, NFR3, NFR5–9, NFR12, NFR15–18 · AD-4–7, AD-9, AD-11, AD-14–19, AD-21 · UX-DR9–11, UX-DR27, UX-DR32.
+**Requirements:** FR8, FR10, FR12, FR13, FR31–FR33 · NFR1, NFR3, NFR5–9, NFR12, NFR15–18 · AD-4–7, AD-14–19, AD-21 · ID-5 · UX-DR9–11, UX-DR27, UX-DR32.
 
 ### Acceptance Criteria
 
-#### AC1 — Ordered strategy registry
+#### AC1 — Registry integration
 
-**Given** caption fast path trả `NO_USABLE_CAPTIONS` hoặc lỗi không terminal  
-**When** workflow tiếp tục acquisition  
-**Then** `TranscriptAcquisitionService` chạy các strategy đang được bật theo thứ tự cấu hình: hosted transcript provider → policy-gated unofficial extractor → Gemini URL/audio transcription  
-**And** workflow không hard-code vendor cụ thể  
-**And** mỗi strategy khai báo stable ID, source class, policy class, permission requirement, estimated cost class và enabled state  
-**And** thứ tự strategy được quản lý bằng typed config.
+**Given** native caption strategy trả `NO_USABLE_CAPTIONS`  
+**When** automatic registry tiếp tục  
+**Then** gọi `TranscriptStrategy` ID `supadata-generated-transcript`  
+**And** workflow/domain không hard-code Supadata SDK/shape  
+**And** strategy chỉ đăng ký khi `SUPADATA_API_KEY` tồn tại và policy cho phép.
 
-#### AC2 — Canonical strategy result
+#### AC2 — Generated transcription request
 
-**Given** một strategy được gọi  
-**When** nó hoàn tất  
-**Then** kết quả thuộc versioned contract `success`, `not_applicable`, `retryable_failure` hoặc `terminal_failure`  
-**And** raw provider responses không đi qua application boundary  
-**And** mọi success candidate được Zod validate trước normalization.
+**Given** strategy chạy  
+**When** gọi Supadata  
+**Then** dùng `mode=generate` với validated public video URL  
+**And** không ép dịch sang English  
+**And** transcript phải phản ánh ngôn ngữ được nói trong video  
+**And** server-only credentials không lộ client.
 
-#### AC3 — Hosted transcript provider
+#### AC3 — Async provider job
 
-**Given** hosted provider được cấu hình và hỗ trợ video  
-**When** strategy chạy  
-**Then** request được gửi hoàn toàn từ server  
-**And** provider credentials không xuất hiện trong browser  
-**And** adapter giữ provenance gồm strategy ID, provider ID, provider request ID, track/source type, declared language, timing availability và confidence khi có  
-**And** provider trả caption tiếng Anh được dịch từ ngôn ngữ khác không được đánh dấu là original English  
-**And** translated track bị loại khỏi English-source eligibility.
+**Given** provider trả HTTP 202/job ID  
+**When** workflow chờ result  
+**Then** poll trong durable Inngest step với bounded interval/timeout  
+**And** provider job ID chỉ nằm trong internal attempt metadata  
+**And** reload browser không tạo provider job mới.
 
-#### AC4 — Unofficial extractor theo policy
+#### AC4 — Adapter boundary và provenance
 
-**Given** unofficial extractor được cài đặt  
-**When** `ENABLE_UNOFFICIAL_TRANSCRIPT_STRATEGIES=false`  
-**Then** strategy không được đăng ký hoặc gọi  
-**And** không có silent fallback sang extractor.
+**Given** provider result  
+**When** adapter map  
+**Then** Zod validate timestamped candidate/source/provider/request ID/declared language/confidence availability  
+**And** raw response không đi vào domain/UI  
+**And** empty no-speech result không tạo canonical transcript.
 
-**Given** feature flag được bật trong private beta  
-**When** extractor chạy  
-**Then** nó vẫn nằm sau `TranscriptStrategy` port  
-**And** có timeout, bounded retry và response validation  
-**And** provider thay đổi hoặc hỏng không buộc domain contract thay đổi  
-**And** telemetry ghi policy class `restricted`  
-**And** public production không tự động bật strategy này nếu chưa có legal/policy approval.
+#### AC5 — Local failure behavior
 
-#### AC5 — Gemini URL/audio transcription strategy
+**Given** timeout, rate-limit hoặc network error  
+**When** local adapter policy xử lý  
+**Then** trả retryable safe code với bounded adapter retry  
+**And** schema/permission/unsupported-resource error không retry vô hạn  
+**And** shared cross-provider retry/circuit/cost rules thuộc Story 2.10.
 
-**Given** caption-based strategies không tạo được transcript  
-**When** Gemini transcription strategy được bật và `GenerationPolicy` cho phép  
-**Then** server có thể yêu cầu provider phân tích audio gốc từ public YouTube source  
-**And** output phải là transcript của lời nói thực sự trong video  
-**And** không được yêu cầu provider dịch lời nói sang tiếng Anh  
-**And** không được tạo English rewrite, summary hoặc dubbed transcript  
-**And** candidate source được ghi là `gemini-url-stt`  
-**And** model/configuration được lưu theo exact model ID, không dùng alias `*-latest`.
+#### AC6 — Canonical pipeline
 
-#### AC6 — Timestamp và transcript integrity
+**Given** candidate success  
+**When** workflow tiếp tục  
+**Then** adapter validation → deterministic normalization → atomic canonical persistence → `checking_language`  
+**And** provider không được tự đánh dấu English eligibility  
+**And** duplicate hash không tạo transcript duplicate.
 
-**Given** STT provider trả transcript  
-**When** candidate được tạo  
-**Then** mỗi segment phải có timestamp đủ dùng cho canonical transcript  
-**And** adapter không được bịa timestamp chính xác khi provider không cung cấp bằng chứng phù hợp  
-**And** nội dung không được tự sửa grammar, paraphrase hoặc điền từ bị thiếu  
-**And** confidence không được mặc định thành `1.0`.
+#### AC7 — UX, telemetry và security
 
-**Given** output không đủ cấu trúc hoặc timing để tạo canonical transcript  
-**When** validation chạy  
-**Then** strategy trả failure an toàn  
-**And** không persist transcript không đạt contract.
+**Given** hosted strategy chạy/fail  
+**When** Generation page/logs cập nhật  
+**Then** UI chỉ nói Vidlish đang thử cách khác để lấy lời thoại  
+**And** không lộ Supadata/API errors  
+**And** telemetry có strategy/result/latency/cost band nhưng không có transcript body  
+**And** arbitrary remote URL/SSRF path bị chặn.
 
-#### AC7 — Cost gate trước strategy tốn tiền
+#### AC8 — Tests
 
-**Given** strategy có estimated cost class khác `free`  
-**When** workflow chuẩn bị gọi provider  
-**Then** `GenerationPolicy` kiểm tra account quota, per-job estimated cost, provider request budget, active concurrency và video size/duration information hiện có  
-**And** khi policy từ chối, provider không được gọi  
-**And** attempt được ghi với safe result `STRATEGY_SKIPPED_BY_COST_POLICY`  
-**And** exact long-video budgeting được hoàn thiện trong Story 2.7.
+**Given** Story 2.4 vào CI  
+**When** suite chạy  
+**Then** có adapter contract, 200/202 polling, disabled-without-key, timeout/error mapping, no-translation prompt/behavior, dedup và canonical-pipeline tests  
+**And** CI dùng fixtures.
 
-#### AC8 — Timeout, retry và circuit breaker
+## Story 2.5 — Tích hợp unofficial extractor theo policy
 
-**Given** provider timeout, rate limit hoặc lỗi mạng tạm thời  
-**When** strategy thất bại  
-**Then** workflow dùng bounded exponential retry theo config  
-**And** không retry lỗi validation hoặc quyền truy cập terminal  
-**And** một provider đang lỗi lặp lại có thể bị circuit breaker tạm ngừng  
-**And** registry tiếp tục strategy kế tiếp khi policy cho phép  
-**And** retry cùng attempt không tạo transcript hoặc provider job trùng ngoài ý muốn.
+**As a** product team vận hành private beta,  
+**I want** một unofficial transcript strategy chỉ tồn tại sau explicit approval,  
+**So that** coverage có thể mở rộng mà không âm thầm chấp nhận legal/maintenance risk.
 
-#### AC9 — Không để một provider chặn toàn bộ waterfall
+**Requirements:** FR9, FR12, FR13, FR31–FR33 · NFR1, NFR3, NFR6–9, NFR15–18, NFR21 · AD-5–7, AD-14–19 · ID-9 · UX-DR9–11, UX-DR27, UX-DR32.
 
-**Given** hosted provider trả `not_applicable` hoặc hết retry  
-**When** strategy kế tiếp đang được bật  
-**Then** workflow tiếp tục extractor hoặc STT strategy  
-**And** job vẫn ở user-facing phase `Lấy hoặc tạo transcript`  
-**And** UI không hiện tên provider hoặc lỗi kỹ thuật.
+### Acceptance Criteria
 
-**Given** một strategy trả terminal failure chỉ áp dụng riêng cho strategy đó  
-**When** strategy khác vẫn có thể chạy  
-**Then** toàn bộ job chưa bị đánh dấu failed  
-**And** chỉ lỗi cấp video, quyền hoặc policy thực sự không thể phục hồi mới được phép dừng toàn bộ acquisition.
+#### AC1 — Default blocked state
 
-#### AC10 — Acquisition attempt provenance
+**Given** repository và mọi environment mặc định  
+**When** registry khởi tạo  
+**Then** unofficial strategy không được đăng ký/call  
+**And** `ENABLE_UNOFFICIAL_TRANSCRIPT_STRATEGIES` mặc định false  
+**And** Story 2/private-beta acceptance không phụ thuộc story này.
 
-**Given** mỗi strategy được thử  
-**When** attempt hoàn tất  
-**Then** `transcript_acquisition_attempts` lưu job ID, strategy ID, provider ID, policy class, attempt number, result code, timestamps, latency, optional estimated cost và optional provider request ID  
-**And** không lưu raw transcript body hoặc raw provider payload trong attempt log  
-**And** provider request ID chỉ hiển thị trong internal diagnostics.
+#### AC2 — Approval prerequisites
 
-#### AC11 — Success đi qua cùng canonical pipeline
+**Given** team muốn bật strategy  
+**When** implementation bắt đầu  
+**Then** phải có explicit legal/policy approval record  
+**And** exact package/service/version và owner được ghi trong implementation decision update  
+**And** nếu thiếu bất kỳ prerequisite nào, story giữ trạng thái blocked chứ không chọn package tùy ý.
 
-**Given** bất kỳ server strategy nào trả success  
-**When** workflow nhận candidate  
-**Then** candidate đi qua Zod adapter validation → deterministic normalization → canonical transcript persistence → `checking_language`  
-**And** không có strategy nào được bỏ qua normalization hoặc language eligibility  
-**And** không có provider nào được trực tiếp đánh dấu video `eligible`  
-**And** Story 2.3 là nguồn quyết định duy nhất về đủ tiếng Anh gốc.
+#### AC3 — Port isolation
 
-#### AC12 — Idempotency và transcript deduplication
+**Given** approved implementation tồn tại  
+**When** adapter chạy  
+**Then** nằm sau `TranscriptStrategy`  
+**And** response qua Zod canonical candidate  
+**And** provider/package change không đổi domain contract  
+**And** source được đánh dấu policy class `restricted`.
 
-**Given** workflow retry hoặc hai strategy trả cùng nội dung transcript  
-**When** normalization tạo cùng hash  
-**Then** hệ thống không tạo canonical transcript trùng  
-**And** vẫn giữ acquisition attempts riêng để truy vết  
-**And** job chỉ liên kết với một transcript result được chọn  
-**And** lựa chọn result tuân theo deterministic priority và quality policy, không phụ thuộc strategy nào trả về nhanh hơn do race condition.
+#### AC4 — Safety and failure
 
-#### AC13 — Khi automatic strategies cạn
+**Given** extractor request  
+**When** chạy  
+**Then** có timeout, bounded retry, validated video ID và no arbitrary endpoint  
+**And** translated/generated English không được coi là source speech  
+**And** failure không chặn strategy khác.
 
-**Given** toàn bộ automatic server strategies đều `not_applicable`, failed after bounded retry, disabled by policy hoặc không được cấu hình  
-**When** registry kết thúc  
-**Then** không trả `VIDEO_LANGUAGE_UNSUPPORTED` vì chưa có transcript để kiểm tra ngôn ngữ  
-**And** không đề xuất dịch video  
-**And** trong phạm vi Story 2.4, job kết thúc an toàn với `TRANSCRIPT_AUTOMATIC_METHODS_EXHAUSTED`  
-**And** thông báo cho biết Vidlish chưa thể tự tạo transcript từ video này  
-**And** người dùng có thể thử lại hoặc chọn video khác  
-**And** Story 2.5 và 2.6 có thể thay terminal handoff này bằng user-provided và tab-audio fallback mà không thay đổi strategy contract.
+#### AC5 — Environment control
 
-#### AC14 — Generation UX
+**Given** public production  
+**When** deploy  
+**Then** strategy vẫn disabled trừ khi production-specific legal approval/config tồn tại  
+**And** staging/local flags không tự lan sang production.
 
-**Given** workflow chuyển qua nhiều automatic strategies  
-**When** người dùng theo dõi job  
-**Then** UI vẫn chỉ hiển thị `Lấy hoặc tạo transcript`  
-**And** có thể dùng copy bình tĩnh `Vidlish đang thử một cách khác để lấy lời thoại từ video.`  
-**And** không hiển thị tên vendor, unofficial extractor, Gemini, retry count kỹ thuật hoặc API error  
-**And** fallback transition có warning semantics nhưng không dùng màu làm tín hiệu duy nhất.
+#### AC6 — Observability and tests
 
-#### AC15 — Bảo mật
+**Given** strategy được bật trong approved environment  
+**When** attempt chạy  
+**Then** telemetry ghi restricted policy class/result/version mà không log transcript body  
+**And** tests chứng minh default-off, missing-approval block, contract isolation, safe failure và production isolation.
 
-**Given** provider request được tạo  
-**When** server gửi request  
-**Then** API key và provider credentials chỉ được lấy từ typed server config  
-**And** không nhận arbitrary provider URL từ client  
-**And** public YouTube URL/video ID được validate trước khi dùng  
-**And** redirect và remote-resource behavior phải chống SSRF  
-**And** raw provider response không được render trực tiếp ra UI.
+Story 2.5 là optional/risk-gated. Nó không chặn các stories tiếp theo.
 
-#### AC16 — Telemetry và chi phí
+## Story 2.6 — Tạo transcript từ public YouTube URL bằng Gemini
 
-**Given** strategy attempt hoàn tất  
-**When** telemetry được ghi  
-**Then** lưu strategy/provider ID, result code, latency, retry count, cost estimate, transcript segment count khi thành công, duration coverage, source/confidence summary và circuit-breaker state  
-**And** không log transcript text, API keys hoặc full request body  
-**And** metrics cho phép so sánh coverage, cost và reliability giữa các strategy.
+**As a** người học có video không lấy được transcript qua caption/hosted path,  
+**I want** Vidlish thử transcription trực tiếp từ public YouTube URL,  
+**So that** tôi có thêm một automatic fallback trước khi phải cung cấp input.
 
-#### AC17 — Kiểm thử
+**Requirements:** FR10, FR12, FR13, FR31–FR33, FR-LANG-1–FR-LANG-5 · NFR1, NFR3, NFR5–9, NFR12, NFR15–18 · AD-4–7, AD-11, AD-14–19, AD-21 · ID-7 · UX-DR9–11, UX-DR27, UX-DR32.
 
-**Given** Story 2.4 được đưa vào CI  
-**When** test suite chạy  
-**Then** có adapter contract test cho hosted provider  
-**And** feature-flag test chứng minh unofficial extractor mặc định bị tắt  
-**And** có test policy class/legal flag của unofficial strategy  
-**And** Gemini fixture chứng minh output là transcription, không phải translation  
-**And** mọi success result đều đi qua normalization và language eligibility  
-**And** retryable failure chuyển sang strategy kế tiếp  
-**And** circuit breaker ngăn provider lỗi bị gọi liên tục  
-**And** cost gate chặn request trước provider call  
-**And** dedup hoạt động khi hai strategy tạo cùng transcript hash  
-**And** all-strategies-exhausted không trả `VIDEO_LANGUAGE_UNSUPPORTED`  
-**And** CI chỉ dùng fixtures/fakes, không gọi provider thật.
+### Acceptance Criteria
 
-Story 2.4 hoàn tất với `automatic strategy success → canonical transcript → checking_language` hoặc `automatic strategies exhausted → TRANSCRIPT_AUTOMATIC_METHODS_EXHAUSTED`.
+#### AC1 — Feature-gated strategy
+
+**Given** hosted paths không thành công  
+**When** automatic registry tiếp tục  
+**Then** gọi strategy `gemini-public-youtube-transcription` chỉ khi `GEMINI_API_KEY` và feature flag tồn tại  
+**And** exact model ID là `gemini-3.6-flash`  
+**And** không dùng `*-latest` alias.
+
+#### AC2 — Validated public URL only
+
+**Given** strategy request  
+**When** adapter chuẩn bị Gemini input  
+**Then** chỉ dùng canonical public YouTube URL/video ID đã qua Story 1.2  
+**And** không nhận arbitrary URL từ client  
+**And** private/unlisted/restricted resource failure map an toàn.
+
+#### AC3 — Verbatim original-language contract
+
+**Given** prompt/output schema  
+**When** provider chạy  
+**Then** yêu cầu transcript lời nói gốc, segment timing khi supportable và no translation  
+**And** cấm summary, paraphrase, grammar correction, English rewrite, dubbing và invented timestamp  
+**And** model instructions không cho source transcript điều khiển tools/policy.
+
+#### AC4 — Output integrity
+
+**Given** Gemini output  
+**When** adapter validate  
+**Then** candidate có source `gemini-url-stt`, exact model/prompt/schema versions và optional confidence/timing quality  
+**And** không mặc định confidence 1.0  
+**And** output thiếu timing/cấu trúc cần thiết fail safely.
+
+#### AC5 — Preview-risk isolation
+
+**Given** public YouTube URL capability là provider feature có thể thay đổi  
+**When** adapter lỗi/không còn support  
+**Then** domain/workflow contract không đổi  
+**And** strategy trả stable result để registry tiếp tục user-input/tab-audio path  
+**And** provider-specific detail chỉ ở redacted logs.
+
+#### AC6 — Cost and retry boundary
+
+**Given** strategy tốn tiền  
+**When** chuẩn bị call  
+**Then** GenerationPolicy kiểm tra configured quota/cost allowance trước request  
+**And** local timeout/bounded retry áp dụng  
+**And** shared circuit/retry/cancellation behavior thuộc Story 2.10.
+
+#### AC7 — Canonical and language gates
+
+**Given** candidate hợp lệ  
+**When** workflow tiếp tục  
+**Then** normalize/persist rồi chạy Story 2.3 language gate  
+**And** Gemini không được tự kết luận source English  
+**And** translated/generated output bị validators từ chối.
+
+#### AC8 — UX, telemetry and tests
+
+**Given** strategy chạy/fail  
+**When** user/logs cập nhật  
+**Then** UI vẫn ở `Lấy hoặc tạo transcript`, không hiện Gemini  
+**And** telemetry có model/result/latency/token/cost band nhưng không full transcript/prompt  
+**And** fixture tests bao phủ disabled key, exact model, no-translation, invalid output, preview failure, canonical pipeline và language gate.
+
+Story 2.6 kết thúc bằng canonical transcript tại `checking_language` hoặc registry tiếp tục fallback khác.
