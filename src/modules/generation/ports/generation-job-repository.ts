@@ -11,6 +11,13 @@ export type GenerationPolicySnapshot = {
   jobsCreatedLastMinute: number;
 };
 
+export type ActiveGenerationJobKey = {
+  ownerUserId: string;
+  videoId: string;
+  cefrLevel: CefrLevel;
+  pipelineVersion: GenerationJob["pipelineVersion"];
+};
+
 export type CreateGenerationJobRecord = {
   ownerUserId: string;
   cefrLevel: CefrLevel;
@@ -19,6 +26,7 @@ export type CreateGenerationJobRecord = {
 };
 
 export interface GenerationJobRepository {
+  findActive(input: ActiveGenerationJobKey): Promise<GenerationJob | null>;
   getPolicySnapshot(ownerUserId: string): Promise<GenerationPolicySnapshot>;
   createOrReuse(
     input: CreateGenerationJobRecord,
