@@ -56,7 +56,7 @@ describe("AcquireNativeCaption", () => {
   });
 
   it("records no-caption without creating an artifact or language error", async () => {
-    const { generationRepository, job } = await createJob("nocaptions01");
+    const { generationRepository, job } = await createJob("nocaption01");
     const transcriptRepository = new InMemoryTranscriptRepository(
       generationRepository,
     );
@@ -79,7 +79,7 @@ describe("AcquireNativeCaption", () => {
   });
 
   it("rejects translated evidence before normalization and persistence", async () => {
-    const { generationRepository, job } = await createJob("translated01");
+    const { generationRepository, job } = await createJob("translated1");
     const transcriptRepository = new InMemoryTranscriptRepository(
       generationRepository,
     );
