@@ -1,370 +1,451 @@
 # Epic 3 — Nhận một bài học tiếng Anh có căn cứ
 
-Từ canonical transcript đủ điều kiện, người dùng nhận được Core Lesson cá nhân hóa theo CEFR, được tạo qua pipeline nhiều bước, kiểm định grounding/exercise validity và publish nguyên tử thành lesson có thể đọc.
+Từ eligible canonical English source, người học nhận Core Lesson cá nhân hóa theo CEFR, được tạo multi-stage, kiểm định fail-closed, publish nguyên tử và hiển thị dễ đọc.
 
 **FRs covered:** FR14–FR30, FR34, FR39.
 
 ## Story 3.1 — Tiền xử lý transcript và phân tích video
 
-**As a** người học có transcript đủ tiếng Anh,
-**I want** Vidlish hiểu nội dung và cấu trúc video dựa trên lời nói gốc,
-**So that** bài học tập trung đúng chủ đề và ngữ cảnh thực tế.
+**As a** người học có transcript đủ tiếng Anh,  
+**I want** Vidlish hiểu nội dung/cấu trúc video dựa trên lời nói gốc,  
+**So that** bài học tập trung đúng ngữ cảnh.
 
-**Requirements:** FR14, FR15, FR22–FR24 · NFR8–9, NFR12, NFR15–17, NFR20 · AR2–3, AR6–8, AR12, AR16–17, AR20, AR26 · UX-DR9–10, UX-DR17, UX-DR24, UX-DR27, UX-DR31–32.
+**Requirements:** FR14, FR15, FR22–FR24 · NFR8–9, NFR12, NFR15–17, NFR20 · AD-5, AD-9–11, AD-14–19 · UX-DR9–10, UX-DR17, UX-DR24, UX-DR27, UX-DR31–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** job ở `analyzing_video` với canonical transcript và eligible English set
-**When** preprocessing chạy
-**Then** chỉ permitted English segment IDs được đưa vào Lesson Engine source
-**And** transcript hash, normalization/eligibility versions và ranges được giữ làm provenance
-**And** non-English segments không hỗ trợ quote, grammar/listening hoặc scored evidence.
+#### AC1 — Eligible source boundary
 
-**Given** transcript text được đưa vào model context
-**When** prompt được dựng
-**Then** transcript được coi là untrusted data, không phải instruction
-**And** delimiter/schema tách source khỏi system rules
-**And** prompt injection trong video không đổi policy, tool, provider, model hay output schema.
+**Given** job ở `analyzing_video`  
+**When** preprocessing chạy  
+**Then** chỉ `englishSegmentIds` đã được Story 2.3 cho phép đi vào Lesson Engine  
+**And** transcript/eligibility hashes và versions được giữ  
+**And** non-English/translated/generated segments không support evidence.
 
-**Given** source set dài
-**When** analysis input được tạo
-**Then** chunk deterministic theo stable segment ranges và versioned budget
-**And** không silently truncate
-**And** mỗi chunk giữ source IDs để merge/trace
-**And** incomplete coverage không được coi là complete analysis.
+#### AC2 — Untrusted input handling
 
-**Given** Video Analyst được gọi
-**When** adapter xử lý
-**Then** application dùng `VideoAnalysisPort`
-**And** Gemini là adapter ban đầu với exact model ID/typed config
-**And** domain không import vendor SDK/response
-**And** output qua Zod trước persistence.
+**Given** transcript text chứa instruction/prompt injection  
+**When** model context dựng  
+**Then** source được delimit như data  
+**And** không đổi policy, provider, tool, schema hoặc system instruction  
+**And** application verify output trước persistence.
 
-**Given** analysis thành công
-**When** artifact được tạo
-**Then** chứa topic, communicative purpose, speaker/audience khi có căn cứ, style, discourse structure, key ideas và source refs
-**And** claim cụ thể phải trỏ segment evidence
-**And** inference không chắc chắn có confidence hoặc omitted.
+#### AC3 — Long-source preprocessing
 
-**Given** chunk results merge
-**When** aggregate chạy
-**Then** deterministic theo input/model/prompt/schema/merge versions
-**And** overlap không tạo duplicate idea
-**And** conflict hạ confidence hoặc giữ explicit, không tự chọn tùy ý.
+**Given** source dài  
+**When** analysis input plan  
+**Then** deterministic chunking theo stable segment ranges/versioned budget  
+**And** không silent truncation  
+**And** incomplete coverage không masquerade complete analysis.
 
-**Given** output sai schema, thiếu coverage hoặc không grounded
-**When** validation chạy
-**Then** không persist như valid analysis
-**And** bounded retry/repair hoặc fail closed
-**And** raw provider output không lộ cho user.
+#### AC4 — Provider-neutral analysis
 
-**Given** artifact hợp lệ commit
-**When** workflow tiếp tục
-**Then** `analyzing_video → mining_language`
-**And** artifact immutable/versioned
-**And** retry không tạo duplicate.
+**Given** Video Analyst chạy  
+**When** application call  
+**Then** dùng `VideoAnalysisPort`/`LessonGenerationProvider` boundary  
+**And** initial Gemini adapter dùng exact configured model/prompt/schema version  
+**And** raw vendor response không vào domain.
 
-**Given** Story 3.1 vào CI
-**When** tests chạy
-**Then** có prompt-injection, non-English exclusion, chunk/merge, grounding, schema, coverage và idempotency tests
-**And** CI dùng fixtures.
+#### AC5 — Grounded analysis artifact
+
+**Given** output hợp lệ  
+**When** persist  
+**Then** artifact có topic, purpose, genre/style, structure, key ideas, listening challenges/low-confidence regions và source refs  
+**And** factual claim phải có evidence  
+**And** uncertain inference có confidence hoặc omitted.
+
+#### AC6 — Validation, merge and lifecycle
+
+**Given** chunk outputs  
+**When** merge/validate  
+**Then** deterministic by versions, dedup overlaps, explicit conflicts and coverage checks  
+**And** invalid/ungrounded output retry/repair bounded hoặc fail closed  
+**And** valid immutable artifact moves `analyzing_video → mining_language`.
+
+#### AC7 — Tests
+
+**Given** Story 3.1 vào CI  
+**When** suite chạy  
+**Then** có eligible-set, non-English exclusion, injection, chunk/merge, grounding, schema, coverage and idempotency fixtures.
 
 ## Story 3.2 — Chọn ngôn ngữ đáng học và mục tiêu bài học
 
-**As a** người học ở một CEFR cụ thể,
-**I want** Vidlish chọn từ, cấu trúc và khoảnh khắc vừa sức,
-**So that** bài học tập trung phần có giá trị nhất thay vì giải thích mọi thứ.
+**As a** người học ở một CEFR cụ thể,  
+**I want** Vidlish chọn ngôn ngữ/moments vừa sức và có giá trị,  
+**So that** bài học không giải thích mọi thứ hoặc chọn item ngẫu nhiên.
 
-**Requirements:** FR16–FR18, FR20–FR22 · NFR8–9, NFR15–17 · AR12, AR16–18, AR20 · UX-DR17, UX-DR21, UX-DR24, UX-DR31–32.
+**Requirements:** FR16–FR18, FR20–FR22 · NFR8–9, NFR15–17 · AD-10–11, AD-14–17, AD-19 · UX-DR17, UX-DR21, UX-DR24, UX-DR31–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** validated analysis và eligible source segments
-**When** Language Miner chạy
-**Then** tạo versioned candidate pool gồm vocabulary/chunks, grammar/noticing, discourse/pragmatics và listening features
-**And** mỗi candidate có source IDs, exact quote/range, rationale, estimated CEFR và confidence
-**And** generated explanation/example không phải source evidence.
+#### AC1 — Candidate pool
 
-**Given** candidate được trích xuất
-**When** grounding pre-check chạy
-**Then** quote khớp canonical text theo normalization policy
-**And** range/timestamp nằm trong source
-**And** candidate từ non-English/translated/low-confidence excluded segment bị loại.
+**Given** validated analysis/English source  
+**When** Language Miner chạy  
+**Then** tạo versioned pool vocabulary/chunks, grammar/noticing, discourse/pragmatics và listening features  
+**And** mỗi candidate có form/kind/CEFR/register/context/source IDs/quote/rationale/usefulness/transferability/confidence.
 
-**Given** learner chọn A1–C1
-**When** CEFR filter áp dụng
-**Then** dùng versioned rubrics
-**And** A1/A2 ưu tiên high-frequency/concrete/scaffolded
-**And** B1/B2 tăng nuance/discourse/productive use
-**And** C1 có thể chọn register/collocation tinh tế nhưng vẫn grounded
+#### AC2 — Candidate grounding
+
+**Given** candidate  
+**When** deterministic pre-check chạy  
+**Then** quote/range khớp canonical eligible source  
+**And** excluded/translated/low-confidence evidence bị loại  
+**And** generated explanation/example không được coi là source.
+
+#### AC3 — CEFR personalization
+
+**Given** A1–C1 selection  
+**When** rubric/filter áp dụng  
+**Then** support, item count, question demand, explanation depth và productive demand thay đổi thực chất  
 **And** difficulty không suy ra chỉ từ độ dài.
 
-**Given** candidate pool đủ
-**When** teachable-moment selector chạy
-**Then** chọn tập nhỏ có diversity, salience, learnability, evidence quality và coverage cho lesson 10–20 phút
-**And** không chọn duplicate phenomena do model lặp
-**And** deterministic với cùng inputs/algorithm version.
+#### AC4 — Teachable-moment selection
 
-**Given** selected moments
-**When** planner tạo outcomes
-**Then** tối đa ba measurable outcomes phù hợp CEFR
-**And** mỗi outcome liên kết moment/evidence
-**And** không hứa content/kỹ năng không thể luyện từ source.
+**Given** pool đủ  
+**When** selector chạy  
+**Then** chọn tập nhỏ theo salience, diversity, learnability, evidence quality và transferability  
+**And** loại duplicate/proper noun/specialized low-transfer item khi không cần  
+**And** same inputs/algorithm version deterministic.
 
-**Given** mixed-language eligible video
-**When** mining/selection chạy
-**Then** chỉ eligible English set dùng cho language/scored evidence
-**And** non-English context không biến thành English source.
+#### AC5 — Learning outcomes
 
-**Given** pool quá yếu
-**When** planner đánh giá
-**Then** fail closed
-**And** không bịa item hay dịch đoạn khác để đủ số lượng.
+**Given** selected moments  
+**When** planner chạy  
+**Then** tối đa ba measurable outcomes phù hợp CEFR  
+**And** mỗi outcome liên kết moment/evidence  
+**And** không hứa skill/content source không hỗ trợ.
 
-**Given** plan hợp lệ commit
-**When** workflow tiếp tục
-**Then** `mining_language → planning_lesson`
-**And** pool/moments/outcomes/rubric/selection versions immutable
-**And** retry không tạo duplicate.
+#### AC6 — Fail closed and handoff
 
-**Given** Story 3.2 vào CI
-**When** tests chạy
-**Then** có A1–C1, mixed-language, duplicate, low-confidence, max-three outcomes, insufficient-pool và deterministic selection fixtures.
+**Given** pool/evidence quá yếu  
+**When** plan không đủ  
+**Then** không bịa hoặc dịch đoạn khác để đủ quota  
+**And** fail closed/actionable.
+
+**Given** plan hợp lệ  
+**When** commit  
+**Then** artifacts immutable/versioned và workflow `mining_language → planning_lesson`.
+
+#### AC7 — Tests
+
+**Given** Story 3.2 vào CI  
+**When** suite chạy  
+**Then** có A1–C1, mixed-language exclusion, duplicate, low-confidence, max-three outcomes, insufficient-pool and deterministic selector fixtures.
 
 ## Story 3.3 — Soạn Core Lesson qua pipeline nhiều bước
 
-**As a** người học,
-**I want** nhận một bài học có trình tự rõ dựa trên các đoạn thật,
-**So that** tôi hiểu nội dung, nhận ra ngôn ngữ và luyện tập vừa sức.
+**As a** người học,  
+**I want** bài học có progression rõ dựa trên đoạn thật,  
+**So that** tôi đi từ hiểu nội dung đến nhận ra và dùng ngôn ngữ.
 
-**Requirements:** FR19, FR21–FR24 · NFR8–9, NFR12, NFR15–17, NFR20 · AR16–20, AR22, AR26 · UX-DR15–18, UX-DR21, UX-DR23–24, UX-DR31–32.
+**Requirements:** FR19, FR21–FR24 · NFR8–9, NFR12, NFR15–17, NFR20 · AD-4–5, AD-9–11, AD-14–19 · UX-DR15–18, UX-DR21, UX-DR23–24, UX-DR31–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** validated analysis, moments và outcomes
-**When** pipeline chạy
-**Then** tách stage tối thiểu planning → explanation/example composition → activity composition → assembly
-**And** mỗi stage dùng versioned Zod contract
-**And** persist artifact cần thiết để retry stage riêng.
+#### AC1 — Multi-stage contracts
 
-**Given** Core Lesson được plan
-**When** progression tạo
-**Then** target 10–20 phút với gist/context → noticing → guided understanding/practice → retrieval/transfer preparation
-**And** progression linh hoạt theo source/CEFR
-**And** tối đa ba outcomes được phản ánh.
+**Given** validated analysis/moments/outcomes  
+**When** generation chạy  
+**Then** tách planning → explanation/example composition → activity composition → assembly  
+**And** mỗi stage có Zod schema/version và persisted retryable artifact  
+**And** cấm one-shot transcript-to-published-lesson.
 
-**Given** lesson dùng lời nói video
-**When** source material vào schema
-**Then** mọi quote/listening prompt có `SourceRef` tới eligible English segment
-**And** wording giữ theo normalization policy
-**And** không sửa grammar trong source quote.
+#### AC2 — Core Lesson progression
 
-**Given** system tạo explanation/example
-**When** assemble
-**Then** generated content có label/provenance khác source
-**And** không trình bày generated sentence như lời speaker
-**And** phù hợp CEFR và context.
+**Given** lesson plan  
+**When** progression tạo  
+**Then** target 10–20 phút với activation/gist → summary/map → noticing → guided practice/listening → comprehension → retrieval → transfer → reflection  
+**And** số lượng co giãn theo CEFR/teaching value  
+**And** không bịa content để đạt quota.
 
-**Given** provider generation chạy
-**When** application gọi
-**Then** dùng `LessonGenerationProvider`
-**And** Gemini adapter dùng exact model/prompt/schema versions và server config
-**And** provider có thể thay mà không đổi lesson schema.
+#### AC3 — Grounded source fields
 
-**Given** lesson draft assemble
-**When** persist
-**Then** lưu schema/pipeline/transcript/eligibility/analysis/mining/planning/model/prompt versions và source refs
-**And** draft immutable theo version
-**And** retry cùng inputs không tạo duplicate ngoài policy.
+**Given** source quote/listening/factual detail  
+**When** draft assemble  
+**Then** có `SourceRef` tới eligible English segment  
+**And** source wording giữ theo normalization policy  
+**And** generated examples/explanations được phân biệt rõ.
 
-**Given** source chứa prompt injection
-**When** stage chạy
-**Then** không đổi schema/policy/tool/provider/source eligibility
-**And** output ngoài schema bị từ chối
-**And** không tiết lộ secrets/system instructions.
+#### AC4 — Provider independence and provenance
 
-**Given** một stage lỗi tạm thời
-**When** retry
-**Then** chỉ retry stage cần thiết với stable step ID
-**And** tái sử dụng stage đã pass
-**And** không publish partial lesson.
+**Given** AI stage call  
+**When** adapter chạy  
+**Then** dùng `LessonGenerationProvider`  
+**And** exact model/prompt/schema/pipeline/transcript/eligibility/analysis/mining/planning versions được lưu  
+**And** domain không import vendor SDK.
 
-**Given** draft assemble xong
-**When** workflow tiếp tục
-**Then** chuyển `validating_lesson`
-**And** draft chưa visible như published lesson.
+#### AC5 — Injection and partial retry
 
-**Given** Story 3.3 vào CI
-**When** tests chạy
-**Then** có stage-contract, source/generated, CEFR, provenance, injection và partial-retry tests
-**And** CI dùng fixtures.
+**Given** malicious source hoặc transient stage failure  
+**When** xử lý  
+**Then** source không thay policy/tool/schema/secrets  
+**And** chỉ failed stage retry bằng stable step ID  
+**And** stages pass được reuse  
+**And** partial draft không publish/visible.
+
+#### AC6 — Handoff
+
+**Given** assembled draft hợp lệ  
+**When** persist  
+**Then** immutable draft version tạo idempotently  
+**And** workflow chuyển `composing_activities → validating_lesson`.
+
+#### AC7 — Tests
+
+**Given** Story 3.3 vào CI  
+**When** suite chạy  
+**Then** có stage-contract, progression, source/generated distinction, CEFR, provenance, injection, idempotency and partial-retry tests.
 
 ## Story 3.4 — Kiểm định, chấm chất lượng và sửa có giới hạn
 
-**As a** người học,
-**I want** Vidlish chỉ công bố bài khi cấu trúc, đáp án và bằng chứng đáng tin,
+**As a** người học,  
+**I want** Vidlish chỉ cho qua lesson có cấu trúc, bằng chứng và đáp án đáng tin,  
 **So that** tôi không luyện trên content bịa hoặc câu hỏi sai.
 
-**Requirements:** FR25–FR29 · NFR8–9, NFR15–17 · AR16, AR19–22, AR25, AR30 · UX-DR22, UX-DR24, UX-DR27, UX-DR31–32.
+**Requirements:** FR25–FR29 · NFR8–9, NFR15–17 · AD-10–12, AD-14–17, AD-19 · UX-DR22, UX-DR24, UX-DR27, UX-DR31–32.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** draft ở `validating_lesson`
-**When** structural gate chạy
-**Then** pass Zod schema, referential integrity, unique IDs, allowed activity types và required fields
-**And** structural error chặn publish.
+#### AC1 — Structural gate
 
-**Given** lesson có source refs/quotes
-**When** grounding gate chạy
-**Then** segment tồn tại, eligible-English, quote/range khớp và timestamp hợp lệ
-**And** translated/generated/non-English evidence bị chặn.
+**Given** draft ở `validating_lesson`  
+**When** structural validator chạy  
+**Then** schema, enums, unique IDs, relationships, required fields và allowed activity types phải pass  
+**And** failure chặn publish.
 
-**Given** lesson có scored activity
-**When** validity gate chạy
-**Then** mỗi item answerable từ stimulus/evidence, distractors hợp lý, answer contract không ambiguity ngoài chủ ý và feedback phù hợp
-**And** timing-required activity phải có timing quality đủ
-**And** không đoán đáp án.
+#### AC2 — Grounding gate
 
-**Given** hard gates pass
-**When** quality rubric chấm
-**Then** đánh giá grounding, progression, CEFR fit và activity validity trên versioned 16-point rubric
-**And** tổng tối thiểu 14/16
-**And** hard-gate failure không được bù điểm.
+**Given** source refs/quotes/claims  
+**When** grounding validator chạy  
+**Then** segment tồn tại trong eligible set, quote/range/timestamp khớp  
+**And** generated/translated/non-English evidence bị hard-fail.
 
-**Given** lỗi repairable
-**When** targeted repair chạy
-**Then** chỉ gửi section/lỗi/evidence cần thiết
-**And** giữ phần đã valid
-**And** repair count bounded
-**And** phần sửa chạy lại mọi gate liên quan.
+#### AC3 — Exercise validity gate
 
-**Given** repair vượt limit hoặc vẫn fail
-**When** validation kết thúc
-**Then** fail closed
-**And** không publish draft kém chất lượng
-**And** UI không lộ raw model output.
+**Given** scored activity  
+**When** validator chạy  
+**Then** có answer key, rationale, evidence/criteria, answerability và exactly one best MCQ answer  
+**And** timing-required item chỉ dùng source timing đủ chất lượng.
 
-**Given** lesson pass
-**When** report persist
-**Then** lưu gate results, rubric subscores, total, repair history và validator versions
-**And** internal score không hiển thị cho learner theo mặc định.
+#### AC4 — Rubric and hard gates
 
-**Given** retry validation
-**When** draft hash/validator versions không đổi
-**Then** report tái sử dụng hoặc deterministic
-**And** không repair trùng ngoài policy.
+**Given** hard gates pass  
+**When** rubric chấm  
+**Then** versioned 16-point score đánh grounding, progression, CEFR fit và activity validity  
+**And** total tối thiểu 14/16  
+**And** grounding/exercise validity đạt maximum required  
+**And** hard failure không được bù điểm.
 
-**Given** Story 3.4 vào CI
-**When** tests chạy
-**Then** có failing fixtures cho missing segment, quote mismatch, non-English evidence, ambiguous answer, bad distractor, missing timing, score thấp và repair exhaustion
-**And** có passing fixture.
+#### AC5 — Targeted bounded repair
+
+**Given** repairable module lỗi  
+**When** repair chạy  
+**Then** chỉ section/error/evidence cần thiết được gửi  
+**And** phần valid được giữ  
+**And** tối đa một structural và một semantic repair  
+**And** repaired content chạy lại relevant gates.
+
+#### AC6 — Fail closed/report
+
+**Given** repair exhaustion hoặc score/gate vẫn fail  
+**When** validation kết thúc  
+**Then** job fail closed và không publish partial lesson.
+
+**Given** pass  
+**When** report persist  
+**Then** lưu gate results, subscores, total, repair history và validator versions  
+**And** raw score/provider detail hidden from learner.
+
+#### AC7 — Tests
+
+**Given** Story 3.4 vào CI  
+**When** suite chạy  
+**Then** có fixtures cho missing segment, quote mismatch, non-English evidence, ambiguous answer, bad distractor, timing failure, low score, repair exhaustion and passing case.
 
 ## Story 3.5 — Chạy golden regression và khóa release chất lượng
 
-**As a** product team vận hành private beta,
-**I want** các thay đổi pipeline/model/prompt được so với bộ lesson chuẩn,
-**So that** chất lượng grounding và hoạt động không suy giảm âm thầm trước khi release.
+**As a** product team,  
+**I want** pipeline/model/prompt changes được so với golden set,  
+**So that** chất lượng không suy giảm âm thầm.
 
-**Requirements:** FR30 · NFR9, NFR15–17 · AR17, AR22, AR25, AR30 · UX-DR24, UX-DR27.
+**Requirements:** FR30 · NFR9, NFR15–17 · AD-11, AD-16, AD-19 · UX-DR24, UX-DR27.
 
-**Acceptance Criteria:**
+### Acceptance Criteria
 
-**Given** golden evaluation set
-**When** fixture được quản lý
-**Then** mỗi case có source transcript/eligible segment set, CEFR, expected pass/fail constraints và version
-**And** bao phủ fully English, mixed-language eligible, weak evidence, invalid exercises, long source và repair exhaustion
-**And** copyrighted source text trong repo chỉ dùng bounded/licensed fixtures theo policy.
+#### AC1 — Versioned golden set
 
-**Given** pipeline/schema/prompt/model/validator thay đổi
-**When** evaluation suite chạy
-**Then** đo schema pass, grounding precision, activity answerability, quality score và expected terminal behavior
-**And** output report reproducible theo exact versions
-**And** không dùng `*-latest` model aliases.
+**Given** evaluation fixtures  
+**When** quản lý  
+**Then** tối thiểu 10 video/cases đa genre/CEFR với transcript/eligible set, expected invariants và versions  
+**And** bao phủ mixed-language, weak evidence, invalid exercise, long source và repair exhaustion  
+**And** source text tuân bounded/licensed fixture policy.
 
-**Given** CI mặc định
-**When** tests chạy
-**Then** dùng deterministic fixtures/mocks, không gọi live provider
-**And** separately triggered evaluation có thể gọi live provider bằng restricted environment/keys
-**And** live output không được commit nếu chứa sensitive/full transcript data.
+#### AC2 — Reproducible evaluation
 
-**Given** regression vượt allowed threshold hoặc hard invariant fail
-**When** promotion gate đánh giá
-**Then** release bị chặn
-**And** baseline không tự ghi đè
-**And** baseline update cần review, reason và version bump.
+**Given** model/prompt/schema/selector/validator change  
+**When** suite chạy  
+**Then** đo schema pass, grounding precision, activity answerability, quality score và expected terminal behavior  
+**And** report ghi exact versions  
+**And** không dùng `*-latest`.
 
-**Given** language eligibility invariant
-**When** suite chạy
-**Then** không lesson nào pass khi source evidence là non-English/translated/generated substitute
-**And** ineligible fixture không gọi Lesson Engine generation fixture.
+#### AC3 — CI/live separation
 
-**Given** Story 3.5 vào CI
-**When** suite hoàn tất
-**Then** report artifact nêu case, versions, pass/fail và safe diagnostics
-**And** không log full transcript/prompt/secrets.
+**Given** normal CI  
+**When** tests chạy  
+**Then** dùng deterministic fixtures/mocks  
+**And** live evaluation chỉ chạy manually/restricted environment  
+**And** sensitive/full transcript output không commit.
 
-## Story 3.6 — Publish nguyên tử và hiển thị Lesson Viewer
+#### AC4 — Promotion gate
 
-**As a** người học,
-**I want** mở một bài học hoàn chỉnh, dễ đọc sau kiểm định,
-**So that** tôi bắt đầu học mà không thấy dữ liệu dở dang hoặc phải tạo lại.
+**Given** hard invariant hoặc threshold regression fail  
+**When** promotion đánh giá  
+**Then** release bị chặn  
+**And** baseline không auto-overwrite  
+**And** baseline update cần review/reason/version bump.
 
-**Requirements:** FR34, FR39 · NFR2, NFR7–9, NFR11–16, NFR19 · AR3–5, AR18–20, AR22–25, AR27–28 · UX-DR15–18, UX-DR21–24, UX-DR27–32.
+#### AC5 — Language invariant
 
-**Acceptance Criteria:**
+**Given** ineligible/non-English/translated/generated-source fixture  
+**When** suite chạy  
+**Then** không lesson nào pass  
+**And** ineligible fixture không gọi Lesson Engine generation path.
 
-**Given** draft chưa pass Final Quality Gate
-**When** user/route cố mở lesson
-**Then** không có published URL/content
-**And** partial section không lộ như complete lesson.
+#### AC6 — Safe report
 
-**Given** draft pass gates/score
-**When** publish transaction chạy
-**Then** tạo immutable lesson version, sections/items/source refs và published pointer atomically
-**And** job chỉ `publishing → completed` sau commit
-**And** failure rollback không để partial published data.
+**Given** evaluation hoàn tất  
+**When** artifact tạo  
+**Then** ghi case/version/pass-fail/safe diagnostics  
+**And** không log full prompt/transcript/secrets.
 
-**Given** publish retry
-**When** cùng draft/pipeline chạy lại
-**Then** idempotency ngăn version trùng
-**And** job liên kết đúng một published version.
+## Story 3.6 — Publish nguyên tử và lưu immutable lesson version
 
-**Given** user mở `/lessons/{id}`
-**When** lesson thuộc owner
-**Then** đọc saved data, không gọi Gemini/transcript/STT
-**And** cross-owner response không tiết lộ tồn tại
-**And** RLS bảo vệ lesson/children.
+**As a** người học có lesson đã qua Final Quality Gate,  
+**I want** lesson được lưu nguyên tử và ổn định,  
+**So that** tôi không bao giờ thấy dữ liệu dở dang hoặc bị retry ghi đè.
 
-**Given** desktop viewer
-**When** render
-**Then** split media 38–42% / content 58–62% theo UX
-**And** mobile stacked
-**And** title, CEFR, estimated time, tối đa ba outcomes, activation/gist xuất hiện trước detail
-**And** progression rõ nhưng không gamification.
+**Requirements:** FR22, FR28, FR39 · NFR2, NFR7–9, NFR15–16, NFR19 · AD-2–4, AD-12–16, AD-20 · UX-DR24, UX-DR27, UX-DR31–32.
 
-**Given** source/generated content render
-**When** learner đọc
-**Then** label rõ source speech và generated explanation/example
-**And** timestamp/source reference hiển thị readable
-**And** trước Story 4.1 reference không giả làm seek control; Story 4.1 thêm interaction.
+### Acceptance Criteria
 
-**Given** internal quality/provenance metadata
-**When** learner xem
-**Then** raw score, provider IDs, repair logs và chain-of-thought không lộ
-**And** audit metadata chỉ server/internal diagnostics.
+#### AC1 — Entity timing
 
-**Given** loading/empty/error/mobile/keyboard/reduced-motion states
-**When** UI hoạt động
-**Then** WCAG 2.2 AA, visible focus, labels, aria-live có kiểm soát, 44px targets và no color-only feedback.
+**Given** Story 3.6 migration  
+**When** áp dụng  
+**Then** tạo lesson identity, immutable `lesson_versions`, validated child/source records và current published pointer  
+**And** chưa triển khai full viewer presentation thuộc Story 3.7.
 
-**Given** saved lesson load bình thường
-**When** request hoàn tất
-**Then** target khoảng 3 giây
-**And** caching owner-safe
-**And** immutable version có thể cache mà không cross-user leak.
+#### AC2 — Publish eligibility
 
-**Given** Story 3.6 vào CI
-**When** tests chạy
-**Then** có atomic publish/rollback/idempotency/RLS, viewer desktop/mobile/accessibility và no-provider-on-reopen tests.
+**Given** draft chưa pass all hard gates/score  
+**When** publish command được gọi  
+**Then** bị từ chối  
+**And** không có published pointer/URL/content visibility.
 
-Epic 3 hoàn tất khi user nhận một immutable, grounded, quality-gated Core Lesson có thể đọc và mở lại không regeneration.
+#### AC3 — Atomic transaction
+
+**Given** draft pass Final Gate  
+**When** publish transaction/SQL function chạy  
+**Then** insert immutable version/children, set current pointer và mark job `completed` atomically  
+**And** failure rollback không để partial published data  
+**And** job đi `publishing → completed` chỉ sau commit.
+
+#### AC4 — Idempotency and immutability
+
+**Given** publish retry cùng draft hash/pipeline  
+**When** command chạy lại  
+**Then** không tạo version duplicate  
+**And** job link đúng một published version  
+**And** published content không bị mutation; regeneration tạo version mới.
+
+#### AC5 — Ownership, RLS and read contract
+
+**Given** lesson records  
+**When** owner/cross-owner read  
+**Then** RLS/server auth bảo vệ identity/version/children  
+**And** cross-owner response không tiết lộ tồn tại  
+**And** owner-safe read DTO đủ cho Story 3.7 mà không provider call.
+
+#### AC6 — Backup and telemetry
+
+**Given** durable lesson publish  
+**When** operations/logs chạy  
+**Then** lesson/version/pointer nằm trong managed backup scope  
+**And** telemetry ghi safe version/gate/publish latency  
+**And** không log lesson/transcript bodies.
+
+#### AC7 — Tests
+
+**Given** Story 3.6 vào CI  
+**When** suite chạy  
+**Then** có publish authorization, atomic commit/rollback, idempotency, immutable versioning, RLS/cross-owner and no-partial-visibility tests.
+
+## Story 3.7 — Hiển thị Lesson Viewer dễ đọc và responsive
+
+**As a** người học có published lesson,  
+**I want** mở một viewer rõ ràng trên desktop/mobile,  
+**So that** tôi bắt đầu học mà không gọi lại AI hoặc thấy internal diagnostics.
+
+**Requirements:** FR34, FR40 · NFR2, NFR11, NFR13–16 · AD-12–14, AD-19 · UX-DR15–18, UX-DR21–24, UX-DR27–32.
+
+### Acceptance Criteria
+
+#### AC1 — Saved-data only
+
+**Given** owner mở `/lessons/{id}`  
+**When** viewer load  
+**Then** đọc immutable published DTO từ Story 3.6  
+**And** không gọi transcript provider, STT, Gemini hoặc generation workflow  
+**And** unpublished/cross-owner lesson không lộ.
+
+#### AC2 — Opening and progression
+
+**Given** published lesson  
+**When** render  
+**Then** hiển thị title, CEFR, estimated time, tối đa ba outcomes, activation/gist trước full support  
+**And** lesson phases theo progression đã publish  
+**And** không gamification/dashboard.
+
+#### AC3 — Responsive composition
+
+**Given** desktop ≥1100px  
+**When** viewer render  
+**Then** media rail khoảng 38–42% và reading rail 58–62%, reading width bounded.
+
+**Given** mobile  
+**When** viewer render  
+**Then** stacked player-first layout, transcript/map trong Accordion/Sheet và no persistent obstructive sticky player.
+
+#### AC4 — Source/generated distinction
+
+**Given** source quote, generated explanation/example hoặc non-English context  
+**When** render  
+**Then** source English visually/semantically distinct  
+**And** generated content labeled  
+**And** non-English/translation support không masquerade source evidence.
+
+#### AC5 — Timestamp boundary
+
+**Given** source ref có timestamp  
+**When** Story 4.1 chưa tồn tại  
+**Then** viewer hiển thị readable non-interactive reference  
+**And** không render dead seek button  
+**And** Story 4.1 mới thêm player synchronization.
+
+#### AC6 — Internal metadata and performance
+
+**Given** learner viewer  
+**When** render  
+**Then** raw quality score, provider/request IDs, repair logs và hidden reasoning không lộ  
+**And** main saved data target khoảng 3 giây ở điều kiện bình thường  
+**And** caching owner-safe.
+
+#### AC7 — Accessibility and tests
+
+**Given** keyboard/screen-reader/mobile/reduced-motion user  
+**When** viewer hoạt động  
+**Then** WCAG 2.2 AA floor, visible focus, labels, controlled `aria-live`, language attributes và 44px targets  
+**And** tests cover seeded published fixture, desktop/mobile, source distinction, no-provider-on-open, no-dead-seek, RLS and accessibility.
+
+Epic 3 hoàn tất khi một immutable, grounded, quality-gated lesson được publish và có readable owner-scoped viewer.
