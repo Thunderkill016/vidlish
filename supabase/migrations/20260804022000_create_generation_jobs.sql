@@ -93,14 +93,14 @@ create or replace function public.create_or_reuse_lesson_job(
   p_metadata_version text,
   p_pipeline_version text
 )
-returns setof public.lesson_jobs
+returns table (job_id uuid, created boolean)
 language plpgsql
 security definer
 set search_path = public
 as $$
 declare
   v_video_id uuid;
-  v_job public.lesson_jobs%rowtype;
+  v_job_id uuid;
 begin
   insert into public.videos (
     youtube_video_id,
@@ -142,21 +142,28 @@ begin
   on conflict (owner_user_id, video_id, cefr_level, pipeline_version)
     where status not in ('completed', 'failed', 'cancelled')
   do nothing
-  returning * into v_job;
+  returning id into v_job_id;
 
-  if v_job.id is null then
-    select * into v_job
-      from public.lesson_jobs
-      where owner_user_id = p_owner_user_id
-        and video_id = v_video_id
-        and cefr_level = p_cefr_level
-        and pipeline_version = p_pipeline_version
-        and status not in ('completed', 'failed', 'cancelled')
-      order by created_at asc
-      limit 1;
+  if v_job_id is not null then
+    return query select v_job_id, true;
+    return;
   end if;
 
-  return next v_job;
+  select id into v_job_id
+    from public.lesson_jobs
+    where owner_user_id = p_owner_user_id
+      and video_id = v_video_id
+      and cefr_level = p_cefr_level
+      and pipeline_version = p_pipeline_version
+      and status not in ('completed', 'failed', 'cancelled')
+    order by created_at asc
+    limit 1;
+
+  if v_job_id is null then
+    raise exception 'active generation job missing after conflict';
+  end if;
+
+  return query select v_job_id, false;
 end;
 $$;
 
