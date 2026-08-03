@@ -20,6 +20,7 @@ companions:
   - epics/requirements-inventory.md
   - epics/architecture-ux-requirements.md
   - epics/implementation-clarifications.md
+  - epics/final-validation.md
   - epics/epic-1.md
   - epics/epic-2.md
   - epics/epic-2-part-2.md
@@ -27,7 +28,7 @@ companions:
   - epics/epic-3.md
   - epics/epic-4.md
   - epics/epic-5.md
-status: final-validation-pending
+status: validated-awaiting-workflow-completion
 ---
 
 # Vidlish — Epic Breakdown
@@ -35,6 +36,8 @@ status: final-validation-pending
 ## Overview
 
 Đây là index chuẩn tắc cho epic/story breakdown của Vidlish. Requirements, clarifications và story details được shard thành companion files để implementation agents chỉ tải phần cần thiết.
+
+**Final validation:** [`epics/final-validation.md`](epics/final-validation.md) — PASS, awaiting workflow completion confirmation.
 
 ## Requirements Inventory
 
@@ -205,8 +208,8 @@ Người dùng mở lại, lọc, phục hồi và xóa lesson/job cùng dữ li
 Epic 1: authenticated + validated video/CEFR input
 → Epic 2: durable job + eligible canonical English source
 → Epic 3: grounded quality-gated published Core Lesson
-→ Epic 4: interactive learning + completion
-→ Epic 5: reopen, manage, recover and delete
+   ├─→ Epic 4: interactive learning + completion
+   └─→ Epic 5: reopen, filter, recover and delete
 ```
 
-Every canonical story has a safe standalone completion state and consumes only outputs from earlier stories. Incremental visibility and entity timing are defined in `implementation-clarifications.md`.
+Epic 5 does not hard-depend on Epic 4; completion metadata is nullable until Epic 4 exists. Every canonical story has a safe standalone completion state and consumes only outputs from earlier stories. Incremental visibility and entity timing are defined in `implementation-clarifications.md`.
