@@ -1,6 +1,6 @@
 # Story 1.3: Chọn trình độ và xác nhận video sẵn sàng
 
-Status: in-progress
+Status: done
 
 ## Story
 
@@ -86,13 +86,13 @@ Story này hoàn tất Epic 1 bằng cách ghép playable video với trình đ�
 
 ## Tasks / Subtasks
 
-- [ ] Thêm canonical CEFR enum, Vietnamese descriptors và confirmed draft schema vào shared contracts.
-- [ ] Tạo accessible CEFR selector không implicit default và responsive horizontal scroll trên mobile.
-- [ ] Mở rộng Create form state để giữ CEFR trong phiên, invalidate metadata/readiness khi URL hoặc validation thay đổi.
-- [ ] Thêm readiness validation và confirmed panel không có dead job CTA.
-- [ ] Cập nhật privacy/scope copy cho original English speech invariant.
-- [ ] Thêm unit/component tests cho schema, selector, draft validation và stale state.
-- [ ] Thêm desktop/mobile Playwright journey và giữ toàn bộ Story 1.1–1.2 regression xanh.
+- [x] Thêm canonical CEFR enum, Vietnamese descriptors và confirmed draft schema vào shared contracts.
+- [x] Tạo accessible CEFR selector không implicit default và responsive horizontal scroll trên mobile.
+- [x] Mở rộng Create form state để giữ CEFR trong phiên, invalidate metadata/readiness khi URL hoặc validation thay đổi.
+- [x] Thêm readiness validation và confirmed panel không có dead job CTA.
+- [x] Cập nhật privacy/scope copy cho original English speech invariant.
+- [x] Thêm unit/component tests cho schema, selector, draft validation và stale state.
+- [x] Thêm desktop/mobile Playwright journey và giữ toàn bộ Story 1.1–1.2 regression xanh.
 
 ## Validation Record
 
@@ -100,3 +100,13 @@ Story này hoàn tất Epic 1 bằng cách ghép playable video với trình đ�
 - Scope phù hợp một development story và không phụ thuộc implementation tương lai để tạo giá trị.
 - Không có quyết định sản phẩm mở: CEFR set, confirmed draft shape và no-job boundary đã được Epic 1 khóa.
 - Story 1.2 đã cung cấp playable metadata contract, authenticated Create route, fixture adapter và CI foundation để reuse.
+
+
+## Completion Record
+
+- Status: done
+- Pull request: #3
+- Final CI: run 30844410712 — typecheck, lint, 87 unit/integration tests, production build, desktop/mobile Playwright journeys and Supabase migration/RLS regression all passed.
+- Adversarial review: strict confirmed-draft schema, explicit accessible CEFR names, keyboard single-selection coverage, mobile page-overflow protection, stale readiness invalidation and no-job request boundary verified.
+- Scope boundary preserved: the result is session-only readiness; no generation job, transcript, STT or provider cost was introduced.
+- Epic 1 completed: authenticated learner + playable video + selected CEFR + validated confirmed draft.
