@@ -18,6 +18,7 @@ inputDocuments:
 companions:
   - epics/requirements-inventory.md
   - epics/architecture-ux-requirements.md
+  - epics/epic-1.md
 status: draft
 ---
 
@@ -25,7 +26,7 @@ status: draft
 
 ## Overview
 
-Tài liệu này là index chính cho epic/story breakdown của Vidlish. Requirement inventory được shard thành companion files để downstream agents có thể đọc theo nhu cầu mà không làm một file đơn khối quá lớn.
+Tài liệu này là index chính cho epic/story breakdown của Vidlish. Requirement inventory và story details được shard thành companion files để downstream agents có thể đọc theo nhu cầu mà không làm một file đơn khối quá lớn.
 
 ## Requirements Inventory
 
@@ -160,4 +161,8 @@ Người dùng có thể xem lesson/job theo trạng thái, mở lại không g�
 
 ## Story Index
 
-Story details will be created in Step 3 and linked here.
+### Epic 1
+
+- [Story 1.1 — Truy cập private beta và đăng nhập an toàn](epics/epic-1.md#story-11--truy-cập-private-beta-và-đăng-nhập-an-toàn) — approved.
+- Story 1.2 — Dán và kiểm tra video YouTube — drafting.
+- Story 1.3 — Chọn trình độ và xác nhận video sẵn sàng — pending.
