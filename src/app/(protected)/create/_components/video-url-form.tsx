@@ -4,6 +4,9 @@ import { useState } from "react";
 
 import { parseYouTubeUrl, type PlayableVideoMetadata } from "@/modules/video";
 import {
+  createLessonJobResponseSchema,
+} from "@/shared/contracts/generation";
+import {
   confirmedLessonDraftSchema,
   type CefrLevel,
   type ConfirmedLessonDraft,
@@ -24,6 +27,11 @@ type ViewState =
   | { status: "success"; metadata: PlayableVideoMetadata }
   | { status: "error"; error: PublicProductError };
 
+type JobState =
+  | { status: "idle" }
+  | { status: "loading" }
+  | { status: "error"; error: PublicProductError };
+
 const invalidUrlError: PublicProductError = {
   code: "VIDEO_URL_INVALID",
   messageVi: "Liên kết YouTube không hợp lệ. Hãy kiểm tra và thử lại.",
@@ -37,18 +45,28 @@ const genericMetadataError: PublicProductError = {
   action: "retry",
 };
 
-async function readPublicError(response: Response): Promise<PublicProductError> {
+const genericJobError: PublicProductError = {
+  code: "JOB_CREATE_FAILED",
+  messageVi: "Vidlish chưa thể bắt đầu tạo bài học. Hãy thử lại.",
+  retryable: true,
+  action: "retry",
+};
+
+async function readPublicError(
+  response: Response,
+  fallback: PublicProductError,
+): Promise<PublicProductError> {
   try {
     const body = (await response.json()) as unknown;
     if (typeof body !== "object" || body === null || !("error" in body)) {
-      return genericMetadataError;
+      return fallback;
     }
     const parsed = publicProductErrorSchema.safeParse(
       (body as { error: unknown }).error,
     );
-    return parsed.success ? parsed.data : genericMetadataError;
+    return parsed.success ? parsed.data : fallback;
   } catch {
-    return genericMetadataError;
+    return fallback;
   }
 }
 
@@ -58,9 +76,11 @@ export function VideoUrlForm() {
   const [cefrLevel, setCefrLevel] = useState<CefrLevel>();
   const [confirmedDraft, setConfirmedDraft] =
     useState<ConfirmedLessonDraft>();
+  const [jobState, setJobState] = useState<JobState>({ status: "idle" });
 
   function invalidateReadiness() {
     setConfirmedDraft(undefined);
+    setJobState({ status: "idle" });
   }
 
   function validateLocally(): boolean {
@@ -91,7 +111,10 @@ export function VideoUrlForm() {
         body: JSON.stringify({ url }),
       });
       if (!response.ok) {
-        setState({ status: "error", error: await readPublicError(response) });
+        setState({
+          status: "error",
+          error: await readPublicError(response, genericMetadataError),
+        });
         return;
       }
 
@@ -125,6 +148,36 @@ export function VideoUrlForm() {
       return;
     }
     setConfirmedDraft(parsed.data);
+    setJobState({ status: "idle" });
+  }
+
+  async function createJob() {
+    if (!confirmedDraft || jobState.status === "loading") return;
+    setJobState({ status: "loading" });
+    try {
+      const response = await fetch("/api/jobs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(confirmedDraft),
+      });
+      if (!response.ok) {
+        setJobState({
+          status: "error",
+          error: await readPublicError(response, genericJobError),
+        });
+        return;
+      }
+      const payload = createLessonJobResponseSchema.safeParse(
+        (await response.json()) as unknown,
+      );
+      if (!payload.success) {
+        setJobState({ status: "error", error: genericJobError });
+        return;
+      }
+      window.location.assign(`/jobs/${payload.data.jobId}`);
+    } catch {
+      setJobState({ status: "error", error: genericJobError });
+    }
   }
 
   async function pasteFromClipboard() {
@@ -173,14 +226,14 @@ export function VideoUrlForm() {
               }}
               aria-describedby={errorId ?? "video-url-help"}
               aria-invalid={state.status === "error"}
-              disabled={state.status === "loading"}
+              disabled={state.status === "loading" || jobState.status === "loading"}
             />
             <Button
               type="button"
               variant="secondary"
               className="shrink-0"
               onClick={() => void pasteFromClipboard()}
-              disabled={state.status === "loading"}
+              disabled={state.status === "loading" || jobState.status === "loading"}
             >
               Dán
             </Button>
@@ -211,7 +264,10 @@ export function VideoUrlForm() {
           </div>
         ) : null}
 
-        <Button type="submit" disabled={state.status === "loading"}>
+        <Button
+          type="submit"
+          disabled={state.status === "loading" || jobState.status === "loading"}
+        >
           {state.status === "loading" ? "Đang kiểm tra…" : "Kiểm tra video"}
         </Button>
       </form>
@@ -248,7 +304,7 @@ export function VideoUrlForm() {
             </p>
             <Button
               type="button"
-              disabled={!cefrLevel}
+              disabled={!cefrLevel || jobState.status === "loading"}
               aria-describedby="readiness-help"
               onClick={confirmSelection}
             >
@@ -262,7 +318,7 @@ export function VideoUrlForm() {
         {confirmedDraft ? (
           <section
             data-testid="confirmed-lesson-draft"
-            className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5"
+            className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5"
           >
             <div className="space-y-1">
               <h2 className="text-xl font-semibold">Sẵn sàng tạo bài học</h2>
@@ -273,9 +329,19 @@ export function VideoUrlForm() {
             <p className="text-sm text-[var(--muted-foreground)]">
               Vidlish không lưu video. Video vẫn cần đủ lời nói tiếng Anh gốc; không phải mọi video công khai đều tạo được bài học.
             </p>
-            <p className="text-sm font-medium">
-              Bước tạo bài học sẽ được nối ở bước tiếp theo.
-            </p>
+            {jobState.status === "error" ? (
+              <p id="job-create-error" role="alert" className="text-sm font-medium text-red-700 dark:text-red-300">
+                {jobState.error.messageVi}
+              </p>
+            ) : null}
+            <Button
+              type="button"
+              disabled={jobState.status === "loading"}
+              aria-describedby={jobState.status === "error" ? "job-create-error" : undefined}
+              onClick={() => void createJob()}
+            >
+              {jobState.status === "loading" ? "Đang bắt đầu…" : "Tạo bài học"}
+            </Button>
           </section>
         ) : null}
       </div>
