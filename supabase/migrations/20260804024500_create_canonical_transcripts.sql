@@ -38,7 +38,7 @@ grant select on table public.transcripts to authenticated;
 grant select, insert, update, delete on table public.transcripts to service_role;
 
 create table public.transcript_segments (
-  id text primary key,
+  id text not null,
   transcript_id uuid not null references public.transcripts(id) on delete cascade,
   owner_user_id uuid not null references auth.users(id) on delete cascade,
   position integer not null,
@@ -48,6 +48,7 @@ create table public.transcript_segments (
   confidence double precision,
   detected_language text,
   created_at timestamptz not null default now(),
+  constraint transcript_segments_pkey primary key (transcript_id, id),
   constraint transcript_segments_id_format check (id ~ '^seg_[a-f0-9]{32}$'),
   constraint transcript_segments_position_nonnegative check (position >= 0),
   constraint transcript_segments_time_valid check (start_ms >= 0 and end_ms > start_ms),
