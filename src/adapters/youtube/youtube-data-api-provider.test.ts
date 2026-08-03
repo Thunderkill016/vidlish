@@ -98,10 +98,21 @@ describe("YouTubeDataApiProvider", () => {
     );
     await expect(corrupt.lookup(videoId)).rejects.toMatchObject({ retryable: false });
 
-    const contradictoryBody = validBody();
-    contradictoryBody.items[0].contentDetails.regionRestriction = {
-      allowed: ["VN"],
-      blocked: ["US"],
+    const baseBody = validBody();
+    const contradictoryBody = {
+      ...baseBody,
+      items: [
+        {
+          ...baseBody.items[0],
+          contentDetails: {
+            ...baseBody.items[0].contentDetails,
+            regionRestriction: {
+              allowed: ["VN"],
+              blocked: ["US"],
+            },
+          },
+        },
+      ],
     };
     const contradictory = new YouTubeDataApiProvider(
       "key",
