@@ -2,72 +2,98 @@
 
 **Ngày:** 2026-08-03  
 **Artifact:** `prd.md`  
-**Verdict:** **Có điều kiện — yêu cầu đã đủ rõ để quyết định sản phẩm, nhưng chưa được phép chuyển sang UX/Architecture cho đến khi OQ-1 đến OQ-5 được chốt.**
+**Verdict:** **PASS — PRD đủ rõ để chuyển sang UX và Architecture. Chưa được viết code trước Implementation Readiness.**
 
 ## 1. Decision readiness
 
-### Điểm tốt
+Các blocker của draft đầu đã được giải quyết:
 
-- Lời hứa sản phẩm và vòng giá trị cốt lõi rõ.
-- MVP có biên giới mạnh và chỉ giữ ba bề mặt chính.
-- 28 FR có thể truy vết tới ba hành trình người dùng.
-- Non-goals loại bỏ đúng các nguồn scope creep lớn.
-- AI generation có ràng buộc schema và quote matching.
-- Auth ownership, error recovery, rate limit và observability đã được đặt thành yêu cầu thay vì để Architecture tự đoán.
-
-### Phase blockers
-
-1. Mô hình đăng nhập ảnh hưởng trực tiếp UJ-1, abuse prevention và persistence.
-2. Private/public beta ảnh hưởng mức pháp lý, quota và vận hành.
-3. Giới hạn video ảnh hưởng UX, chi phí và kỹ thuật.
-4. Chính sách lưu Transcript là quyết định dữ liệu/pháp lý.
-5. Auto-generated captions ảnh hưởng coverage và chất lượng.
+1. **Authentication:** bắt buộc đăng nhập trước generation.
+2. **Release mode:** private beta.
+3. **Video length:** không dùng trần thời lượng cố định ở cấp sản phẩm; dùng budget, chunking, async processing và lesson series.
+4. **Transcript retention:** lưu normalized segments; không lưu video; audio chỉ tạm thời và bị xóa theo retention.
+5. **Caption policy:** chấp nhận manual, auto-caption và STT, giữ source/confidence.
+6. **No-caption behavior:** chuyển sang acquisition fallback; không kết thúc flow.
+7. **Lesson quality:** dùng Lesson Engine multi-stage với deterministic hard gates và quality rubric.
 
 ## 2. Scope integrity
 
-**Pass.** PRD không thêm thanh toán, phát âm, speech-to-text, flashcard system, social, mobile native hoặc extension. Learning goal, số lượng từ và độ dài bài được loại khỏi UI MVP để giảm trạng thái và số nhánh kiểm thử.
+**PASS.** MVP vẫn phục vụ đúng vòng cốt lõi:
+
+`input video → acquire/create transcript → generate grounded lesson → learn → save/open/delete`.
+
+STT/tab-audio được thêm như transcript fallback bắt buộc để bảo vệ lời hứa sản phẩm, không phải một sản phẩm phát âm hoặc media downloader mới. Extension và desktop companion không phải deliverable MVP.
 
 ## 3. Requirement quality
 
-**Pass with minor follow-up.** FRs mô tả hành vi và hậu quả kiểm thử được. Các chi tiết provider/framework được giữ trong `addendum.md`, không trộn vào yêu cầu sản phẩm.
+**PASS.** PRD có 41 functional requirements, phân tách rõ:
 
-Điểm cần UX/Architecture làm rõ sau khi PRD final:
+- auth/ownership;
+- video/metadata;
+- transcript acquisition waterfall;
+- transcript normalization/retention;
+- Lesson Engine;
+- deterministic validation/quality gate;
+- generation jobs;
+- Lesson Viewer;
+- Library.
 
-- exact loading/error copy;
-- trạng thái generation và idempotency;
-- transcript storage implementation;
-- background job strategy;
-- AI schema chi tiết và quote matching tolerance;
-- quota/rate limits.
+Provider/framework specifics được giữ ở Addendum và chuyển cho Architecture.
 
-## 4. Metrics quality
+## 4. Lesson Engine alignment
 
-**Pass for private beta.** Các mục tiêu 80% success, median dưới 90 giây, 60% value-loop completion và 95% schema stability đủ để kiểm chứng MVP. Nếu chọn public beta, cần bổ sung abuse, support burden và cost-per-successful-lesson.
+**PASS.** PRD bắt buộc downstream đọc `SPEC-vidlish-lesson-engine` và companions. Các invariant chính đã được phản ánh:
 
-## 5. Legal and safety review
+- Core Lesson 10–20 phút;
+- activation → gist → noticing → practice → retrieval → transfer → reflection;
+- CEFR personalization thực chất;
+- flexible item counts;
+- segment-ID grounding;
+- multi-stage generation;
+- provider independence;
+- 14/16 quality threshold;
+- grounding và exercise validity là hard gates;
+- golden regression benchmark.
 
-**Open.** PRD đúng khi chưa tự quyết định quyền lưu Transcript. Trước public launch cần:
+## 5. Metrics quality
 
-- quyết định data retention;
-- Privacy Policy;
-- Terms of Use;
-- review cách dùng YouTube metadata, embedded player và captions;
-- disclosure phù hợp về AI-generated educational content.
+**PASS cho private beta.** Metrics đo cả coverage và chất lượng:
 
-## 6. Recommended default decision bundle
+- transcript acquisition coverage;
+- grounded lesson rate;
+- exercise validity;
+- golden lesson quality;
+- core-loop completion;
+- provider fallback resilience.
 
-Để giảm can thiệp của product owner, reviewer khuyến nghị duyệt cùng lúc:
+Counter-metrics ngăn hệ thống đánh đổi quyền, quality hoặc teaching value để lấy coverage/speed.
 
-- **D1 / OQ-1:** Bắt buộc đăng nhập trước khi tạo Bài học. Lý do: đơn giản hóa ownership, quota, reload recovery và library.
-- **D2 / OQ-2:** Private beta trước. Lý do: kiểm tra transcript coverage, AI quality, chi phí và pháp lý trước public exposure.
-- **D3 / OQ-3:** Video tối đa 30 phút. Lý do: đủ cho phần lớn nội dung học, đồng thời giới hạn token, thời gian và timeout.
-- **D4 / OQ-4:** Lưu Transcript dạng các segment đã chuẩn hóa cùng Bài học; không lưu video/audio; xóa Transcript khi Bài học cuối cùng phụ thuộc vào nó bị xóa. Trước public launch cần legal review.
-- **D5 / OQ-5:** Chấp nhận cả phụ đề do chủ kênh cung cấp và auto-generated English captions; hiển thị cảnh báo chất lượng khi là auto-generated.
+## 6. Legal, privacy và safety
 
-## 7. Gate result
+**PASS có điều kiện phát hành:**
+
+- Controlled private beta được phép tiếp tục với quota và retention rõ.
+- Public launch bị chặn cho tới khi hoàn thành Privacy Policy, Terms of Use, data retention review, provider terms review và disclosure về AI-generated educational content.
+- UX phải thể hiện consent rõ khi tab-audio capture hoặc upload media.
+
+## 7. Architecture handoff questions
+
+Các mục sau không chặn PRD final nhưng Architecture phải chốt khi có tài khoản/chi phí:
+
+- Gemini model/API key và budget.
+- Transcript/STT provider shortlist.
+- Hosting, database/auth và background-job mechanism.
+- Technical token/cost/concurrency limits.
+- Audio/transcript retention TTL cụ thể.
+- Quota per account/day và cost ceiling/job.
+
+## 8. Gate result
 
 - PRD authoring: **complete**.
-- PRD status: **draft**.
+- PRD status: **final**.
+- Research alignment: **complete**.
+- Lesson Engine Spec alignment: **complete**.
+- UX allowed: **yes**.
+- Architecture allowed: **after UX or in parallel only where UX-independent**.
 - Code allowed: **no**.
-- UX allowed: **sau khi D1-D5 được duyệt và PRD chuyển final**.
-- Next workflow after final: `bmad-ux`.
+- Next workflow: `bmad-ux`.
