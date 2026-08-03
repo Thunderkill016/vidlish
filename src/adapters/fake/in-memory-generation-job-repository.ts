@@ -1,6 +1,7 @@
 import "server-only";
 
 import type {
+  ActiveGenerationJobKey,
   CreateGenerationJobRecord,
   GenerationJobRepository,
   GenerationPolicySnapshot,
@@ -16,10 +17,10 @@ function nowIso(): string {
   return new Date().toISOString();
 }
 
-function activeKey(input: CreateGenerationJobRecord): string {
+function activeKey(input: ActiveGenerationJobKey): string {
   return [
     input.ownerUserId,
-    input.metadata.videoId,
+    input.videoId,
     input.cefrLevel,
     input.pipelineVersion,
   ].join(":");
@@ -30,6 +31,17 @@ export class InMemoryGenerationJobRepository
 {
   private readonly jobs = new Map<string, GenerationJob>();
   private readonly activeKeys = new Map<string, string>();
+
+  async findActive(input: ActiveGenerationJobKey): Promise<GenerationJob | null> {
+    const existingId = this.activeKeys.get(activeKey(input));
+    if (!existingId) return null;
+    const existing = this.jobs.get(existingId);
+    if (existing && activeGenerationJobStatuses.includes(existing.status)) {
+      return existing;
+    }
+    this.activeKeys.delete(activeKey(input));
+    return null;
+  }
 
   async getPolicySnapshot(ownerUserId: string): Promise<GenerationPolicySnapshot> {
     const now = Date.now();
@@ -54,15 +66,14 @@ export class InMemoryGenerationJobRepository
   async createOrReuse(
     input: CreateGenerationJobRecord,
   ): Promise<{ job: GenerationJob; created: boolean }> {
-    const key = activeKey(input);
-    const existingId = this.activeKeys.get(key);
-    if (existingId) {
-      const existing = this.jobs.get(existingId);
-      if (existing && activeGenerationJobStatuses.includes(existing.status)) {
-        return { job: existing, created: false };
-      }
-      this.activeKeys.delete(key);
-    }
+    const keyInput = {
+      ownerUserId: input.ownerUserId,
+      videoId: input.metadata.videoId,
+      cefrLevel: input.cefrLevel,
+      pipelineVersion: input.pipelineVersion,
+    };
+    const existing = await this.findActive(keyInput);
+    if (existing) return { job: existing, created: false };
 
     const timestamp = nowIso();
     const job = generationJobSchema.parse({
@@ -87,7 +98,7 @@ export class InMemoryGenerationJobRepository
       updatedAt: timestamp,
     });
     this.jobs.set(job.id, job);
-    this.activeKeys.set(key, job.id);
+    this.activeKeys.set(activeKey(keyInput), job.id);
     return { job, created: true };
   }
 
