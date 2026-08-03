@@ -35,6 +35,7 @@ export function CefrSelector({
                 key={option.level}
                 type="button"
                 variant={selected ? "primary" : "secondary"}
+                aria-label={`${option.level} ${option.descriptionVi}`}
                 aria-pressed={selected}
                 className="min-w-28 flex-col gap-0.5 px-4 py-3 sm:min-w-0"
                 onClick={() => onChange(option.level)}
