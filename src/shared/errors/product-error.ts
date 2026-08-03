@@ -14,11 +14,23 @@ export const productErrorCodeSchema = z.enum([
   "VIDEO_RESTRICTED",
   "VIDEO_UNAVAILABLE",
   "VIDEO_METADATA_FAILED",
+  "JOB_CONCURRENCY_LIMIT",
+  "ACCOUNT_QUOTA_EXCEEDED",
+  "RATE_LIMITED",
+  "JOB_NOT_FOUND",
+  "JOB_CREATE_FAILED",
 ]);
 
 export type ProductErrorCode = z.infer<typeof productErrorCodeSchema>;
 
-export const productErrorActionSchema = z.enum(["retry", "contact_support"]);
+export const productErrorActionSchema = z.enum([
+  "retry",
+  "capture_audio",
+  "provide_transcript",
+  "choose_another_video",
+  "create_new_job",
+  "contact_support",
+]);
 export type ProductErrorAction = z.infer<typeof productErrorActionSchema>;
 
 export const publicProductErrorSchema = z
@@ -27,6 +39,7 @@ export const publicProductErrorSchema = z
     messageVi: z.string().min(1).max(500),
     retryable: z.boolean(),
     action: productErrorActionSchema.optional(),
+    jobId: z.string().uuid().optional(),
   })
   .strict();
 
@@ -40,6 +53,7 @@ export class ProductError extends Error {
     readonly messageVi: string,
     readonly retryable: boolean,
     readonly action?: ProductErrorAction,
+    readonly jobId?: string,
   ) {
     super(messageVi);
   }
@@ -50,6 +64,7 @@ export class ProductError extends Error {
       messageVi: this.messageVi,
       retryable: this.retryable,
       ...(this.action ? { action: this.action } : {}),
+      ...(this.jobId ? { jobId: this.jobId } : {}),
     });
   }
 }
@@ -133,6 +148,44 @@ export const videoErrors = {
         : "Vidlish chưa thể kiểm tra video do cấu hình dịch vụ.",
       retryable,
       retryable ? "retry" : undefined,
+    ),
+} as const;
+
+export const generationErrors = {
+  concurrencyLimit: () =>
+    new ProductError(
+      "JOB_CONCURRENCY_LIMIT",
+      "Bạn đã có quá nhiều bài học đang được tạo. Hãy chờ một bài hoàn tất rồi thử lại.",
+      true,
+      "retry",
+    ),
+  quotaExceeded: () =>
+    new ProductError(
+      "ACCOUNT_QUOTA_EXCEEDED",
+      "Bạn đã dùng hết lượt tạo bài học hiện tại.",
+      false,
+      "contact_support",
+    ),
+  rateLimited: () =>
+    new ProductError(
+      "RATE_LIMITED",
+      "Bạn thao tác quá nhanh. Hãy chờ một chút rồi thử lại.",
+      true,
+      "retry",
+    ),
+  notFound: () =>
+    new ProductError(
+      "JOB_NOT_FOUND",
+      "Không tìm thấy tiến trình tạo bài học này.",
+      false,
+      "create_new_job",
+    ),
+  createFailed: () =>
+    new ProductError(
+      "JOB_CREATE_FAILED",
+      "Vidlish chưa thể bắt đầu tạo bài học. Hãy thử lại.",
+      true,
+      "retry",
     ),
 } as const;
 
