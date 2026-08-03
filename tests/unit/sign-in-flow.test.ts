@@ -1,5 +1,6 @@
 // @vitest-environment jsdom
 
+import { createElement } from "react";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -18,7 +19,7 @@ describe("SignInFlow", () => {
       ),
     );
 
-    render(<SignInFlow intendedPath="/library" cooldownSeconds={60} />);
+    render(createElement(SignInFlow, { intendedPath: "/library", cooldownSeconds: 60 }));
     await user.type(screen.getByLabelText("Email được mời"), "someone@example.com");
     await user.click(screen.getByRole("button", { name: "Gửi mã đăng nhập" }));
 
@@ -49,7 +50,7 @@ describe("SignInFlow", () => {
       ),
     );
 
-    render(<SignInFlow intendedPath="/create" cooldownSeconds={60} />);
+    render(createElement(SignInFlow, { intendedPath: "/create", cooldownSeconds: 60 }));
     await user.type(screen.getByLabelText("Email được mời"), "someone@example.com");
     await user.click(screen.getByRole("button", { name: "Gửi mã đăng nhập" }));
 
