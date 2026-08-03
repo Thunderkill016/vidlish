@@ -11,13 +11,13 @@ export class FixtureNativeCaptionStrategy implements TranscriptStrategy {
   readonly id = NATIVE_CAPTION_STRATEGY_ID;
 
   async acquire(input: { videoId: string }): Promise<TranscriptStrategyResult> {
-    if (input.videoId === "nocaptions01") {
+    if (input.videoId === "nocaption01") {
       return transcriptStrategyResultSchema.parse({
         kind: "not_applicable",
         reason: "NO_USABLE_CAPTIONS",
       });
     }
-    if (input.videoId === "translated01") {
+    if (input.videoId === "translated1") {
       return transcriptStrategyResultSchema.parse({
         kind: "success",
         candidate: {
@@ -30,12 +30,17 @@ export class FixtureNativeCaptionStrategy implements TranscriptStrategy {
           trackKind: "unknown",
           translationStatus: "translated",
           chunks: [
-            { text: "Synthetic translated text.", offsetMs: 0, durationMs: 1500, language: "en" },
+            {
+              text: "Synthetic translated text.",
+              offsetMs: 0,
+              durationMs: 1500,
+              language: "en",
+            },
           ],
         },
       });
     }
-    if (input.videoId === "captionrate1") {
+    if (input.videoId === "captionrate") {
       return transcriptStrategyResultSchema.parse({
         kind: "retryable_failure",
         reason: "PROVIDER_RATE_LIMITED",
