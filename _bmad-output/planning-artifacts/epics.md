@@ -20,6 +20,7 @@ companions:
   - epics/architecture-ux-requirements.md
   - epics/epic-1.md
   - epics/epic-2.md
+  - epics/epic-2-part-2.md
 status: draft
 ---
 
@@ -173,7 +174,7 @@ Người dùng có thể xem lesson/job theo trạng thái, mở lại không g�
 - [Story 2.1 — Tạo generation job bền vững](epics/epic-2.md#story-21--tạo-generation-job-bền-vững) — approved.
 - [Story 2.2 — Lấy caption và tạo canonical transcript](epics/epic-2.md#story-22--lấy-caption-và-tạo-canonical-transcript) — approved.
 - [Story 2.3 — Kiểm tra video có đủ tiếng Anh gốc](epics/epic-2.md#story-23--kiểm-tra-video-có-đủ-tiếng-anh-gốc) — approved.
-- Story 2.4 — Thử các transcript provider phía server — drafting.
-- Story 2.5 — Nhận transcript hoặc subtitle từ người dùng — pending.
+- [Story 2.4 — Thử các transcript provider phía server](epics/epic-2-part-2.md#story-24--thử-các-transcript-provider-phía-server) — approved.
+- Story 2.5 — Nhận transcript hoặc subtitle từ người dùng — drafting.
 - Story 2.6 — Tạo transcript từ audio của tab — pending.
 - Story 2.7 — Xử lý video dài và hoàn thiện độ tin cậy — pending.
