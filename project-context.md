@@ -10,10 +10,11 @@
 - Epics & Stories: final; 5 epics / 29 stories; coverage and quality validation PASS.
 - Implementation Readiness rerun: **READY/PASS**.
 - Sprint Planning: complete; canonical tracking exists at `_bmad-output/implementation-artifacts/sprint-status.yaml`.
-- Story 1.1: next story to create and validate.
+- Epic 1: `in-progress`.
+- Story 1.1 implementation artifact: created and `ready-for-dev` at `_bmad-output/implementation-artifacts/1-1-truy-cap-private-beta-va-dang-nhap-an-toan.md`.
 - Product code: not started.
 
-No product scaffold, migration or provider integration begins until the Story 1.1 implementation artifact is created, validated and moved to `ready-for-dev`.
+Story 1.1 must pass the dedicated story-validation workflow before development begins.
 
 ## Product promise
 
@@ -105,7 +106,8 @@ No translation-based lesson mode, AI tutor chat, pronunciation scoring, gamifica
 - Backlog validation: `_bmad-output/planning-artifacts/epics/final-validation.md`
 - Readiness PASS: `_bmad-output/planning-artifacts/implementation-readiness-report-2026-08-03-rerun.md`
 - Sprint tracking: `_bmad-output/implementation-artifacts/sprint-status.yaml`
+- Current story: `_bmad-output/implementation-artifacts/1-1-truy-cap-private-beta-va-dang-nhap-an-toan.md`
 
 ## Next workflow
 
-Run `bmad-create-story` for `1-1-truy-cap-private-beta-va-dang-nhap-an-toan`, validate the story artifact, then begin development only after its sprint status becomes `ready-for-dev`.
+Run the Story 1.1 validation workflow. Only after validation passes may `bmad-dev-story` start implementation.
