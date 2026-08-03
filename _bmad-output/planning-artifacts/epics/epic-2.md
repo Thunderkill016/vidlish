@@ -156,3 +156,175 @@ Người dùng có thể tạo một job bền vững; hệ thống thử captio
 **And** CI dùng fixture metadata và local Inngest, không gọi provider thật.
 
 Story 2.1 kết thúc khi job đã được persist, workflow đã bắt đầu, progress page phục hồi được và chưa phát sinh transcript/AI cost.
+
+## Story 2.2 — Lấy caption và tạo canonical transcript
+
+**As a** người học đã tạo generation job,  
+**I want** Vidlish tự lấy phụ đề gốc có sẵn và chuẩn hóa thành transcript đáng tin cậy,  
+**So that** video có caption có thể tiếp tục nhanh mà tôi không phải cung cấp transcript thủ công.
+
+**Requirements:** FR7, FR12, FR13 · NFR2, NFR3, NFR6–9, NFR15–16 · AD-2–7, AD-13–17, AD-19 · UX-DR9–11, UX-DR20, UX-DR27, UX-DR32.
+
+### Acceptance Criteria
+
+#### AC1 — Caption strategy trong workflow
+
+**Given** job đang ở `acquiring_transcript`  
+**When** `GenerateLessonWorkflow` chạy bước caption fast path  
+**Then** workflow gọi một implementation của `TranscriptStrategy`  
+**And** domain/application không import response object hoặc SDK cụ thể của YouTube/provider  
+**And** strategy có stable ID và trả `success`, `not_applicable`, `retryable_failure` hoặc `terminal_failure` theo versioned contract  
+**And** chỉ workflow được chuyển job sang `normalizing_transcript`.
+
+#### AC2 — Ưu tiên caption gốc
+
+**Given** video có nhiều caption tracks  
+**When** strategy chọn nguồn  
+**Then** thứ tự ưu tiên là manual caption gốc trước auto-caption gốc  
+**And** không sử dụng caption được dịch tự động sang tiếng Anh  
+**And** không coi translated caption là lời tiếng Anh thực sự được nói trong video  
+**And** lưu metadata cho biết nguồn là manual hay auto.
+
+**Given** video không phải tiếng Anh có caption ngôn ngữ gốc  
+**When** caption được lấy  
+**Then** caption vẫn có thể được chuẩn hóa  
+**And** Story 2.3 chịu trách nhiệm xác định video có đủ tiếng Anh hay không.
+
+#### AC3 — Không caption không phải kết luận ngôn ngữ
+
+**Given** video không có caption gốc dùng được  
+**When** caption strategy hoàn tất  
+**Then** trả `not_applicable` với safe reason như `NO_USABLE_CAPTIONS`  
+**And** không tạo transcript rỗng hoặc bịa segment  
+**And** không map thành `VIDEO_LANGUAGE_UNSUPPORTED`  
+**And** acquisition registry có thể chuyển sang strategy tiếp theo.
+
+**Given** chưa có strategy khác được bật trong bản triển khai hiện tại  
+**When** registry cạn strategy  
+**Then** workflow được phép kết thúc an toàn với `TRANSCRIPT_STRATEGIES_EXHAUSTED`  
+**And** không gọi `NO_CAPTIONS` là kết luận về ngôn ngữ video.
+
+#### AC4 — Transcript candidate boundary
+
+**Given** caption provider trả dữ liệu  
+**When** adapter chuyển dữ liệu qua application boundary  
+**Then** output được Zod validate  
+**And** candidate tối thiểu lưu source type, provider, optional track ID, declared language, `isTranslated: false` và các segment có timestamp/text/optional confidence  
+**And** raw provider payload không đi vào domain hoặc được persist làm product state.
+
+#### AC5 — Normalization deterministic
+
+**Given** một transcript candidate hợp lệ  
+**When** `NormalizeTranscript` chạy  
+**Then** hệ thống chuẩn hóa Unicode và whitespace mà không đổi ý nghĩa  
+**And** sắp xếp segment theo timestamp  
+**And** loại segment rỗng, exact duplicate hoặc corrupt theo rule xác định trước  
+**And** từ chối timestamp âm hoặc range bất khả thi  
+**And** không tự viết lại câu, sửa grammar, điền nội dung thiếu hoặc dịch nội dung  
+**And** cùng input cùng normalization version luôn tạo cùng output và hash.
+
+#### AC6 — Stable segment IDs
+
+**Given** transcript đã được normalize  
+**When** canonical segments được tạo  
+**Then** mỗi segment có ID, position, start timestamp, optional end timestamp, text, optional confidence và optional detected language  
+**And** `detectedLanguage` chưa bắt buộc trong Story 2.2  
+**And** segment ID ổn định với cùng transcript hash và normalization version  
+**And** ID không phụ thuộc database row order ngẫu nhiên hoặc provider request ID.
+
+#### AC7 — Canonical transcript contract
+
+**Given** normalization thành công  
+**When** transcript được persist  
+**Then** canonical transcript tối thiểu lưu ID, owner, video, source type, provider, optional declared language, normalized hash, normalization version, optional confidence và canonical segments  
+**And** không gắn toàn bộ transcript là `en` trước language eligibility  
+**And** không đánh dấu lesson source English trước Story 2.3.
+
+#### AC8 — Persistence và transaction
+
+**Given** canonical transcript hợp lệ  
+**When** workflow commit kết quả  
+**Then** tạo các entity `transcripts`, `transcript_segments` và `transcript_acquisition_attempts`  
+**And** transcript cùng toàn bộ segments được ghi trong một transaction  
+**And** nếu một segment thất bại thì không để lại transcript một phần  
+**And** workflow chỉ chuyển job từ `normalizing_transcript` sang `checking_language` sau commit thành công.
+
+#### AC9 — Idempotent workflow retry
+
+**Given** caption acquisition hoặc normalization step được Inngest retry  
+**When** cùng job, source result và normalization version được xử lý lại  
+**Then** không tạo transcript hoặc segment trùng  
+**And** transcript key dùng tối thiểu owner + video + normalized hash + source type + normalization version  
+**And** kết quả đã commit có thể được tái sử dụng an toàn.
+
+#### AC10 — Ownership và RLS
+
+**Given** transcript tables được tạo  
+**When** migrations được áp dụng  
+**Then** `transcripts` và `transcript_segments` bật RLS  
+**And** người dùng chỉ đọc transcript thuộc mình  
+**And** browser không được tự chèn hoặc sửa canonical transcript  
+**And** workflow/server repository là đường ghi product state  
+**And** cross-owner integration test chứng minh dữ liệu không bị lộ.
+
+#### AC11 — Confidence và dữ liệu yếu
+
+**Given** auto-caption cung cấp confidence hoặc có segment bất thường  
+**When** normalization hoàn tất  
+**Then** confidence được giữ khi có  
+**And** thiếu confidence không được tự biến thành `1.0`  
+**And** low-confidence segment chưa bị xóa chỉ vì confidence thấp  
+**And** Story 2.3 và Lesson Engine có thể loại chúng khỏi evidence có chấm điểm sau này.
+
+#### AC12 — Generation UX
+
+**Given** caption acquisition đang diễn ra  
+**When** người dùng mở Generation page  
+**Then** phase hiển thị `Lấy hoặc tạo transcript`  
+**And** không lộ provider hoặc caption endpoint nội bộ.
+
+**Given** caption và normalization thành công  
+**When** job chuyển sang handoff tiếp theo  
+**Then** phase chuyển sang `Kiểm tra tiếng Anh`.
+
+**Given** strategy không tìm thấy caption và chưa có fallback khả dụng  
+**When** lỗi được hiển thị  
+**Then** UI dùng thông báo tiếng Việt rõ ràng  
+**And** không kết luận video không phải tiếng Anh  
+**And** không đề xuất dịch video thành tiếng Anh.
+
+#### AC13 — Privacy và logging
+
+**Given** caption được lấy và chuẩn hóa  
+**When** telemetry được ghi  
+**Then** có strategy ID, source type, segment count, duration coverage, latency, retry count và safe result code  
+**And** không log toàn bộ transcript hoặc raw provider response  
+**And** title, segment text và caption body không xuất hiện trong structured production logs.
+
+#### AC14 — Failure handling
+
+**Given** provider timeout hoặc lỗi tạm thời  
+**When** strategy thất bại  
+**Then** lỗi được map thành `retryable_failure`  
+**And** workflow dùng bounded retry  
+**And** không tạo transcript một phần.
+
+**Given** provider trả payload sai schema hoặc dữ liệu không thể chuẩn hóa  
+**When** validation thất bại  
+**Then** lỗi được map thành safe product category  
+**And** raw payload không xuất hiện trên UI  
+**And** job không được chuyển sang `checking_language`.
+
+#### AC15 — Kiểm thử
+
+**Given** Story 2.2 được đưa vào CI  
+**When** test suite chạy  
+**Then** có unit test cho manual-over-auto selection và translated caption bị loại  
+**And** có unit test cho normalization, deterministic hash và stable segment IDs  
+**And** có test cho empty, duplicate, corrupt và invalid timestamp segments  
+**And** có integration test cho atomic transcript persistence, workflow retry và RLS  
+**And** có workflow test cho `acquiring_transcript → normalizing_transcript → checking_language`  
+**And** `NO_USABLE_CAPTIONS` không tạo transcript và không trả `VIDEO_LANGUAGE_UNSUPPORTED`  
+**And** CI dùng caption fixtures, không gọi YouTube hoặc transcript provider thật.
+
+Story 2.2 hoàn tất khi video có caption gốc đã tạo được canonical transcript và dừng tại `checking_language`; chưa quyết định video có đủ tiếng Anh và chưa gọi Lesson Engine.
