@@ -137,9 +137,14 @@ export const generationJobSchema = z
 
 export type GenerationJob = z.infer<typeof generationJobSchema>;
 
+export const publicGenerationJobSchema = generationJobSchema.omit({
+  ownerUserId: true,
+});
+export type PublicGenerationJob = z.infer<typeof publicGenerationJobSchema>;
+
 export const generationJobResponseSchema = z
   .object({
-    job: generationJobSchema,
+    job: publicGenerationJobSchema,
     phase: learnerGenerationPhaseSchema,
   })
   .strict();
