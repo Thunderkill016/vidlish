@@ -6,9 +6,9 @@ Vidlish biến video YouTube có đủ lời nói tiếng Anh gốc thành bài 
 
 ## Trạng thái
 
-- Story 1.1: nền Next.js, email OTP sáu chữ số, private-beta allowlist, protected app shell, RLS và CI.
-- Story 1.2: URL parser, metadata/playability validation và Create preview qua `VideoMetadataProvider`.
-- CEFR, generation job, transcript và Lesson Engine thuộc các story sau.
+- Epic 1: email OTP/private beta, URL + metadata validation, CEFR và confirmed Create draft.
+- Story 2.1: durable generation job, owner-scoped progress page, idempotency, quota boundary và Inngest workflow entry.
+- Transcript acquisition, original-English eligibility và Lesson Engine thuộc các story tiếp theo.
 
 ## Chạy ứng dụng cục bộ
 
@@ -61,7 +61,31 @@ YOUTUBE_VIEWER_REGION=VN
 YOUTUBE_METADATA_TIMEOUT_MS=5000
 ```
 
-`YOUTUBE_DATA_API_KEY` chỉ được đọc từ server config. Khi chọn adapter `youtube` mà thiếu key, ứng dụng fail closed và không tự đổi sang provider khác. Story 1.2 gọi `videos.list` với `part=snippet,contentDetails,status`; kết quả vẫn đi qua Zod và canonical availability mapping.
+`YOUTUBE_DATA_API_KEY` chỉ được đọc từ server config. Khi chọn adapter `youtube` mà thiếu key, ứng dụng fail closed và không tự đổi sang provider khác. Metadata vẫn đi qua Zod và canonical availability mapping.
+
+### Durable generation job
+
+Local và CI dùng repository in-memory cùng inline workflow fixture. Chế độ này không gọi transcript, Gemini, STT hoặc Inngest Cloud:
+
+```bash
+GENERATION_REPOSITORY=fake
+GENERATION_DISPATCHER=inline
+GENERATION_MAX_ACTIVE_JOBS=2
+GENERATION_MAX_JOBS_PER_DAY=20
+GENERATION_MAX_JOBS_PER_MINUTE=3
+```
+
+Để chạy durable workflow cục bộ bằng Supabase + Inngest Dev Server:
+
+```bash
+GENERATION_REPOSITORY=supabase
+GENERATION_DISPATCHER=inngest
+INNGEST_DEV=1
+npx inngest-cli@latest dev
+pnpm dev
+```
+
+Hosted staging/production phải dùng `GENERATION_REPOSITORY=supabase`, `GENERATION_DISPATCHER=inngest` và cấu hình riêng `INNGEST_EVENT_KEY`/`INNGEST_SIGNING_KEY`. Job được persist trước dispatch; duplicate submit dựa vào unique active-job key trong Postgres, không chỉ dựa vào event idempotency.
 
 ## Kiểm thử
 
@@ -74,7 +98,7 @@ supabase test db
 pnpm build
 ```
 
-CI sử dụng auth/video fixtures và không gọi Gemini, YouTube, transcript provider hoặc STT provider thật.
+CI sử dụng auth/video/generation fixtures và không gọi Gemini, YouTube, transcript provider, STT provider hoặc Inngest Cloud thật.
 
 ## BMAD cho Codex
 
