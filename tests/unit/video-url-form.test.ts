@@ -119,7 +119,7 @@ describe("VideoUrlForm", () => {
     expect(screen.queryByTestId("video-metadata-preview")).not.toBeInTheDocument();
   });
 
-  it("confirms a validated CEFR draft without creating a job", async () => {
+  it("confirms a validated CEFR draft before creating a job", async () => {
     const fetchMock = vi.fn(async () =>
       new Response(JSON.stringify({ metadata }), {
         status: 200,
@@ -151,7 +151,7 @@ describe("VideoUrlForm", () => {
     expect(screen.getByTestId("confirmed-lesson-draft")).toHaveTextContent(
       "trình độ B1",
     );
-    expect(screen.queryByRole("button", { name: "Tạo bài học" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Tạo bài học" })).toBeVisible();
     expect(fetchMock).toHaveBeenCalledOnce();
 
     await user.type(input, "x");
