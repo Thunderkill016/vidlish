@@ -1,26 +1,36 @@
-export type ProductErrorCode =
-  | "AUTH_EMAIL_INVALID"
-  | "AUTH_CODE_INVALID_OR_EXPIRED"
-  | "AUTH_CODE_COOLDOWN"
-  | "AUTH_TEMPORARILY_UNAVAILABLE"
-  | "AUTH_SESSION_REQUIRED"
-  | "AUTH_BETA_ACCESS_REVOKED"
-  | "AUTH_REQUEST_REJECTED"
-  | "VIDEO_URL_INVALID"
-  | "VIDEO_NOT_FOUND"
-  | "VIDEO_PRIVATE"
-  | "VIDEO_RESTRICTED"
-  | "VIDEO_UNAVAILABLE"
-  | "VIDEO_METADATA_FAILED";
+import { z } from "zod";
 
-export type ProductErrorAction = "retry" | "contact_support";
+export const productErrorCodeSchema = z.enum([
+  "AUTH_EMAIL_INVALID",
+  "AUTH_CODE_INVALID_OR_EXPIRED",
+  "AUTH_CODE_COOLDOWN",
+  "AUTH_TEMPORARILY_UNAVAILABLE",
+  "AUTH_SESSION_REQUIRED",
+  "AUTH_BETA_ACCESS_REVOKED",
+  "AUTH_REQUEST_REJECTED",
+  "VIDEO_URL_INVALID",
+  "VIDEO_NOT_FOUND",
+  "VIDEO_PRIVATE",
+  "VIDEO_RESTRICTED",
+  "VIDEO_UNAVAILABLE",
+  "VIDEO_METADATA_FAILED",
+]);
 
-export type PublicProductError = {
-  code: ProductErrorCode;
-  messageVi: string;
-  retryable: boolean;
-  action?: ProductErrorAction;
-};
+export type ProductErrorCode = z.infer<typeof productErrorCodeSchema>;
+
+export const productErrorActionSchema = z.enum(["retry", "contact_support"]);
+export type ProductErrorAction = z.infer<typeof productErrorActionSchema>;
+
+export const publicProductErrorSchema = z
+  .object({
+    code: productErrorCodeSchema,
+    messageVi: z.string().min(1).max(500),
+    retryable: z.boolean(),
+    action: productErrorActionSchema.optional(),
+  })
+  .strict();
+
+export type PublicProductError = z.infer<typeof publicProductErrorSchema>;
 
 export class ProductError extends Error {
   readonly name = "ProductError";
@@ -35,12 +45,12 @@ export class ProductError extends Error {
   }
 
   toPublic(): PublicProductError {
-    return {
+    return publicProductErrorSchema.parse({
       code: this.code,
       messageVi: this.messageVi,
       retryable: this.retryable,
       ...(this.action ? { action: this.action } : {}),
-    };
+    });
   }
 }
 

@@ -6,6 +6,20 @@ const thumbnailSchema = z.object({
   height: z.number().int().positive().optional(),
 });
 
+const regionRestrictionSchema = z
+  .object({
+    allowed: z.array(z.string()).optional(),
+    blocked: z.array(z.string()).optional(),
+  })
+  .superRefine((value, context) => {
+    if (value.allowed !== undefined && value.blocked !== undefined) {
+      context.addIssue({
+        code: "custom",
+        message: "Region restriction cannot contain both allowed and blocked lists.",
+      });
+    }
+  });
+
 export const youtubeVideoListResponseSchema = z.object({
   etag: z.string().optional(),
   items: z.array(
@@ -21,12 +35,7 @@ export const youtubeVideoListResponseSchema = z.object({
       contentDetails: z.object({
         duration: z.string().optional(),
         caption: z.string().optional(),
-        regionRestriction: z
-          .object({
-            allowed: z.array(z.string()).optional(),
-            blocked: z.array(z.string()).optional(),
-          })
-          .optional(),
+        regionRestriction: regionRestrictionSchema.optional(),
       }),
       status: z.object({
         uploadStatus: z.string().optional(),

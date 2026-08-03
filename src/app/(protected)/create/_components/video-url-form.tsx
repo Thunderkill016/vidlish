@@ -3,7 +3,11 @@
 import { useState } from "react";
 
 import { parseYouTubeUrl, type PlayableVideoMetadata } from "@/modules/video";
-import type { PublicProductError } from "@/shared/errors/product-error";
+import { validateVideoUrlResponseSchema } from "@/shared/contracts/video";
+import {
+  publicProductErrorSchema,
+  type PublicProductError,
+} from "@/shared/errors/product-error";
 import { Button } from "@/shared/ui/button";
 import { Input } from "@/shared/ui/input";
 import { VideoMetadataPreview } from "./video-metadata-preview";
@@ -20,19 +24,26 @@ const invalidUrlError: PublicProductError = {
   retryable: false,
 };
 
+const genericMetadataError: PublicProductError = {
+  code: "VIDEO_METADATA_FAILED",
+  messageVi: "Vidlish chưa thể kiểm tra video. Hãy thử lại.",
+  retryable: true,
+  action: "retry",
+};
+
 async function readPublicError(response: Response): Promise<PublicProductError> {
   try {
-    const body = (await response.json()) as { error?: PublicProductError };
-    if (body.error?.code && body.error.messageVi) return body.error;
+    const body = (await response.json()) as unknown;
+    if (typeof body !== "object" || body === null || !("error" in body)) {
+      return genericMetadataError;
+    }
+    const parsed = publicProductErrorSchema.safeParse(
+      (body as { error: unknown }).error,
+    );
+    return parsed.success ? parsed.data : genericMetadataError;
   } catch {
-    // Use safe fallback below.
+    return genericMetadataError;
   }
-  return {
-    code: "VIDEO_METADATA_FAILED",
-    messageVi: "Vidlish chưa thể kiểm tra video. Hãy thử lại.",
-    retryable: true,
-    action: "retry",
-  };
 }
 
 export function VideoUrlForm() {
@@ -67,16 +78,20 @@ export function VideoUrlForm() {
         setState({ status: "error", error: await readPublicError(response) });
         return;
       }
-      const body = (await response.json()) as { metadata: PlayableVideoMetadata };
-      setState({ status: "success", metadata: body.metadata });
+
+      const raw = (await response.json()) as unknown;
+      const parsed = validateVideoUrlResponseSchema.safeParse(raw);
+      if (!parsed.success) {
+        setState({ status: "error", error: genericMetadataError });
+        return;
+      }
+      setState({ status: "success", metadata: parsed.data.metadata });
     } catch {
       setState({
         status: "error",
         error: {
-          code: "VIDEO_METADATA_FAILED",
+          ...genericMetadataError,
           messageVi: "Không thể kết nối tới Vidlish. Hãy thử lại.",
-          retryable: true,
-          action: "retry",
         },
       });
     }

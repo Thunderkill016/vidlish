@@ -3,7 +3,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { ValidateVideoUrl } from "@/modules/video";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createVideoMetadataProvider } from "@/platform/video/create-video-metadata-provider";
-import { validateVideoUrlRequestSchema } from "@/shared/contracts/video";
+import {
+  validateVideoUrlRequestSchema,
+  validateVideoUrlResponseSchema,
+} from "@/shared/contracts/video";
 import { authErrors, videoErrors } from "@/shared/errors/product-error";
 import { readAuthJsonBody } from "@/shared/http/json-body";
 import { productErrorResponse } from "@/shared/http/product-error-response";
@@ -23,10 +26,12 @@ export async function POST(request: NextRequest) {
       createVideoMetadataProvider(),
     ).execute(parsed.data);
 
-    return NextResponse.json(
-      { metadata },
-      { headers: { "Cache-Control": "private, no-store" } },
-    );
+    const payload = validateVideoUrlResponseSchema.safeParse({ metadata });
+    if (!payload.success) throw videoErrors.metadataFailed(false);
+
+    return NextResponse.json(payload.data, {
+      headers: { "Cache-Control": "private, no-store" },
+    });
   } catch (error) {
     return productErrorResponse(error, videoErrors.metadataFailed());
   }

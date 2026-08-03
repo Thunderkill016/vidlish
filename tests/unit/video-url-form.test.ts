@@ -85,4 +85,33 @@ describe("VideoUrlForm", () => {
     await user.click(screen.getByRole("button", { name: "Kiểm tra video" }));
     expect(await screen.findByRole("button", { name: "Thử lại" })).toBeVisible();
   });
-});
+
+  it("fails closed when the internal success payload violates its schema", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () =>
+        new Response(
+          JSON.stringify({
+            metadata: {
+              videoId: "dQw4w9WgXcQ",
+              metadataVersion: "broken",
+              availability: "playable",
+              title: "Missing channel",
+            },
+          }),
+          { status: 200, headers: { "Content-Type": "application/json" } },
+        ),
+      ),
+    );
+    const user = userEvent.setup();
+    render(createElement(VideoUrlForm));
+    await user.type(
+      screen.getByLabelText("Liên kết video YouTube"),
+      "https://youtu.be/dQw4w9WgXcQ",
+    );
+    await user.click(screen.getByRole("button", { name: "Kiểm tra video" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "chưa thể kiểm tra video",
+    );
+    expect(screen.queryByTestId("video-metadata-preview")).not.toBeInTheDocument();
+  });

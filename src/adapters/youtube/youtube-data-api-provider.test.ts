@@ -89,7 +89,7 @@ describe("YouTubeDataApiProvider", () => {
     await expect(provider.lookup(videoId)).rejects.not.toThrow("secret-value");
   });
 
-  it("rejects corrupt JSON payload and timeout without leaking details", async () => {
+  it("rejects corrupt JSON payload, contradictory region policy and timeout", async () => {
     const corrupt = new YouTubeDataApiProvider(
       "key",
       "VN",
@@ -97,6 +97,23 @@ describe("YouTubeDataApiProvider", () => {
       vi.fn(async () => new Response("not-json", { status: 200 })) as typeof fetch,
     );
     await expect(corrupt.lookup(videoId)).rejects.toMatchObject({ retryable: false });
+
+    const contradictoryBody = validBody();
+    contradictoryBody.items[0].contentDetails.regionRestriction = {
+      allowed: ["VN"],
+      blocked: ["US"],
+    };
+    const contradictory = new YouTubeDataApiProvider(
+      "key",
+      "VN",
+      1000,
+      vi.fn(async () =>
+        new Response(JSON.stringify(contradictoryBody), { status: 200 }),
+      ) as typeof fetch,
+    );
+    await expect(contradictory.lookup(videoId)).rejects.toMatchObject({
+      retryable: false,
+    });
 
     const timeout = new YouTubeDataApiProvider(
       "key",
