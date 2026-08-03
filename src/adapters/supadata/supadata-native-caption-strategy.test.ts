@@ -11,7 +11,7 @@ function response(body: unknown, status = 200): Response {
 
 describe("SupadataNativeCaptionStrategy", () => {
   it("uses the universal native timestamp endpoint without a language override", async () => {
-    const fetchMock = vi.fn<typeof fetch>(async (_input, _init) =>
+    const fetchMock = vi.fn<typeof fetch>(async () =>
       response({
         content: [
           { text: "Original speech", offset: 100, duration: 900, lang: "en" },
