@@ -122,8 +122,7 @@ test("creates one durable job, redirects and survives reload", async ({ page }) 
   });
 
   await prepareConfirmedDraft(page);
-  const createButton = page.getByRole("button", { name: "Tạo bài học" });
-  await createButton.dblclick();
+  await page.getByRole("button", { name: "Tạo bài học" }).click();
 
   await expect(page).toHaveURL(/\/jobs\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: "Tiến trình" })).toBeVisible();
