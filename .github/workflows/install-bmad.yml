@@ -1,0 +1,54 @@
+name: Install BMAD
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - ".github/workflows/install-bmad.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  install-bmad:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Install BMAD for Codex
+        run: |
+          npx --yes bmad-method@6.10.0 install \
+            --directory . \
+            --modules bmm \
+            --tools codex \
+            --yes \
+            --communication-language Vietnamese \
+            --document-output-language Vietnamese \
+            --output-folder _bmad-output
+
+      - name: Verify installation
+        run: |
+          test -f _bmad/_config/manifest.yaml
+          test -d .agents/skills
+
+      - name: Commit generated BMAD files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f _bmad .agents/skills
+          if git diff --cached --quiet; then
+            echo "BMAD files are already up to date."
+          else
+            git commit -m "chore: install BMAD for Codex"
+            git push origin HEAD:main
+          fi
