@@ -18,10 +18,12 @@ export const cefrOptions: ReadonlyArray<{
   { level: "C1", labelVi: "C1", descriptionVi: "Nâng cao" },
 ];
 
-export const confirmedLessonDraftSchema = z.object({
-  videoId: videoIdSchema,
-  cefrLevel: cefrLevelSchema,
-  metadataVersion: z.string().min(1).max(256),
-});
+export const confirmedLessonDraftSchema = z
+  .object({
+    videoId: videoIdSchema,
+    cefrLevel: cefrLevelSchema,
+    metadataVersion: z.string().min(1).max(256),
+  })
+  .strict();
 
 export type ConfirmedLessonDraft = z.infer<typeof confirmedLessonDraftSchema>;
