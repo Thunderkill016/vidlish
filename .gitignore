@@ -1,0 +1,8 @@
+node_modules/
+.env
+.env.*
+!.env.example
+
+# Generated planning artifacts are local by default.
+_bmad-output/*
+!_bmad-output/.gitkeep
