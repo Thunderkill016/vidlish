@@ -60,18 +60,27 @@ describe("JobProgress", () => {
       currentStage: "queued",
       dispatchStatus: "failed",
     };
+    let retryPosted = false;
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url === "/api/jobs" && init?.method === "POST") {
+        retryPosted = true;
         return new Response(
           JSON.stringify({ jobId: failedJob.id, reused: true }),
           { status: 200, headers: { "Content-Type": "application/json" } },
         );
       }
-      return new Response(JSON.stringify({ job, phase: "transcript" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
+      const currentJob = retryPosted ? job : failedJob;
+      return new Response(
+        JSON.stringify({
+          job: currentJob,
+          phase: retryPosted ? "transcript" : "preparing",
+        }),
+        {
+          status: 200,
+          headers: { "Content-Type": "application/json" },
+        },
+      );
     });
     vi.stubGlobal("fetch", fetchMock);
     const user = userEvent.setup();
