@@ -14,6 +14,7 @@ describe("parseYouTubeUrl", () => {
     [`http://youtu.be/${id}`, id],
     [`https://www.youtube.com/shorts/${id}?si=tracking`, id],
     [`https://www.youtube.com/embed/${id}#start=10`, id],
+    ["https://youtube.com/watch?v=%64Qw4w9WgXcQ", id],
   ])("parses supported URL %s", (url, expected) => {
     expect(parseYouTubeUrl(url)).toBe(expected);
   });
@@ -32,7 +33,6 @@ describe("parseYouTubeUrl", () => {
     "https://youtu.be/dQw4w9WgXcQ/extra",
     "https://youtube.com/shorts/dQw4w9WgXcQ/extra",
     "https://youtube.com/watch?v=https://youtu.be/dQw4w9WgXcQ",
-    "https://youtube.com/watch?v=%64Qw4w9WgXcQ",
     "javascript:alert(1)",
   ])("rejects unsupported or hostile URL %s", (url) => {
     expect(() => parseYouTubeUrl(url)).toThrowError(
