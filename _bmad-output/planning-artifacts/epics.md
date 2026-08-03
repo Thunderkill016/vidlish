@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2, 3]
+stepsCompleted: [1, 2, 3, 4]
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-vidlish-2026-08-03/prd.md
   - _bmad-output/planning-artifacts/prds/prd-vidlish-2026-08-03/language-eligibility-amendment.md
@@ -28,7 +28,7 @@ companions:
   - epics/epic-3.md
   - epics/epic-4.md
   - epics/epic-5.md
-status: validated-awaiting-workflow-completion
+status: final
 ---
 
 # Vidlish — Epic Breakdown
@@ -37,7 +37,7 @@ status: validated-awaiting-workflow-completion
 
 Đây là index chuẩn tắc cho epic/story breakdown của Vidlish. Requirements, clarifications và story details được shard thành companion files để implementation agents chỉ tải phần cần thiết.
 
-**Final validation:** [`epics/final-validation.md`](epics/final-validation.md) — PASS, awaiting workflow completion confirmation.
+**Final validation:** [`epics/final-validation.md`](epics/final-validation.md) — PASS, workflow complete.
 
 ## Requirements Inventory
 
