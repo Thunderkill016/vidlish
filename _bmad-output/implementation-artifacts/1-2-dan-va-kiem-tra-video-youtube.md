@@ -1,6 +1,6 @@
 # Story 1.2: Dán và kiểm tra video YouTube
 
-Status: ready-for-dev
+Status: done
 
 ## Story
 
@@ -118,71 +118,71 @@ Story này biến `/create` từ placeholder thành bề mặt nhập video đ�
 
 ## Tasks / Subtasks
 
-- [ ] **Task 1 — Mở rộng typed config và fixture mode** (AC2, AC5, AC6, AC8)
-  - [ ] Thêm server-only `YOUTUBE_DATA_API_KEY`, `YOUTUBE_VIEWER_REGION` và bounded metadata timeout vào `src/platform/config/server.ts`.
-  - [ ] Thêm typed adapter selector cho metadata: real YouTube adapter ở staging/production khi có credential, fixture adapter cho local/CI.
-  - [ ] Missing production/staging credential phải disable/fail cấu hình rõ ràng; không âm thầm đổi vendor.
-  - [ ] Cập nhật `.env.example`, README và GitHub Actions env mà không lộ secret thật.
-  - [ ] Không đọc `process.env` ngoài config modules.
+- [x] **Task 1 — Mở rộng typed config và fixture mode** (AC2, AC5, AC6, AC8)
+  - [x] Thêm server-only `YOUTUBE_DATA_API_KEY`, `YOUTUBE_VIEWER_REGION` và bounded metadata timeout vào `src/platform/config/server.ts`.
+  - [x] Thêm typed adapter selector cho metadata: real YouTube adapter ở staging/production khi có credential, fixture adapter cho local/CI.
+  - [x] Missing production/staging credential phải disable/fail cấu hình rõ ràng; không âm thầm đổi vendor.
+  - [x] Cập nhật `.env.example`, README và GitHub Actions env mà không lộ secret thật.
+  - [x] Không đọc `process.env` ngoài config modules.
 
-- [ ] **Task 2 — Tạo video module theo hexagonal boundary** (AC1–AC3, AC6)
-  - [ ] Tạo `src/modules/video/domain`, `application`, `ports` và public `index.ts`.
-  - [ ] Định nghĩa `VideoMetadataProvider`, canonical metadata DTO, availability enum và application result contract.
-  - [ ] Tạo `ParseYouTubeUrl`/`ValidateVideoInput` use case; domain/application không import Next.js, fetch API cụ thể hoặc Google SDK.
-  - [ ] Dùng versioned Zod schemas ở request/provider/result boundaries.
-  - [ ] Không tạo database repository vì Story 1.2 không persist video.
+- [x] **Task 2 — Tạo video module theo hexagonal boundary** (AC1–AC3, AC6)
+  - [x] Tạo `src/modules/video/domain`, `application`, `ports` và public `index.ts`.
+  - [x] Định nghĩa `VideoMetadataProvider`, canonical metadata DTO, availability enum và application result contract.
+  - [x] Tạo `ParseYouTubeUrl`/`ValidateVideoInput` use case; domain/application không import Next.js, fetch API cụ thể hoặc Google SDK.
+  - [x] Dùng versioned Zod schemas ở request/provider/result boundaries.
+  - [x] Không tạo database repository vì Story 1.2 không persist video.
 
-- [ ] **Task 3 — Implement URL parser an toàn** (AC1, AC5, AC8)
-  - [ ] Parse bằng WHATWG `URL`; không dùng một regex toàn cục làm nguồn xác nhận duy nhất.
-  - [ ] Allowlist exact hosts: `youtube.com`, `www.youtube.com`, `m.youtube.com`, `music.youtube.com` cho watch/embed/shorts khi phù hợp và `youtu.be` cho short URL.
-  - [ ] Hỗ trợ `watch?v=<id>`, `/shorts/<id>`, `/embed/<id>` và `youtu.be/<id>`; normalize canonical ID.
-  - [ ] Loại/ignore `list`, `index`, `t`, `start`, `si`, `feature` và fragment mà không để chúng thay video ID.
-  - [ ] Reject HTTP user-info, wrong protocol, lookalike suffix, extra nested URL, empty/duplicate `v`, unsupported path và ID không khớp canonical current format.
-  - [ ] Không chấp nhận raw ID hoặc non-YouTube URL ngoài yêu cầu.
+- [x] **Task 3 — Implement URL parser an toàn** (AC1, AC5, AC8)
+  - [x] Parse bằng WHATWG `URL`; không dùng một regex toàn cục làm nguồn xác nhận duy nhất.
+  - [x] Allowlist exact hosts: `youtube.com`, `www.youtube.com`, `m.youtube.com`, `music.youtube.com` cho watch/embed/shorts khi phù hợp và `youtu.be` cho short URL.
+  - [x] Hỗ trợ `watch?v=<id>`, `/shorts/<id>`, `/embed/<id>` và `youtu.be/<id>`; normalize canonical ID.
+  - [x] Loại/ignore `list`, `index`, `t`, `start`, `si`, `feature` và fragment mà không để chúng thay video ID.
+  - [x] Reject HTTP user-info, wrong protocol, lookalike suffix, extra nested URL, empty/duplicate `v`, unsupported path và ID không khớp canonical current format.
+  - [x] Không chấp nhận raw ID hoặc non-YouTube URL ngoài yêu cầu.
 
-- [ ] **Task 4 — Implement YouTube Data API adapter** (AC2, AC3, AC5, AC8)
-  - [ ] Tạo server-only adapter dưới `src/adapters/youtube/` sử dụng built-in `fetch` và `AbortSignal.timeout`/AbortController; không thêm SDK nếu REST call đủ.
-  - [ ] Gọi `GET https://www.googleapis.com/youtube/v3/videos` với `id`, `part=snippet,contentDetails,status` và API key server-side.
-  - [ ] Ghi nhận quota contract: mỗi `videos.list` call có cost 1 unit; không retry vô hạn hoặc gọi thừa.
-  - [ ] Validate list response và video resource bằng Zod trước mapping.
-  - [ ] Parse ISO-8601 duration deterministically sang milliseconds; invalid duration trở thành `undefined` hoặc validated failure theo contract, không bịa giá trị.
-  - [ ] Chọn thumbnail từ known YouTube thumbnail host/HTTPS; reject arbitrary URL trong corrupt fixture.
-  - [ ] Không đưa description/tags/raw payload vào canonical UI result.
+- [x] **Task 4 — Implement YouTube Data API adapter** (AC2, AC3, AC5, AC8)
+  - [x] Tạo server-only adapter dưới `src/adapters/youtube/` sử dụng built-in `fetch` và `AbortSignal.timeout`/AbortController; không thêm SDK nếu REST call đủ.
+  - [x] Gọi `GET https://www.googleapis.com/youtube/v3/videos` với `id`, `part=snippet,contentDetails,status` và API key server-side.
+  - [x] Ghi nhận quota contract: mỗi `videos.list` call có cost 1 unit; không retry vô hạn hoặc gọi thừa.
+  - [x] Validate list response và video resource bằng Zod trước mapping.
+  - [x] Parse ISO-8601 duration deterministically sang milliseconds; invalid duration trở thành `undefined` hoặc validated failure theo contract, không bịa giá trị.
+  - [x] Chọn thumbnail từ known YouTube thumbnail host/HTTPS; reject arbitrary URL trong corrupt fixture.
+  - [x] Không đưa description/tags/raw payload vào canonical UI result.
 
-- [ ] **Task 5 — Implement availability mapper không false precision** (AC3, AC5, AC8)
-  - [ ] Empty `items` map tới safe inaccessible/not-found outcome; UI copy không khẳng định private/deleted nếu không có bằng chứng.
-  - [ ] Explicit `privacyStatus=private` map `private` khi provider thật sự trả field đó.
-  - [ ] `embeddable=false`, viewer region bị blocked/not in allowed list map `restricted`.
-  - [ ] failed/rejected/deleted/processing hoặc unsupported upload status map `unavailable` theo typed policy.
-  - [ ] Public/unlisted + processed + embeddable + region allowed map `playable`.
-  - [ ] Unknown enum/corrupt structure fail closed thành safe metadata failure, không mặc định playable.
-  - [ ] `contentDetails.caption` và `snippet.defaultAudioLanguage` không được dùng làm language eligibility gate.
+- [x] **Task 5 — Implement availability mapper không false precision** (AC3, AC5, AC8)
+  - [x] Empty `items` map tới safe inaccessible/not-found outcome; UI copy không khẳng định private/deleted nếu không có bằng chứng.
+  - [x] Explicit `privacyStatus=private` map `private` khi provider thật sự trả field đó.
+  - [x] `embeddable=false`, viewer region bị blocked/not in allowed list map `restricted`.
+  - [x] failed/rejected/deleted/processing hoặc unsupported upload status map `unavailable` theo typed policy.
+  - [x] Public/unlisted + processed + embeddable + region allowed map `playable`.
+  - [x] Unknown enum/corrupt structure fail closed thành safe metadata failure, không mặc định playable.
+  - [x] `contentDetails.caption` và `snippet.defaultAudioLanguage` không được dùng làm language eligibility gate.
 
-- [ ] **Task 6 — Tạo authenticated metadata command route** (AC1, AC2, AC5, AC6)
-  - [ ] Tạo route handler/application command nhận bounded JSON `{ url }` từ same-origin POST.
-  - [ ] Reuse `readAuthJsonBody`, `assertSameOrigin`, `ProductError` và `createIdentityService`; không sao chép auth logic.
-  - [ ] Recheck current access trong route/application boundary; unauthenticated/revoked trả stable auth error.
-  - [ ] URL luôn được parse lại phía server; client result không được tin cậy.
-  - [ ] Map provider errors/timeouts thành ProductError; không log API key, full provider body hoặc stack trên client.
-  - [ ] Response `Cache-Control: private, no-store`.
+- [x] **Task 6 — Tạo authenticated metadata command route** (AC1, AC2, AC5, AC6)
+  - [x] Tạo route handler/application command nhận bounded JSON `{ url }` từ same-origin POST.
+  - [x] Reuse `readAuthJsonBody`, `assertSameOrigin`, `ProductError` và `createIdentityService`; không sao chép auth logic.
+  - [x] Recheck current access trong route/application boundary; unauthenticated/revoked trả stable auth error.
+  - [x] URL luôn được parse lại phía server; client result không được tin cậy.
+  - [x] Map provider errors/timeouts thành ProductError; không log API key, full provider body hoặc stack trên client.
+  - [x] Response `Cache-Control: private, no-store`.
 
-- [ ] **Task 7 — Build Create URL UX và metadata preview** (AC1, AC4, AC5, AC7)
-  - [ ] Thay placeholder `/create` bằng client form trong centered 720px content column, giữ protected app shell.
-  - [ ] URL input có visible label, paste affordance, help text và validation khi blur/submit.
-  - [ ] Primary action `Kiểm tra video`; disable/guard duplicate submit nhưng không làm mất focus.
-  - [ ] Hiển thị loading skeleton/status, playable preview và one-action errors; `Thử lại` chỉ cho retryable failure.
-  - [ ] Sửa URL phải clear stale preview/error/readiness.
-  - [ ] Dùng `next/image` với remote pattern giới hạn cho YouTube thumbnails hoặc một safe image component; không raw HTML.
-  - [ ] Copy không nhắc provider, quota, API key hoặc hứa caption/lesson.
-  - [ ] Không thêm CEFR selector hoặc `Tạo bài học` CTA trong story này.
+- [x] **Task 7 — Build Create URL UX và metadata preview** (AC1, AC4, AC5, AC7)
+  - [x] Thay placeholder `/create` bằng client form trong centered 720px content column, giữ protected app shell.
+  - [x] URL input có visible label, paste affordance, help text và validation khi blur/submit.
+  - [x] Primary action `Kiểm tra video`; disable/guard duplicate submit nhưng không làm mất focus.
+  - [x] Hiển thị loading skeleton/status, playable preview và one-action errors; `Thử lại` chỉ cho retryable failure.
+  - [x] Sửa URL phải clear stale preview/error/readiness.
+  - [x] Dùng `next/image` với remote pattern giới hạn cho YouTube thumbnails hoặc một safe image component; không raw HTML.
+  - [x] Copy không nhắc provider, quota, API key hoặc hứa caption/lesson.
+  - [x] Không thêm CEFR selector hoặc `Tạo bài học` CTA trong story này.
 
-- [ ] **Task 8 — Test pyramid và regression** (AC1–AC8)
-  - [ ] Unit-test parser matrix, malicious URLs, duplicate query values, duration parser và availability policy.
-  - [ ] Adapter tests mock `fetch` cho success/empty/corrupt/403/429/5xx/timeout; assert exact endpoint parts và no key leakage in errors.
-  - [ ] Integration-test authenticated command, revoked session, wrong origin/content type, product errors và no persistence.
-  - [ ] Component tests cho blur/submit, stale clear, loading, preview và retry.
-  - [ ] Playwright desktop/mobile flows dùng fixture adapter: valid preview, unavailable URL, transient retry và keyboard labels/focus.
-  - [ ] Giữ toàn bộ Story 1.1 auth/RLS/logout regression xanh.
+- [x] **Task 8 — Test pyramid và regression** (AC1–AC8)
+  - [x] Unit-test parser matrix, malicious URLs, duplicate query values, duration parser và availability policy.
+  - [x] Adapter tests mock `fetch` cho success/empty/corrupt/403/429/5xx/timeout; assert exact endpoint parts và no key leakage in errors.
+  - [x] Integration-test authenticated command, revoked session, wrong origin/content type, product errors và no persistence.
+  - [x] Component tests cho blur/submit, stale clear, loading, preview và retry.
+  - [x] Playwright desktop/mobile flows dùng fixture adapter: valid preview, unavailable URL, transient retry và keyboard labels/focus.
+  - [x] Giữ toàn bộ Story 1.1 auth/RLS/logout regression xanh.
 
 ## Dev Notes
 
@@ -303,14 +303,14 @@ Checked against official Google documentation on 2026-08-04:
 
 ## Definition of Done
 
-- [ ] AC1–AC8 demonstrably satisfied.
-- [ ] Exact dependencies remain lockfile-pinned; no unnecessary YouTube SDK added.
-- [ ] Typecheck, lint, unit/integration, production build and Playwright pass.
-- [ ] Existing Story 1.1 auth/RLS/logout tests remain green.
-- [ ] CI makes zero live YouTube calls.
-- [ ] No secret or raw provider payload reaches client/logs.
-- [ ] No CEFR, generation job, transcript, lesson or persistence scope is added.
-- [ ] Story is ready for independent code review.
+- [x] AC1–AC8 demonstrably satisfied.
+- [x] Exact dependencies remain lockfile-pinned; no unnecessary YouTube SDK added.
+- [x] Typecheck, lint, unit/integration, production build and Playwright pass.
+- [x] Existing Story 1.1 auth/RLS/logout tests remain green.
+- [x] CI makes zero live YouTube calls.
+- [x] No secret or raw provider payload reaches client/logs.
+- [x] No CEFR, generation job, transcript, lesson or persistence scope is added.
+- [x] Story is ready for independent code review.
 
 ## Dev Agent Record
 
@@ -330,3 +330,12 @@ To be recorded during implementation.
 ### File List
 
 To be completed by the dev agent.
+
+
+## Completion Record
+
+- Status: done
+- Pull request: #2
+- Final CI: run 30840172223 — typecheck, lint, unit/integration tests, production build, 20 desktop/mobile Playwright journeys, Supabase migration and RLS tests all passed.
+- Adversarial review: resolved provider configuration classification, Zod validation at response boundaries, contradictory region-policy handling, stale preview/error behavior and operational documentation.
+- Scope boundary preserved: no CEFR selection, generation job, transcript or lesson generation was added.

@@ -6,7 +6,9 @@ Vidlish biến video YouTube có đủ lời nói tiếng Anh gốc thành bài 
 
 ## Trạng thái
 
-Story 1.1 đang xây dựng nền Next.js, đăng nhập email OTP sáu chữ số, private-beta allowlist, protected app shell, RLS tests và CI. YouTube URL, CEFR và generation job thuộc các story sau.
+- Story 1.1: nền Next.js, email OTP sáu chữ số, private-beta allowlist, protected app shell, RLS và CI.
+- Story 1.2: URL parser, metadata/playability validation và Create preview qua `VideoMetadataProvider`.
+- CEFR, generation job, transcript và Lesson Engine thuộc các story sau.
 
 ## Chạy ứng dụng cục bộ
 
@@ -40,6 +42,27 @@ pnpm dev
 
 `AUTH_ADAPTER=fake` bị từ chối trong production.
 
+### Video metadata adapter
+
+Local và CI mặc định dùng fixture, không gọi YouTube thật:
+
+```bash
+VIDEO_METADATA_ADAPTER=fixture
+YOUTUBE_VIEWER_REGION=VN
+YOUTUBE_METADATA_TIMEOUT_MS=5000
+```
+
+Staging/production dùng YouTube Data API v3:
+
+```bash
+VIDEO_METADATA_ADAPTER=youtube
+YOUTUBE_DATA_API_KEY=replace-with-server-only-key
+YOUTUBE_VIEWER_REGION=VN
+YOUTUBE_METADATA_TIMEOUT_MS=5000
+```
+
+`YOUTUBE_DATA_API_KEY` chỉ được đọc từ server config. Khi chọn adapter `youtube` mà thiếu key, ứng dụng fail closed và không tự đổi sang provider khác. Story 1.2 gọi `videos.list` với `part=snippet,contentDetails,status`; kết quả vẫn đi qua Zod và canonical availability mapping.
+
 ## Kiểm thử
 
 ```bash
@@ -51,7 +74,7 @@ supabase test db
 pnpm build
 ```
 
-CI không gọi Gemini, YouTube, transcript provider hoặc STT provider thật.
+CI sử dụng auth/video fixtures và không gọi Gemini, YouTube, transcript provider hoặc STT provider thật.
 
 ## BMAD cho Codex
 

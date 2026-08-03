@@ -1,20 +1,36 @@
-export type ProductErrorCode =
-  | "AUTH_EMAIL_INVALID"
-  | "AUTH_CODE_INVALID_OR_EXPIRED"
-  | "AUTH_CODE_COOLDOWN"
-  | "AUTH_TEMPORARILY_UNAVAILABLE"
-  | "AUTH_SESSION_REQUIRED"
-  | "AUTH_BETA_ACCESS_REVOKED"
-  | "AUTH_REQUEST_REJECTED";
+import { z } from "zod";
 
-export type ProductErrorAction = "retry" | "contact_support";
+export const productErrorCodeSchema = z.enum([
+  "AUTH_EMAIL_INVALID",
+  "AUTH_CODE_INVALID_OR_EXPIRED",
+  "AUTH_CODE_COOLDOWN",
+  "AUTH_TEMPORARILY_UNAVAILABLE",
+  "AUTH_SESSION_REQUIRED",
+  "AUTH_BETA_ACCESS_REVOKED",
+  "AUTH_REQUEST_REJECTED",
+  "VIDEO_URL_INVALID",
+  "VIDEO_NOT_FOUND",
+  "VIDEO_PRIVATE",
+  "VIDEO_RESTRICTED",
+  "VIDEO_UNAVAILABLE",
+  "VIDEO_METADATA_FAILED",
+]);
 
-export type PublicProductError = {
-  code: ProductErrorCode;
-  messageVi: string;
-  retryable: boolean;
-  action?: ProductErrorAction;
-};
+export type ProductErrorCode = z.infer<typeof productErrorCodeSchema>;
+
+export const productErrorActionSchema = z.enum(["retry", "contact_support"]);
+export type ProductErrorAction = z.infer<typeof productErrorActionSchema>;
+
+export const publicProductErrorSchema = z
+  .object({
+    code: productErrorCodeSchema,
+    messageVi: z.string().min(1).max(500),
+    retryable: z.boolean(),
+    action: productErrorActionSchema.optional(),
+  })
+  .strict();
+
+export type PublicProductError = z.infer<typeof publicProductErrorSchema>;
 
 export class ProductError extends Error {
   readonly name = "ProductError";
@@ -29,12 +45,12 @@ export class ProductError extends Error {
   }
 
   toPublic(): PublicProductError {
-    return {
+    return publicProductErrorSchema.parse({
       code: this.code,
       messageVi: this.messageVi,
       retryable: this.retryable,
       ...(this.action ? { action: this.action } : {}),
-    };
+    });
   }
 }
 
@@ -78,6 +94,51 @@ export const authErrors = {
     new ProductError("AUTH_REQUEST_REJECTED", "Yêu cầu không hợp lệ.", false),
 } as const;
 
-export function toProductError(error: unknown): ProductError {
-  return error instanceof ProductError ? error : authErrors.unavailable();
+export const videoErrors = {
+  invalidUrl: () =>
+    new ProductError(
+      "VIDEO_URL_INVALID",
+      "Liên kết YouTube không hợp lệ. Hãy kiểm tra và thử lại.",
+      false,
+    ),
+  notFound: () =>
+    new ProductError(
+      "VIDEO_NOT_FOUND",
+      "Không tìm thấy hoặc không thể truy cập video này. Hãy kiểm tra liên kết.",
+      false,
+    ),
+  private: () =>
+    new ProductError(
+      "VIDEO_PRIVATE",
+      "Video này đang ở chế độ riêng tư và không thể dùng trong Vidlish.",
+      false,
+    ),
+  restricted: () =>
+    new ProductError(
+      "VIDEO_RESTRICTED",
+      "Video này không cho phép phát trong Vidlish hoặc bị giới hạn tại khu vực hiện tại.",
+      false,
+    ),
+  unavailable: () =>
+    new ProductError(
+      "VIDEO_UNAVAILABLE",
+      "Video này hiện chưa sẵn sàng để sử dụng. Hãy chọn video khác.",
+      false,
+    ),
+  metadataFailed: (retryable = true) =>
+    new ProductError(
+      "VIDEO_METADATA_FAILED",
+      retryable
+        ? "Vidlish chưa thể kiểm tra video. Hãy thử lại."
+        : "Vidlish chưa thể kiểm tra video do cấu hình dịch vụ.",
+      retryable,
+      retryable ? "retry" : undefined,
+    ),
+} as const;
+
+export function toProductError(
+  error: unknown,
+  fallback: ProductError = authErrors.unavailable(),
+): ProductError {
+  return error instanceof ProductError ? error : fallback;
 }

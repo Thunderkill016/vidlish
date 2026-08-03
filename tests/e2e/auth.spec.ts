@@ -20,7 +20,7 @@ test("allowlisted learner signs in, keeps session and signs out", async ({ page 
   await login(page);
   await expect(page).toHaveURL(/\/create$/);
   await expect(
-    page.getByRole("heading", { name: "Không gian học của bạn đã sẵn sàng" }),
+    page.getByRole("heading", { name: "Dán video tiếng Anh bạn muốn học" }),
   ).toBeVisible();
 
   await page.reload();
