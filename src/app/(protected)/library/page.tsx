@@ -9,7 +9,7 @@ export default function LibraryPage() {
       </div>
       <Card>
         <p className="text-[var(--muted-foreground)]">
-          Chưa có bài học. Library data sẽ được bổ sung trong Epic 5.
+          Chưa có bài học nào. Các bài đã tạo sẽ xuất hiện tại đây.
         </p>
       </Card>
     </div>

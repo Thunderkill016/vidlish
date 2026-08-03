@@ -7,7 +7,7 @@ export default function CreatePage() {
         <p className="text-sm font-semibold text-[var(--accent)]">Tạo bài học</p>
         <h1 className="text-3xl font-bold tracking-tight">Không gian học của bạn đã sẵn sàng</h1>
         <p className="max-w-2xl text-[var(--muted-foreground)]">
-          Nhập video YouTube sẽ được bổ sung ở Story 1.2.
+          Bạn đã đăng nhập thành công. Tính năng chọn video sẽ sớm xuất hiện trong private beta.
         </p>
       </div>
       <Card>

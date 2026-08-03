@@ -20,6 +20,14 @@ export class IdentityService {
     private readonly betaAccess: BetaAccessRepository,
   ) {}
 
+  private async bestEffortSignOut(): Promise<void> {
+    try {
+      await this.provider.signOut();
+    } catch {
+      // Access is still denied. A writable auth boundary can clear stale cookies later.
+    }
+  }
+
   async requestLoginCode(command: RequestLoginCodeCommand): Promise<RequestLoginCodeResult> {
     const parsed = requestLoginCodeSchema.safeParse(command);
     if (!parsed.success) throw authErrors.invalidEmail();
@@ -52,12 +60,12 @@ export class IdentityService {
       const currentEmail = user ? emailSchema.safeParse(user.email) : null;
 
       if (!user || !currentEmail?.success || currentEmail.data !== email) {
-        await this.provider.signOut();
+        await this.bestEffortSignOut();
         throw authErrors.invalidCode();
       }
 
       if (!(await this.betaAccess.isActive(email))) {
-        await this.provider.signOut();
+        await this.bestEffortSignOut();
         throw authErrors.revoked();
       }
 
@@ -74,7 +82,7 @@ export class IdentityService {
 
     const parsedEmail = emailSchema.safeParse(user.email);
     if (!parsedEmail.success || !(await this.betaAccess.isActive(parsedEmail.data))) {
-      await this.provider.signOut();
+      await this.bestEffortSignOut();
       return null;
     }
 

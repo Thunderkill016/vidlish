@@ -29,6 +29,12 @@ test("allowlisted learner signs in, keeps session and signs out", async ({ page 
   await page.getByText("Tài khoản").click();
   await page.getByRole("button", { name: "Đăng xuất" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
+
+  await page.goBack();
+  await expect(page).toHaveURL(/\/sign-in/);
+  await page.reload();
+  await expect(page).toHaveURL(/\/sign-in/);
+
   await page.goto("/library");
   await expect(page).toHaveURL(/\/sign-in\?next=%2Flibrary$/);
 });

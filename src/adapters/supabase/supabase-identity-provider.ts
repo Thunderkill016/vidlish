@@ -1,10 +1,18 @@
 import "server-only";
 
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { AuthError, SupabaseClient } from "@supabase/supabase-js";
 
 import type { IdentityUser } from "@/modules/identity/domain/identity-user";
 import type { IdentityProvider } from "@/modules/identity/ports/identity-provider";
 import { authErrors } from "@/shared/errors/product-error";
+
+function mapOtpError(error: AuthError) {
+  if (error.status === 429) return authErrors.cooldown();
+  if (typeof error.status === "number" && error.status >= 500) {
+    return authErrors.unavailable();
+  }
+  return authErrors.invalidCode();
+}
 
 export class SupabaseIdentityProvider implements IdentityProvider {
   constructor(private readonly client: SupabaseClient) {}
@@ -27,7 +35,7 @@ export class SupabaseIdentityProvider implements IdentityProvider {
       type: "email",
     });
 
-    if (error) throw authErrors.invalidCode();
+    if (error) throw mapOtpError(error);
   }
 
   async getCurrentUser(): Promise<IdentityUser | null> {
@@ -43,6 +51,7 @@ export class SupabaseIdentityProvider implements IdentityProvider {
   }
 
   async signOut(): Promise<void> {
-    await this.client.auth.signOut();
+    const { error } = await this.client.auth.signOut();
+    if (error) throw authErrors.unavailable();
   }
 }
