@@ -328,3 +328,158 @@ Story 2.1 kết thúc khi job đã được persist, workflow đã bắt đầu,
 **And** CI dùng caption fixtures, không gọi YouTube hoặc transcript provider thật.
 
 Story 2.2 hoàn tất khi video có caption gốc đã tạo được canonical transcript và dừng tại `checking_language`; chưa quyết định video có đủ tiếng Anh và chưa gọi Lesson Engine.
+
+## Story 2.3 — Kiểm tra video có đủ tiếng Anh gốc
+
+**As a** người học đang chờ tạo bài,  
+**I want** Vidlish xác nhận video có đủ lời nói tiếng Anh thực sự,  
+**So that** tôi chỉ nhận bài học dựa trên nội dung tiếng Anh có thật trong video, không phải bản dịch hoặc nội dung AI tự tạo.
+
+**Requirements:** FR-LANG-1–FR-LANG-5, FR32, FR33 · NFR8, NFR9, NFR15–17 · AD-7, AD-10, AD-14, AD-22 · UX-DR9, UX-DR10, UX-DR14, UX-DR20, UX-DR27, UX-DR32.
+
+### Acceptance Criteria
+
+#### AC1 — Language gate chạy đúng vị trí
+
+**Given** canonical transcript đã được commit  
+**When** workflow chuyển đến `checking_language`  
+**Then** language eligibility chạy trước `analyzing_video`, `mining_language`, `planning_lesson` và `composing_activities`  
+**And** không gọi `LessonGenerationProvider`, Video Analyst hoặc Language Miner trước khi gate pass  
+**And** chỉ workflow được phép thay đổi stage tiếp theo.
+
+#### AC2 — Phát hiện ngôn ngữ ở từng segment
+
+**Given** canonical transcript có các segment ổn định  
+**When** language detector chạy  
+**Then** mỗi segment nhận `segmentId`, detected `language` và optional `confidence`  
+**And** detector nằm sau `LanguageAnalysisPort`  
+**And** domain/application không phụ thuộc response format của thư viện hoặc provider cụ thể  
+**And** kết quả qua Zod boundary trước khi persist.
+
+#### AC3 — Eligibility report có version
+
+**Given** toàn bộ segment đã được phân tích  
+**When** eligibility evaluator tổng hợp kết quả  
+**Then** report là `eligible` hoặc `ineligible` theo Language Eligibility Contract  
+**And** eligible report lưu primary language `en`, English segment IDs, excluded non-English IDs, English share, coherent English duration, reliable English word count, optional confidence và policy version  
+**And** ineligible report lưu reason, detected languages và policy version  
+**And** report được liên kết với transcript hash  
+**And** thay đổi threshold tạo policy version mới.
+
+#### AC4 — Không chỉ xét ngôn ngữ chiếm đa số
+
+**Given** evaluator kiểm tra transcript  
+**When** quyết định eligibility  
+**Then** phải xét đồng thời tỷ lệ tiếng Anh, thời lượng tiếng Anh liền mạch, số từ đáng tin cậy, confidence và khả năng dùng làm source quote/listening/scored evidence  
+**And** không chấp nhận video chỉ vì vài từ tiếng Anh, brand name, proper noun hoặc code-switch ngắn  
+**And** threshold nằm trong typed configuration, không rải magic number trong UI hoặc workflow.
+
+#### AC5 — Xác định phần tiếng Anh liền mạch
+
+**Given** transcript có nhiều segment tiếng Anh rời rạc  
+**When** evaluator tính coherent English duration  
+**Then** segment chỉ được gộp thành English span khi khoảng cách và cấu trúc thời gian đáp ứng policy đã version hóa  
+**And** isolated fragments không được cộng máy móc thành một bài học giả tạo  
+**And** kết quả deterministic với cùng transcript và policy version.
+
+#### AC6 — Video mixed-language
+
+**Given** video chứa cả tiếng Anh và ngôn ngữ khác  
+**When** phần tiếng Anh tự nó đủ tạo một Core Lesson hợp lệ  
+**Then** video được đánh dấu `eligible`  
+**And** `englishSegmentIds` chỉ chứa segment tiếng Anh đạt confidence yêu cầu  
+**And** segment không phải tiếng Anh vẫn được giữ để truy vết nhưng không được dùng cho source quote, language mining, grammar evidence, listening question hoặc scored evidence.
+
+**Given** tiếng Anh chỉ xuất hiện ngắn và rời rạc  
+**When** evaluator chạy  
+**Then** video bị đánh dấu `ineligible`.
+
+#### AC7 — Video đủ điều kiện
+
+**Given** eligibility result là `eligible`  
+**When** report được commit  
+**Then** transcript được liên kết với eligible English segment set  
+**And** workflow chuyển `checking_language → analyzing_video`  
+**And** downstream Lesson Engine chỉ nhận English segment IDs đã được phép  
+**And** không nhận toàn bộ mixed-language transcript như nguồn tiếng Anh mặc định.
+
+#### AC8 — Video không đủ tiếng Anh
+
+**Given** result là `insufficient-original-english`  
+**When** workflow xử lý kết quả  
+**Then** job dừng trước mọi Lesson Engine call  
+**And** chuyển terminal `failed` với `VIDEO_LANGUAGE_UNSUPPORTED`, action `choose_another_video` và `retryable: false`  
+**And** hiển thị `Video này không có đủ nội dung tiếng Anh để tạo bài học. Hãy chọn một video chủ yếu nói tiếng Anh.`  
+**And** không phát sinh token hoặc chi phí lesson generation.
+
+#### AC9 — Không đủ confidence
+
+**Given** transcript hoặc language detection quá thiếu tin cậy  
+**When** evaluator trả `language-confidence-too-low`  
+**Then** hệ thống fail closed  
+**And** không tự giả định transcript là tiếng Anh  
+**And** không đưa segment confidence thấp vào eligible set  
+**And** các fallback transcript ở Story 2.4–2.6 có thể cung cấp transcript tốt hơn mà không đổi eligibility contract.
+
+#### AC10 — Cấm translation substitute
+
+**Given** video không có đủ tiếng Anh gốc  
+**When** eligibility thất bại  
+**Then** hệ thống không dịch transcript sang tiếng Anh để chạy Lesson Engine  
+**And** không tạo English rewrite, voice-over hoặc audio tổng hợp  
+**And** không dùng generated English cho listening/grammar evidence hoặc gắn nó thành source quote  
+**And** UX không đề xuất translation lesson mode.
+
+#### AC11 — Idempotency và cache safety
+
+**Given** workflow retry language eligibility  
+**When** transcript hash và policy version không thay đổi  
+**Then** hệ thống tái sử dụng cùng report hoặc tạo kết quả giống nhau  
+**And** không tạo report trùng  
+**And** cache key gồm transcript hash, detector version và eligibility policy version  
+**And** report policy cũ không được dùng sau breaking policy change.
+
+#### AC12 — Persistence và quyền sở hữu
+
+**Given** eligibility report được persist  
+**When** migrations được áp dụng  
+**Then** report thuộc cùng owner với transcript và job  
+**And** RLS ngăn người khác đọc report hoặc English segment set  
+**And** browser không được tự chỉnh eligibility, segment language hoặc policy evidence  
+**And** chỉ workflow/server repository có quyền ghi kết quả.
+
+#### AC13 — Generation UX
+
+**Given** job đang kiểm tra  
+**When** người dùng mở Generation page  
+**Then** phase hiển thị `Kiểm tra tiếng Anh`  
+**And** không hiển thị threshold nội bộ khó hiểu.
+
+**Given** video đủ điều kiện  
+**When** workflow tiếp tục  
+**Then** stepper chuyển sang `Phân tích nội dung`.
+
+**Given** video không đủ điều kiện  
+**When** terminal state hiển thị  
+**Then** chỉ có primary action `Chọn video khác`  
+**And** không có nút dịch video  
+**And** trạng thái dùng text và icon, không chỉ màu.
+
+#### AC14 — Telemetry an toàn
+
+**Given** eligibility được đánh giá  
+**When** telemetry được ghi  
+**Then** lưu status/reason, detector version, policy version, English share, coherent English duration, reliable word count, confidence band và stage latency  
+**And** không log segment text hoặc toàn bộ transcript  
+**And** không gửi nội dung transcript vào analytics client-side.
+
+#### AC15 — Kiểm thử
+
+**Given** Story 2.3 được đưa vào CI  
+**When** test suite chạy  
+**Then** có fixtures cho fully English manual/auto caption, primarily English with incidental non-English, coherent mixed-language English chapter, incidental-English-only, fully non-English, low-confidence và translated caption  
+**And** mixed-language eligible fixture chỉ cho phép English segment IDs  
+**And** workflow retry không tạo report bản sao  
+**And** E2E video không đủ tiếng Anh hiển thị đúng message và không gọi Lesson Engine fixture.
+
+Story 2.3 kết thúc với `eligible → analyzing_video` hoặc `ineligible → VIDEO_LANGUAGE_UNSUPPORTED → choose_another_video`.
