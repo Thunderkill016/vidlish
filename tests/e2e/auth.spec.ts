@@ -6,7 +6,10 @@ async function requestCode(page: import("@playwright/test").Page, email: string)
   await expect(page.getByLabel("Mã đăng nhập gồm 6 chữ số")).toBeVisible();
 }
 
-async function login(page: import("@playwright/test").Page, email = "invited@example.com") {
+async function login(
+  page: import("@playwright/test").Page,
+  email = "invited@example.com",
+) {
   await requestCode(page, email);
   await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
   await page.getByRole("button", { name: "Đăng nhập" }).click();
@@ -16,7 +19,9 @@ test("allowlisted learner signs in, keeps session and signs out", async ({ page 
   await page.goto("/sign-in");
   await login(page);
   await expect(page).toHaveURL(/\/create$/);
-  await expect(page.getByRole("heading", { name: "Không gian học của bạn đã sẵn sàng" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Không gian học của bạn đã sẵn sàng" }),
+  ).toBeVisible();
 
   await page.reload();
   await expect(page).toHaveURL(/\/create$/);
@@ -28,13 +33,19 @@ test("allowlisted learner signs in, keeps session and signs out", async ({ page 
   await expect(page).toHaveURL(/\/sign-in\?next=%2Flibrary$/);
 });
 
-test("non-allowlisted email receives neutral response and no usable session", async ({ page }) => {
+test("non-allowlisted email receives neutral response and no usable session", async ({
+  page,
+}) => {
   await page.goto("/sign-in");
   await requestCode(page, "not-invited@example.com");
-  await expect(page.getByText("Nếu email của bạn được mời, mã đăng nhập sẽ được gửi.")).toBeVisible();
+  await expect(
+    page.getByText("Nếu email của bạn được mời, mã đăng nhập sẽ được gửi."),
+  ).toBeVisible();
   await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
   await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page.getByRole("alert")).toContainText("không đúng hoặc đã hết hạn");
+  await expect(page.locator("#auth-error")).toContainText(
+    "không đúng hoặc đã hết hạn",
+  );
 });
 
 test("protected deep link returns after successful OTP", async ({ page }) => {
@@ -51,7 +62,11 @@ test("external redirect is rejected", async ({ page }) => {
   await expect(page).toHaveURL(/\/create$/);
 });
 
-test("revoked fake session cannot open protected content", async ({ context, page, baseURL }) => {
+test("revoked fake session cannot open protected content", async ({
+  context,
+  page,
+  baseURL,
+}) => {
   if (!baseURL) throw new Error("baseURL is required");
   await context.addCookies([
     {
