@@ -1,0 +1,93 @@
+# generated: 2026-08-03T22:49:00+07:00
+# last_updated: 2026-08-03T22:49:00+07:00
+# project: Vidlish
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in implementation artifacts
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but is not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when its first story artifact is created
+# - Stories may run in parallel when dependencies and capacity permit
+# - Default flow is create story → validate story → develop → review → done
+# - The next story is usually created after the previous one is done so learnings can transfer
+# - Retrospective action items are appended under action_items when they exist
+
+generated: "2026-08-03T22:49:00+07:00"
+last_updated: "2026-08-03T22:49:00+07:00"
+project: Vidlish
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+  epic-1: backlog
+  1-1-truy-cap-private-beta-va-dang-nhap-an-toan: backlog
+  1-2-dan-va-kiem-tra-video-youtube: backlog
+  1-3-chon-trinh-do-va-xac-nhan-video-san-sang: backlog
+  epic-1-retrospective: optional
+
+  epic-2: backlog
+  2-1-tao-generation-job-ben-vung: backlog
+  2-2-lay-caption-goc-va-tao-canonical-transcript: backlog
+  2-3-kiem-tra-video-co-du-tieng-anh-goc: backlog
+  2-4-lay-transcript-qua-hosted-generated-transcript-provider: backlog
+  2-5-tich-hop-unofficial-extractor-theo-policy: backlog
+  2-6-tao-transcript-tu-public-youtube-url-bang-gemini: backlog
+  2-7-nhan-transcript-hoac-subtitle-tu-nguoi-dung: backlog
+  2-8-tao-transcript-tu-audio-cua-tab: backlog
+  2-9-xu-ly-video-dai-bang-budget-va-chunking: backlog
+  2-10-kiem-soat-quota-retry-circuit-breaker-va-cancellation: backlog
+  2-11-don-artifact-tam-va-ap-dung-transcript-retention: backlog
+  2-12-ghi-telemetry-an-toan-va-co-lap-environment: backlog
+  2-13-dien-tap-backup-restore-va-khoa-epic-2-regression: backlog
+  epic-2-retrospective: optional
+
+  epic-3: backlog
+  3-1-tien-xu-ly-transcript-va-phan-tich-video: backlog
+  3-2-chon-ngon-ngu-dang-hoc-va-muc-tieu-bai-hoc: backlog
+  3-3-soan-core-lesson-qua-pipeline-nhieu-buoc: backlog
+  3-4-kiem-dinh-cham-chat-luong-va-sua-co-gioi-han: backlog
+  3-5-chay-golden-regression-va-khoa-release-chat-luong: backlog
+  3-6-publish-nguyen-tu-va-luu-immutable-lesson-version: backlog
+  3-7-hien-thi-lesson-viewer-de-doc-va-responsive: backlog
+  epic-3-retrospective: optional
+
+  epic-4: backlog
+  4-1-dieu-huong-video-bang-timestamp-evidence: backlog
+  4-2-lam-hoat-dong-va-nhan-feedback: backlog
+  4-3-retrieval-transfer-va-hoan-thanh-lesson: backlog
+  epic-4-retrospective: optional
+
+  epic-5: backlog
+  5-1-xem-thu-vien-va-mo-lai-lesson-da-luu: backlog
+  5-2-loc-thu-vien-va-khoi-phuc-job-loi: backlog
+  5-3-xoa-lesson-va-du-lieu-phu-thuoc-theo-policy: backlog
+  epic-5-retrospective: optional
