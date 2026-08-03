@@ -6,9 +6,11 @@ companions:
   - cefr-rubrics.md
   - activity-catalog.md
   - generation-quality-pipeline.md
+  - language-eligibility.md
 sources:
   - ../../../IDEA.md
   - ../../planning-artifacts/prds/prd-vidlish-2026-08-03/prd.md
+  - ../../planning-artifacts/prds/prd-vidlish-2026-08-03/language-eligibility-amendment.md
   - ../../planning-artifacts/research/domain-youtube-lesson-content-design-2026-08-03.md
 ---
 
@@ -18,7 +20,7 @@ sources:
 
 ## Why
 
-Vidlish chỉ có giá trị khi biến transcript thành một bài học thực sự giúp người Việt hiểu, ghi nhớ và sử dụng tiếng Anh. Một lời gọi AI đơn lẻ dễ tạo summary, danh sách từ khó và quiz ngẫu nhiên nhưng không đảm bảo level fit, evidence, progression hoặc hiệu quả học. Lesson Engine phải biến video thành một chuỗi học có mục tiêu, có bằng chứng và có quality gate trước khi publish.
+Vidlish chỉ có giá trị khi biến nội dung tiếng Anh thực sự xuất hiện trong video thành một bài học giúp người Việt hiểu, ghi nhớ và sử dụng tiếng Anh. Một lời gọi AI đơn lẻ dễ tạo summary, danh sách từ khó và quiz ngẫu nhiên nhưng không đảm bảo level fit, evidence, progression hoặc hiệu quả học. Lesson Engine phải biến video đủ điều kiện tiếng Anh thành một chuỗi học có mục tiêu, có bằng chứng và có quality gate trước khi publish.
 
 ## Capabilities
 
@@ -70,9 +72,16 @@ Vidlish chỉ có giá trị khi biến transcript thành một bài học thự
   - **intent:** Hệ thống có thể đánh giá thay đổi prompt/model bằng một bộ video và golden expectations ổn định.
   - **success:** Mọi thay đổi pipeline chạy regression evaluation trên ít nhất 10 video đa genre × nhiều level trước khi được dùng cho production.
 
+- **CAP-13 — Xác nhận nguồn tiếng Anh trước Lesson Engine**
+  - **intent:** Hệ thống chỉ tạo bài học khi video có đủ lời nói tiếng Anh gốc, đáng tin cậy và liền mạch để làm nguồn học.
+  - **success:** Video không đủ tiếng Anh dừng trước mọi model call của Lesson Engine với `VIDEO_LANGUAGE_UNSUPPORTED`; không có lesson nào dùng bản dịch hoặc tiếng Anh do AI tạo làm source evidence.
+
 ## Constraints
 
+- `language-eligibility.md` được thực thi trước Video Analyst và là hard gate.
 - Transcript segment IDs là nguồn sự thật cho mọi nội dung gắn với video.
+- Source quote, listening, grammar noticing và scored evidence chỉ dùng segment chứa lời nói tiếng Anh gốc.
+- Không dịch video không phải tiếng Anh, không tạo English track/TTS thay thế và không coi generated English là nội dung video.
 - Không dùng one-shot `transcript → complete lesson → publish` làm production path.
 - Deterministic validators, không phải LLM reviewer, quyết định hard gates về schema, segment existence, counts và answerability.
 - Language explanation mặc định là tiếng Việt; target language, source quote và generated example là tiếng Anh.
@@ -85,6 +94,8 @@ Vidlish chỉ có giá trị khi biến transcript thành một bài học thự
 
 ## Non-goals
 
+- Tạo bài học tiếng Anh bằng cách dịch video có ngôn ngữ nguồn khác tiếng Anh.
+- Tạo giọng đọc hoặc bản dub tiếng Anh để thay thế audio gốc.
 - Chấm phát âm tự động hoặc speech scoring trong MVP.
 - Adaptive sequencing theo thời gian thực dựa trên từng câu trả lời trong MVP.
 - Spaced repetition, flashcard deck độc lập hoặc long-term learner model trong MVP.
@@ -95,7 +106,7 @@ Vidlish chỉ có giá trị khi biến transcript thành một bài học thự
 
 ## Success signal
 
-Trên benchmark gồm hội thoại, vlog, phỏng vấn, tutorial, giáo dục, tin tức, comedy/slang và video dài, Vidlish tạo được Core Lesson khác biệt theo CEFR, hoàn thành trong 10–20 phút, không có quote giả hoặc câu hỏi vô đáp án, và đạt ít nhất 90% quality-gate pass rate sau tối đa một vòng sửa có giới hạn.
+Trên benchmark gồm các video tiếng Anh đủ điều kiện thuộc hội thoại, vlog, phỏng vấn, tutorial, giáo dục, tin tức, comedy/slang và video dài, Vidlish tạo được Core Lesson khác biệt theo CEFR, hoàn thành trong 10–20 phút, không có quote giả hoặc câu hỏi vô đáp án, và đạt ít nhất 90% quality-gate pass rate sau tối đa một vòng sửa có giới hạn. Video không đủ tiếng Anh bị chặn trước Lesson Engine với lý do rõ ràng.
 
 ## Assumptions
 
@@ -103,6 +114,7 @@ Trên benchmark gồm hội thoại, vlog, phỏng vấn, tutorial, giáo dục,
 - MVP chỉ cung cấp Core Lesson; focus mode là mở rộng sau MVP.
 - Người học chưa có vocabulary history đủ tin cậy, nên personalization MVP dựa trên CEFR, genre và transcript.
 - Gemini là provider ban đầu nhưng không phải contract lâu dài.
+- Ngưỡng eligibility số học được cấu hình và kiểm thử, nhưng không được coi vài từ tiếng Anh rời rạc là đủ điều kiện.
 
 ## Open Questions
 
