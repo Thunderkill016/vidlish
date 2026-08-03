@@ -245,3 +245,118 @@ Story này chỉ tạo nền đăng nhập và app shell hoàn chỉnh; chưa x�
 **And** CI dùng fixture metadata provider, không gọi YouTube thật.
 
 Story này kết thúc khi metadata của video đã được xác nhận; chưa tạo generation job, chưa lấy transcript và chưa gọi Gemini.
+
+## Story 1.3 — Chọn trình độ và xác nhận video sẵn sàng
+
+**As a** người học đã xác nhận được video YouTube,  
+**I want** chọn trình độ tiếng Anh phù hợp và thấy trạng thái sẵn sàng rõ ràng,  
+**So that** bài học sau này được cá nhân hóa đúng mức của tôi và không bắt đầu với dữ liệu thiếu.
+
+**Requirements:** FR4 · NFR13, NFR14 · AD-14 · UX-DR6, UX-DR8, UX-DR27–30, UX-DR32.
+
+### Acceptance Criteria
+
+#### AC1 — Hiển thị CEFR selector
+
+**Given** người dùng mở Create Lesson  
+**When** form hiển thị  
+**Then** có năm lựa chọn A1, A2, B1, B2 và C1  
+**And** mỗi level có nhãn tiếng Anh thân thiện cùng mô tả ngắn bằng tiếng Việt  
+**And** dữ liệu được lưu bằng enum `A1 | A2 | B1 | B2 | C1`.
+
+#### AC2 — Trải nghiệm responsive
+
+**Given** màn hình desktop  
+**When** selector hiển thị  
+**Then** năm level được trình bày thành các nút có kích thước cân đối.
+
+**Given** màn hình nhỏ  
+**When** selector không đủ chiều ngang  
+**Then** nó trở thành hàng segmented có thể cuộn ngang  
+**And** không làm tràn trang  
+**And** mỗi lựa chọn có touch target tối thiểu 44×44 CSS pixels.
+
+#### AC3 — Trạng thái lựa chọn
+
+**Given** người dùng chưa chọn level  
+**When** form được kiểm tra  
+**Then** không level nào được ngầm chọn thay người dùng  
+**And** hành động tiếp tục chưa khả dụng.
+
+**Given** người dùng chọn một level  
+**When** selection thay đổi  
+**Then** chỉ một level được chọn  
+**And** trạng thái selected dùng text, icon hoặc `aria-pressed`, không chỉ màu  
+**And** screen reader đọc được tên và mô tả level.
+
+#### AC4 — Giữ lựa chọn trong phiên
+
+**Given** người dùng đã chọn CEFR  
+**When** sửa URL, kiểm tra lại metadata hoặc điều hướng tạm thời trong Create flow  
+**Then** lựa chọn vẫn được giữ trong phiên hiện tại  
+**And** chưa tạo learner profile hoặc preference dài hạn ngoài scope MVP.
+
+#### AC5 — Điều kiện sẵn sàng
+
+**Given** form Create Lesson  
+**When** URL chưa hợp lệ, metadata chưa hoàn tất, video không `playable` hoặc CEFR chưa được chọn  
+**Then** nút `Tạo bài học` bị vô hiệu hóa  
+**And** lý do thiếu được thể hiện gần trường liên quan.
+
+**Given** video `playable` và CEFR hợp lệ  
+**When** form đạt mọi điều kiện  
+**Then** nút `Tạo bài học` được bật  
+**And** giao diện hiển thị rõ video và level sắp được sử dụng.
+
+#### AC6 — Thay đổi URL làm mất readiness cũ
+
+**Given** video A đã được kiểm tra thành công  
+**When** người dùng sửa URL thành video B  
+**Then** metadata và trạng thái readiness của video A bị loại bỏ  
+**And** hệ thống không cho phép tiếp tục bằng metadata cũ  
+**And** CEFR đã chọn có thể được giữ lại.
+
+#### AC7 — Payload chuẩn hóa
+
+**Given** form đã sẵn sàng  
+**When** application tạo command chuẩn bị cho Epic 2  
+**Then** payload chỉ gồm `videoId`, `cefrLevel` và `metadataVersion` đã xác nhận  
+**And** payload đi qua Zod schema  
+**And** title, channel hoặc URL raw từ client không được xem là nguồn sự thật.
+
+#### AC8 — Không tạo generation job trong Story 1.3
+
+**Given** Story 1.3 đã hoàn tất  
+**When** người dùng đạt trạng thái sẵn sàng  
+**Then** Create flow có đủ validated inputs để Epic 2 tạo job  
+**And** Story này chưa tạo `lesson_jobs`, chưa gọi transcript provider, STT hoặc Gemini  
+**And** không phát sinh provider cost.
+
+#### AC9 — Privacy và scope copy
+
+**Given** Create Lesson form  
+**When** người dùng chuẩn bị tiếp tục  
+**Then** UI hiển thị ghi chú rằng Vidlish không lưu video  
+**And** không hứa rằng mọi video đều tạo bài thành công  
+**And** lời hứa sản phẩm nêu rõ video cần có đủ nội dung tiếng Anh gốc.
+
+#### AC10 — Accessibility
+
+**Given** người dùng chỉ sử dụng bàn phím  
+**When** chọn CEFR và kiểm tra form  
+**Then** thứ tự focus theo URL → CEFR → primary action  
+**And** Tab/Space/Enter hoặc arrow keys hoạt động nhất quán theo component semantics  
+**And** thông báo readiness hoặc lỗi được công bố mà không spam `aria-live`  
+**And** visible focus luôn tồn tại.
+
+#### AC11 — Kiểm thử
+
+**Given** Story 1.3 được đưa vào CI  
+**When** test suite chạy  
+**Then** có unit test cho CEFR enum và validation schema  
+**And** có component test cho selected, unselected và disabled states  
+**And** có test cho việc đổi URL làm mất metadata readiness cũ  
+**And** có responsive/accessibility test cho selector  
+**And** E2E test xác nhận nút chỉ bật khi video và CEFR đều hợp lệ.
+
+Epic 1 hoàn tất ở trạng thái: người dùng đã đăng nhập, video `playable` đã được xác nhận và CEFR đã được chọn; hệ thống sẵn sàng tạo generation job trong Epic 2.
