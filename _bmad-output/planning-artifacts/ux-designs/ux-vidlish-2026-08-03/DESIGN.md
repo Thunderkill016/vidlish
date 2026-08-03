@@ -2,11 +2,12 @@
 name: Vidlish
 status: final
 updated: 2026-08-03
-description: Content-first responsive web that turns YouTube videos into grounded English lessons. shadcn/ui on Next.js + Tailwind; this file defines the brand-layer delta.
+description: Content-first responsive web that turns English-language YouTube videos into grounded English lessons.
 sources:
   - ../../prds/prd-vidlish-2026-08-03/prd.md
+  - ../../prds/prd-vidlish-2026-08-03/language-eligibility-amendment.md
   - ../../../specs/spec-vidlish-lesson-engine/SPEC.md
-  - ../../research/domain-youtube-lesson-content-design-2026-08-03.md
+  - ../../architecture/architecture-vidlish-2026-08-03/LANGUAGE-ELIGIBILITY-AMENDMENT.md
 colors:
   primary: '#4338CA'
   primary-foreground: '#FFFFFF'
@@ -46,132 +47,112 @@ spacing:
   reading-column: 720px
   app-shell: 1280px
   section-gap: 32px
-components:
-  button-primary:
-    background: '{colors.primary}'
-    foreground: '{colors.primary-foreground}'
-    radius: '{rounded.md}'
-  evidence-chip:
-    background: '{colors.evidence}'
-    foreground: '{colors.evidence-foreground}'
-    radius: 999px
-  phase-active:
-    background: '{colors.primary}'
-    foreground: '{colors.primary-foreground}'
-    radius: 999px
-  transcript-active:
-    background: 'color-mix(in srgb, {colors.accent} 12%, transparent)'
-    border: '{colors.accent}'
-    radius: '{rounded.sm}'
-  lesson-card:
-    radius: '{rounded.lg}'
-    border: 'var(--border)'
 ---
 
 # Vidlish — Design Spine
 
-## Brand & Style
+## Brand promise
 
-Vidlish should feel like a thoughtful study workspace, not an AI toy and not a school management system. The visual posture is **calm, grounded and content-first**:
+Canonical tagline:
+
+> **Any English video. Your English lesson.**
+
+Product copy must never imply that every public YouTube video is eligible. A video must contain enough reliable original English speech. Missing captions can trigger transcription fallback; confirmed insufficient English is terminal for MVP.
+
+Vidlish should feel like a thoughtful study workspace, not an AI toy or school-management dashboard. The visual posture is **calm, grounded and content-first**:
 
 - Video and lesson content carry the visual weight.
 - Evidence and timestamps are visible but secondary.
-- The product never celebrates quantity over learning quality.
-- AI is presented as a process behind the lesson, not as a mascot or chat personality.
-- Empty space is used to reduce cognitive load, not to create a marketing aesthetic.
+- AI is a behind-the-scenes process, not a mascot or chat personality.
+- Empty space reduces cognitive load.
+- Quality and source grounding matter more than quantity or speed.
 
-The tagline is **“Any video. Your English lesson.”** Brand language is direct and useful. Avoid gradients, glowing AI effects, anthropomorphic assistants, streaks, confetti and decorative illustrations inside the learning flow.
-
-Vidlish inherits shadcn/ui defaults for background, foreground, card, muted, border, input, ring, destructive, popover and form components. This spine overrides only the learning-specific brand layer.
+Avoid gradients, glowing AI effects, anthropomorphic assistants, streaks, XP, confetti and decorative illustrations inside the learning flow.
 
 ## Colors
 
-- **Learning Indigo (`{colors.primary}`)** — primary actions, active lesson phase, selected CEFR level and current generation stage. It means “continue the learning flow.”
-- **Evidence Teal (`{colors.accent}`)** — source-backed content, transcript focus, successful grounding and interactive timestamp states. It means “this comes from the video.”
-- **Timestamp Amber (`{colors.evidence}`)** — compact evidence chips and timeline anchors. Use sparingly; it is not a general warning color.
-- **Status colors** — inherit shadcn semantic tokens. Destructive means irreversible failure/delete; warning means fallback or low-confidence transcript; success means lesson passed quality gates.
+- **Learning Indigo** (`#4338CA`) — primary actions, selected CEFR and active generation/lesson phase.
+- **Evidence Teal** (`#0F766E`) — source-backed content, transcript focus and successful grounding.
+- **Timestamp Amber** (`#B45309`) — compact evidence chips and timeline anchors only.
+- Status colors inherit shadcn semantic tokens. Warning indicates fallback or low confidence; destructive indicates irreversible failure/delete; success indicates a passed gate.
 
-Do not color every lesson section differently. Sections are distinguished through type hierarchy, spacing, subtle borders and numbered phase labels.
+Color is never the only state cue. Pair it with text and/or icons.
 
 ## Typography
 
-Body, label and muted text inherit Geist Sans/shadcn defaults.
+- Body, labels and muted text: Geist Sans/shadcn defaults.
+- `display`: create-page promise and major empty states.
+- `display-sm`: page titles and lesson section openings.
+- `timestamp`: timestamp chips, duration labels and internal segment IDs.
 
-- `display` — landing/create-page promise and major empty state only.
-- `display-sm` — page titles and lesson section openings.
-- `timestamp` — all timestamp chips, segment IDs in internal views and compact duration labels.
-
-English source quotes use the body font with medium weight and a subtle left border. Vietnamese explanation uses normal weight. Generated examples must be labeled “Ví dụ mới” and never visually imitate source quotes.
+English source quotes use medium weight and a subtle source border. Vietnamese explanation uses normal weight. Generated examples are labeled **“Ví dụ mới”** and never imitate source quotes.
 
 Line-length rules:
 
-- Explanations and summaries: maximum `{spacing.reading-column}`.
-- Transcript: 65–85 characters per line when possible.
-- Lesson Viewer can be wide, but reading content stays in a bounded column.
+- Explanations and summaries: maximum 720px.
+- Transcript: approximately 65–85 characters per line where possible.
+- Lesson Viewer may be wide, but reading content stays bounded.
 
-## Layout & Spacing
+## Layout
 
-Maximum application width: `{spacing.app-shell}`.
+Maximum application width: 1280px.
 
-- Create Lesson: centered single-column composition, max width 720px.
-- Lesson Viewer desktop: sticky media rail (38–42%) + lesson content (58–62%).
-- Library: list-first layout; cards may become two columns only on large screens.
+- Create Lesson: centered single column, max 720px.
+- Generation: single-column progress and fallback decisions.
+- Lesson Viewer desktop: sticky media rail 38–42% plus reading rail 58–62%.
+- Lesson Viewer mobile: stacked, player first and non-sticky after meaningful scroll.
+- Library: list-first; two-column cards only on large screens when readability remains strong.
 - Forms use 16px internal gaps and 24–32px section gaps.
-- Core lesson sections use 32px between phase blocks and 16px between activities.
+- Lesson phases use 32px between blocks and 16px between activities.
 
-The interface must not resemble a dense dashboard. Create and Lesson are task surfaces; Library is the only collection surface.
+The interface must not resemble a dense analytics dashboard.
 
-## Elevation & Depth
+## Shape and elevation
 
-Use shadcn shadows conservatively:
+- Inputs and transcript rows: 8px radius.
+- Buttons and standard cards: 12px.
+- Large panels, dialogs and sheets: 16px.
+- Pills only for compact status, CEFR and evidence chips.
+- Border-first hierarchy; avoid heavy card shadows.
+- Sticky media may gain a subtle shadow while scrolling.
 
-- Cards have border-first hierarchy and no default heavy shadow.
-- Sticky video rail may use a subtle shadow only while scrolling.
-- Dialog/Sheet uses standard overlay elevation.
-- Active transcript segment uses background + border, not shadow.
-
-## Shapes
-
-Corners are friendly but controlled:
-
-- Inputs/timestamp rows: `{rounded.sm}`.
-- Buttons/cards: `{rounded.md}`.
-- Large lesson panels/dialogs: `{rounded.lg}`.
-- Pills only for status, CEFR and compact evidence chips.
-
-Do not use fully rounded containers for all content; it turns the lesson into disconnected bubbles.
-
-## Components
-
-### Inherited unchanged
+## Component layer
 
 Use shadcn defaults for `Button`, `Input`, `Select`, `Card`, `Dialog`, `Sheet`, `Tabs`, `Accordion`, `Progress`, `Alert`, `Toast`, `Tooltip`, `Skeleton`, `DropdownMenu`, `Badge`, `Separator` and `Checkbox`.
 
-### Brand-layer components
+### Product components
 
-- **Video URL field** — oversized input with paste affordance, URL validation below and metadata preview after success.
-- **CEFR selector** — five equal buttons on desktop; horizontally scrollable segmented row on small screens. Selected state uses `{colors.primary}`.
-- **Generation phase stepper** — vertical on mobile, horizontal/compact on desktop. Completed stages use neutral check; active uses `{components.phase-active}`; fallback transition uses warning semantics.
-- **Fallback decision card** — one clear reason, one recommended action and optional alternatives. Never show provider jargon.
-- **Video shell** — 16:9 player with title/channel below; no custom overlay covering YouTube controls.
-- **Lesson phase card** — numbered phase, outcome mapping and completion state. Uses border hierarchy, not separate bright color.
-- **Evidence chip** — timestamp with play icon using `{components.evidence-chip}`. Opens/seek video; tooltip says “Mở đoạn này”.
-- **Transcript row** — timestamp + text. Current row uses `{components.transcript-active}`; source confidence appears only when low or in internal/debug mode.
-- **Language item card** — term, kind/register, Vietnamese meaning, source quote + evidence chip, context explanation and “Ví dụ mới”.
-- **Activity card** — instruction, interaction area, submit/reveal behavior and feedback region. Correct/incorrect colors are semantic and never the only feedback cue.
-- **Quality status** — hidden from learners by default; beta/internal toggle may show “Đã đối chiếu với transcript” and quality version.
-- **Lesson card** — thumbnail, title, CEFR, date, status and source type; compact actions in menu.
+- **Video URL field** — paste affordance, delayed validation and compact metadata preview.
+- **CEFR selector** — five equal desktop buttons; horizontally scrollable segmented row on mobile.
+- **Generation phase stepper** — includes `Kiểm tra tiếng Anh`; vertical on mobile and compact horizontal/vertical on desktop.
+- **Fallback decision card** — one reason, one recommended action and alternatives under `Cách khác`; no provider jargon.
+- **Unsupported-language card** — terminal message with one primary action `Chọn video khác`; never offers translation mode.
+- **Video shell** — 16:9 player; no custom overlay covering YouTube controls.
+- **Lesson phase card** — numbered phase, outcome mapping and completion state using border/type hierarchy.
+- **Evidence reference** — timestamp/source reference. It becomes an interactive seek control only when Story 4.1 exists and reliable timing is available.
+- **Transcript row** — timestamp and original speech; low confidence shown only when useful.
+- **Language item card** — item, type/register, Vietnamese meaning, source quote, context explanation and labeled generated example.
+- **Activity card** — instruction, attempt, submit/reveal and feedback; correctness never color-only.
+- **Lesson card** — thumbnail, title, CEFR, date, status and source summary with compact actions.
 
-## Do's and Don'ts
+## Source distinction
 
-| Do | Don't |
-|---|---|
-| Let video and lesson content dominate | Build a dashboard full of metrics before the lesson |
-| Show evidence/timestamps wherever a claim depends on the video | Hide grounding behind an “AI generated” badge |
-| Use one primary action per state | Present five equal fallback buttons at once |
-| Reveal transcript support progressively | Show bilingual transcript as the default first step for every learner |
-| Label generated examples separately | Style generated examples like video quotes |
-| Use calm, specific loading copy | Use “AI magic is happening ✨” |
-| Keep phase progression visible | Turn every section into unrelated tabs |
-| Preserve keyboard focus and readable line lengths | Use hover-only controls or very wide paragraphs |
-| Use semantic colors plus text/icon | Communicate correctness by color alone |
+- Original English speech is visually marked as source-backed.
+- Non-English source portions may appear as context but never as English learning evidence.
+- Translation or Vietnamese support is generated learner assistance, not source speech.
+- Generated examples, explanations and feedback must be labeled or styled distinctly from source quotes.
+
+## Do / Do not
+
+| Do | Do not |
+| --- | --- |
+| Use **Any English video. Your English lesson.** | Promise support for any video regardless of spoken language |
+| Let video and lesson content dominate | Build a metrics dashboard before the lesson |
+| Keep evidence close to claims | Hide grounding behind a generic AI badge |
+| Use one primary action per state | Show many equal fallback buttons |
+| Reveal transcript support progressively | Default to a full bilingual transcript |
+| Label generated examples separately | Style generated content as video speech |
+| Use calm, specific progress copy | Use “AI magic” language |
+| Include `Kiểm tra tiếng Anh` in progress | Skip the mandatory eligibility state |
+| Preserve keyboard focus and readable lines | Use hover-only controls or very wide text |
+| Pair semantic color with text/icon | Communicate status by color alone |
