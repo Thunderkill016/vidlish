@@ -54,3 +54,36 @@ test("transient fixture failure exposes one retry action", async ({ page }) => {
   );
   await expect(page.getByRole("button", { name: "Thử lại" })).toBeVisible();
 });
+
+test("selects CEFR and confirms a session-only validated draft", async ({ page }) => {
+  const jobRequests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/jobs")) jobRequests.push(request.url());
+  });
+
+  const input = page.getByLabel("Liên kết video YouTube");
+  await input.fill("https://youtu.be/dQw4w9WgXcQ");
+  await page.getByRole("button", { name: "Kiểm tra video" }).click();
+
+  const confirm = page.getByRole("button", { name: "Xác nhận lựa chọn" });
+  await expect(confirm).toBeDisabled();
+  const b2 = page.getByRole("button", { name: "B2 Trung cấp cao" });
+  await b2.click();
+  await expect(b2).toHaveAttribute("aria-pressed", "true");
+  await expect(confirm).toBeEnabled();
+
+  await confirm.click();
+  const draft = page.getByTestId("confirmed-lesson-draft");
+  await expect(draft).toContainText("Sẵn sàng tạo bài học");
+  await expect(draft).toContainText("trình độ B2");
+  await expect(draft).toContainText("không lưu video");
+  await expect(page.getByRole("button", { name: "Tạo bài học" })).toHaveCount(0);
+  expect(jobRequests).toEqual([]);
+
+  await input.fill("https://youtu.be/dQw4w9WgXcQ?t=10");
+  await expect(draft).toHaveCount(0);
+  await page.getByRole("button", { name: "Kiểm tra video" }).click();
+  await expect(
+    page.getByRole("button", { name: "B2 Trung cấp cao" }),
+  ).toHaveAttribute("aria-pressed", "true");
+});
