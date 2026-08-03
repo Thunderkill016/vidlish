@@ -5,7 +5,7 @@ purpose: build-substrate
 altitude: feature
 paradigm: hexagonal modular monolith with durable workflow pipeline
 scope: Vidlish responsive web MVP, transcript acquisition, Lesson Engine, persistence, security and deployment
-status: draft
+status: final
 created: 2026-08-03
 updated: 2026-08-03
 binds:
@@ -41,7 +41,7 @@ companions:
 
 **Hexagonal modular monolith with a durable workflow pipeline.**
 
-- The deployable product is one Next.js codebase.
+- One Next.js codebase is the deployable product.
 - Product modules own domain rules and application use cases.
 - External systems are adapters behind ports.
 - Inngest coordinates long-running work but does not own product state.
@@ -55,7 +55,6 @@ flowchart LR
   APP --> PORTS[Ports]
   ADAPTERS[Provider and platform adapters] --> PORTS
   ADAPTERS --> EXT[Supabase / YouTube / Transcript / Gemini / STT]
-  DOMAIN -. no framework or provider imports .-> DOMAIN
 ```
 
 Dependency direction is inward. `domain` and `application` never import Next.js, Supabase, Inngest, Gemini, YouTube or a vendor SDK.
@@ -72,7 +71,7 @@ Dependency direction is inward. `domain` and `application` never import Next.js,
 
 - **Binds:** jobs, transcripts, lessons, completion, Library and recovery UX.
 - **Prevents:** reloads, retries or serverless instance replacement losing state or producing conflicting status.
-- **Rule:** User-visible product state is committed to Supabase Postgres. Browser state, function memory and Inngest step state are caches/execution aids only.
+- **Rule:** User-visible product state is committed to Supabase Postgres. Browser state, function memory and Inngest step state are caches or execution aids only.
 
 ### AD-3 — Workflow owns generation transitions
 
@@ -103,8 +102,8 @@ cancelled
 ### AD-4 — Durable step orchestration
 
 - **Binds:** generation, provider retries, permission waits and long-video processing.
-- **Prevents:** restarting expensive successful stages after transient failures or Vercel timeouts.
-- **Rule:** Every externally visible stage is an independently retryable Inngest step with a stable step ID. A step must be idempotent or guarded by a persisted result key. Waiting for tab-audio/transcript input uses a durable event/signal rather than an open HTTP request.
+- **Prevents:** restarting expensive successful stages after transient failures, duplicate workflow runs or Vercel timeouts.
+- **Rule:** Every externally visible stage is an independently retryable Inngest step with a stable step ID. A step must be idempotent or guarded by a persisted result key. The workflow concurrency key is `job_id` with limit one. Event IDs derive from `job_id + pipeline_version`, so redelivery cannot create a second run. Waiting for tab-audio or transcript input uses a durable event/signal rather than an open HTTP request.
 
 ### AD-5 — Provider independence
 
@@ -123,6 +122,7 @@ TemporaryArtifactStore
 JobRepository
 TranscriptRepository
 LessonRepository
+GenerationPolicy
 TelemetrySink
 ```
 
@@ -130,9 +130,9 @@ TelemetrySink
 
 - **Binds:** PRD transcript coverage and Generation fallback UX.
 - **Prevents:** `NO_CAPTIONS` becoming a dead end or product logic being hard-coded to one unofficial endpoint.
-- **Rule:** The workflow asks `TranscriptAcquisitionService` to execute enabled strategies in configured priority order. Every strategy returns one of `success`, `not_applicable`, `permission_required`, `user_input_required`, `retryable_failure` or `terminal_failure`.
+- **Rule:** `TranscriptAcquisitionService` executes enabled strategies in configured priority order. Each strategy declares its ID, source type, permission requirement, policy class, estimated cost class and supported input. It returns one of `success`, `not_applicable`, `permission_required`, `user_input_required`, `retryable_failure` or `terminal_failure`.
 
-Supported strategy classes:
+Default strategy classes:
 
 1. User-owned official caption access.
 2. Existing manual/auto captions through an approved hosted provider.
@@ -149,7 +149,7 @@ Unofficial extraction is controlled by `ENABLE_UNOFFICIAL_TRANSCRIPT_STRATEGIES`
 
 - **Binds:** CAP-1, CAP-3, CAP-6, evidence links and timestamp seeking.
 - **Prevents:** each source producing incompatible timing, confidence and text semantics.
-- **Rule:** Every strategy must produce the same normalized transcript artifact before Lesson Engine use.
+- **Rule:** Every strategy produces the same normalized transcript artifact before Lesson Engine use.
 
 ```ts
 type CanonicalTranscript = {
@@ -184,7 +184,7 @@ Segment IDs are generated after normalization and remain stable for that transcr
 
 - **Binds:** Tab Audio Capture, owned-media upload, privacy and retention.
 - **Prevents:** accidental permanent storage or public exposure of captured content.
-- **Rule:** Browser audio is split into bounded chunks and uploaded through signed URLs to a private `temporary-audio` bucket. Objects carry `job_id`, `owner_user_id` and `expires_at`; they are deleted immediately after transcript commit/failure and by a scheduled TTL sweeper as defense in depth. Video/audio is never copied into permanent lesson storage.
+- **Rule:** Browser audio is split into bounded chunks and uploaded through signed URLs to a private `temporary-audio` bucket. Objects carry `job_id`, `owner_user_id` and `expires_at`; they are deleted immediately after transcript commit or failure and by a scheduled TTL sweeper as defense in depth. Video/audio is never copied into permanent lesson storage.
 
 ### AD-9 — No hard duration cap; bounded work instead
 
@@ -220,11 +220,11 @@ Gemini produces candidates and reviewer reports. Deterministic code owns hard ga
 - **Prevents:** model aliases changing behavior without traceability or the API key leaking to browsers.
 - **Rule:** The default production adapter uses stable `gemini-3.6-flash` via `@google/genai` and structured outputs. The model name is configuration, never `*-latest`; every call stores model, prompt and schema versions. `GEMINI_API_KEY` is server-only. Domain contracts remain provider-neutral.
 
-### AD-12 — Published lesson content is immutable and versioned
+### AD-12 — Published lesson content is immutable, versioned and atomically exposed
 
 - **Binds:** Library, reopen, regeneration, benchmarking and CAP-10.
-- **Prevents:** provider retries or later prompt changes silently rewriting a lesson the user already studied.
-- **Rule:** `lessons` owns identity and current-version pointer; `lesson_versions` stores immutable content, quality and provenance. Regeneration creates a new version. Completion/attempt state is stored separately from lesson content.
+- **Prevents:** provider retries rewriting studied content or users seeing a lesson before all dependent records are valid.
+- **Rule:** `lessons` owns identity and current-version pointer; `lesson_versions` stores immutable content, quality and provenance. Regeneration creates a new version. Completion/attempt state is stored separately. Publishing is one database transaction or SQL function that inserts the version, updates the current pointer and marks the job completed; failure leaves no visible partial lesson.
 
 ### AD-13 — Owner-scoped data and RLS
 
@@ -272,15 +272,17 @@ Provider errors are mapped server-side and logged with sensitive fields redacted
 - **Prevents:** prompt injection, unsupported claims and malicious content controlling workflow behavior.
 - **Rule:** Transcript content is delimited as data, never instructions. Model output cannot trigger tools, mutate state or select providers. Application code verifies segment references and enforces content/size limits before model calls.
 
-### AD-18 — Environment and secret isolation
+### AD-18 — Environment, region and secret isolation
 
 - **Binds:** local, staging/private-beta and production deployment.
-- **Prevents:** preview code touching production data or secrets and environment-specific branches in domain code.
+- **Prevents:** preview code touching production data/secrets, unnecessary cross-region latency and environment-specific branches in domain code.
 - **Rule:**
   - `local`: local Supabase, Inngest Dev Server and fixture providers by default.
   - `staging`: isolated Supabase project, staging Inngest environment and restricted provider keys.
   - `production`: separate Supabase project, production Inngest environment and production keys.
-  - Environment-specific behavior is configuration validated at process startup; production secrets are absent from preview/local.
+  - Vercel compute and Supabase primary region are co-located where both platforms support it; exact region is selected during account setup.
+  - Environment-specific behavior is typed configuration validated at startup; production secrets are absent from preview/local.
+  - Production requires managed database backups and a tested restore procedure before public launch.
 
 ### AD-19 — Test pyramid and provider isolation
 
@@ -288,7 +290,7 @@ Provider errors are mapped server-side and logged with sensitive fields redacted
 - **Prevents:** flaky CI, accidental live-provider cost and prompt/model regressions reaching production.
 - **Rule:**
   - Unit tests cover domain selectors, normalization, validators, error mapping and cache/idempotency.
-  - Integration tests cover Postgres/RLS, repositories, Inngest workflow steps and adapters against fixtures/sandboxes.
+  - Integration tests cover Postgres/RLS, repositories, Inngest workflow steps and adapters against fixtures or sandboxes.
   - Playwright E2E covers sign-in, create, fallback, generation, lesson, reopen and delete.
   - CI uses fixtures/mocks only; a separately triggered evaluation suite may call live providers.
   - Pipeline/model/prompt changes must pass the golden evaluation set before production promotion.
@@ -299,6 +301,12 @@ Provider errors are mapped server-side and logged with sensitive fields redacted
 - **Prevents:** orphaned transcripts/audio and partial deletes.
 - **Rule:** Deleting a lesson executes an owner-authorized transaction/workflow that removes lesson state, versions and dependent owner-scoped transcript data when no other lesson depends on it. Temporary audio is always removed regardless of lesson outcome. Audit metadata may retain non-content identifiers only according to the published retention policy.
 
+### AD-21 — Quota and cost policy is a domain gate
+
+- **Binds:** job creation, provider selection, long videos and private-beta abuse control.
+- **Prevents:** separate routes/providers enforcing conflicting limits or a job starting after its cost budget is already exceeded.
+- **Rule:** `GenerationPolicy` evaluates authenticated user, active jobs, configured quota and estimated strategy/model cost before job creation and before each expensive stage. Exact numeric limits are environment configuration; all denials use stable product error codes. Inngest concurrency/throttle is defense in depth, not the sole quota mechanism.
+
 ## Consistency Conventions
 
 | Concern | Convention |
@@ -306,7 +314,7 @@ Provider errors are mapped server-side and logged with sensitive fields redacted
 | Module names | Lowercase kebab-case directories; domain types in PascalCase; ports end in `Provider`, `Repository` or `Store`. |
 | IDs | Postgres UUIDs; opaque to clients; never encode user/video metadata. |
 | Dates | Postgres `timestamptz`; API uses UTC ISO 8601 strings. |
-| Durations | Milliseconds in domain/API fields (`startMs`, `endMs`); minutes only for user-facing estimates. |
+| Durations | Milliseconds in domain/API fields; minutes only for user-facing estimates. |
 | Events | Lowercase namespaced past-tense names, e.g. `lesson.generation-requested.v1`, `transcript.input-provided.v1`. |
 | Commands | Imperative application DTOs, e.g. `CreateLessonJob`, `ProvideTranscriptInput`, `DeleteLesson`. |
 | Database | SQL migrations are append-only and reviewed; direct production schema editing is forbidden. |
@@ -359,9 +367,9 @@ flowchart TB
   G[Gemini API]
   STT[STT provider]
 
-  B -->|HTTPS, auth cookie| V
+  B -->|HTTPS and auth cookie| V
   B -->|signed temporary chunk upload| O
-  V -->|SQL/Auth/Storage API| S
+  V --> S
   V -->|emit generation event| I
   I -->|invoke durable steps| V
   V --> Y
@@ -369,7 +377,6 @@ flowchart TB
   V --> G
   V --> STT
   V --> O
-  V --> S
 ```
 
 ### Generation workflow
@@ -389,7 +396,7 @@ flowchart TD
   I -->|minor repairable failure| J[Targeted repair]
   J --> I
   I -->|pass| K[Pedagogy and CEFR review]
-  K -->|pass| L[Publish immutable lesson version]
+  K -->|pass| L[Atomic publish of immutable lesson version]
   K -->|repairable| J
   I -->|hard fail| X[Persist failed job]
   K -->|hard fail| X
@@ -466,19 +473,20 @@ tests/
 | CAP-5 Core Lesson progression | lesson schema and composer | AD-10, AD-12 |
 | CAP-6 Grounding | canonical segments, grounding validator | AD-7, AD-10, AD-17 |
 | CAP-7 Exercise validity | activity contracts and answer validator | AD-10, AD-14, AD-19 |
-| CAP-8 Long-video scaling | chunk planner and workflow | AD-4, AD-9 |
+| CAP-8 Long-video scaling | chunk planner and workflow | AD-4, AD-9, AD-21 |
 | CAP-9 Quality gate | deterministic validators, reviewer, repair | AD-10, AD-19 |
 | CAP-10 Traceability/versioning | lesson versions, provenance and telemetry | AD-11, AD-12, AD-16 |
 | CAP-11 Provider independence | ports and adapters | AD-1, AD-5, AD-11 |
 | CAP-12 Benchmark quality | `tests/evaluation` and promotion gate | AD-16, AD-19 |
 | Transcript coverage | transcript module and strategy registry | AD-4, AD-6, AD-7, AD-8 |
 | Auth/data isolation | identity, Supabase repositories/RLS | AD-2, AD-13, AD-18 |
-| Create/Generation UX | app routes + persisted job reads | AD-2, AD-3, AD-4, AD-15 |
+| Create/Generation UX | app routes + persisted job reads | AD-2, AD-3, AD-4, AD-15, AD-21 |
 | Library/delete | lessons/library modules and retention workflow | AD-12, AD-13, AD-20 |
 
 ## Deferred
 
 - Exact hosted transcript provider, STT provider and commercial plan: choose when API accounts/budget are supplied; contracts and required capabilities are fixed here.
+- Exact numeric daily quota, concurrency and cost ceilings: supply through environment configuration when billing limits are known.
 - Direct browser-to-STT streaming with ephemeral vendor tokens: optimize after chunked temporary upload works reliably.
 - Supabase Realtime for job progress: polling is the MVP transport.
 - Chrome extension, desktop companion and on-device Whisper: post-MVP acquisition adapters.
