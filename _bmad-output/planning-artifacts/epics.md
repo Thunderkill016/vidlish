@@ -164,5 +164,5 @@ Người dùng có thể xem lesson/job theo trạng thái, mở lại không g�
 ### Epic 1
 
 - [Story 1.1 — Truy cập private beta và đăng nhập an toàn](epics/epic-1.md#story-11--truy-cập-private-beta-và-đăng-nhập-an-toàn) — approved.
-- Story 1.2 — Dán và kiểm tra video YouTube — drafting.
-- Story 1.3 — Chọn trình độ và xác nhận video sẵn sàng — pending.
+- [Story 1.2 — Dán và kiểm tra video YouTube](epics/epic-1.md#story-12--dán-và-kiểm-tra-video-youtube) — approved.
+- Story 1.3 — Chọn trình độ và xác nhận video sẵn sàng — drafting.
