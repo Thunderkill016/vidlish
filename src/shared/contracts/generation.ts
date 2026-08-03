@@ -118,7 +118,7 @@ export type CreateLessonJobResponse = z.infer<
 export const generationJobSchema = z
   .object({
     id: z.string().uuid(),
-    ownerUserId: z.string().uuid(),
+    ownerUserId: z.string().min(1).max(256),
     videoId: videoIdSchema,
     videoTitle: z.string().min(1).max(500),
     channelName: z.string().min(1).max(300),
