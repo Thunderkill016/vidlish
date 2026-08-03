@@ -8,11 +8,13 @@ Derived from **Video + English**.
 
 ## Tagline
 
-**Any video. Your English lesson.**
+**Any English video. Your English lesson.**
 
 ## Product promise
 
-Paste a YouTube link and turn the video into a personalized English lesson.
+Paste a public YouTube video that contains enough original English speech and turn it into a personalized, grounded English lesson.
+
+Caption absence is not a blocker because Vidlish may transcribe the original audio. A video without enough original English content is outside the MVP boundary.
 
 ## Repository
 
