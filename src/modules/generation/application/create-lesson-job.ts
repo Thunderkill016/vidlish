@@ -7,6 +7,7 @@ import {
   generationRequestedEventSchema,
   type CreateLessonJobRequest,
   type CreateLessonJobResponse,
+  type GenerationJob,
 } from "@/shared/contracts/generation";
 import { videoErrors } from "@/shared/errors/product-error";
 
@@ -35,10 +36,35 @@ export class CreateLessonJob {
     private readonly policy: GenerationPolicy,
   ) {}
 
+  private async ensureDispatched(job: GenerationJob): Promise<void> {
+    if (job.dispatchStatus === "sent") return;
+    const event = generationRequestedEventSchema.parse({
+      jobId: job.id,
+      pipelineVersion: GENERATION_PIPELINE_VERSION,
+    });
+    try {
+      await this.dispatcher.sendRequested(event);
+      await this.repository.markDispatch(job.id, "sent");
+    } catch {
+      await this.repository.markDispatch(job.id, "failed");
+    }
+  }
+
   async execute(
     ownerUserId: string,
     input: CreateLessonJobRequest,
   ): Promise<CreateLessonJobResponse> {
+    const existing = await this.repository.findActive({
+      ownerUserId,
+      videoId: input.videoId,
+      cefrLevel: input.cefrLevel,
+      pipelineVersion: GENERATION_PIPELINE_VERSION,
+    });
+    if (existing) {
+      await this.ensureDispatched(existing);
+      return { jobId: existing.id, reused: true };
+    }
+
     this.policy.assertCanCreate(
       await this.repository.getPolicySnapshot(ownerUserId),
     );
@@ -55,20 +81,7 @@ export class CreateLessonJob {
       metadata,
       pipelineVersion: GENERATION_PIPELINE_VERSION,
     });
-
-    if (result.created || result.job.dispatchStatus !== "sent") {
-      const event = generationRequestedEventSchema.parse({
-        jobId: result.job.id,
-        pipelineVersion: GENERATION_PIPELINE_VERSION,
-      });
-      try {
-        await this.dispatcher.sendRequested(event);
-        await this.repository.markDispatch(result.job.id, "sent");
-      } catch {
-        await this.repository.markDispatch(result.job.id, "failed");
-      }
-    }
-
+    await this.ensureDispatched(result.job);
     return { jobId: result.job.id, reused: !result.created };
   }
 }
