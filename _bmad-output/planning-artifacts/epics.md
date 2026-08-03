@@ -29,7 +29,8 @@ companions:
   - epics/epic-3.md
   - epics/epic-4.md
   - epics/epic-5.md
-status: corrected-awaiting-readiness
+readinessReport: implementation-readiness-report-2026-08-03-rerun.md
+status: final-implementation-ready
 storyCount: 29
 ---
 
@@ -37,15 +38,16 @@ storyCount: 29
 
 ## Canonical status
 
-This is the canonical index for the corrected post–Correct Course backlog.
+The corrected backlog is final and has passed the post–Correct Course Implementation Readiness assessment.
 
 - **5 epics**
 - **29 stories**
-- **46/46 Functional Requirements mapped**
-- **21/21 Non-Functional Requirements assigned through story ACs**
-- Stable AC IDs across every story
+- **46/46 Functional Requirements covered**
+- **21/21 Non-Functional Requirements assigned through story acceptance criteria**
+- Stable AC IDs across all canonical stories
 - Initial auth/provider decisions locked in Architecture `IMPLEMENTATION-DECISIONS.md`
-- Awaiting re-run Implementation Readiness
+- Implementation Readiness: **READY**
+- Next workflow: Sprint Planning
 
 ## Authorities
 
@@ -53,14 +55,15 @@ This is the canonical index for the corrected post–Correct Course backlog.
 - Architecture + UX requirements: [`epics/architecture-ux-requirements.md`](epics/architecture-ux-requirements.md)
 - Incremental boundaries: [`epics/implementation-clarifications.md`](epics/implementation-clarifications.md)
 - Implementation decisions: [`architecture/architecture-vidlish-2026-08-03/IMPLEMENTATION-DECISIONS.md`](architecture/architecture-vidlish-2026-08-03/IMPLEMENTATION-DECISIONS.md)
-- Validation: [`epics/final-validation.md`](epics/final-validation.md)
+- Backlog validation: [`epics/final-validation.md`](epics/final-validation.md)
+- Readiness PASS: [`implementation-readiness-report-2026-08-03-rerun.md`](implementation-readiness-report-2026-08-03-rerun.md)
 
 Reference convention:
 
 - `AD-*` — Architecture Spine decisions.
 - `AR*` — derived architecture requirements.
 - `ID-*` — initial implementation decisions.
-- Language amendments override stale language assumptions in older text.
+- Language amendments override stale language assumptions in the original spine.
 
 ## Epic List and FR Coverage
 
@@ -99,7 +102,7 @@ Reference convention:
 | FR6 | Story 2.9 |
 | FR7 | Story 2.2 |
 | FR8 | Story 2.4 |
-| FR9 | Story 2.5 (optional/policy-gated) |
+| FR9 | Story 2.5 — optional/policy-gated |
 | FR10 | Stories 2.4, 2.6, 2.8 |
 | FR11 | Story 2.7 |
 | FR12 | Stories 2.2, 2.4, 2.6–2.9 |
@@ -118,25 +121,25 @@ Reference convention:
 | FR40 | Stories 3.7, 5.1 |
 | FR41 | Stories 5.1–5.3 |
 | FR-LANG-1–FR-LANG-4 | Story 2.3 |
-| FR-LANG-5 | Stories 2.2–2.8, 3.1–3.5 |
+| FR-LANG-5 | Stories 2.2–2.8 and 3.1–3.5 |
 
-No Functional Requirement is missing. Optional Story 2.5 is not the sole implementation path for transcript acquisition or private-beta acceptance.
+No Functional Requirement is missing. Optional Story 2.5 is not required for private-beta acceptance.
 
 ## Story Coverage Matrix
 
 | Story | User outcome | Primary requirements |
 | --- | --- | --- |
 | 1.1 | OTP private-beta access, protected shell and CI floor | FR1, FR2 |
-| 1.2 | Parse URL and confirm metadata/playability via initial YouTube adapter | FR3, FR5 |
+| 1.2 | Parse URL and confirm metadata/playability | FR3, FR5 |
 | 1.3 | Choose CEFR and confirm standalone ready draft | FR4 |
 | 2.1 | Durable/idempotent generation job and progress page | FR31–FR33 |
-| 2.2 | Supadata native caption fast path and canonical transcript | FR7, FR12, FR13 |
+| 2.2 | Native caption fast path and canonical transcript | FR7, FR12, FR13 |
 | 2.3 | Original-English language eligibility gate | FR-LANG-1–FR-LANG-5 |
-| 2.4 | Supadata generated-transcript fallback | FR8, FR10, FR12, FR13 |
-| 2.5 | Optional unofficial extractor behind explicit approval | FR9, FR12, FR13 |
+| 2.4 | Hosted generated-transcript fallback | FR8, FR10, FR12, FR13 |
+| 2.5 | Optional unofficial extractor behind approval | FR9, FR12, FR13 |
 | 2.6 | Gemini public-URL transcription | FR10, FR12, FR13 |
 | 2.7 | Paste transcript and upload SRT/VTT | FR11–FR13 |
-| 2.8 | Consent-based tab audio + Cloud STT `chirp_3` | FR10, FR12, FR13 |
+| 2.8 | Consent-based tab audio + Cloud STT | FR10, FR12, FR13 |
 | 2.9 | Long-video budgets and deterministic chunking | FR6, FR12, FR31, FR32 |
 | 2.10 | Quota, retry, circuit breaker, dedup and cancellation | FR31–FR33 |
 | 2.11 | Temporary cleanup and transcript retention | FR13, FR31–FR33 |
@@ -145,7 +148,7 @@ No Functional Requirement is missing. Optional Story 2.5 is not the sole impleme
 | 3.1 | Eligible-source preprocessing and grounded analysis | FR14, FR15, FR22–FR24 |
 | 3.2 | Candidate mining, CEFR moments and outcomes | FR16–FR18, FR20–FR22 |
 | 3.3 | Multi-stage grounded Core Lesson composition | FR19, FR21–FR24 |
-| 3.4 | Structural/grounding/exercise gates and bounded repair | FR25–FR29 |
+| 3.4 | Structural/grounding/exercise gates and repair | FR25–FR29 |
 | 3.5 | Golden regression and promotion gate | FR30 |
 | 3.6 | Atomic publish and immutable lesson persistence | FR39 |
 | 3.7 | Readable responsive Lesson Viewer from saved data | FR34, FR40 |
