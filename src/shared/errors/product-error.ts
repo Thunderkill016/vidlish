@@ -19,6 +19,7 @@ export const productErrorCodeSchema = z.enum([
   "RATE_LIMITED",
   "JOB_NOT_FOUND",
   "JOB_CREATE_FAILED",
+  "JOB_STATUS_FAILED",
 ]);
 
 export type ProductErrorCode = z.infer<typeof productErrorCodeSchema>;
@@ -184,6 +185,13 @@ export const generationErrors = {
     new ProductError(
       "JOB_CREATE_FAILED",
       "Vidlish chưa thể bắt đầu tạo bài học. Hãy thử lại.",
+      true,
+      "retry",
+    ),
+  statusFailed: () =>
+    new ProductError(
+      "JOB_STATUS_FAILED",
+      "Vidlish chưa thể tải tiến trình lúc này. Hãy thử lại.",
       true,
       "retry",
     ),
