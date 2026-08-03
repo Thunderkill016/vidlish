@@ -2,12 +2,17 @@
 
 ## Current stage
 
-- PRD: final.
-- Lesson Engine SPEC: final.
-- UX: final.
-- Architecture: final.
+- Research: complete.
+- PRD and English-language eligibility amendment: final.
+- Lesson Engine SPEC and companions: final.
+- UX: corrected and final.
+- Architecture: final; initial implementation adapters locked in `IMPLEMENTATION-DECISIONS.md`.
+- Epics & Stories: corrected after Correct Course; 5 epics / 29 stories; backlog validation PASS.
+- Implementation Readiness: first run returned `NEEDS WORK`; re-run is the next workflow.
+- Sprint Planning: not started.
 - Product code: not started.
-- Next workflow: `bmad-create-epics-and-stories` after all downstream artifacts apply the language eligibility invariant below.
+
+No product scaffold, database migration or provider integration may begin until re-run Implementation Readiness passes and Sprint Planning is complete.
 
 ## Product promise
 
@@ -21,36 +26,78 @@ Canonical tagline:
 
 A video is eligible only when its original spoken content contains enough reliable English to build a grounded Core Lesson from the video itself.
 
-Rules:
+1. Primary spoken language is English, or a coherent English portion is independently large enough for a valid lesson.
+2. Incidental non-English speech is context only and cannot be English source evidence.
+3. Source quotes, listening, grammar, vocabulary and scored evidence come from actual English speech in the source video.
+4. Vidlish does not translate a non-English video, synthesize English audio or present AI-generated English as source speech.
+5. Insufficient original English stops before Lesson Engine calls with `VIDEO_LANGUAGE_UNSUPPORTED` and `choose_another_video`.
+6. Caption absence is recoverable through other transcript strategies; confirmed non-English/insufficient-English is terminal for MVP.
 
-1. The primary spoken language must be English, or the video must contain a coherent English portion large enough to support a valid lesson.
-2. Incidental non-English speech is allowed, but it is context only and cannot be used as English source evidence.
-3. Source quotes, listening tasks, grammar noticing, vocabulary mining and pronunciation/listening evidence must come from actual English speech in the source video.
-4. Vidlish must not translate a non-English video, synthesize a new English audio track or present AI-generated English as speech from the source video.
-5. When reliable English content is insufficient, generation stops before Lesson Engine calls and returns `VIDEO_LANGUAGE_UNSUPPORTED` with the action `choose_another_video`.
-6. Caption absence is not a terminal error; the system may use audio-to-text to recover the original English speech. Confirmed non-English source language is a terminal eligibility result for MVP.
-
-## Eligibility flow
+## Canonical flow
 
 ```text
 YouTube URL
-→ acquire or create transcript
-→ detect language at transcript and segment level
-→ evaluate sufficient original English content
-   → eligible: continue to Lesson Engine
-   → ineligible: stop with VIDEO_LANGUAGE_UNSUPPORTED
+→ validate metadata/playability
+→ create durable job
+→ acquire or create original-language transcript
+→ deterministic normalization
+→ detect language at transcript/segment level
+→ evaluate sufficient coherent original English
+   → eligible: pass only allowed English segment IDs to Lesson Engine
+   → ineligible: VIDEO_LANGUAGE_UNSUPPORTED
+→ multi-stage lesson generation
+→ deterministic quality gates and bounded repair
+→ atomic immutable publish
+→ learn / reopen / delete
 ```
 
-The exact numeric threshold is architecture/config seed, but it must consider both English share and absolute coherent English duration. It cannot accept a video merely because a few isolated English words appear.
+## Initial implementation decisions
 
-## Core scope
+- Auth: Supabase six-digit email OTP.
+- Private beta: server-managed Postgres `beta_access` allowlist.
+- Metadata/playability: YouTube Data API v3 `videos.list`.
+- Native captions: Supadata `mode=native`.
+- Hosted generated transcript: Supadata `mode=generate`.
+- Language detector: `franc-min@6.2.0` behind a port; coherent-window and fail-closed policy.
+- Public YouTube URL transcription: `gemini-3.6-flash` behind a feature-gated adapter.
+- Browser tab audio: Google Cloud Speech-to-Text V2 `chirp_3`.
+- Unofficial extractor: disabled by default and optional pending approval.
+- Local/CI: fixtures only; no live provider calls.
+
+## Backlog shape
 
 ```text
-input English video
-→ obtain original English transcript
+Epic 1: 3 stories
+Epic 2: 13 stories
+Epic 3: 7 stories
+Epic 4: 3 stories
+Epic 5: 3 stories
+Total: 29 stories
+```
+
+Hard dependency:
+
+```text
+Epic 1 → Epic 2 → Epic 3
+                    ├─→ Epic 4
+                    └─→ Epic 5
+```
+
+Epic 5 does not hard-depend on Epic 4.
+
+## Core MVP scope
+
+```text
+input eligible English video
+→ obtain original-language transcript
+→ verify sufficient original English
 → generate grounded Core Lesson
 → learn
 → save / reopen / delete
 ```
 
-No translation-based lesson mode is part of MVP.
+No translation-based lesson mode, AI tutor chat, pronunciation scoring, gamification, payment, classroom management, mobile-native app or public sharing is part of MVP.
+
+## Next workflow
+
+Run `bmad-check-implementation-readiness` against the corrected artifacts. Only a PASS unlocks `bmad-sprint-planning`, followed by Story 1.1 implementation.
