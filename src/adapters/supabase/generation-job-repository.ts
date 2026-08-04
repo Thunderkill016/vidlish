@@ -13,8 +13,10 @@ import {
   activeGenerationJobStatuses,
   generationJobSchema,
   generationJobStatusSchema,
+  generationSafeErrorCodeSchema,
   type GenerationJob,
   type GenerationJobStatus,
+  type GenerationSafeErrorCode,
 } from "@/shared/contracts/generation";
 
 const rawVideoSchema = z.object({
@@ -34,6 +36,7 @@ const rawJobSchema = z.object({
   status: generationJobStatusSchema,
   current_stage: z.string(),
   dispatch_status: z.enum(["pending", "sent", "failed"]),
+  safe_error_code: generationSafeErrorCodeSchema.nullable(),
   created_at: z.string(),
   updated_at: z.string(),
   videos: z.union([rawVideoSchema, z.array(rawVideoSchema).length(1)]),
@@ -56,6 +59,7 @@ function mapJob(raw: unknown): GenerationJob {
     status: row.status,
     currentStage: row.current_stage,
     dispatchStatus: row.dispatch_status,
+    ...(row.safe_error_code ? { safeErrorCode: row.safe_error_code } : {}),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   });
@@ -70,6 +74,7 @@ const jobSelect = `
   status,
   current_stage,
   dispatch_status,
+  safe_error_code,
   created_at,
   updated_at,
   videos!inner (
@@ -195,6 +200,7 @@ export class SupabaseGenerationJobRepository
       jobId,
       "acquiring_transcript",
       "acquiring_transcript",
+      null,
     );
   }
 
@@ -217,14 +223,20 @@ export class SupabaseGenerationJobRepository
     jobId: string,
     status: GenerationJobStatus,
     currentStage: string,
+    safeErrorCode?: GenerationSafeErrorCode | null,
   ): Promise<GenerationJob | null> {
+    const values: Record<string, unknown> = {
+      status,
+      current_stage: currentStage,
+      updated_at: new Date().toISOString(),
+    };
+    if (safeErrorCode !== undefined) {
+      values.safe_error_code = safeErrorCode;
+    }
+
     const updated = await this.client
       .from("lesson_jobs")
-      .update({
-        status,
-        current_stage: currentStage,
-        updated_at: new Date().toISOString(),
-      })
+      .update(values)
       .eq("id", jobId)
       .select("owner_user_id")
       .maybeSingle();
