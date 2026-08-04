@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   GENERATION_PIPELINE_VERSION,
+  generationJobSchema,
   generationJobStatusSchema,
   generationRequestedEventId,
+  publicGenerationJobSchema,
   toLearnerGenerationPhase,
 } from "@/shared/contracts/generation";
 
@@ -26,6 +28,35 @@ describe("generation contracts", () => {
     expect(toLearnerGenerationPhase("checking_language")).toBe(
       "language_check",
     );
+    expect(toLearnerGenerationPhase("analyzing_video")).toBe(
+      "video_analysis",
+    );
+  });
+
+  it("exposes only the safe language failure code in public job data", () => {
+    const job = generationJobSchema.parse({
+      id: "11111111-1111-4111-8111-111111111111",
+      ownerUserId: "owner-one",
+      videoId: "dQw4w9WgXcQ",
+      videoTitle: "Fixture video",
+      channelName: "Fixture channel",
+      cefrLevel: "B1",
+      metadataVersion: "fixture:v1",
+      pipelineVersion: GENERATION_PIPELINE_VERSION,
+      status: "failed",
+      currentStage: "checking_language",
+      dispatchStatus: "sent",
+      safeErrorCode: "VIDEO_LANGUAGE_UNSUPPORTED",
+      createdAt: "2026-08-04T00:00:00.000Z",
+      updatedAt: "2026-08-04T00:00:01.000Z",
+    });
+    const { ownerUserId, ...publicJob } = job;
+    void ownerUserId;
+
+    expect(publicGenerationJobSchema.parse(publicJob)).toMatchObject({
+      status: "failed",
+      safeErrorCode: "VIDEO_LANGUAGE_UNSUPPORTED",
+    });
   });
 
   it("derives a stable opaque event id from job and pipeline version", () => {
