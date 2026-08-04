@@ -107,6 +107,7 @@ describe("AcquireNativeCaption", () => {
     );
     const retryingStrategy: TranscriptStrategy = {
       id: "supadata-native-caption",
+      costBand: "none",
       acquire: async () => ({
         kind: "retryable_failure",
         reason: "PROVIDER_UNAVAILABLE",
