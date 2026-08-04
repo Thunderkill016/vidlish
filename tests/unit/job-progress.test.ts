@@ -109,7 +109,32 @@ describe("JobProgress", () => {
     expect(screen.getAllByText("Lấy hoặc tạo transcript").length).toBeGreaterThan(0);
   });
 
-  it("does not poll a terminal job", async () => {
+  it("shows one safe action for confirmed insufficient original English", async () => {
+    const fetchMock = vi.fn();
+    vi.stubGlobal("fetch", fetchMock);
+
+    render(
+      createElement(JobProgress, {
+        initialJob: {
+          ...job,
+          status: "failed",
+          currentStage: "checking_language",
+          safeErrorCode: "VIDEO_LANGUAGE_UNSUPPORTED",
+        },
+        initialPhase: "failed",
+      }),
+    );
+
+    const card = screen.getByTestId("language-unsupported");
+    expect(card).toHaveTextContent("Video chưa đủ tiếng Anh gốc");
+    expect(card).toHaveTextContent("lời nói tiếng Anh gốc đủ dài và rõ");
+    expect(screen.getByRole("button", { name: "Chọn video khác" })).toBeVisible();
+    expect(screen.queryByText(/franc|minWindow|englishShare/i)).not.toBeInTheDocument();
+    await Promise.resolve();
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("does not poll a terminal completed job", async () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("fetch", fetchMock);
 
