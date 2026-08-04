@@ -31,14 +31,30 @@ export const generateLessonWorkflow = inngest.createFunction(
   },
   async ({ event, step }) => {
     const payload = generationRequestedEventSchema.parse(event.data);
-    const job = await step.run("advance-to-transcript-acquisition", () =>
-      generationRepository.advanceStory21(payload.jobId),
+    const jobRef = await step.run(
+      "advance-to-transcript-acquisition",
+      async () => {
+        const job = await generationRepository.advanceStory21(payload.jobId);
+        return job
+          ? {
+              jobId: job.id,
+              ownerUserId: job.ownerUserId,
+              status: job.status,
+            }
+          : null;
+      },
     );
-    if (!job) return { jobId: payload.jobId, status: "missing" };
+    if (!jobRef) return { jobId: payload.jobId, status: "missing" };
 
     const transcriptOutcome = await step.run(
       "acquire-native-caption",
       async () => {
+        const job = await generationRepository.findOwnedById(
+          jobRef.jobId,
+          jobRef.ownerUserId,
+        );
+        if (!job) return { kind: "missing" } as const;
+
         const result = await acquireNativeCaption.execute(job);
         if (result.kind === "retryable_failure") {
           throw new Error(`Native caption retry: ${result.reason}`);
@@ -52,24 +68,45 @@ export const generateLessonWorkflow = inngest.createFunction(
       transcriptOutcome.kind === "persisted" ||
       transcriptOutcome.kind === "already_advanced"
     ) {
-      const latest = await step.run("load-language-gate-job", () =>
-        generationRepository.findOwnedById(job.id, job.ownerUserId),
+      const languageResult = await step.run(
+        "check-original-english",
+        async () => {
+          const latest = await generationRepository.findOwnedById(
+            jobRef.jobId,
+            jobRef.ownerUserId,
+          );
+          if (!latest) return { status: "missing", decision: null } as const;
+          if (latest.status !== "checking_language") {
+            return { status: latest.status, decision: null } as const;
+          }
+
+          const decision = await checkOriginalEnglish.execute(latest);
+          return {
+            status: decision.status,
+            decision: {
+              reportId: decision.reportId,
+              created: decision.created,
+            },
+          };
+        },
       );
-      if (latest?.status === "checking_language") {
-        const decision = await step.run("check-original-english", () =>
-          checkOriginalEnglish.execute(latest),
-        );
-        languageOutcome = decision.status;
-      }
+      languageOutcome = languageResult.status;
     }
 
-    const finalJob = await step.run("load-final-generation-state", () =>
-      generationRepository.findOwnedById(job.id, job.ownerUserId),
+    const finalStatus = await step.run(
+      "load-final-generation-state",
+      async () =>
+        (
+          await generationRepository.findOwnedById(
+            jobRef.jobId,
+            jobRef.ownerUserId,
+          )
+        )?.status ?? "missing",
     );
 
     return {
       jobId: payload.jobId,
-      status: finalJob?.status ?? "missing",
+      status: finalStatus,
       transcriptOutcome: transcriptOutcome.kind,
       ...(languageOutcome ? { languageOutcome } : {}),
     };
