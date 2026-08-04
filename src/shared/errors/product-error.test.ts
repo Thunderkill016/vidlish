@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { authErrors, toProductError } from "@/shared/errors/product-error";
+import {
+  authErrors,
+  toProductError,
+  videoErrors,
+} from "@/shared/errors/product-error";
 
 describe("ProductError", () => {
   it("exposes only the stable public contract", () => {
@@ -9,6 +13,16 @@ describe("ProductError", () => {
       messageVi: "Vui lòng chờ trước khi yêu cầu mã mới.",
       retryable: true,
       action: "retry",
+    });
+  });
+
+  it("uses the canonical non-retryable action for unsupported source speech", () => {
+    expect(videoErrors.languageUnsupported().toPublic()).toEqual({
+      code: "VIDEO_LANGUAGE_UNSUPPORTED",
+      messageVi:
+        "Video này không có đủ lời nói tiếng Anh gốc để tạo một bài học có căn cứ.",
+      retryable: false,
+      action: "choose_another_video",
     });
   });
 
