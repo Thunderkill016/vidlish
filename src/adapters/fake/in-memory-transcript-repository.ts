@@ -13,7 +13,12 @@ import type {
 export class InMemoryTranscriptRepository implements TranscriptRepository {
   private readonly transcripts = new Map<
     string,
-    { id: string; transcript: CanonicalTranscript }
+    {
+      id: string;
+      ownerUserId: string;
+      jobId: string;
+      transcript: CanonicalTranscript;
+    }
   >();
   private readonly attempts = new Map<string, TranscriptAttemptRecord>();
 
@@ -43,14 +48,31 @@ export class InMemoryTranscriptRepository implements TranscriptRepository {
     const existing = this.transcripts.get(key);
     const id = existing?.id ?? crypto.randomUUID();
     if (!existing) {
-      this.transcripts.set(key, { id, transcript: input.transcript });
+      this.transcripts.set(key, {
+        id,
+        ownerUserId: input.ownerUserId,
+        jobId: input.jobId,
+        transcript: input.transcript,
+      });
     }
     await this.generationRepository.updateStatus(
       input.jobId,
       "checking_language",
       "checking_language",
+      null,
     );
     return { transcriptId: id, created: !existing };
+  }
+
+  async findCanonicalForJob(
+    ownerUserId: string,
+    jobId: string,
+  ): Promise<CanonicalTranscript | null> {
+    const match = [...this.transcripts.values()].find(
+      (entry) =>
+        entry.ownerUserId === ownerUserId && entry.jobId === jobId,
+    );
+    return match?.transcript ?? null;
   }
 
   getTranscriptCount(): number {
