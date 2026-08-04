@@ -9,10 +9,13 @@ export type LanguageReliabilityBand = z.infer<
   typeof languageReliabilityBandSchema
 >;
 
+const segmentIdSchema = z.string().regex(/^seg_[a-f0-9]{32}$/);
+const segmentIdArraySchema = z.array(segmentIdSchema).max(100_000);
+
 export const languageAnalysisWindowSchema = z
   .object({
     id: z.string().regex(/^win_[a-f0-9]{24}$/),
-    segmentIds: z.array(z.string().regex(/^seg_[a-f0-9]{32}$/)).min(1),
+    segmentIds: z.array(segmentIdSchema).min(1),
     startMs: z.number().int().nonnegative(),
     endMs: z.number().int().positive(),
     text: z.string().min(1).max(40_000),
@@ -30,7 +33,7 @@ export type LanguageAnalysisWindow = z.infer<
 export const languageWindowResultSchema = z
   .object({
     windowId: z.string().regex(/^win_[a-f0-9]{24}$/),
-    segmentIds: z.array(z.string().regex(/^seg_[a-f0-9]{32}$/)).min(1),
+    segmentIds: z.array(segmentIdSchema).min(1),
     startMs: z.number().int().nonnegative(),
     endMs: z.number().int().positive(),
     wordCount: z.number().int().positive(),
@@ -38,8 +41,8 @@ export const languageWindowResultSchema = z
     detectorCode: z.string().min(3).max(3),
     detectedLanguage: z.string().min(2).max(3),
     reliability: languageReliabilityBandSchema,
-    rawBestDistance: z.number().nonnegative().optional(),
-    rawSecondDistance: z.number().nonnegative().optional(),
+    rawBestScore: z.number().nonnegative().optional(),
+    rawSecondScore: z.number().nonnegative().optional(),
   })
   .strict();
 
@@ -108,12 +111,9 @@ export const languageEligibilityReportSchema = z
     reliableAnalyzedWordCount: z.number().int().nonnegative(),
     confidenceBand: languageReliabilityBandSchema,
     detectedLanguages: z.array(z.string().min(2).max(3)).max(100),
-    permittedSegmentIds: z
-      .array(z.string().regex(/^seg_[a-f0-9]{32}$/))
-      .max(100_000),
-    excludedSegmentIds: z
-      .array(z.string().regex(/^seg_[a-f0-9]{32}$/))
-      .max(100_000),
+    englishSegmentIds: segmentIdArraySchema,
+    permittedSegmentIds: segmentIdArraySchema,
+    excludedSegmentIds: segmentIdArraySchema,
   })
   .strict();
 
