@@ -106,6 +106,8 @@ declare
   v_transcript_id uuid;
   v_report_id uuid;
   v_created boolean := false;
+  v_effective_status text;
+  v_effective_permitted_segment_ids text[];
 begin
   select lesson_jobs.canonical_transcript_id into v_transcript_id
   from public.lesson_jobs
@@ -170,12 +172,14 @@ begin
     coalesce(p_excluded_segment_ids, '{}')
   )
   on conflict (job_id, transcript_id, detector_version, policy_version) do nothing
-  returning id into v_report_id;
+  returning id, status, permitted_segment_ids
+    into v_report_id, v_effective_status, v_effective_permitted_segment_ids;
 
   if v_report_id is not null then
     v_created := true;
   else
-    select id into v_report_id
+    select id, status, permitted_segment_ids
+      into v_report_id, v_effective_status, v_effective_permitted_segment_ids
     from public.language_eligibility_reports
     where job_id = p_job_id
       and transcript_id = v_transcript_id
@@ -183,7 +187,7 @@ begin
       and policy_version = p_policy_version;
   end if;
 
-  if p_status = 'eligible' then
+  if v_effective_status = 'eligible' then
     insert into public.language_eligible_segments (
       report_id,
       transcript_id,
@@ -195,7 +199,7 @@ begin
       v_transcript_id,
       segment_id,
       p_owner_user_id
-    from unnest(p_permitted_segment_ids) as segment_id
+    from unnest(v_effective_permitted_segment_ids) as segment_id
     on conflict do nothing;
 
     update public.lesson_jobs
@@ -205,7 +209,7 @@ begin
         safe_error_code = null,
         updated_at = now()
     where id = p_job_id and owner_user_id = p_owner_user_id;
-  elsif p_status = 'ineligible' then
+  elsif v_effective_status = 'ineligible' then
     update public.lesson_jobs
     set language_eligibility_report_id = v_report_id,
         status = 'failed',
@@ -223,7 +227,7 @@ begin
     where id = p_job_id and owner_user_id = p_owner_user_id;
   end if;
 
-  return query select v_report_id, v_created, p_status;
+  return query select v_report_id, v_created, v_effective_status;
 end;
 $$;
 
