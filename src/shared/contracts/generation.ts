@@ -26,6 +26,13 @@ export const generationJobStatusSchema = z.enum([
 
 export type GenerationJobStatus = z.infer<typeof generationJobStatusSchema>;
 
+export const generationSafeErrorCodeSchema = z.enum([
+  "VIDEO_LANGUAGE_UNSUPPORTED",
+]);
+export type GenerationSafeErrorCode = z.infer<
+  typeof generationSafeErrorCodeSchema
+>;
+
 export const activeGenerationJobStatuses: readonly GenerationJobStatus[] = [
   "queued",
   "validating_video",
@@ -130,6 +137,7 @@ export const generationJobSchema = z
     status: generationJobStatusSchema,
     currentStage: z.string().min(1).max(100),
     dispatchStatus: z.enum(["pending", "sent", "failed"]),
+    safeErrorCode: generationSafeErrorCodeSchema.optional(),
     createdAt: z.string().datetime(),
     updatedAt: z.string().datetime(),
   })
