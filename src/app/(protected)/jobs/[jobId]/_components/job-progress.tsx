@@ -39,6 +39,9 @@ export function JobProgress({
   const [retryDispatchError, setRetryDispatchError] = useState(false);
 
   const terminal = ["completed", "failed", "cancelled"].includes(phase);
+  const unsupportedLanguage =
+    phase === "failed" &&
+    job.safeErrorCode === "VIDEO_LANGUAGE_UNSUPPORTED";
   const currentIndex = useMemo(
     () => phases.findIndex((item) => item.id === phase),
     [phase],
@@ -122,25 +125,51 @@ export function JobProgress({
     }
   }
 
-  const currentLabel =
-    phases.find((item) => item.id === phase)?.label ??
-    (phase === "completed"
-      ? "Bài học đã sẵn sàng"
-      : phase === "cancelled"
-        ? "Đã hủy"
-        : "Cần xử lý lại");
+  const currentLabel = unsupportedLanguage
+    ? "Video không đủ tiếng Anh gốc"
+    : phases.find((item) => item.id === phase)?.label ??
+      (phase === "completed"
+        ? "Bài học đã sẵn sàng"
+        : phase === "cancelled"
+          ? "Đã hủy"
+          : "Cần xử lý lại");
 
   return (
     <div className="space-y-6">
       <section className="space-y-2 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
         <p className="text-sm font-semibold text-[var(--accent)]">
-          Đang tạo bài học · {job.cefrLevel}
+          {terminal ? "Tiến trình tạo bài học" : "Đang tạo bài học"} · {job.cefrLevel}
         </p>
         <h1 className="text-2xl font-bold tracking-tight">{job.videoTitle}</h1>
         <p className="text-sm text-[var(--muted-foreground)]">
           {job.channelName}
         </p>
       </section>
+
+      {unsupportedLanguage ? (
+        <section
+          data-testid="language-unsupported"
+          className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5"
+        >
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">
+              Video chưa đủ tiếng Anh gốc
+            </h2>
+            <p role="alert" className="text-sm text-[var(--foreground)]">
+              Vidlish không tìm thấy một phần lời nói tiếng Anh gốc đủ dài và rõ để tạo bài học có căn cứ.
+            </p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Từ tiếng Anh xuất hiện rời rạc, phụ đề dịch hoặc nội dung lồng tiếng không được dùng thay cho lời nói nguồn.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => window.location.assign("/create")}
+          >
+            Chọn video khác
+          </Button>
+        </section>
+      ) : null}
 
       {job.dispatchStatus === "failed" && !terminal ? (
         <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
