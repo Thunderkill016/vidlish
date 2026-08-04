@@ -10,26 +10,41 @@ const segmentId = `seg_${"1".repeat(32)}`;
 function report(
   status: LanguageEligibilityReport["status"],
 ): LanguageEligibilityReport {
+  const english = status === "eligible";
   return {
     transcriptHash: "a".repeat(64),
     detectorId: "franc-min",
     detectorVersion: "franc-min:6.2.0",
     policyVersion: "original-english:v1",
     status,
-    reason:
-      status === "eligible"
-        ? "SUFFICIENT_ORIGINAL_ENGLISH"
-        : "INSUFFICIENT_ORIGINAL_ENGLISH",
-    englishShare: status === "eligible" ? 1 : 0,
+    reason: english
+      ? "SUFFICIENT_ORIGINAL_ENGLISH"
+      : "INSUFFICIENT_ORIGINAL_ENGLISH",
+    englishShare: english ? 1 : 0,
     reliableCoverage: 1,
-    coherentEnglishDurationMs: status === "eligible" ? 90_000 : 0,
-    reliableEnglishWordCount: status === "eligible" ? 150 : 0,
+    coherentEnglishDurationMs: english ? 90_000 : 0,
+    reliableEnglishWordCount: english ? 150 : 0,
     reliableAnalyzedWordCount: 150,
     confidenceBand: "high",
-    detectedLanguages: status === "eligible" ? ["en"] : ["vie"],
-    englishSegmentIds: status === "eligible" ? [segmentId] : [],
-    permittedSegmentIds: status === "eligible" ? [segmentId] : [],
-    excludedSegmentIds: status === "eligible" ? [] : [segmentId],
+    detectedLanguages: english ? ["en"] : ["vie"],
+    windowEvidence: [
+      {
+        windowId: `win_${"1".repeat(24)}`,
+        segmentIds: [segmentId],
+        startMs: 0,
+        endMs: 90_000,
+        wordCount: 150,
+        characterCount: 900,
+        detectorCode: english ? "eng" : "vie",
+        detectedLanguage: english ? "en" : "vie",
+        reliability: "high",
+        rawBestScore: 1,
+        rawSecondScore: 0.5,
+      },
+    ],
+    englishSegmentIds: english ? [segmentId] : [],
+    permittedSegmentIds: english ? [segmentId] : [],
+    excludedSegmentIds: english ? [] : [segmentId],
   };
 }
 
