@@ -10,14 +10,17 @@ import type {
 import {
   canonicalTranscriptSchema,
   transcriptPersistResultSchema,
+  transcriptSourceTypeSchema,
+  transcriptStrategyIdSchema,
   type CanonicalTranscript,
   type TranscriptPersistResult,
 } from "@/shared/contracts/transcript";
 
 const rawTranscriptSchema = z.object({
-  strategy_id: z.literal("supadata-native-caption"),
+  strategy_id: transcriptStrategyIdSchema,
   provider: z.literal("supadata"),
-  source_type: z.literal("native_caption"),
+  source_type: transcriptSourceTypeSchema,
+  provider_request_id: z.string().nullable(),
   declared_language: z.string().nullable(),
   available_languages: z.array(z.string()),
   track_kind: z.enum(["unknown", "manual", "auto"]),
@@ -41,13 +44,20 @@ const rawSegmentSchema = z.object({
   detected_language: z.string().nullable(),
 });
 
-function failureAttemptKey(input: TranscriptAttemptRecord): string {
+function attemptReason(input: TranscriptAttemptRecord): string {
+  return input.result.kind === "pending"
+    ? "PROVIDER_JOB_PENDING"
+    : input.result.reason;
+}
+
+function attemptKey(input: TranscriptAttemptRecord): string {
   return [
     "transcript-attempt",
     input.jobId,
     input.strategyId,
     input.result.kind,
-    input.result.reason,
+    input.providerJobId ?? "direct",
+    attemptReason(input),
   ].join(":");
 }
 
@@ -55,20 +65,51 @@ export class SupabaseTranscriptRepository implements TranscriptRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async recordAttempt(input: TranscriptAttemptRecord): Promise<void> {
-    const result = await this.client.rpc(
-      "record_transcript_acquisition_attempt",
-      {
-        p_attempt_key: failureAttemptKey(input),
+    if (input.result.kind === "pending") {
+      const pending = await this.client.rpc("record_transcript_provider_job", {
         p_owner_user_id: input.ownerUserId,
         p_job_id: input.jobId,
         p_strategy_id: input.strategyId,
         p_provider: input.provider,
-        p_result_kind: input.result.kind,
-        p_reason_code: input.result.reason,
-        p_latency_ms: Math.max(0, Math.round(input.latencyMs)),
-      },
-    );
+        p_provider_job_id:
+          input.providerJobId ?? input.result.providerJobId,
+        p_provider_request_id:
+          input.providerRequestId ?? input.result.providerRequestId ?? null,
+        p_cost_band: input.costBand,
+      });
+      if (pending.error) throw pending.error;
+      return;
+    }
+
+    const result = await this.client.rpc("record_transcript_strategy_attempt", {
+      p_attempt_key: attemptKey(input),
+      p_owner_user_id: input.ownerUserId,
+      p_job_id: input.jobId,
+      p_strategy_id: input.strategyId,
+      p_provider: input.provider,
+      p_result_kind: input.result.kind,
+      p_reason_code: input.result.reason,
+      p_latency_ms: Math.max(0, Math.round(input.latencyMs)),
+      p_cost_band: input.costBand,
+      p_provider_request_id: input.providerRequestId ?? null,
+    });
     if (result.error) throw result.error;
+
+    if (input.providerJobId) {
+      const status =
+        input.result.kind === "retryable_failure" &&
+        input.result.reason === "PROVIDER_JOB_TIMEOUT"
+          ? "timed_out"
+          : "failed";
+      const finished = await this.client.rpc("finish_transcript_provider_job", {
+        p_owner_user_id: input.ownerUserId,
+        p_job_id: input.jobId,
+        p_strategy_id: input.strategyId,
+        p_provider_job_id: input.providerJobId,
+        p_status: status,
+      });
+      if (finished.error) throw finished.error;
+    }
   }
 
   async persistAndAdvance(input: {
@@ -76,9 +117,11 @@ export class SupabaseTranscriptRepository implements TranscriptRepository {
     jobId: string;
     transcript: CanonicalTranscript;
     latencyMs: number;
+    costBand?: "none" | "metered_low" | "metered_medium" | "metered_high";
+    providerJobId?: string;
   }): Promise<TranscriptPersistResult> {
     const transcript = input.transcript;
-    const attemptKey = [
+    const attemptKeyValue = [
       "transcript-attempt",
       input.jobId,
       transcript.strategyId,
@@ -87,14 +130,17 @@ export class SupabaseTranscriptRepository implements TranscriptRepository {
       transcript.normalizationVersion,
     ].join(":");
 
-    const rpc = await this.client.rpc("persist_canonical_transcript", {
-      p_attempt_key: attemptKey,
+    const rpc = await this.client.rpc("persist_canonical_transcript_v2", {
+      p_attempt_key: attemptKeyValue,
       p_owner_user_id: input.ownerUserId,
       p_job_id: input.jobId,
       p_youtube_video_id: transcript.videoId,
       p_strategy_id: transcript.strategyId,
       p_provider: transcript.provider,
       p_source_type: transcript.sourceType,
+      p_provider_request_id: transcript.providerRequestId ?? null,
+      p_provider_job_id: input.providerJobId ?? null,
+      p_cost_band: input.costBand ?? "none",
       p_declared_language: transcript.declaredLanguage ?? null,
       p_available_languages: transcript.availableLanguages,
       p_track_kind: transcript.trackKind,
@@ -139,6 +185,7 @@ export class SupabaseTranscriptRepository implements TranscriptRepository {
             strategy_id,
             provider,
             source_type,
+            provider_request_id,
             declared_language,
             available_languages,
             track_kind,
@@ -177,6 +224,9 @@ export class SupabaseTranscriptRepository implements TranscriptRepository {
       strategyId: transcript.strategy_id,
       provider: transcript.provider,
       sourceType: transcript.source_type,
+      ...(transcript.provider_request_id
+        ? { providerRequestId: transcript.provider_request_id }
+        : {}),
       ...(transcript.declared_language
         ? { declaredLanguage: transcript.declared_language }
         : {}),
