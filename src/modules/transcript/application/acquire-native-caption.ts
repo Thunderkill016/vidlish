@@ -10,7 +10,7 @@ import type {
 
 type TranscriptFailureResult = Exclude<
   TranscriptStrategyResult,
-  { kind: "success" }
+  { kind: "success" } | { kind: "pending" }
 >;
 
 export type NativeCaptionOutcome =
@@ -68,6 +68,7 @@ export class AcquireNativeCaption {
       jobId: job.id,
       strategyId: this.strategy.id,
       provider: "supadata",
+      costBand: this.strategy.costBand,
       result,
       latencyMs,
     });
@@ -79,10 +80,12 @@ export class AcquireNativeCaption {
     }
 
     const startedAt = performance.now();
-    const result = this.enabled
+    const rawResult = this.enabled
       ? await this.strategy.acquire({ videoId: job.videoId })
       : disabledStrategy();
     const latencyMs = Math.max(0, performance.now() - startedAt);
+    const result =
+      rawResult.kind === "pending" ? invalidProviderResponse() : rawResult;
 
     if (result.kind !== "success") {
       await this.recordFailure(job, result, latencyMs);
@@ -115,6 +118,7 @@ export class AcquireNativeCaption {
       jobId: job.id,
       transcript,
       latencyMs,
+      costBand: this.strategy.costBand,
     });
     return { kind: "persisted", ...persisted };
   }
