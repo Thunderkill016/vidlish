@@ -5,7 +5,10 @@ import { z } from "zod";
 const serverConfigSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]),
-    CI: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+    CI: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
     AUTH_ADAPTER: z.enum(["supabase", "fake"]).default("supabase"),
     SUPABASE_SECRET_KEY: z.string().min(1),
     AUTH_FAKE_CODE: z.string().regex(/^\d{6}$/).default("123456"),
@@ -13,51 +16,170 @@ const serverConfigSchema = z
     VIDEO_METADATA_ADAPTER: z.enum(["youtube", "fixture"]).default("fixture"),
     YOUTUBE_DATA_API_KEY: z.string().min(1).optional(),
     YOUTUBE_VIEWER_REGION: z.string().regex(/^[A-Z]{2}$/).default("VN"),
-    YOUTUBE_METADATA_TIMEOUT_MS: z.coerce.number().int().min(500).max(15000).default(5000),
+    YOUTUBE_METADATA_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(500)
+      .max(15000)
+      .default(5000),
     GENERATION_REPOSITORY: z.enum(["supabase", "fake"]).default("fake"),
     GENERATION_DISPATCHER: z.enum(["inngest", "inline"]).default("inline"),
     GENERATION_MAX_ACTIVE_JOBS: z.coerce.number().int().min(1).max(20).default(2),
-    GENERATION_MAX_JOBS_PER_DAY: z.coerce.number().int().min(1).max(1000).default(20),
-    GENERATION_MAX_JOBS_PER_MINUTE: z.coerce.number().int().min(1).max(60).default(3),
-    TRANSCRIPT_NATIVE_ENABLED: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
-    TRANSCRIPT_NATIVE_ADAPTER: z.enum(["supadata", "fixture"]).default("fixture"),
+    GENERATION_MAX_JOBS_PER_DAY: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(1000)
+      .default(20),
+    GENERATION_MAX_JOBS_PER_MINUTE: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(60)
+      .default(3),
+    TRANSCRIPT_NATIVE_ENABLED: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((value) => value === "true"),
+    TRANSCRIPT_NATIVE_ADAPTER: z
+      .enum(["supadata", "fixture"])
+      .default("fixture"),
+    TRANSCRIPT_GENERATED_ENABLED: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((value) => value === "true"),
+    TRANSCRIPT_GENERATED_ADAPTER: z
+      .enum(["supadata", "fixture"])
+      .default("fixture"),
     TRANSCRIPT_REPOSITORY: z.enum(["supabase", "fake"]).default("fake"),
     SUPADATA_API_KEY: z.string().min(1).optional(),
-    SUPADATA_NATIVE_TIMEOUT_MS: z.coerce.number().int().min(500).max(30000).default(8000),
+    SUPADATA_NATIVE_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(500)
+      .max(30000)
+      .default(8000),
+    SUPADATA_GENERATED_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(500)
+      .max(30000)
+      .default(10000),
+    SUPADATA_GENERATED_POLL_INTERVAL_MS: z.coerce
+      .number()
+      .int()
+      .min(250)
+      .max(15000)
+      .default(2000),
+    SUPADATA_GENERATED_MAX_POLLS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(120)
+      .default(30),
+    TRANSCRIPT_GENERATED_MAX_VIDEO_DURATION_MS: z.coerce
+      .number()
+      .int()
+      .min(60000)
+      .max(14400000)
+      .default(3600000),
     INNGEST_EVENT_KEY: z.string().min(1).optional(),
     INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   })
   .superRefine((value, context) => {
-    if (value.NODE_ENV === "production" && !value.CI && value.AUTH_ADAPTER === "fake") {
-      context.addIssue({ code: "custom", path: ["AUTH_ADAPTER"], message: "The fake authentication adapter cannot run in production." });
+    const production = value.NODE_ENV === "production" && !value.CI;
+    if (production && value.AUTH_ADAPTER === "fake") {
+      context.addIssue({
+        code: "custom",
+        path: ["AUTH_ADAPTER"],
+        message: "The fake authentication adapter cannot run in production.",
+      });
     }
-    if (value.NODE_ENV === "production" && !value.CI && value.VIDEO_METADATA_ADAPTER === "fixture") {
-      context.addIssue({ code: "custom", path: ["VIDEO_METADATA_ADAPTER"], message: "The fixture metadata adapter cannot run in production." });
+    if (production && value.VIDEO_METADATA_ADAPTER === "fixture") {
+      context.addIssue({
+        code: "custom",
+        path: ["VIDEO_METADATA_ADAPTER"],
+        message: "The fixture metadata adapter cannot run in production.",
+      });
     }
-    if (value.VIDEO_METADATA_ADAPTER === "youtube" && !value.YOUTUBE_DATA_API_KEY) {
-      context.addIssue({ code: "custom", path: ["YOUTUBE_DATA_API_KEY"], message: "YouTube Data API key is required for the YouTube adapter." });
+    if (
+      value.VIDEO_METADATA_ADAPTER === "youtube" &&
+      !value.YOUTUBE_DATA_API_KEY
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["YOUTUBE_DATA_API_KEY"],
+        message: "YouTube Data API key is required for the YouTube adapter.",
+      });
     }
-    if (value.NODE_ENV === "production" && !value.CI && value.GENERATION_REPOSITORY === "fake") {
-      context.addIssue({ code: "custom", path: ["GENERATION_REPOSITORY"], message: "The fake generation repository cannot run in production." });
+    if (production && value.GENERATION_REPOSITORY === "fake") {
+      context.addIssue({
+        code: "custom",
+        path: ["GENERATION_REPOSITORY"],
+        message: "The fake generation repository cannot run in production.",
+      });
     }
-    if (value.NODE_ENV === "production" && !value.CI && value.GENERATION_DISPATCHER === "inline") {
-      context.addIssue({ code: "custom", path: ["GENERATION_DISPATCHER"], message: "The inline generation dispatcher cannot run in production." });
+    if (production && value.GENERATION_DISPATCHER === "inline") {
+      context.addIssue({
+        code: "custom",
+        path: ["GENERATION_DISPATCHER"],
+        message: "The inline generation dispatcher cannot run in production.",
+      });
     }
-    if (value.NODE_ENV === "production" && !value.CI && value.TRANSCRIPT_NATIVE_ADAPTER === "fixture") {
-      context.addIssue({ code: "custom", path: ["TRANSCRIPT_NATIVE_ADAPTER"], message: "The fixture transcript adapter cannot run in production." });
+    if (production && value.TRANSCRIPT_NATIVE_ADAPTER === "fixture") {
+      context.addIssue({
+        code: "custom",
+        path: ["TRANSCRIPT_NATIVE_ADAPTER"],
+        message: "The fixture transcript adapter cannot run in production.",
+      });
     }
-    if (value.NODE_ENV === "production" && !value.CI && value.TRANSCRIPT_REPOSITORY === "fake") {
-      context.addIssue({ code: "custom", path: ["TRANSCRIPT_REPOSITORY"], message: "The fake transcript repository cannot run in production." });
+    if (production && value.TRANSCRIPT_GENERATED_ADAPTER === "fixture") {
+      context.addIssue({
+        code: "custom",
+        path: ["TRANSCRIPT_GENERATED_ADAPTER"],
+        message: "The generated transcript fixture cannot run in production.",
+      });
     }
-    if (value.TRANSCRIPT_NATIVE_ENABLED && value.TRANSCRIPT_NATIVE_ADAPTER === "supadata" && !value.SUPADATA_API_KEY) {
-      context.addIssue({ code: "custom", path: ["SUPADATA_API_KEY"], message: "Supadata API key is required for the native transcript adapter." });
+    if (production && value.TRANSCRIPT_REPOSITORY === "fake") {
+      context.addIssue({
+        code: "custom",
+        path: ["TRANSCRIPT_REPOSITORY"],
+        message: "The fake transcript repository cannot run in production.",
+      });
+    }
+    if (
+      value.TRANSCRIPT_NATIVE_ENABLED &&
+      value.TRANSCRIPT_NATIVE_ADAPTER === "supadata" &&
+      !value.SUPADATA_API_KEY
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["SUPADATA_API_KEY"],
+        message: "Supadata API key is required for the native transcript adapter.",
+      });
+    }
+    if (
+      production &&
+      value.TRANSCRIPT_GENERATED_ENABLED &&
+      value.TRANSCRIPT_GENERATED_ADAPTER === "supadata" &&
+      !value.SUPADATA_API_KEY
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["SUPADATA_API_KEY"],
+        message: "Supadata API key is required for generated transcripts.",
+      });
     }
     if (
       value.GENERATION_DISPATCHER === "inngest" &&
-      value.NODE_ENV === "production" &&
+      production &&
       (!value.INNGEST_EVENT_KEY || !value.INNGEST_SIGNING_KEY)
     ) {
-      context.addIssue({ code: "custom", path: ["INNGEST_EVENT_KEY"], message: "Inngest event and signing keys are required in production." });
+      context.addIssue({
+        code: "custom",
+        path: ["INNGEST_EVENT_KEY"],
+        message: "Inngest event and signing keys are required in production.",
+      });
     }
   });
 
@@ -86,9 +208,17 @@ export function getServerConfig(): ServerConfig {
     GENERATION_MAX_JOBS_PER_MINUTE: process.env.GENERATION_MAX_JOBS_PER_MINUTE,
     TRANSCRIPT_NATIVE_ENABLED: process.env.TRANSCRIPT_NATIVE_ENABLED,
     TRANSCRIPT_NATIVE_ADAPTER: process.env.TRANSCRIPT_NATIVE_ADAPTER,
+    TRANSCRIPT_GENERATED_ENABLED: process.env.TRANSCRIPT_GENERATED_ENABLED,
+    TRANSCRIPT_GENERATED_ADAPTER: process.env.TRANSCRIPT_GENERATED_ADAPTER,
     TRANSCRIPT_REPOSITORY: process.env.TRANSCRIPT_REPOSITORY,
     SUPADATA_API_KEY: process.env.SUPADATA_API_KEY,
     SUPADATA_NATIVE_TIMEOUT_MS: process.env.SUPADATA_NATIVE_TIMEOUT_MS,
+    SUPADATA_GENERATED_TIMEOUT_MS: process.env.SUPADATA_GENERATED_TIMEOUT_MS,
+    SUPADATA_GENERATED_POLL_INTERVAL_MS:
+      process.env.SUPADATA_GENERATED_POLL_INTERVAL_MS,
+    SUPADATA_GENERATED_MAX_POLLS: process.env.SUPADATA_GENERATED_MAX_POLLS,
+    TRANSCRIPT_GENERATED_MAX_VIDEO_DURATION_MS:
+      process.env.TRANSCRIPT_GENERATED_MAX_VIDEO_DURATION_MS,
     INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
     INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
   });
