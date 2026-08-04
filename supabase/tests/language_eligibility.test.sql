@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(26);
+select plan(28);
 
 select has_table('public', 'language_eligibility_reports', 'language reports exist');
 select has_table('public', 'language_eligible_segments', 'eligible segment allowlist exists');
@@ -29,7 +29,7 @@ select is(
 select is(
   has_function_privilege(
     'authenticated',
-    'public.persist_language_eligibility(uuid,uuid,text,text,text,text,text,text,double precision,double precision,bigint,integer,integer,text,text[],text[],text[],text[])',
+    'public.persist_language_eligibility(uuid,uuid,text,text,text,text,text,text,double precision,double precision,bigint,integer,integer,text,text[],jsonb,text[],text[],text[])',
     'execute'
   ),
   false,
@@ -147,6 +147,23 @@ select * from public.persist_language_eligibility(
   repeat('a', 64), 'franc-min', 'franc-min:6.2.0', 'original-english:v1',
   'eligible', 'SUFFICIENT_ORIGINAL_ENGLISH',
   1.0, 1.0, 90000, 150, 150, 'high', array['en'],
+  '[{
+    "windowId":"win_111111111111111111111111",
+    "segmentIds":[
+      "seg_11111111111111111111111111111111",
+      "seg_22222222222222222222222222222222",
+      "seg_33333333333333333333333333333333"
+    ],
+    "startMs":0,
+    "endMs":90000,
+    "wordCount":150,
+    "characterCount":900,
+    "detectorCode":"eng",
+    "detectedLanguage":"en",
+    "reliability":"high",
+    "rawBestScore":1.0,
+    "rawSecondScore":0.5
+  }]'::jsonb,
   array[
     'seg_11111111111111111111111111111111',
     'seg_22222222222222222222222222222222',
@@ -166,6 +183,21 @@ select is((select count(*)::integer from public.language_eligibility_reports), 1
 select is((select count(*)::integer from public.language_eligible_segments), 3, 'English allowlist committed');
 select is((select status::text from public.lesson_jobs where id = '44444444-4444-4444-8444-444444444444'), 'analyzing_video', 'eligible job unlocks analysis');
 select is((select safe_error_code is null from public.lesson_jobs where id = '44444444-4444-4444-8444-444444444444'), true, 'eligible job has no safe error');
+select is(
+  (select jsonb_array_length(window_evidence) from public.language_eligibility_reports where job_id = '44444444-4444-4444-8444-444444444444'),
+  1,
+  'raw detector window evidence is retained'
+);
+select is(
+  (
+    select count(*)::integer
+    from public.language_eligibility_reports
+    cross join lateral jsonb_array_elements(window_evidence) as evidence
+    where evidence ? 'text'
+  ),
+  0,
+  'window evidence never stores transcript text'
+);
 
 create temporary table eligible_retry as
 select * from public.persist_language_eligibility(
@@ -174,6 +206,23 @@ select * from public.persist_language_eligibility(
   repeat('a', 64), 'franc-min', 'franc-min:6.2.0', 'original-english:v1',
   'ineligible', 'INSUFFICIENT_ORIGINAL_ENGLISH',
   0.0, 1.0, 0, 0, 150, 'high', array['vie'],
+  '[{
+    "windowId":"win_111111111111111111111111",
+    "segmentIds":[
+      "seg_11111111111111111111111111111111",
+      "seg_22222222222222222222222222222222",
+      "seg_33333333333333333333333333333333"
+    ],
+    "startMs":0,
+    "endMs":90000,
+    "wordCount":150,
+    "characterCount":900,
+    "detectorCode":"vie",
+    "detectedLanguage":"vie",
+    "reliability":"high",
+    "rawBestScore":1.0,
+    "rawSecondScore":0.5
+  }]'::jsonb,
   array[]::text[], array[]::text[],
   array[
     'seg_11111111111111111111111111111111',
@@ -194,6 +243,23 @@ select * from public.persist_language_eligibility(
   repeat('b', 64), 'franc-min', 'franc-min:6.2.0', 'original-english:v1',
   'ineligible', 'INSUFFICIENT_ORIGINAL_ENGLISH',
   0.0, 1.0, 0, 0, 180, 'high', array['vie'],
+  '[{
+    "windowId":"win_222222222222222222222222",
+    "segmentIds":[
+      "seg_11111111111111111111111111111111",
+      "seg_22222222222222222222222222222222",
+      "seg_33333333333333333333333333333333"
+    ],
+    "startMs":0,
+    "endMs":90000,
+    "wordCount":180,
+    "characterCount":1000,
+    "detectorCode":"vie",
+    "detectedLanguage":"vie",
+    "reliability":"high",
+    "rawBestScore":1.0,
+    "rawSecondScore":0.4
+  }]'::jsonb,
   array[]::text[], array[]::text[],
   array[
     'seg_11111111111111111111111111111111',
@@ -214,12 +280,34 @@ select * from public.persist_language_eligibility(
   repeat('c', 64), 'franc-min', 'franc-min:6.2.0', 'original-english:v1',
   'insufficient_evidence', 'TRANSCRIPT_EVIDENCE_TOO_WEAK',
   1.0, 0.25, 30000, 40, 40, 'low', array['en'],
+  '[{
+    "windowId":"win_333333333333333333333333",
+    "segmentIds":[
+      "seg_11111111111111111111111111111111",
+      "seg_22222222222222222222222222222222",
+      "seg_33333333333333333333333333333333"
+    ],
+    "startMs":0,
+    "endMs":30000,
+    "wordCount":40,
+    "characterCount":200,
+    "detectorCode":"eng",
+    "detectedLanguage":"en",
+    "reliability":"low",
+    "rawBestScore":0.7,
+    "rawSecondScore":0.68
+  }]'::jsonb,
   array[
     'seg_11111111111111111111111111111111',
     'seg_22222222222222222222222222222222',
     'seg_33333333333333333333333333333333'
   ],
-  array[]::text[], array[]::text[]
+  array[]::text[],
+  array[
+    'seg_11111111111111111111111111111111',
+    'seg_22222222222222222222222222222222',
+    'seg_33333333333333333333333333333333'
+  ]
 );
 
 select is((select report_status from weak_result), 'insufficient_evidence', 'weak evidence stays distinct from unsupported language');
