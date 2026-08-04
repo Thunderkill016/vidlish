@@ -15,6 +15,8 @@ export type TranscriptAttemptRecord = {
   costBand: TranscriptCostBand;
   result: Exclude<TranscriptStrategyResult, { kind: "success" }>;
   latencyMs: number;
+  providerJobId?: string;
+  providerRequestId?: string;
 };
 
 export interface TranscriptRepository {
