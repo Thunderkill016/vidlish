@@ -30,12 +30,30 @@ create table public.language_eligibility_reports (
     'INSUFFICIENT_ORIGINAL_ENGLISH',
     'TRANSCRIPT_EVIDENCE_TOO_WEAK'
   )),
+  constraint language_reports_status_reason check (
+    (status = 'eligible' and reason_code in (
+      'SUFFICIENT_ORIGINAL_ENGLISH',
+      'SUFFICIENT_MIXED_LANGUAGE_ENGLISH_PORTION'
+    )) or
+    (status = 'ineligible' and reason_code = 'INSUFFICIENT_ORIGINAL_ENGLISH') or
+    (status = 'insufficient_evidence' and reason_code = 'TRANSCRIPT_EVIDENCE_TOO_WEAK')
+  ),
   constraint language_reports_english_share check (english_share between 0 and 1),
   constraint language_reports_reliable_coverage check (reliable_coverage between 0 and 1),
   constraint language_reports_duration check (coherent_english_duration_ms >= 0),
   constraint language_reports_english_words check (reliable_english_word_count >= 0),
   constraint language_reports_analyzed_words check (reliable_analyzed_word_count >= 0),
   constraint language_reports_confidence check (confidence_band in ('low', 'medium', 'high')),
+  constraint language_reports_permitted_status check (
+    (status = 'eligible' and cardinality(permitted_segment_ids) > 0) or
+    (status <> 'eligible' and cardinality(permitted_segment_ids) = 0)
+  ),
+  constraint language_reports_permitted_subset check (
+    permitted_segment_ids <@ english_segment_ids
+  ),
+  constraint language_reports_sets_disjoint check (
+    not (permitted_segment_ids && excluded_segment_ids)
+  ),
   unique (job_id, transcript_id, detector_version, policy_version)
 );
 
