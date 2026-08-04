@@ -36,6 +36,7 @@ function timedChunks(texts: string[]) {
 
 export class FixtureNativeCaptionStrategy implements TranscriptStrategy {
   readonly id = NATIVE_CAPTION_STRATEGY_ID;
+  readonly costBand = "none" as const;
 
   async acquire(input: { videoId: string }): Promise<TranscriptStrategyResult> {
     if (input.videoId === "nocaption01") {
