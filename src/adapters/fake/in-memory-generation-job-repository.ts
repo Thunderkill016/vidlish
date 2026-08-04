@@ -11,6 +11,7 @@ import {
   generationJobSchema,
   type GenerationJob,
   type GenerationJobStatus,
+  type GenerationSafeErrorCode,
 } from "@/shared/contracts/generation";
 
 function nowIso(): string {
@@ -138,6 +139,7 @@ export class InMemoryGenerationJobRepository
       jobId,
       "acquiring_transcript",
       "acquiring_transcript",
+      null,
     );
   }
 
@@ -158,15 +160,20 @@ export class InMemoryGenerationJobRepository
     jobId: string,
     status: GenerationJobStatus,
     currentStage: string,
+    safeErrorCode?: GenerationSafeErrorCode | null,
   ): Promise<GenerationJob | null> {
     const job = this.jobs.get(jobId);
     if (!job) return null;
-    const updated = generationJobSchema.parse({
+    const next: Record<string, unknown> = {
       ...job,
       status,
       currentStage,
       updatedAt: nowIso(),
-    });
+    };
+    if (safeErrorCode === null) delete next.safeErrorCode;
+    else if (safeErrorCode !== undefined) next.safeErrorCode = safeErrorCode;
+
+    const updated = generationJobSchema.parse(next);
     this.jobs.set(jobId, updated);
     return updated;
   }
