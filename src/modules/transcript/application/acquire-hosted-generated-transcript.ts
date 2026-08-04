@@ -112,7 +112,7 @@ export class AcquireHostedGeneratedTranscript {
     providerJobId?: string,
   ): Promise<HostedGeneratedOutcome> {
     if (result.kind === "pending") {
-      await this.record(job, result, latencyMs);
+      await this.record(job, result, latencyMs, result.providerJobId);
       return result;
     }
     if (result.kind !== "success") {
@@ -170,18 +170,18 @@ export class AcquireHostedGeneratedTranscript {
     latencyMs: number,
     providerJobId?: string,
   ): Promise<void> {
-    const effectiveResult =
-      result.kind === "pending" && providerJobId
-        ? { ...result, providerJobId }
-        : result;
     await this.transcriptRepository.recordAttempt({
       ownerUserId: job.ownerUserId,
       jobId: job.id,
       strategyId: this.strategy.id,
       provider: "supadata",
       costBand: this.strategy.costBand,
-      result: effectiveResult,
+      result,
       latencyMs: Math.max(0, latencyMs),
+      ...(providerJobId ? { providerJobId } : {}),
+      ...(result.kind === "pending" && result.providerRequestId
+        ? { providerRequestId: result.providerRequestId }
+        : {}),
     });
   }
 }
