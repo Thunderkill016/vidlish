@@ -63,7 +63,10 @@ function createInlineDispatcher(
       throw new Error(`Native caption retry: ${nativeOutcome.reason}`);
     }
 
-    let useGenerated = nativeOutcome.kind === "not_applicable";
+    let useGenerated =
+      nativeOutcome.kind === "not_applicable" ||
+      (nativeOutcome.kind === "terminal_failure" &&
+        nativeOutcome.reason === "STRATEGY_DISABLED");
     if (
       nativeOutcome.kind === "persisted" ||
       nativeOutcome.kind === "already_advanced"
