@@ -20,6 +20,13 @@ const transcriptMigration = readFileSync(
   ),
   "utf8",
 );
+const languageMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260804031500_create_language_eligibility.sql",
+  ),
+  "utf8",
+);
 
 describe("beta_access migration contract", () => {
   it("enables RLS and denies browser roles", () => {
@@ -108,6 +115,61 @@ describe("canonical transcript migration contract", () => {
     );
     expect(transcriptMigration).toMatch(
       /revoke all on function public\.persist_canonical_transcript[\s\S]*authenticated/i,
+    );
+  });
+});
+
+describe("original-English eligibility migration contract", () => {
+  it("stores versioned reports and a transcript-bound downstream allowlist", () => {
+    expect(languageMigration).toMatch(
+      /create table public\.language_eligibility_reports/i,
+    );
+    expect(languageMigration).toMatch(
+      /create table public\.language_eligible_segments/i,
+    );
+    expect(languageMigration).toMatch(
+      /detector_version = 'franc-min:6\.2\.0'/i,
+    );
+    expect(languageMigration).toMatch(
+      /policy_version = 'original-english:v1'/i,
+    );
+    expect(languageMigration).toMatch(
+      /foreign key \(transcript_id, segment_id\)[\s\S]*references public\.transcript_segments\(transcript_id, id\)/i,
+    );
+    expect(languageMigration).not.toMatch(
+      /create table public\.(lessons|activities)/i,
+    );
+  });
+
+  it("commits each decision to one safe lifecycle outcome", () => {
+    expect(languageMigration).toMatch(
+      /v_effective_status = 'eligible'[\s\S]*status = 'analyzing_video'/i,
+    );
+    expect(languageMigration).toMatch(
+      /v_effective_status = 'ineligible'[\s\S]*status = 'failed'[\s\S]*safe_error_code = 'VIDEO_LANGUAGE_UNSUPPORTED'/i,
+    );
+    expect(languageMigration).toMatch(
+      /else[\s\S]*status = 'acquiring_transcript'[\s\S]*safe_error_code = null/i,
+    );
+    expect(languageMigration).toMatch(
+      /select id, status, permitted_segment_ids[\s\S]*v_effective_status/i,
+    );
+  });
+
+  it("allows owner reads but blocks browser decisions and writes", () => {
+    for (const table of [
+      "language_eligibility_reports",
+      "language_eligible_segments",
+    ]) {
+      expect(languageMigration).toMatch(
+        new RegExp(`alter table public\\.${table} enable row level security`, "i"),
+      );
+    }
+    expect(languageMigration).not.toMatch(
+      /grant (insert|update|delete).*language_eligibility_reports to authenticated/i,
+    );
+    expect(languageMigration).toMatch(
+      /revoke all on function public\.persist_language_eligibility[\s\S]*authenticated/i,
     );
   });
 });
