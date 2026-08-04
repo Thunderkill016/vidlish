@@ -90,11 +90,13 @@ export function normalizeTranscript(
   }
 
   const declaredLanguage = normalizeLanguage(candidate.declaredLanguage);
-  const availableLanguages = [...new Set(
-    candidate.availableLanguages
-      .map((language) => normalizeLanguage(language))
-      .filter((language): language is string => Boolean(language)),
-  )].sort();
+  const availableLanguages = [
+    ...new Set(
+      candidate.availableLanguages
+        .map((language) => normalizeLanguage(language))
+        .filter((language): language is string => Boolean(language)),
+    ),
+  ].sort();
 
   const hashPayload = JSON.stringify({
     normalizationVersion: TRANSCRIPT_NORMALIZATION_VERSION,
@@ -123,6 +125,9 @@ export function normalizeTranscript(
     strategyId: candidate.strategyId,
     provider: candidate.provider,
     sourceType: candidate.sourceType,
+    ...(candidate.providerRequestId
+      ? { providerRequestId: candidate.providerRequestId }
+      : {}),
     ...(declaredLanguage ? { declaredLanguage } : {}),
     availableLanguages,
     trackKind: candidate.trackKind,
