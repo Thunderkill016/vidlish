@@ -55,8 +55,8 @@ export class FrancLanguageAnalysisAdapter implements LanguageAnalysisPort {
           minLength: this.options.detectorMinLength ?? 20,
         });
         const detectorCode = ranking[0]?.[0] ?? "und";
-        const bestDistance = ranking[0]?.[1];
-        const secondDistance = ranking[1]?.[1];
+        const bestScore = ranking[0]?.[1];
+        const secondScore = ranking[1]?.[1];
         const characterCount = [...window.text].length;
 
         return languageWindowResultSchema.parse({
@@ -74,11 +74,11 @@ export class FrancLanguageAnalysisAdapter implements LanguageAnalysisPort {
             characterCount,
             this.options.minWindowWords,
           ),
-          ...(bestDistance !== undefined && Number.isFinite(bestDistance)
-            ? { rawBestDistance: bestDistance }
+          ...(bestScore !== undefined && Number.isFinite(bestScore)
+            ? { rawBestScore: bestScore }
             : {}),
-          ...(secondDistance !== undefined && Number.isFinite(secondDistance)
-            ? { rawSecondDistance: secondDistance }
+          ...(secondScore !== undefined && Number.isFinite(secondScore)
+            ? { rawSecondScore: secondScore }
             : {}),
         });
       }),
