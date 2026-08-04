@@ -54,9 +54,9 @@ export class FrancLanguageAnalysisAdapter implements LanguageAnalysisPort {
         const ranking = francAll(window.text, {
           minLength: this.options.detectorMinLength ?? 20,
         });
-        const best = ranking[0] ?? ["und", Number.POSITIVE_INFINITY];
-        const second = ranking[1];
-        const detectorCode = best[0];
+        const detectorCode = ranking[0]?.[0] ?? "und";
+        const bestDistance = ranking[0]?.[1];
+        const secondDistance = ranking[1]?.[1];
         const characterCount = [...window.text].length;
 
         return languageWindowResultSchema.parse({
@@ -74,9 +74,11 @@ export class FrancLanguageAnalysisAdapter implements LanguageAnalysisPort {
             characterCount,
             this.options.minWindowWords,
           ),
-          ...(Number.isFinite(best[1]) ? { rawBestDistance: best[1] } : {}),
-          ...(second && Number.isFinite(second[1])
-            ? { rawSecondDistance: second[1] }
+          ...(bestDistance !== undefined && Number.isFinite(bestDistance)
+            ? { rawBestDistance: bestDistance }
+            : {}),
+          ...(secondDistance !== undefined && Number.isFinite(secondDistance)
+            ? { rawSecondDistance: secondDistance }
             : {}),
         });
       }),
