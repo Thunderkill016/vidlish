@@ -18,6 +18,20 @@ export type NativeCaptionOutcome =
   | { kind: "already_advanced" }
   | TranscriptFailureResult;
 
+const downstreamStatuses = new Set<GenerationJob["status"]>([
+  "checking_language",
+  "analyzing_video",
+  "mining_language",
+  "planning_lesson",
+  "composing_activities",
+  "validating_lesson",
+  "repairing_lesson",
+  "publishing",
+  "completed",
+  "failed",
+  "cancelled",
+]);
+
 function translatedCaptionRejected(): TranscriptFailureResult {
   return {
     kind: "not_applicable",
@@ -60,7 +74,7 @@ export class AcquireNativeCaption {
   }
 
   async execute(job: GenerationJob): Promise<NativeCaptionOutcome> {
-    if (job.status === "checking_language") {
+    if (downstreamStatuses.has(job.status)) {
       return { kind: "already_advanced" };
     }
 
@@ -94,6 +108,7 @@ export class AcquireNativeCaption {
       job.id,
       "normalizing_transcript",
       "normalizing_transcript",
+      null,
     );
     const persisted = await this.transcriptRepository.persistAndAdvance({
       ownerUserId: job.ownerUserId,

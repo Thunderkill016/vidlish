@@ -10,6 +10,7 @@ import type { GenerationDispatcher } from "@/modules/generation/ports/generation
 import type { GenerationJobRepository } from "@/modules/generation/ports/generation-job-repository";
 import { AcquireNativeCaption } from "@/modules/transcript/application/acquire-native-caption";
 import { getServerConfig } from "@/platform/config/server";
+import { createOriginalEnglishGate } from "@/platform/language/create-language-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 
 export function createGenerationRepository(): GenerationJobRepository {
@@ -29,11 +30,23 @@ function createInlineDispatcher(
     transcriptRuntime.strategy,
     transcriptRuntime.enabled,
   );
+  const checkOriginalEnglish = createOriginalEnglishGate(
+    repository,
+    transcriptRuntime.repository,
+  );
 
   return new InlineGenerationDispatcher(repository, async (job) => {
     const outcome = await acquireNativeCaption.execute(job);
     if (outcome.kind === "retryable_failure") {
       throw new Error(`Native caption retry: ${outcome.reason}`);
+    }
+    if (outcome.kind !== "persisted" && outcome.kind !== "already_advanced") {
+      return;
+    }
+
+    const latest = await repository.findOwnedById(job.id, job.ownerUserId);
+    if (latest?.status === "checking_language") {
+      await checkOriginalEnglish.execute(latest);
     }
   });
 }

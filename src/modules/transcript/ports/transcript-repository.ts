@@ -21,4 +21,8 @@ export interface TranscriptRepository {
     transcript: CanonicalTranscript;
     latencyMs: number;
   }): Promise<TranscriptPersistResult>;
+  findCanonicalForJob(
+    ownerUserId: string,
+    jobId: string,
+  ): Promise<CanonicalTranscript | null>;
 }

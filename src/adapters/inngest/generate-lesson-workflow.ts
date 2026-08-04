@@ -3,6 +3,7 @@ import "server-only";
 import { inngest } from "@/adapters/inngest/client";
 import { AcquireNativeCaption } from "@/modules/transcript/application/acquire-native-caption";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
+import { createOriginalEnglishGate } from "@/platform/language/create-language-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 import { generationRequestedEventSchema } from "@/shared/contracts/generation";
 
@@ -13,6 +14,10 @@ const acquireNativeCaption = new AcquireNativeCaption(
   transcriptRuntime.repository,
   transcriptRuntime.strategy,
   transcriptRuntime.enabled,
+);
+const checkOriginalEnglish = createOriginalEnglishGate(
+  generationRepository,
+  transcriptRuntime.repository,
 );
 
 export const generateLessonWorkflow = inngest.createFunction(
@@ -26,26 +31,84 @@ export const generateLessonWorkflow = inngest.createFunction(
   },
   async ({ event, step }) => {
     const payload = generationRequestedEventSchema.parse(event.data);
-    const job = await step.run("advance-to-transcript-acquisition", () =>
-      generationRepository.advanceStory21(payload.jobId),
+    const jobRef = await step.run(
+      "advance-to-transcript-acquisition",
+      async () => {
+        const job = await generationRepository.advanceStory21(payload.jobId);
+        return job
+          ? {
+              jobId: job.id,
+              ownerUserId: job.ownerUserId,
+              status: job.status,
+            }
+          : null;
+      },
     );
-    if (!job) return { jobId: payload.jobId, status: "missing" };
+    if (!jobRef) return { jobId: payload.jobId, status: "missing" };
 
-    const outcome = await step.run("acquire-native-caption", async () => {
-      const result = await acquireNativeCaption.execute(job);
-      if (result.kind === "retryable_failure") {
-        throw new Error(`Native caption retry: ${result.reason}`);
-      }
-      return result;
-    });
+    const transcriptOutcome = await step.run(
+      "acquire-native-caption",
+      async () => {
+        const job = await generationRepository.findOwnedById(
+          jobRef.jobId,
+          jobRef.ownerUserId,
+        );
+        if (!job) return { kind: "missing" } as const;
+
+        const result = await acquireNativeCaption.execute(job);
+        if (result.kind === "retryable_failure") {
+          throw new Error(`Native caption retry: ${result.reason}`);
+        }
+        return result;
+      },
+    );
+
+    let languageOutcome: string | undefined;
+    if (
+      transcriptOutcome.kind === "persisted" ||
+      transcriptOutcome.kind === "already_advanced"
+    ) {
+      const languageResult = await step.run(
+        "check-original-english",
+        async () => {
+          const latest = await generationRepository.findOwnedById(
+            jobRef.jobId,
+            jobRef.ownerUserId,
+          );
+          if (!latest) return { status: "missing", decision: null } as const;
+          if (latest.status !== "checking_language") {
+            return { status: latest.status, decision: null } as const;
+          }
+
+          const decision = await checkOriginalEnglish.execute(latest);
+          return {
+            status: decision.status,
+            decision: {
+              reportId: decision.reportId,
+              created: decision.created,
+            },
+          };
+        },
+      );
+      languageOutcome = languageResult.status;
+    }
+
+    const finalStatus = await step.run(
+      "load-final-generation-state",
+      async () =>
+        (
+          await generationRepository.findOwnedById(
+            jobRef.jobId,
+            jobRef.ownerUserId,
+          )
+        )?.status ?? "missing",
+    );
 
     return {
       jobId: payload.jobId,
-      status:
-        outcome.kind === "persisted" || outcome.kind === "already_advanced"
-          ? "checking_language"
-          : job.status,
-      transcriptOutcome: outcome.kind,
+      status: finalStatus,
+      transcriptOutcome: transcriptOutcome.kind,
+      ...(languageOutcome ? { languageOutcome } : {}),
     };
   },
 );

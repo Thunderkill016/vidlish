@@ -9,7 +9,8 @@ Vidlish biến video YouTube có đủ lời nói tiếng Anh gốc thành bài 
 - Epic 1: email OTP/private beta, URL + metadata validation, CEFR và confirmed Create draft.
 - Story 2.1: durable generation job, owner-scoped progress page, idempotency, quota boundary và Inngest workflow entry.
 - Story 2.2: native-caption fast path, deterministic normalization, canonical transcript persistence và handoff tới `checking_language`.
-- Original-English eligibility và Lesson Engine thuộc các story tiếp theo.
+- Story 2.3: versioned original-English eligibility gate, mixed-language allowlist và terminal unsupported-language UX.
+- Transcript fallback strategies và Lesson Engine thuộc các story tiếp theo.
 
 ## Chạy ứng dụng cục bộ
 
@@ -111,6 +112,19 @@ SUPADATA_NATIVE_TIMEOUT_MS=8000
 
 Adapter gọi universal `GET /v1/transcript` với `mode=native` và `text=false`. Vidlish không gửi `lang`, không gọi translation endpoint và không dùng AI generation trong Story 2.2. Candidate được Zod-validate, normalized deterministically, rồi transcript + segments + acquisition attempt được commit atomically trước khi job chuyển sang `checking_language`. `transcript-unavailable` chỉ có nghĩa không có caption dùng được; nó không phải kết luận ngôn ngữ.
 
+### Original-English eligibility gate
+
+Story 2.3 dùng `franc-min@6.2.0` sau `LanguageAnalysisPort` để tạo evidence theo coherent windows. Caption language, video metadata và segment language do provider khai báo không được dùng làm quyết định. Detector rank được lưu như raw evidence, không được trình bày như xác suất.
+
+Policy `original-english:v1` nằm trong `src/modules/language/application/default-language-policy.ts` và xét đồng thời:
+
+- tỷ lệ English trong phần evidence đủ tin cậy;
+- thời lượng English liên tục;
+- số từ English đủ tin cậy;
+- coverage, số từ và số window tối thiểu để được phép kết luận.
+
+Video chủ yếu nói tiếng Anh hoặc có một English portion đủ dài/coherent được đánh dấu `eligible`. Chỉ segment IDs thuộc reliable English windows được ghi vào downstream allowlist trước khi job chuyển sang `analyzing_video`. Video được xác nhận không đủ tiếng Anh gốc chuyển sang `failed` với `VIDEO_LANGUAGE_UNSUPPORTED` và hành động `choose_another_video`. Evidence quá yếu quay lại `acquiring_transcript` để fallback strategy sau có thể tiếp tục; nó không bị gắn nhãn sai là unsupported language.
+
 ## Kiểm thử
 
 ```bash
@@ -122,7 +136,7 @@ supabase test db
 pnpm build
 ```
 
-CI sử dụng auth/video/generation/transcript fixtures và không gọi Gemini, YouTube, Supadata, STT provider hoặc Inngest Cloud thật.
+CI sử dụng auth/video/generation/transcript fixtures và detector chạy cục bộ; không gọi Gemini, YouTube, Supadata, STT provider hoặc Inngest Cloud thật.
 
 ## BMAD cho Codex
 

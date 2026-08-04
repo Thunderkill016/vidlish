@@ -14,6 +14,7 @@ export const productErrorCodeSchema = z.enum([
   "VIDEO_RESTRICTED",
   "VIDEO_UNAVAILABLE",
   "VIDEO_METADATA_FAILED",
+  "VIDEO_LANGUAGE_UNSUPPORTED",
   "JOB_CONCURRENCY_LIMIT",
   "ACCOUNT_QUOTA_EXCEEDED",
   "RATE_LIMITED",
@@ -149,6 +150,13 @@ export const videoErrors = {
         : "Vidlish chưa thể kiểm tra video do cấu hình dịch vụ.",
       retryable,
       retryable ? "retry" : undefined,
+    ),
+  languageUnsupported: () =>
+    new ProductError(
+      "VIDEO_LANGUAGE_UNSUPPORTED",
+      "Video này không có đủ lời nói tiếng Anh gốc để tạo một bài học có căn cứ.",
+      false,
+      "choose_another_video",
     ),
 } as const;
 

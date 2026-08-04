@@ -11,11 +11,12 @@ async function login(page: import("@playwright/test").Page) {
 
 async function prepareConfirmedDraft(
   page: import("@playwright/test").Page,
+  videoId = "dQw4w9WgXcQ",
   cefrName = "B2 Trung cấp cao",
 ) {
   await page
     .getByLabel("Liên kết video YouTube")
-    .fill("https://youtu.be/dQw4w9WgXcQ");
+    .fill(`https://youtu.be/${videoId}`);
   await page.getByRole("button", { name: "Kiểm tra video" }).click();
   await page.getByRole("button", { name: cefrName }).click();
   await page.getByRole("button", { name: "Xác nhận lựa chọn" }).click();
@@ -113,7 +114,7 @@ test("selects CEFR and keeps readiness invalidation rules", async ({ page }) => 
   ).toHaveAttribute("aria-pressed", "true");
 });
 
-test("creates a durable job, commits native captions and survives reload", async ({
+test("commits eligible original-English evidence before video analysis", async ({
   page,
 }) => {
   const createRequests: string[] = [];
@@ -128,13 +129,30 @@ test("creates a durable job, commits native captions and survives reload", async
 
   await expect(page).toHaveURL(/\/jobs\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: "Tiến trình" })).toBeVisible();
-  await expect(page.getByText("Kiểm tra tiếng Anh", { exact: true })).toBeVisible();
+  await expect(page.getByText("Phân tích video", { exact: true })).toBeVisible();
   await expect(page.getByText("How to build a better learning habit")).toBeVisible();
   expect(createRequests).toHaveLength(1);
 
   const jobUrl = page.url();
   await page.reload();
   await expect(page).toHaveURL(jobUrl);
-  await expect(page.getByText("Kiểm tra tiếng Anh", { exact: true })).toBeVisible();
+  await expect(page.getByText("Phân tích video", { exact: true })).toBeVisible();
   await expect(page.getByText("Bạn có thể đóng trang này.")).toBeVisible();
+});
+
+test("fails closed when declared English metadata contains Vietnamese source speech", async ({
+  page,
+}) => {
+  await prepareConfirmedDraft(page, "vietsource1", "B1 Trung cấp");
+  await page.getByRole("button", { name: "Tạo bài học" }).click();
+
+  await expect(page).toHaveURL(/\/jobs\/[0-9a-f-]{36}$/);
+  const card = page.getByTestId("language-unsupported");
+  await expect(card).toContainText("Video chưa đủ tiếng Anh gốc");
+  await expect(card).toContainText("phụ đề dịch hoặc nội dung lồng tiếng");
+  await expect(page.getByText("Video không đủ tiếng Anh gốc")).toBeVisible();
+  await expect(page.getByText(/franc|minWindow|englishShare/i)).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Chọn video khác" }).click();
+  await expect(page).toHaveURL(/\/create$/);
 });
