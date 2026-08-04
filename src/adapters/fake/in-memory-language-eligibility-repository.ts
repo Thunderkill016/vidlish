@@ -22,7 +22,14 @@ export class InMemoryLanguageEligibilityRepository
     jobId: string;
     report: LanguageEligibilityReport;
   }): Promise<LanguageEligibilityPersistResult> {
+    const ownedJob = await this.generationRepository.findOwnedById(
+      input.jobId,
+      input.ownerUserId,
+    );
+    if (!ownedJob) throw new Error("Generation job not found at language gate.");
+
     const key = [
+      input.ownerUserId,
       input.jobId,
       input.report.transcriptHash,
       input.report.detectorVersion,
@@ -31,15 +38,16 @@ export class InMemoryLanguageEligibilityRepository
     const existing = this.reports.get(key);
     const id = existing?.id ?? crypto.randomUUID();
     if (!existing) this.reports.set(key, { id, report: input.report });
+    const effectiveReport = existing?.report ?? input.report;
 
-    if (input.report.status === "eligible") {
+    if (effectiveReport.status === "eligible") {
       await this.generationRepository.updateStatus(
         input.jobId,
         "analyzing_video",
         "analyzing_video",
         null,
       );
-    } else if (input.report.status === "ineligible") {
+    } else if (effectiveReport.status === "ineligible") {
       await this.generationRepository.updateStatus(
         input.jobId,
         "failed",
@@ -58,7 +66,7 @@ export class InMemoryLanguageEligibilityRepository
     return {
       reportId: id,
       created: !existing,
-      status: input.report.status,
+      status: effectiveReport.status,
     };
   }
 
