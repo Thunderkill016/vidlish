@@ -28,12 +28,14 @@ describe("original-English gate architecture contract", () => {
       workflow.indexOf('"acquire-native-caption"'),
     );
     expect(workflow).not.toMatch(
-      /LessonEngine|generateContent|generateLesson|Gemini|analyzeVideoAdapter/i,
+      /LessonEngine|generateContent|Gemini|analyzeVideoAdapter|composeActivities|publishLesson/i,
     );
   });
 
   it("keeps durable step output free of video and transcript content", () => {
-    expect(workflow).not.toMatch(/videoTitle|channelName|segment\.text|transcript\.text/);
+    expect(workflow).not.toMatch(
+      /videoTitle|channelName|segment\.text|transcript\.text/,
+    );
     expect(workflow).toMatch(/jobId/);
     expect(workflow).toMatch(/ownerUserId/);
     expect(workflow).toMatch(/reportId/);
