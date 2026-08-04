@@ -42,6 +42,12 @@ export function JobProgress({
   const unsupportedLanguage =
     phase === "failed" &&
     job.safeErrorCode === "VIDEO_LANGUAGE_UNSUPPORTED";
+  const tryingTranscriptFallback =
+    phase === "transcript" &&
+    job.currentStage === "trying_transcript_fallback";
+  const automaticTranscriptUnavailable =
+    phase === "transcript" &&
+    job.currentStage === "automatic_transcript_unavailable";
   const currentIndex = useMemo(
     () => phases.findIndex((item) => item.id === phase),
     [phase],
@@ -127,12 +133,16 @@ export function JobProgress({
 
   const currentLabel = unsupportedLanguage
     ? "Video không đủ tiếng Anh gốc"
-    : phases.find((item) => item.id === phase)?.label ??
-      (phase === "completed"
-        ? "Bài học đã sẵn sàng"
-        : phase === "cancelled"
-          ? "Đã hủy"
-          : "Cần xử lý lại");
+    : tryingTranscriptFallback
+      ? "Vidlish đang thử cách khác để lấy lời thoại"
+      : automaticTranscriptUnavailable
+        ? "Chưa lấy được lời thoại tự động"
+        : phases.find((item) => item.id === phase)?.label ??
+          (phase === "completed"
+            ? "Bài học đã sẵn sàng"
+            : phase === "cancelled"
+              ? "Đã hủy"
+              : "Cần xử lý lại");
 
   return (
     <div className="space-y-6">
@@ -206,6 +216,15 @@ export function JobProgress({
           <p aria-live="polite" className="text-sm font-medium">
             {currentLabel}
           </p>
+          {tryingTranscriptFallback ? (
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Tiến trình đã được lưu. Bạn có thể đóng trang trong khi Vidlish tiếp tục xử lý.
+            </p>
+          ) : automaticTranscriptUnavailable ? (
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Vidlish sẽ giữ nguyên tiến trình để các phương án lấy transcript tiếp theo có thể tiếp tục.
+            </p>
+          ) : null}
           {!online ? (
             <p className="text-sm text-[var(--muted-foreground)]">
               Bạn đang offline. Tiến trình vẫn được lưu và sẽ cập nhật khi có mạng.
