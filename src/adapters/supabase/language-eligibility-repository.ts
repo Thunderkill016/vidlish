@@ -37,6 +37,7 @@ export class SupabaseLanguageEligibilityRepository
       p_reliable_analyzed_word_count: report.reliableAnalyzedWordCount,
       p_confidence_band: report.confidenceBand,
       p_detected_languages: report.detectedLanguages,
+      p_window_evidence: report.windowEvidence,
       p_english_segment_ids: report.englishSegmentIds,
       p_permitted_segment_ids: report.permittedSegmentIds,
       p_excluded_segment_ids: report.excludedSegmentIds,
