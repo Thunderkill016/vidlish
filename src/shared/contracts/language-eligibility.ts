@@ -52,7 +52,7 @@ export const languageAnalysisResultSchema = z
   .object({
     detectorId: z.literal(LANGUAGE_DETECTOR_ID),
     detectorVersion: z.literal(LANGUAGE_DETECTOR_VERSION),
-    windows: z.array(languageWindowResultSchema).min(1),
+    windows: z.array(languageWindowResultSchema).min(1).max(10_000),
   })
   .strict();
 
@@ -111,6 +111,7 @@ export const languageEligibilityReportSchema = z
     reliableAnalyzedWordCount: z.number().int().nonnegative(),
     confidenceBand: languageReliabilityBandSchema,
     detectedLanguages: z.array(z.string().min(2).max(3)).max(100),
+    windowEvidence: z.array(languageWindowResultSchema).min(1).max(10_000),
     englishSegmentIds: segmentIdArraySchema,
     permittedSegmentIds: segmentIdArraySchema,
     excludedSegmentIds: segmentIdArraySchema,
