@@ -16,6 +16,7 @@ create table public.language_eligibility_reports (
   reliable_analyzed_word_count integer not null,
   confidence_band text not null,
   detected_languages text[] not null default '{}',
+  window_evidence jsonb not null,
   english_segment_ids text[] not null default '{}',
   permitted_segment_ids text[] not null default '{}',
   excluded_segment_ids text[] not null default '{}',
@@ -42,8 +43,14 @@ create table public.language_eligibility_reports (
   constraint language_reports_reliable_coverage check (reliable_coverage between 0 and 1),
   constraint language_reports_duration check (coherent_english_duration_ms >= 0),
   constraint language_reports_english_words check (reliable_english_word_count >= 0),
-  constraint language_reports_analyzed_words check (reliable_analyzed_word_count >= 0),
+  constraint language_reports_analyzed_words check (
+    reliable_analyzed_word_count >= reliable_english_word_count
+  ),
   constraint language_reports_confidence check (confidence_band in ('low', 'medium', 'high')),
+  constraint language_reports_window_evidence check (
+    jsonb_typeof(window_evidence) = 'array'
+    and jsonb_array_length(window_evidence) > 0
+  ),
   constraint language_reports_permitted_status check (
     (status = 'eligible' and cardinality(permitted_segment_ids) > 0) or
     (status <> 'eligible' and cardinality(permitted_segment_ids) = 0)
@@ -111,6 +118,7 @@ create or replace function public.persist_language_eligibility(
   p_reliable_analyzed_word_count integer,
   p_confidence_band text,
   p_detected_languages text[],
+  p_window_evidence jsonb,
   p_english_segment_ids text[],
   p_permitted_segment_ids text[],
   p_excluded_segment_ids text[]
@@ -126,6 +134,8 @@ declare
   v_created boolean := false;
   v_effective_status text;
   v_effective_permitted_segment_ids text[];
+  v_transcript_segment_count integer;
+  v_covered_segment_count integer;
 begin
   select lesson_jobs.canonical_transcript_id into v_transcript_id
   from public.lesson_jobs
@@ -141,11 +151,69 @@ begin
     raise exception 'canonical transcript not found at language gate';
   end if;
 
+  if jsonb_typeof(p_window_evidence) <> 'array'
+     or jsonb_array_length(p_window_evidence) = 0 then
+    raise exception 'language report requires window evidence';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_window_evidence) as evidence
+    where evidence ? 'text'
+  ) then
+    raise exception 'language window evidence cannot contain transcript text';
+  end if;
+
   if p_status = 'eligible' and coalesce(array_length(p_permitted_segment_ids, 1), 0) = 0 then
     raise exception 'eligible report requires permitted segments';
   end if;
   if p_status <> 'eligible' and coalesce(array_length(p_permitted_segment_ids, 1), 0) > 0 then
     raise exception 'non-eligible report cannot permit downstream evidence';
+  end if;
+
+  if exists (
+    select 1
+    from unnest(
+      coalesce(p_english_segment_ids, '{}') ||
+      coalesce(p_permitted_segment_ids, '{}') ||
+      coalesce(p_excluded_segment_ids, '{}')
+    ) as supplied(segment_id)
+    where not exists (
+      select 1
+      from public.transcript_segments as segment
+      where segment.transcript_id = v_transcript_id
+        and segment.id = supplied.segment_id
+    )
+  ) then
+    raise exception 'language report references a segment outside the canonical transcript';
+  end if;
+
+  if exists (
+    select 1
+    from jsonb_array_elements(p_window_evidence) as evidence
+    cross join lateral jsonb_array_elements_text(evidence->'segmentIds') as supplied(segment_id)
+    where not exists (
+      select 1
+      from public.transcript_segments as segment
+      where segment.transcript_id = v_transcript_id
+        and segment.id = supplied.segment_id
+    )
+  ) then
+    raise exception 'language window evidence references an unknown segment';
+  end if;
+
+  select count(*)::integer into v_transcript_segment_count
+  from public.transcript_segments
+  where transcript_id = v_transcript_id;
+
+  select count(distinct supplied.segment_id)::integer into v_covered_segment_count
+  from unnest(
+    coalesce(p_permitted_segment_ids, '{}') ||
+    coalesce(p_excluded_segment_ids, '{}')
+  ) as supplied(segment_id);
+
+  if v_covered_segment_count <> v_transcript_segment_count then
+    raise exception 'permitted and excluded segments must cover the canonical transcript';
   end if;
 
   insert into public.language_eligibility_reports (
@@ -165,6 +233,7 @@ begin
     reliable_analyzed_word_count,
     confidence_band,
     detected_languages,
+    window_evidence,
     english_segment_ids,
     permitted_segment_ids,
     excluded_segment_ids
@@ -185,6 +254,7 @@ begin
     p_reliable_analyzed_word_count,
     p_confidence_band,
     coalesce(p_detected_languages, '{}'),
+    p_window_evidence,
     coalesce(p_english_segment_ids, '{}'),
     coalesce(p_permitted_segment_ids, '{}'),
     coalesce(p_excluded_segment_ids, '{}')
@@ -252,10 +322,10 @@ $$;
 revoke all on function public.persist_language_eligibility(
   uuid, uuid, text, text, text, text, text, text,
   double precision, double precision, bigint, integer, integer,
-  text, text[], text[], text[], text[]
+  text, text[], jsonb, text[], text[], text[]
 ) from public, anon, authenticated;
 grant execute on function public.persist_language_eligibility(
   uuid, uuid, text, text, text, text, text, text,
   double precision, double precision, bigint, integer, integer,
-  text, text[], text[], text[], text[]
+  text, text[], jsonb, text[], text[], text[]
 ) to service_role;
