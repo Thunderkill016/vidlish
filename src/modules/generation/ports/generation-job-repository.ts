@@ -2,6 +2,7 @@ import type { PlayableVideoMetadata } from "@/shared/contracts/video";
 import type {
   GenerationJob,
   GenerationJobStatus,
+  GenerationSafeErrorCode,
 } from "@/shared/contracts/generation";
 import type { CefrLevel } from "@/shared/contracts/lesson-draft";
 
@@ -41,5 +42,6 @@ export interface GenerationJobRepository {
     jobId: string,
     status: GenerationJobStatus,
     currentStage: string,
+    safeErrorCode?: GenerationSafeErrorCode | null,
   ): Promise<GenerationJob | null>;
 }
