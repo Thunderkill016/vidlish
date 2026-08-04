@@ -153,6 +153,7 @@ export function evaluateLanguageEligibility(input: {
     reliableAnalyzedWordCount,
     confidenceBand,
     detectedLanguages,
+    windowEvidence: analysis.windows,
     englishSegmentIds,
     permittedSegmentIds,
     excludedSegmentIds,
