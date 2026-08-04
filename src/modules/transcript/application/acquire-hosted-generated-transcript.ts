@@ -74,6 +74,12 @@ export class AcquireHostedGeneratedTranscript {
     if (downstreamStatuses.has(job.status)) {
       return { kind: "already_advanced" };
     }
+    await this.generationRepository.updateStatus(
+      job.id,
+      "acquiring_transcript",
+      "trying_transcript_fallback",
+      null,
+    );
     const startedAt = performance.now();
     const result = await this.strategy.poll({
       providerJobId,
