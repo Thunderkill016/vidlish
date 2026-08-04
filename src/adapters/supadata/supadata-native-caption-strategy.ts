@@ -36,8 +36,17 @@ const supadataErrorSchema = z
   })
   .passthrough();
 
+function requestId(response: Response): string | undefined {
+  return (
+    response.headers.get("x-request-id") ??
+    response.headers.get("request-id") ??
+    undefined
+  );
+}
+
 export class SupadataNativeCaptionStrategy implements TranscriptStrategy {
   readonly id = NATIVE_CAPTION_STRATEGY_ID;
+  readonly costBand = "none" as const;
 
   constructor(
     private readonly options: {
@@ -93,7 +102,10 @@ export class SupadataNativeCaptionStrategy implements TranscriptStrategy {
     const raw = await response.json().catch(() => undefined);
     if (response.status === 206) {
       const parsedError = supadataErrorSchema.safeParse(raw);
-      if (parsedError.success && parsedError.data.error === "transcript-unavailable") {
+      if (
+        parsedError.success &&
+        parsedError.data.error === "transcript-unavailable"
+      ) {
         return transcriptStrategyResultSchema.parse({
           kind: "not_applicable",
           reason: "NO_USABLE_CAPTIONS",
@@ -156,6 +168,9 @@ export class SupadataNativeCaptionStrategy implements TranscriptStrategy {
         provider: "supadata",
         sourceType: "native_caption",
         videoId: input.videoId,
+        ...(requestId(response)
+          ? { providerRequestId: requestId(response) }
+          : {}),
         declaredLanguage: transcript.data.lang,
         availableLanguages: transcript.data.availableLangs,
         trackKind: "unknown",
