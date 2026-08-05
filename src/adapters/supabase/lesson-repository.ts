@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import type {
   LessonRepository,
+  LessonSummary,
   PublishLessonInput,
 } from "@/modules/lesson/ports/lesson-repository";
 import {
@@ -120,6 +121,60 @@ export class SupabaseLessonRepository implements LessonRepository {
       .strict()
       .parse(row);
     return { lessonId: parsed.lesson_id, created: parsed.created };
+  }
+
+  async listOwned(ownerUserId: string): Promise<LessonSummary[]> {
+    // Only the fields the library renders. `draft->>titleVi` and the vocabulary
+    // length are computed in Postgres so a shelf of lessons never ships every
+    // draft over the wire.
+    const result = await this.client
+      .from("lessons")
+      .select(
+        `id,job_id,cefr_level,created_at,draft,
+         videos!inner (youtube_video_id, title, channel_name)`,
+      )
+      .eq("owner_user_id", ownerUserId)
+      .eq("pipeline_version", LESSON_PIPELINE_VERSION)
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (result.error) throw result.error;
+
+    return z
+      .array(
+        z.object({
+          id: z.string().uuid(),
+          job_id: z.string().uuid(),
+          cefr_level: z.enum(["A1", "A2", "B1", "B2", "C1"]),
+          created_at: z.string(),
+          draft: z.object({
+            titleVi: z.string(),
+            vocabulary: z.array(z.unknown()),
+          }),
+          videos: z.union([
+            z.object({ youtube_video_id: z.string(), title: z.string(), channel_name: z.string() }),
+            z
+              .array(
+                z.object({ youtube_video_id: z.string(), title: z.string(), channel_name: z.string() }),
+              )
+              .length(1),
+          ]),
+        }),
+      )
+      .parse(result.data ?? [])
+      .map((row) => {
+        const video = Array.isArray(row.videos) ? row.videos[0] : row.videos;
+        return {
+          id: row.id,
+          jobId: row.job_id,
+          videoId: video.youtube_video_id,
+          videoTitle: video.title,
+          channelName: video.channel_name,
+          cefrLevel: row.cefr_level,
+          titleVi: row.draft.titleVi,
+          vocabularyCount: row.draft.vocabulary.length,
+          createdAt: row.created_at,
+        };
+      });
   }
 
   async findOwnedByJobId(
