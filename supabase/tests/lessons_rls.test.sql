@@ -231,6 +231,7 @@ select throws_ok(
       '{"titleVi":"x"}'::jsonb, '[]'::jsonb
     )$$,
   '23514',
+  null,
   'a lesson with no citations is rejected by the database'
 );
 
@@ -250,6 +251,7 @@ select throws_ok(
       '[{"segmentId":"seg_11111111111111111111111111111111","startMs":0,"endMs":1000,"text":"one"}]'::jsonb
     )$$,
   '23514',
+  null,
   'a lesson claiming an unknown schema version is rejected'
 );
 
