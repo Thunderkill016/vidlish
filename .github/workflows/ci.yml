@@ -1,6 +1,9 @@
 name: CI
 
 on:
+  push:
+    branches:
+      - main
   pull_request:
   workflow_dispatch:
 
@@ -8,8 +11,12 @@ permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.workflow }}-${{ github.ref }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
 
 env:
   NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
@@ -35,34 +42,87 @@ env:
   INNGEST_DEV: "1"
 
 jobs:
-  quality:
-    name: Typecheck, lint, test, build
+  static:
+    name: Typecheck and lint
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.15.0
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
-      - run: pnpm build
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+
+  unit:
+    name: Unit tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Run unit tests
+        run: pnpm test
+
+  build:
+    name: Production build
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Restore Next.js build cache
+        uses: actions/cache@v5
+        with:
+          path: .next/cache
+          key: ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**/*.js', 'src/**/*.jsx', 'src/**/*.ts', 'src/**/*.tsx', 'next.config.*', 'tsconfig.json') }}
+          restore-keys: |
+            ${{ runner.os }}-next-${{ hashFiles('pnpm-lock.yaml') }}-
+      - name: Build application
+        run: pnpm build
 
   database:
     name: Supabase migration and RLS tests
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: supabase/setup-cli@v1
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@v2
         with:
           version: latest
+          github-token: ${{ github.token }}
       - name: Start local Supabase
         run: supabase start -x studio,imgproxy
       - name: Reset schema and seed
@@ -78,21 +138,73 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 10.15.0
-      - uses: actions/setup-node@v4
+      - name: Checkout
+        uses: actions/checkout@v6
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v6
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
         with:
           node-version: 24
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm test:e2e
-      - name: Upload failure report
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run product journeys
+        run: pnpm test:e2e
+      - name: Upload failure evidence
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
-          name: playwright-report
-          path: playwright-report/
+          name: playwright-failure-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
           retention-days: 5
+
+  gate:
+    name: CI gate
+    if: always()
+    needs:
+      - static
+      - unit
+      - build
+      - database
+      - e2e
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    env:
+      STATIC_RESULT: ${{ needs.static.result }}
+      UNIT_RESULT: ${{ needs.unit.result }}
+      BUILD_RESULT: ${{ needs.build.result }}
+      DATABASE_RESULT: ${{ needs.database.result }}
+      E2E_RESULT: ${{ needs.e2e.result }}
+    steps:
+      - name: Publish CI summary
+        run: |
+          {
+            echo "## CI summary"
+            echo
+            echo "| Check | Result |"
+            echo "| --- | --- |"
+            echo "| Typecheck and lint | $STATIC_RESULT |"
+            echo "| Unit tests | $UNIT_RESULT |"
+            echo "| Production build | $BUILD_RESULT |"
+            echo "| Supabase migration and RLS | $DATABASE_RESULT |"
+            echo "| Chromium journeys | $E2E_RESULT |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          for result in \
+            "$STATIC_RESULT" \
+            "$UNIT_RESULT" \
+            "$BUILD_RESULT" \
+            "$DATABASE_RESULT" \
+            "$E2E_RESULT"; do
+            if [[ "$result" != "success" ]]; then
+              echo "One or more required CI jobs did not succeed."
+              exit 1
+            fi
+          done
