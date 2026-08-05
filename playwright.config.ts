@@ -27,7 +27,10 @@ export default defineConfig({
       ...process.env,
       AUTH_ADAPTER: "fake",
       AUTH_FAKE_CODE: "123456",
-      TEST_BETA_EMAILS: "invited@example.com",
+      // Two learners, so a test that needs an empty shelf does not depend on
+      // whether another project already created a lesson — the in-memory
+      // repository is one module-global shared by the whole dev server.
+      TEST_BETA_EMAILS: "invited@example.com,fresh@example.com",
       VIDEO_METADATA_ADAPTER: "fixture",
       YOUTUBE_VIEWER_REGION: "VN",
       YOUTUBE_METADATA_TIMEOUT_MS: "1000",
