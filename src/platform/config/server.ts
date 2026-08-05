@@ -23,7 +23,7 @@ const serverConfigSchema = z
       .max(15000)
       .default(5000),
     GENERATION_REPOSITORY: z.enum(["supabase", "fake"]).default("fake"),
-    GENERATION_DISPATCHER: z.enum(["inngest", "inline"]).default("inline"),
+    GENERATION_DISPATCHER: z.enum(["workflow", "inline"]).default("inline"),
     GENERATION_MAX_ACTIVE_JOBS: z.coerce
       .number()
       .int()
@@ -61,8 +61,6 @@ const serverConfigSchema = z
     // Overridable so a newer Gemini model can be adopted without a code change.
     LESSON_MODEL_ID: z.string().min(1).default("gemini-3.5-flash-lite"),
     GEMINI_API_KEY: z.string().min(1).optional(),
-    INNGEST_EVENT_KEY: z.string().min(1).optional(),
-    INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   })
   .superRefine((value, context) => {
     if (
@@ -173,7 +171,7 @@ export function getServerConfig(): ServerConfig {
       (isProduction ? "supabase" : undefined),
     GENERATION_DISPATCHER:
       process.env.GENERATION_DISPATCHER ??
-      (isProduction ? "inngest" : undefined),
+      (isProduction ? "workflow" : undefined),
     GENERATION_MAX_ACTIVE_JOBS: process.env.GENERATION_MAX_ACTIVE_JOBS,
     GENERATION_MAX_JOBS_PER_DAY: process.env.GENERATION_MAX_JOBS_PER_DAY,
     GENERATION_MAX_JOBS_PER_MINUTE: process.env.GENERATION_MAX_JOBS_PER_MINUTE,
@@ -190,8 +188,6 @@ export function getServerConfig(): ServerConfig {
       process.env.LESSON_PROVIDER ?? (isProduction ? "gemini" : undefined),
     LESSON_MODEL_ID: process.env.LESSON_MODEL_ID,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
-    INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
-    INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
   });
 
   if (!result.success) {

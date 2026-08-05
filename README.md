@@ -6,12 +6,12 @@ Vidlish biến video YouTube có đủ lời nói tiếng Anh gốc thành bài 
 
 ## Trạng thái
 
-- Production: Vercel project `vidlish` đã kết nối Supabase project `vidlish`; redeploy từ checkpoint này để nhận environment variables mới.
-- Epic 1: email OTP/private beta, URL + metadata validation, CEFR và confirmed Create draft.
-- Story 2.1: durable generation job, owner-scoped progress page, idempotency, quota boundary và Inngest workflow entry.
+- Production: Vercel project `vidlish` đã kết nối Supabase project `vidlish`.
+- Epic 1: Google OAuth/email OTP private beta, URL + metadata validation, CEFR và confirmed Create draft.
+- Story 2.1: durable generation job, owner-scoped progress page, idempotency, quota boundary và Vercel Workflow dispatcher.
 - Story 2.2: native-caption fast path, deterministic normalization, canonical transcript persistence và handoff tới `checking_language`.
 - Story 2.3: versioned original-English eligibility gate, mixed-language allowlist và terminal unsupported-language UX.
-- Transcript fallback strategies và Lesson Engine thuộc các story tiếp theo.
+- Lesson Engine tạo bài bằng Gemini, hydrate citation từ transcript segments và lưu kết quả vào Supabase.
 
 ## Chạy ứng dụng cục bộ
 
@@ -68,7 +68,7 @@ YOUTUBE_METADATA_TIMEOUT_MS=5000
 
 ### Durable generation job
 
-Local và CI dùng repository in-memory cùng inline workflow fixture:
+Local và CI dùng repository in-memory cùng inline dispatcher:
 
 ```bash
 GENERATION_REPOSITORY=fake
@@ -78,17 +78,22 @@ GENERATION_MAX_JOBS_PER_DAY=20
 GENERATION_MAX_JOBS_PER_MINUTE=3
 ```
 
-Để chạy durable workflow cục bộ bằng Supabase + Inngest Dev Server:
+Hosted staging/production dùng:
 
 ```bash
 GENERATION_REPOSITORY=supabase
-GENERATION_DISPATCHER=inngest
-INNGEST_DEV=1
-npx inngest-cli@latest dev
-pnpm dev
+GENERATION_DISPATCHER=workflow
 ```
 
-Hosted staging/production phải dùng `GENERATION_REPOSITORY=supabase`, `GENERATION_DISPATCHER=inngest` và cấu hình riêng `INNGEST_EVENT_KEY`/`INNGEST_SIGNING_KEY`. Job được persist trước dispatch; duplicate submit dựa vào unique active-job key trong Postgres, không chỉ dựa vào event idempotency.
+`workflow/next` tích hợp trực tiếp vào Next.js. Dispatcher gọi `start()` và trả về ngay sau khi run được xếp hàng; các hàm `"use step"` lưu checkpoint và retry độc lập. Job luôn được persist trước dispatch, còn duplicate submit được chặn bằng unique active-job key trong Postgres.
+
+Watchdog cho job đứng chạy bằng `pg_cron` trong chính Supabase mỗi 7 phút, không phụ thuộc tài khoản orchestration bên ngoài.
+
+Có thể mở dashboard workflow cục bộ bằng:
+
+```bash
+pnpm exec workflow web
+```
 
 ### Native caption fast path
 
@@ -111,11 +116,11 @@ SUPADATA_API_KEY=replace-with-server-only-key
 SUPADATA_NATIVE_TIMEOUT_MS=8000
 ```
 
-Adapter gọi universal `GET /v1/transcript` với `mode=native` và `text=false`. Vidlish không gửi `lang`, không gọi translation endpoint và không dùng AI generation trong Story 2.2. Candidate được Zod-validate, normalized deterministically, rồi transcript + segments + acquisition attempt được commit atomically trước khi job chuyển sang `checking_language`. `transcript-unavailable` chỉ có nghĩa không có caption dùng được; nó không phải kết luận ngôn ngữ.
+Adapter gọi universal `GET /v1/transcript` với `mode=native` và `text=false`. Vidlish không gửi `lang`, không gọi translation endpoint và không dùng AI generation cho native-caption fast path. Candidate được Zod-validate, normalized deterministically, rồi transcript + segments + acquisition attempt được commit atomically trước khi job chuyển sang `checking_language`.
 
 ### Original-English eligibility gate
 
-Story 2.3 dùng `franc-min@6.2.0` sau `LanguageAnalysisPort` để tạo evidence theo coherent windows. Caption language, video metadata và segment language do provider khai báo không được dùng làm quyết định. Detector rank được lưu như raw evidence, không được trình bày như xác suất.
+Language gate dùng `franc-min@6.2.0` sau `LanguageAnalysisPort` để tạo evidence theo coherent windows. Caption language, video metadata và segment language do provider khai báo không được dùng làm quyết định. Detector rank được lưu như raw evidence, không được trình bày như xác suất.
 
 Policy `original-english:v1` nằm trong `src/modules/language/application/default-language-policy.ts` và xét đồng thời:
 
@@ -124,7 +129,7 @@ Policy `original-english:v1` nằm trong `src/modules/language/application/defau
 - số từ English đủ tin cậy;
 - coverage, số từ và số window tối thiểu để được phép kết luận.
 
-Video chủ yếu nói tiếng Anh hoặc có một English portion đủ dài/coherent được đánh dấu `eligible`. Chỉ segment IDs thuộc reliable English windows được ghi vào downstream allowlist trước khi job chuyển sang `analyzing_video`. Video được xác nhận không đủ tiếng Anh gốc chuyển sang `failed` với `VIDEO_LANGUAGE_UNSUPPORTED` và hành động `choose_another_video`. Evidence quá yếu quay lại `acquiring_transcript` để fallback strategy sau có thể tiếp tục; nó không bị gắn nhãn sai là unsupported language.
+Video chủ yếu nói tiếng Anh hoặc có một English portion đủ dài/coherent được đánh dấu `eligible`. Chỉ segment IDs thuộc reliable English windows được ghi vào downstream allowlist trước khi job chuyển sang `analyzing_video`. Video được xác nhận không đủ tiếng Anh gốc chuyển sang `failed` với `VIDEO_LANGUAGE_UNSUPPORTED`. Evidence quá yếu quay lại transcript fallback; nó không bị gắn nhãn sai là unsupported language.
 
 ## Kiểm thử
 
@@ -137,7 +142,7 @@ supabase test db
 pnpm build
 ```
 
-CI sử dụng auth/video/generation/transcript fixtures và detector chạy cục bộ; không gọi Gemini, YouTube, Supadata, STT provider hoặc Inngest Cloud thật.
+CI chạy typecheck/lint, unit tests, production build, Supabase pgTAP và Chromium journeys theo các job song song. Fixtures bảo đảm CI không gọi Gemini, YouTube, Supadata hoặc Workflow backend thật.
 
 ## BMAD cho Codex
 
