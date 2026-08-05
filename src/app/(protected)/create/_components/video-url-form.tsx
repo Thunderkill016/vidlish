@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { startTransition, useEffect, useState } from "react";
+import { z } from "zod";
 
 import { parseYouTubeUrl, type PlayableVideoMetadata } from "@/modules/video";
 import {
@@ -11,7 +12,10 @@ import {
   type CefrLevel,
   type ConfirmedLessonDraft,
 } from "@/shared/contracts/lesson-draft";
-import { validateVideoUrlResponseSchema } from "@/shared/contracts/video";
+import {
+  playableVideoMetadataSchema,
+  validateVideoUrlResponseSchema,
+} from "@/shared/contracts/video";
 import {
   publicProductErrorSchema,
   type PublicProductError,
@@ -26,6 +30,15 @@ type ViewState =
   | { status: "loading" }
   | { status: "success"; metadata: PlayableVideoMetadata }
   | { status: "error"; error: PublicProductError };
+
+const DRAFT_STORAGE_KEY = "vidlish:create-draft:v1";
+
+/** Re-validated on read: sessionStorage is user-writable. */
+const savedDraftSchema = z.object({
+  url: z.string(),
+  metadata: playableVideoMetadataSchema,
+  confirmedDraft: confirmedLessonDraftSchema,
+});
 
 type JobState =
   | { status: "idle" }
@@ -77,6 +90,48 @@ export function VideoUrlForm() {
   const [confirmedDraft, setConfirmedDraft] =
     useState<ConfirmedLessonDraft>();
   const [jobState, setJobState] = useState<JobState>({ status: "idle" });
+
+  // The card below tells the learner their video and level are confirmed "trong
+  // phiên này". A reload is still the same session, so losing the confirmation
+  // there breaks a promise the page makes out loud — and it costs the learner
+  // the video lookup as well. Only a public video id, a CEFR level and the
+  // metadata already shown on screen are stored; nothing private.
+  useEffect(() => {
+    try {
+      const saved = window.sessionStorage.getItem(DRAFT_STORAGE_KEY);
+      if (!saved) return;
+      const parsed = savedDraftSchema.safeParse(JSON.parse(saved));
+      if (!parsed.success) {
+        window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+        return;
+      }
+      // One transition, so restoring four pieces of state is a single render
+      // rather than a cascade.
+      startTransition(() => {
+        setUrl(parsed.data.url);
+        setState({ status: "success", metadata: parsed.data.metadata });
+        setCefrLevel(parsed.data.confirmedDraft.cefrLevel);
+        setConfirmedDraft(parsed.data.confirmedDraft);
+      });
+    } catch {
+      // A corrupt or unavailable store must never keep the page from loading.
+    }
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (confirmedDraft && state.status === "success") {
+        window.sessionStorage.setItem(
+          DRAFT_STORAGE_KEY,
+          JSON.stringify({ url, metadata: state.metadata, confirmedDraft }),
+        );
+      } else {
+        window.sessionStorage.removeItem(DRAFT_STORAGE_KEY);
+      }
+    } catch {
+      // Private browsing can refuse storage; the form still works without it.
+    }
+  }, [confirmedDraft, state, url]);
 
   function invalidateReadiness() {
     setConfirmedDraft(undefined);

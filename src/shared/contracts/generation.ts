@@ -29,6 +29,9 @@ export type GenerationJobStatus = z.infer<typeof generationJobStatusSchema>;
 export const generationSafeErrorCodeSchema = z.enum([
   "VIDEO_LANGUAGE_UNSUPPORTED",
   "TRANSCRIPT_UNAVAILABLE",
+  // A job that reached the model step and stalled there. Without a terminal
+  // outcome it would occupy an active-job slot forever.
+  "LESSON_GENERATION_FAILED",
 ]);
 export type GenerationSafeErrorCode = z.infer<
   typeof generationSafeErrorCodeSchema
