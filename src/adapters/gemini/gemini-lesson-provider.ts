@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, ServiceTier, ThinkingLevel } from "@google/genai";
 import { z } from "zod";
 
 import {
@@ -218,6 +218,12 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
           responseMimeType: "application/json",
           responseJsonSchema: RESPONSE_JSON_SCHEMA,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
+          // Soạn bài là tác vụ nền trong workflow bền, chịu được việc bị nhường
+          // chỗ cho lưu lượng standard: bước này đã có 5 lượt thử lại, và job
+          // luôn kết thúc dứt khoát nếu cạn lượt. Đổi lại là giảm 50% giá.
+          // Chỉ dùng được khi tài khoản đã bật billing; free tier từ chối giá
+          // trị này.
+          serviceTier: ServiceTier.FLEX,
           // gemini-3.5-flash-lite mặc định thinking = MINIMAL, và ở mức đó
           // bài học hay chạm đáy mọi khoảng (1 điểm ngữ pháp, 3 câu hỏi).
           // Đo trên cùng transcript: HIGH nâng đáy lên 2 ngữ pháp / 4 câu hỏi
