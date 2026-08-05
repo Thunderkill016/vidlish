@@ -1,0 +1,67 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const steps = vi.hoisted(() => ({
+  advanceToTranscriptAcquisition: vi.fn(),
+  acquireNativeCaptionStep: vi.fn(),
+  checkOriginalEnglishStep: vi.fn(),
+  generateLessonStep: vi.fn(),
+  resolveLessonFailureStep: vi.fn(),
+  loadFinalGenerationStateStep: vi.fn(),
+  resolveTranscriptExhaustionStep: vi.fn(),
+}));
+
+vi.mock("./generate-lesson.steps", () => steps);
+
+import { generateLessonWorkflow } from "./generate-lesson";
+
+const event = {
+  jobId: "11111111-1111-4111-8111-111111111111",
+  pipelineVersion: "generation-pipeline:v1" as const,
+};
+
+const jobRef = {
+  jobId: event.jobId,
+  ownerUserId: "22222222-2222-4222-8222-222222222222",
+};
+
+describe("generateLessonWorkflow", () => {
+  beforeEach(() => {
+    steps.advanceToTranscriptAcquisition.mockResolvedValue(jobRef);
+    steps.acquireNativeCaptionStep.mockResolvedValue({ kind: "persisted" });
+    steps.checkOriginalEnglishStep.mockResolvedValue({ status: "eligible" });
+    steps.generateLessonStep.mockResolvedValue({ kind: "published" });
+    steps.resolveLessonFailureStep.mockResolvedValue({ kind: "terminated" });
+    steps.loadFinalGenerationStateStep.mockResolvedValue("completed");
+    steps.resolveTranscriptExhaustionStep.mockResolvedValue({ kind: "terminated" });
+  });
+
+  it("keeps a successfully completed lesson unchanged", async () => {
+    const result = await generateLessonWorkflow(event);
+    expect(result.status).toBe("completed");
+    expect(steps.resolveLessonFailureStep).not.toHaveBeenCalled();
+  });
+
+  it("fails closed when the workflow would otherwise finish in analyzing_video", async () => {
+    steps.generateLessonStep.mockResolvedValue({ kind: "skipped" });
+    steps.loadFinalGenerationStateStep
+      .mockResolvedValueOnce("analyzing_video")
+      .mockResolvedValueOnce("failed");
+
+    const result = await generateLessonWorkflow(event);
+
+    expect(steps.resolveLessonFailureStep).toHaveBeenCalledWith(jobRef);
+    expect(steps.loadFinalGenerationStateStep).toHaveBeenCalledTimes(2);
+    expect(result.status).toBe("failed");
+    expect(result.lessonOutcome).toBe("terminated");
+  });
+
+  it("resolves a thrown lesson failure once and returns the terminal state", async () => {
+    steps.generateLessonStep.mockRejectedValue(new Error("provider failed"));
+    steps.loadFinalGenerationStateStep.mockResolvedValue("failed");
+
+    const result = await generateLessonWorkflow(event);
+
+    expect(steps.resolveLessonFailureStep).toHaveBeenCalledTimes(1);
+    expect(result.status).toBe("failed");
+  });
+});
