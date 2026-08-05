@@ -3,6 +3,8 @@ import "server-only";
 import { FatalError, RetryableError } from "workflow";
 
 import { AcquireNativeCaption } from "@/modules/transcript/application/acquire-native-caption";
+import { LessonGenerationFailure } from "@/modules/lesson/ports/lesson-generation-provider";
+import { getServerConfig } from "@/platform/config/server";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createOriginalEnglishGate } from "@/platform/language/create-language-runtime";
 import { createGenerateLesson } from "@/platform/lesson/create-lesson-runtime";
@@ -11,6 +13,7 @@ import {
   generationRequestedEventSchema,
   type GenerationRequestedEvent,
 } from "@/shared/contracts/generation";
+import { emitGenerationEvent } from "@/shared/observability/generation-event";
 
 export type GenerationWorkflowJobRef = {
   jobId: string;
@@ -39,6 +42,11 @@ function createStepRuntime() {
       transcriptRuntime.repository,
     ),
   };
+}
+
+function safeErrorName(error: unknown): string {
+  const name = error instanceof Error ? error.name : "UnknownError";
+  return /^[A-Za-z0-9._:-]{1,80}$/.test(name) ? name : "Error";
 }
 
 export async function advanceToTranscriptAcquisition(
@@ -145,6 +153,10 @@ resolveTranscriptExhaustionStep.maxRetries = 5;
 export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
   "use step";
 
+  const config = getServerConfig();
+  const provider = config.LESSON_PROVIDER;
+  const providerFields =
+    provider === "gemini" ? { provider, modelId: config.LESSON_MODEL_ID } : { provider };
   const { generationRepository, transcriptRuntime, generateLesson } =
     createStepRuntime();
   const latest = await generationRepository.findOwnedById(
@@ -152,7 +164,27 @@ export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
     jobRef.ownerUserId,
   );
 
-  if (!latest || latest.status !== "analyzing_video") {
+  if (!latest) {
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "lesson_generation",
+      action: "skipped",
+      provider: "workflow",
+      reason: "job_missing",
+    });
+    return { kind: "skipped" } as const;
+  }
+
+  if (latest.status !== "analyzing_video") {
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "lesson_generation",
+      action: "skipped",
+      provider: "workflow",
+      reason: "status_mismatch",
+    });
     return { kind: "skipped" } as const;
   }
 
@@ -160,16 +192,64 @@ export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
     latest.ownerUserId,
     latest.id,
   );
-  if (!transcript) return { kind: "skipped" } as const;
+  if (!transcript) {
+    emitGenerationEvent({
+      level: "warning",
+      jobId: jobRef.jobId,
+      stage: "lesson_generation",
+      action: "skipped",
+      provider: "workflow",
+      reason: "transcript_missing",
+    });
+    return { kind: "skipped" } as const;
+  }
 
-  const outcome = await generateLesson.execute(
-    latest,
-    transcript.normalizedHash,
-  );
+  emitGenerationEvent({
+    level: "info",
+    jobId: jobRef.jobId,
+    stage: "lesson_generation",
+    action: "started",
+    ...providerFields,
+  });
+  const startedAt = Date.now();
 
-  // Only the outcome kind crosses the durable boundary. Lesson content stays
-  // owner-scoped in Supabase rather than being copied into workflow history.
-  return { kind: outcome.kind } as const;
+  try {
+    const outcome = await generateLesson.execute(
+      latest,
+      transcript.normalizedHash,
+    );
+
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "lesson_generation",
+      action: "succeeded",
+      ...providerFields,
+      outcome: outcome.kind,
+      elapsedMs: Date.now() - startedAt,
+    });
+
+    // Only the outcome kind crosses the durable boundary. Lesson content stays
+    // owner-scoped in Supabase rather than being copied into workflow history.
+    return { kind: outcome.kind } as const;
+  } catch (error) {
+    const generationFailure =
+      error instanceof LessonGenerationFailure ? error : null;
+
+    emitGenerationEvent({
+      level: "error",
+      jobId: jobRef.jobId,
+      stage: "lesson_generation",
+      action: "failed",
+      ...providerFields,
+      reason: generationFailure ? "provider_failure" : "unexpected_error",
+      elapsedMs: Date.now() - startedAt,
+      ...(generationFailure ? { retryable: generationFailure.retryable } : {}),
+      errorName: safeErrorName(error),
+    });
+
+    throw error;
+  }
 }
 
 generateLessonStep.maxRetries = 5;
@@ -181,11 +261,8 @@ generateLessonStep.maxRetries = 5;
  * `analyzing_video` is not a terminal status, so the job keeps occupying one of
  * the learner's GENERATION_MAX_ACTIVE_JOBS slots and the progress page sits
  * there saying nothing. Two of those and the learner is locked out entirely —
- * observed on production 2026-08-06. The pg_cron watchdog eventually clears it,
- * but only after 15 minutes of silence.
- *
- * This is the same "terminate instead of hanging" rule Story 2.3.5 established
- * for transcript acquisition; the lesson stage never got it.
+ * observed on production 2026-08-06. The pg_cron watchdog is only the final
+ * safety net and clears jobs idle for more than five minutes.
  */
 export async function resolveLessonFailureStep(
   jobRef: GenerationWorkflowJobRef,
@@ -197,7 +274,28 @@ export async function resolveLessonFailureStep(
     jobRef.jobId,
     jobRef.ownerUserId,
   );
-  if (!latest || latest.status !== "analyzing_video") {
+  if (!latest) {
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "workflow_terminalization",
+      action: "skipped",
+      provider: "workflow",
+      reason: "job_missing",
+    });
+    return { kind: "already_settled" } as const;
+  }
+
+  if (latest.status !== "analyzing_video") {
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "workflow_terminalization",
+      action: "skipped",
+      provider: "workflow",
+      outcome: "already_settled",
+      reason: "status_mismatch",
+    });
     return { kind: "already_settled" } as const;
   }
 
@@ -207,6 +305,14 @@ export async function resolveLessonFailureStep(
     "failed",
     "LESSON_GENERATION_FAILED",
   );
+  emitGenerationEvent({
+    level: "warning",
+    jobId: jobRef.jobId,
+    stage: "workflow_terminalization",
+    action: "succeeded",
+    provider: "workflow",
+    outcome: "terminated",
+  });
   return { kind: "terminated" } as const;
 }
 
