@@ -26,7 +26,7 @@ const serverConfigSchema = z
     SUPADATA_NATIVE_TIMEOUT_MS: z.coerce.number().int().min(500).max(30000).default(8000),
     LESSON_PROVIDER: z.enum(["gemini", "fixture"]).default("fixture"),
     // Overridable so a newer Gemini model can be adopted without a code change.
-    LESSON_MODEL_ID: z.string().min(1).default("gemini-2.5-flash"),
+    LESSON_MODEL_ID: z.string().min(1).default("gemini-3.5-flash-lite"),
     GEMINI_API_KEY: z.string().min(1).optional(),
     INNGEST_EVENT_KEY: z.string().min(1).optional(),
     INNGEST_SIGNING_KEY: z.string().min(1).optional(),

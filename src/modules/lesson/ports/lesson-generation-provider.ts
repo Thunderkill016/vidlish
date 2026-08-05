@@ -31,7 +31,16 @@ export interface LessonGenerationProvider {
 
 export class LessonGenerationFailure extends Error {
   readonly name = "LessonGenerationFailure";
-  constructor(message: string, readonly retryable: boolean) {
-    super(message);
+  /**
+   * `cause` carries the provider's own error. Without it a transport failure
+   * and a rejected request shape look identical in the logs, which makes the
+   * first live run of a new provider almost impossible to debug.
+   */
+  constructor(
+    message: string,
+    readonly retryable: boolean,
+    options?: { cause?: unknown },
+  ) {
+    super(message, options);
   }
 }
