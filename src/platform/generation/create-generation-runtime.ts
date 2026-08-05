@@ -2,9 +2,9 @@ import "server-only";
 
 import { getInMemoryGenerationJobRepository } from "@/adapters/fake/in-memory-generation-job-repository";
 import { InlineGenerationDispatcher } from "@/adapters/fake/inline-generation-dispatcher";
-import { InngestGenerationDispatcher } from "@/adapters/inngest/generation-dispatcher";
 import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
 import { SupabaseGenerationJobRepository } from "@/adapters/supabase/generation-job-repository";
+import { WorkflowGenerationDispatcher } from "@/adapters/workflow/generation-dispatcher";
 import { GenerationPolicy } from "@/modules/generation/application/generation-policy";
 import type { GenerationDispatcher } from "@/modules/generation/ports/generation-dispatcher";
 import type { GenerationJobRepository } from "@/modules/generation/ports/generation-job-repository";
@@ -102,7 +102,7 @@ export function createGenerationRuntime(): {
   const dispatcher =
     config.GENERATION_DISPATCHER === "inline"
       ? createInlineDispatcher(repository)
-      : new InngestGenerationDispatcher();
+      : new WorkflowGenerationDispatcher();
   const policy = new GenerationPolicy({
     maxActiveJobs: config.GENERATION_MAX_ACTIVE_JOBS,
     maxJobsPerDay: config.GENERATION_MAX_JOBS_PER_DAY,

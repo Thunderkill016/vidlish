@@ -1,0 +1,53 @@
+import type { GenerationRequestedEvent } from "@/shared/contracts/generation";
+
+import {
+  acquireNativeCaptionStep,
+  advanceToTranscriptAcquisition,
+  checkOriginalEnglishStep,
+  generateLessonStep,
+  loadFinalGenerationStateStep,
+  resolveTranscriptExhaustionStep,
+} from "./generate-lesson.steps";
+
+export async function generateLessonWorkflow(
+  event: GenerationRequestedEvent,
+) {
+  "use workflow";
+
+  const jobRef = await advanceToTranscriptAcquisition(event);
+  if (!jobRef) return { jobId: event.jobId, status: "missing" } as const;
+
+  const transcriptOutcome = await acquireNativeCaptionStep(jobRef);
+
+  let languageOutcome: string | undefined;
+  if (
+    transcriptOutcome.kind === "persisted" ||
+    transcriptOutcome.kind === "already_advanced"
+  ) {
+    languageOutcome = (await checkOriginalEnglishStep(jobRef)).status;
+  }
+
+  const needsAnotherSource =
+    transcriptOutcome.kind === "not_applicable" ||
+    transcriptOutcome.kind === "terminal_failure" ||
+    languageOutcome === "insufficient_evidence";
+
+  if (needsAnotherSource) {
+    await resolveTranscriptExhaustionStep(jobRef, languageOutcome);
+  }
+
+  let lessonOutcome: string | undefined;
+  if (languageOutcome === "eligible") {
+    lessonOutcome = (await generateLessonStep(jobRef)).kind;
+  }
+
+  const finalStatus = await loadFinalGenerationStateStep(jobRef);
+
+  return {
+    jobId: event.jobId,
+    status: finalStatus,
+    transcriptOutcome: transcriptOutcome.kind,
+    ...(languageOutcome ? { languageOutcome } : {}),
+    ...(lessonOutcome ? { lessonOutcome } : {}),
+  };
+}
