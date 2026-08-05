@@ -14,7 +14,7 @@ export class InlineGenerationDispatcher implements GenerationDispatcher {
   ) {}
 
   async sendRequested(event: GenerationRequestedEvent): Promise<void> {
-    const job = await this.repository.advanceStory21(event.jobId);
+    const job = await this.repository.beginTranscriptAcquisition(event.jobId);
     if (job && this.afterAcquisitionStart) {
       await this.afterAcquisitionStart(job);
     }

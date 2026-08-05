@@ -64,6 +64,22 @@ export class InMemoryTranscriptRepository implements TranscriptRepository {
     return { transcriptId: id, created: !existing };
   }
 
+  async listExhaustedStrategyIds(
+    ownerUserId: string,
+    jobId: string,
+  ): Promise<string[]> {
+    // Mirrors list_exhausted_transcript_strategies: retryable failures do not
+    // finish a strategy, because the durable workflow retries those.
+    const finished = [...this.attempts.values()].filter(
+      (attempt) =>
+        attempt.ownerUserId === ownerUserId &&
+        attempt.jobId === jobId &&
+        (attempt.result.kind === "not_applicable" ||
+          attempt.result.kind === "terminal_failure"),
+    );
+    return [...new Set(finished.map((attempt) => attempt.strategyId))].sort();
+  }
+
   async findCanonicalForJob(
     ownerUserId: string,
     jobId: string,

@@ -38,6 +38,7 @@ const supadataErrorSchema = z
 
 export class SupadataNativeCaptionStrategy implements TranscriptStrategy {
   readonly id = NATIVE_CAPTION_STRATEGY_ID;
+  readonly provider = "supadata" as const;
 
   constructor(
     private readonly options: {

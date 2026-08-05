@@ -33,7 +33,17 @@ export interface GenerationJobRepository {
     input: CreateGenerationJobRecord,
   ): Promise<{ job: GenerationJob; created: boolean }>;
   findOwnedById(jobId: string, ownerUserId: string): Promise<GenerationJob | null>;
-  advanceStory21(jobId: string): Promise<GenerationJob | null>;
+  beginTranscriptAcquisition(jobId: string): Promise<GenerationJob | null>;
+  /**
+   * Terminal outcome for a source we could not obtain. Idempotent: the durable
+   * workflow and the watchdog may both reach it for the same job, and a job that
+   * already reached a terminal state keeps its original outcome.
+   */
+  markTranscriptExhausted(
+    jobId: string,
+    ownerUserId: string,
+    reason: string,
+  ): Promise<GenerationJob | null>;
   markDispatch(
     jobId: string,
     status: "sent" | "failed",

@@ -180,7 +180,23 @@ export class SupabaseGenerationJobRepository
     return result.data ? mapJob(result.data) : null;
   }
 
-  async advanceStory21(jobId: string): Promise<GenerationJob | null> {
+  async markTranscriptExhausted(
+    jobId: string,
+    ownerUserId: string,
+    reason: string,
+  ): Promise<GenerationJob | null> {
+    const rpc = await this.client.rpc("mark_transcript_exhausted", {
+      p_job_id: jobId,
+      p_owner_user_id: ownerUserId,
+      p_reason: reason,
+    });
+    if (rpc.error) throw rpc.error;
+    return this.findOwnedById(jobId, ownerUserId);
+  }
+
+  async beginTranscriptAcquisition(
+    jobId: string,
+  ): Promise<GenerationJob | null> {
     const current = await this.client
       .from("lesson_jobs")
       .select("owner_user_id,status")

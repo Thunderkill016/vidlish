@@ -118,6 +118,21 @@ export class SupabaseTranscriptRepository implements TranscriptRepository {
     });
   }
 
+  async listExhaustedStrategyIds(
+    ownerUserId: string,
+    jobId: string,
+  ): Promise<string[]> {
+    const rpc = await this.client.rpc(
+      "list_exhausted_transcript_strategies",
+      { p_job_id: jobId, p_owner_user_id: ownerUserId },
+    );
+    if (rpc.error) throw rpc.error;
+    return z
+      .array(z.object({ strategy_id: z.string() }).strict())
+      .parse(rpc.data ?? [])
+      .map((row) => row.strategy_id);
+  }
+
   async findCanonicalForJob(
     ownerUserId: string,
     jobId: string,

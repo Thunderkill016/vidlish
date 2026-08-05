@@ -21,7 +21,7 @@ async function createJob(videoId: string) {
       availability: "playable",
     },
   });
-  const job = await generationRepository.advanceStory21(result.job.id);
+  const job = await generationRepository.beginTranscriptAcquisition(result.job.id);
   if (!job) throw new Error("Fixture job missing");
   return { generationRepository, job };
 }
@@ -107,6 +107,7 @@ describe("AcquireNativeCaption", () => {
     );
     const retryingStrategy: TranscriptStrategy = {
       id: "supadata-native-caption",
+      provider: "supadata",
       acquire: async () => ({
         kind: "retryable_failure",
         reason: "PROVIDER_UNAVAILABLE",

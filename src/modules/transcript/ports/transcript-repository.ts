@@ -25,4 +25,13 @@ export interface TranscriptRepository {
     ownerUserId: string,
     jobId: string,
   ): Promise<CanonicalTranscript | null>;
+  /**
+   * Strategies that already produced a non-retryable outcome for this job.
+   * Retryable failures are excluded: the durable workflow retries those, so a
+   * strategy is only finished once it reports it cannot help or fails terminally.
+   */
+  listExhaustedStrategyIds(
+    ownerUserId: string,
+    jobId: string,
+  ): Promise<string[]>;
 }

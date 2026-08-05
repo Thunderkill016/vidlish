@@ -5,6 +5,7 @@ import { getInMemoryTranscriptRepository } from "@/adapters/fake/in-memory-trans
 import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
 import { SupabaseTranscriptRepository } from "@/adapters/supabase/transcript-repository";
 import { SupadataNativeCaptionStrategy } from "@/adapters/supadata/supadata-native-caption-strategy";
+import { TranscriptStrategyOrchestrator } from "@/modules/transcript/application/transcript-strategy-orchestrator";
 import type { GenerationJobRepository } from "@/modules/generation/ports/generation-job-repository";
 import type { TranscriptRepository } from "@/modules/transcript/ports/transcript-repository";
 import type { TranscriptStrategy } from "@/modules/transcript/ports/transcript-strategy";
@@ -16,6 +17,7 @@ export function createTranscriptRuntime(
   strategy: TranscriptStrategy;
   repository: TranscriptRepository;
   enabled: boolean;
+  orchestrator: TranscriptStrategyOrchestrator;
 } {
   const config = getServerConfig();
   let strategy: TranscriptStrategy;
@@ -37,9 +39,18 @@ export function createTranscriptRuntime(
       ? getInMemoryTranscriptRepository(generationRepository)
       : new SupabaseTranscriptRepository(getAdminSupabaseClient());
 
+  const enabled = config.TRANSCRIPT_NATIVE_ENABLED;
+
   return {
     strategy,
     repository,
-    enabled: config.TRANSCRIPT_NATIVE_ENABLED,
+    enabled,
+    // Native captions are the only registered strategy today. Later transcript
+    // stories register theirs here with a higher order; the workflow does not
+    // change.
+    orchestrator: new TranscriptStrategyOrchestrator(
+      [{ strategy, order: 10, enabled }],
+      repository,
+    ),
   };
 }

@@ -31,6 +31,15 @@ export default defineConfig({
       VIDEO_METADATA_ADAPTER: "fixture",
       YOUTUBE_VIEWER_REGION: "VN",
       YOUTUBE_METADATA_TIMEOUT_MS: "1000",
+      // Both projects drive one dev server as one beta user, faster than a
+      // human ever would. On the product defaults (3 jobs/minute) the suite
+      // throttles itself and the second project's job-creating tests fail with
+      // "Bạn thao tác quá nhanh" — a self-inflicted failure, not a regression.
+      // Throttling itself is covered by generation-policy.test.ts, so no e2e
+      // assertion is lost by lifting the ceiling here.
+      GENERATION_MAX_ACTIVE_JOBS: "20",
+      GENERATION_MAX_JOBS_PER_MINUTE: "60",
+      GENERATION_MAX_JOBS_PER_DAY: "1000",
       NEXT_PUBLIC_AUTH_RESEND_COOLDOWN_SECONDS: "1",
       NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test-publishable-key",
