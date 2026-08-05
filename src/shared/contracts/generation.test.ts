@@ -59,6 +59,27 @@ describe("generation contracts", () => {
     });
   });
 
+  it("accepts Supabase timestamptz values with an explicit UTC offset", () => {
+    const job = generationJobSchema.parse({
+      id: "11111111-1111-4111-8111-111111111111",
+      ownerUserId: "owner-one",
+      videoId: "dQw4w9WgXcQ",
+      videoTitle: "Fixture video",
+      channelName: "Fixture channel",
+      cefrLevel: "B1",
+      metadataVersion: "fixture:v1",
+      pipelineVersion: GENERATION_PIPELINE_VERSION,
+      status: "queued",
+      currentStage: "queued",
+      dispatchStatus: "pending",
+      createdAt: "2026-08-05T19:26:51.411403+00:00",
+      updatedAt: "2026-08-05T19:26:51.411403+00:00",
+    });
+
+    expect(job.createdAt).toBe("2026-08-05T19:26:51.411403+00:00");
+    expect(job.updatedAt).toBe("2026-08-05T19:26:51.411403+00:00");
+  });
+
   it("derives a stable opaque event id from job and pipeline version", () => {
     expect(
       generationRequestedEventId({
