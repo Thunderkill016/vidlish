@@ -75,7 +75,7 @@ const SYSTEM_INSTRUCTION = `Bạn soạn bài học tiếng Anh cho người Vi�
 
 Nguyên tắc bắt buộc:
 - Chỉ dạy ngôn ngữ thực sự xuất hiện trong transcript được cung cấp. Không thêm từ, cụm từ hay cấu trúc không có trong đó.
-- Mọi mục phải khai báo sourceSegmentIds là ID của những segment mà nó lấy ra. Chỉ dùng ID có trong transcript. Không bịa ID.
+- Mọi mục phải khai báo sourceSegmentIds là NHÃN của những segment mà nó lấy ra. Nhãn nằm trong ngoặc vuông ở đầu mỗi dòng transcript, dạng S1, S2, S3... Chép đúng nhãn, chỉ dùng nhãn có thật.
 - Bạn không trả về câu trích dẫn. Hệ thống tự lấy câu gốc theo segment ID bạn khai báo.
 - Giải thích bằng tiếng Việt tự nhiên, ngắn gọn. Thuật ngữ tiếng Anh giữ nguyên tiếng Anh.
 - exampleEn phải là câu MỚI do bạn viết, không sao chép câu trong video.
@@ -91,16 +91,87 @@ Số lượng bắt buộc (schema không ép được, nhưng hệ thống sẽ
 - comprehensionQuestions: 3 đến 6 câu, mỗi câu đúng 4 phương án.
 - clozeItems: 1 đến 4 mục.
 - difficultyReasonsVi: 1 đến 4 ý.
-- Mỗi sourceSegmentIds có 1 đến 5 ID.
-
-Mỗi ID segment có dạng seg_ theo sau là đúng 32 ký tự hex. Chép nguyên văn ID trong transcript, không tự tạo, không sửa.
+- Mỗi sourceSegmentIds có 1 đến 5 nhãn.
 
 Chỉ trả về JSON đúng schema. Không viết lời dẫn, không bọc trong markdown.`;
 
+/**
+ * Segments are labelled `S1`, `S2`, … rather than shown by their real
+ * `seg_<32 hex>` ID.
+ *
+ * The first live run failed on exactly this: asked to echo a 32-character hex
+ * ID, gemini-3.5-flash-lite returned the right hex for the right segment but
+ * dropped the `seg_` prefix, so every citation failed validation and no lesson
+ * could ever be produced. Copying long opaque strings is a task small models
+ * are bad at, and the wire schema cannot enforce the format (its `pattern` is
+ * stripped — see UNSUPPORTED_SCHEMA_KEYWORDS).
+ *
+ * A short label removes the copying problem instead of tolerating it: `S3` is
+ * hard to mangle, and a mangled one is not in the map, so it fails loudly here
+ * rather than silently citing some other segment.
+ */
+export function segmentLabel(index: number): string {
+  return `S${index + 1}`;
+}
+
 function renderTranscript(input: LessonGenerationInput): string {
   return input.permittedSegments
-    .map((segment) => `[${segment.id}] ${segment.text}`)
+    .map((segment, index) => `[${segmentLabel(index)}] ${segment.text}`)
     .join("\n");
+}
+
+/**
+ * Turns the labels the model returned back into real segment IDs, in place.
+ *
+ * Also accepts a raw segment ID, with or without the `seg_` prefix: a model
+ * that ignores the labelling and echoes the ID anyway is still understood, and
+ * anything else is an error rather than a guess.
+ */
+export function resolveSegmentLabels(
+  parsed: unknown,
+  permitted: LessonGenerationInput["permittedSegments"],
+): void {
+  const byLabel = new Map<string, string>();
+  permitted.forEach((segment, index) => {
+    byLabel.set(segmentLabel(index).toLowerCase(), segment.id);
+    byLabel.set(String(index + 1), segment.id);
+    byLabel.set(segment.id.toLowerCase(), segment.id);
+    byLabel.set(segment.id.replace(/^seg_/, "").toLowerCase(), segment.id);
+  });
+
+  const unresolved: string[] = [];
+
+  const walk = (node: unknown): void => {
+    if (Array.isArray(node)) {
+      node.forEach(walk);
+      return;
+    }
+    if (node === null || typeof node !== "object") return;
+
+    const record = node as Record<string, unknown>;
+    const ids = record.sourceSegmentIds;
+    if (Array.isArray(ids)) {
+      record.sourceSegmentIds = ids.map((value) => {
+        if (typeof value !== "string" && typeof value !== "number") return value;
+        const resolved = byLabel.get(String(value).trim().toLowerCase());
+        if (!resolved) {
+          unresolved.push(String(value));
+          return value;
+        }
+        return resolved;
+      });
+    }
+    Object.values(record).forEach(walk);
+  };
+
+  walk(parsed);
+
+  if (unresolved.length > 0) {
+    throw new LessonGenerationFailure(
+      `Lesson cited unknown segment labels: ${[...new Set(unresolved)].slice(0, 5).join(", ")}`,
+      true,
+    );
+  }
 }
 
 /** Some models still wrap JSON in a ```json fence despite a JSON mime type. */
@@ -184,11 +255,23 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
       throw new LessonGenerationFailure("Lesson output was not valid JSON.", true);
     }
 
+    // Labels back to real segment IDs before validation, so the schema and the
+    // grounding gate see the same IDs the transcript uses.
+    resolveSegmentLabels(parsed, input.permittedSegments);
+
     const draft = lessonDraftSchema.safeParse(parsed);
     if (!draft.success) {
+      // Name the offending paths. The constraints stripped from the wire schema
+      // are enforced only here, so this is the one place that knows which one
+      // the model missed — a bare "validation failed" makes that unknowable.
+      const issues = draft.error.issues
+        .slice(0, 5)
+        .map((issue) => `${issue.path.join(".") || "(root)"}: ${issue.message}`)
+        .join("; ");
       throw new LessonGenerationFailure(
-        "Lesson output failed schema validation.",
+        `Lesson output failed schema validation — ${issues}`,
         true,
+        { cause: draft.error },
       );
     }
 
