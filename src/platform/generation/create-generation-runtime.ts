@@ -11,6 +11,7 @@ import type { GenerationJobRepository } from "@/modules/generation/ports/generat
 import { AcquireNativeCaption } from "@/modules/transcript/application/acquire-native-caption";
 import { getServerConfig } from "@/platform/config/server";
 import { createOriginalEnglishGate } from "@/platform/language/create-language-runtime";
+import { createGenerateLesson } from "@/platform/lesson/create-lesson-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 
 export function createGenerationRepository(): GenerationJobRepository {
@@ -35,6 +36,11 @@ function createInlineDispatcher(
     transcriptRuntime.repository,
   );
 
+  const generateLesson = createGenerateLesson(
+    repository,
+    transcriptRuntime.repository,
+  );
+
   return new InlineGenerationDispatcher(repository, async (job) => {
     const outcome = await acquireNativeCaption.execute(job);
     if (outcome.kind === "retryable_failure") {
@@ -55,18 +61,34 @@ function createInlineDispatcher(
       outcome.kind === "not_applicable" ||
       outcome.kind === "terminal_failure" ||
       languageOutcome === "insufficient_evidence";
-    if (!needsAnotherSource) return;
 
-    const current = await repository.findOwnedById(job.id, job.ownerUserId);
-    if (!current) return;
-    if (await transcriptRuntime.orchestrator.hasUntriedStrategy(current)) return;
-    await repository.markTranscriptExhausted(
-      current.id,
-      current.ownerUserId,
-      languageOutcome === "insufficient_evidence"
-        ? "TRANSCRIPT_EVIDENCE_TOO_WEAK"
-        : "NO_USABLE_TRANSCRIPT",
+    if (needsAnotherSource) {
+      const current = await repository.findOwnedById(job.id, job.ownerUserId);
+      if (!current) return;
+      if (await transcriptRuntime.orchestrator.hasUntriedStrategy(current)) return;
+      await repository.markTranscriptExhausted(
+        current.id,
+        current.ownerUserId,
+        languageOutcome === "insufficient_evidence"
+          ? "TRANSCRIPT_EVIDENCE_TOO_WEAK"
+          : "NO_USABLE_TRANSCRIPT",
+      );
+      return;
+    }
+
+    // Parity with the durable workflow: an eligible source generates a lesson
+    // here too, so local and CI exercise the same path hosted runs take. The
+    // language gate already ran above — reuse its verdict rather than executing
+    // it a second time.
+    if (languageOutcome !== "eligible") return;
+
+    const eligible = await repository.findOwnedById(job.id, job.ownerUserId);
+    const transcript = await transcriptRuntime.repository.findCanonicalForJob(
+      job.ownerUserId,
+      job.id,
     );
+    if (!eligible || eligible.status !== "analyzing_video" || !transcript) return;
+    await generateLesson.execute(eligible, transcript.normalizedHash);
   });
 }
 

@@ -4,6 +4,7 @@ import { inngest } from "@/adapters/inngest/client";
 import { AcquireNativeCaption } from "@/modules/transcript/application/acquire-native-caption";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createOriginalEnglishGate } from "@/platform/language/create-language-runtime";
+import { createGenerateLesson } from "@/platform/lesson/create-lesson-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 import { generationRequestedEventSchema } from "@/shared/contracts/generation";
 
@@ -16,6 +17,10 @@ const acquireNativeCaption = new AcquireNativeCaption(
   transcriptRuntime.enabled,
 );
 const checkOriginalEnglish = createOriginalEnglishGate(
+  generationRepository,
+  transcriptRuntime.repository,
+);
+const generateLesson = createGenerateLesson(
   generationRepository,
   transcriptRuntime.repository,
 );
@@ -124,6 +129,38 @@ export const generateLessonWorkflow = inngest.createFunction(
       });
     }
 
+    // The other terminal branch. The language gate advanced the job to
+    // `analyzing_video`, which is the Lesson Engine's entry condition; anything
+    // else means the job stopped earlier and there is nothing to generate from.
+    // Mutually exclusive with exhaustion above — a job cannot be both eligible
+    // and out of sources.
+    let lessonOutcome: string | undefined;
+    if (languageOutcome === "eligible") {
+      const lessonResult = await step.run("generate-lesson", async () => {
+        const latest = await generationRepository.findOwnedById(
+          jobRef.jobId,
+          jobRef.ownerUserId,
+        );
+        if (!latest || latest.status !== "analyzing_video") {
+          return { kind: "skipped" } as const;
+        }
+        const transcript = await transcriptRuntime.repository.findCanonicalForJob(
+          latest.ownerUserId,
+          latest.id,
+        );
+        if (!transcript) return { kind: "skipped" } as const;
+
+        const outcome = await generateLesson.execute(
+          latest,
+          transcript.normalizedHash,
+        );
+        // Only the outcome kind crosses the step boundary — lesson content is
+        // owner-scoped data and must not land in durable step output.
+        return { kind: outcome.kind } as const;
+      });
+      lessonOutcome = lessonResult.kind;
+    }
+
     const finalStatus = await step.run(
       "load-final-generation-state",
       async () =>
@@ -140,6 +177,7 @@ export const generateLessonWorkflow = inngest.createFunction(
       status: finalStatus,
       transcriptOutcome: transcriptOutcome.kind,
       ...(languageOutcome ? { languageOutcome } : {}),
+      ...(lessonOutcome ? { lessonOutcome } : {}),
     };
   },
 );
