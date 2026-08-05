@@ -13,6 +13,7 @@
 [core]
 document_output_language = "Vietnamese"
 output_folder = "_bmad-output"
+project_name = "vidlish"
 
 [modules.bmm]
 planning_artifacts = "{project-root}/_bmad-output/planning-artifacts"
