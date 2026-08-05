@@ -13,19 +13,45 @@ Dữ liệu production xác nhận:
 - không có `lesson_id`;
 - pg_cron cuối cùng chuyển job sang `failed / LESSON_GENERATION_FAILED`.
 
-## Nguyên nhân
+## Nguyên nhân gốc đã tái hiện
 
-### 1. Workflow thiếu invariant terminal
+`SupabaseLessonRepository.listPermittedSegments()` từng đọc toàn bộ `language_eligible_segments` của người học chỉ với `owner_user_id`, rồi mới lọc `transcript_id` trong Node.js.
 
-`generateLessonWorkflow` chỉ gọi `resolveLessonFailureStep` khi `generateLessonStep` ném lỗi. Một kết quả không ném lỗi như `skipped`, hoặc một lần resume không hoàn chỉnh, có thể làm workflow kết thúc trong khi database vẫn còn `analyzing_video`.
+Supabase Data API mặc định chỉ trả tối đa 1.000 dòng cho một `select()`. Tài khoản production đã có hơn 1.000 allowlist rows từ các lần thử trước. Route chẩn đoán an toàn đo được:
 
-Quy tắc đúng là: workflow đã kết thúc thì job phải terminal. Workflow giờ đọc lại trạng thái cuối; nếu vẫn là `analyzing_video`, nó đánh dấu `LESSON_GENERATION_FAILED` và đọc lại lần nữa trước khi trả kết quả.
+```json
+{
+  "keyKind": "secret",
+  "job": { "visible": true, "hasTranscriptId": true },
+  "allowed": { "visibleRows": 1000, "matchingRows": 0 },
+  "segments": { "visibleRows": 364, "count": 364 }
+}
+```
 
-### 2. Migration production bị lệch khỏi repo
+SQL trực tiếp trên cùng job xác nhận 339 allowlist rows tồn tại và đều khớp cả `owner_user_id` lẫn `transcript_id`. Vì các dòng đó nằm ngoài 1.000 dòng đầu của truy vấn owner-wide, ứng dụng trả `no_permitted_segments`, không gọi Gemini và để job ở `analyzing_video`.
 
-Migration `20260806060000_tighten_stalled_job_threshold.sql` đã merge nhưng chưa được áp lên Supabase production. Cron thật vẫn chạy mỗi 7 phút với ngưỡng 15 phút, thay vì mỗi 2 phút với ngưỡng 5 phút.
+Cách sửa đúng không phải tăng giới hạn Data API hay tải nhiều trang hơn. Repository giờ lấy `canonical_transcript_id` trước rồi lọc allowlist ngay trong Postgres bằng cả:
 
-Migration đã được áp và xác minh trên production:
+```text
+owner_user_id = <owner>
+transcript_id = <current transcript>
+```
+
+Điều này sửa tính đúng đắn, giảm payload và giữ phạm vi dữ liệu tối thiểu.
+
+## Các lớp bảo vệ bổ sung
+
+### Workflow phải kết thúc terminal
+
+`generateLessonWorkflow` trước đây chỉ gọi `resolveLessonFailureStep` khi `generateLessonStep` ném lỗi. Một kết quả không ném lỗi như `skipped` có thể làm workflow kết thúc trong khi database vẫn còn `analyzing_video`.
+
+Workflow giờ đọc lại trạng thái cuối; nếu vẫn là `analyzing_video`, nó đánh dấu `LESSON_GENERATION_FAILED` và đọc lại lần nữa. Đây là lưới an toàn, không thay thế việc sửa query gốc.
+
+### Migration production từng lệch khỏi repo
+
+Migration `20260806060000_tighten_stalled_job_threshold.sql` đã merge nhưng chưa được áp lên Supabase production. Cron thật vẫn chạy mỗi 7 phút với ngưỡng 15 phút.
+
+Migration đã được áp và xác minh:
 
 ```text
 schedule: */2 * * * *
@@ -33,20 +59,21 @@ command: select public.expire_stalled_lesson_jobs(interval '5 minutes')
 active: true
 ```
 
-Vercel deploy không tự áp Supabase migration. Mỗi thay đổi migration phải có bước deploy database riêng và truy vấn xác minh migration history + trạng thái runtime.
+Vercel deploy không tự áp Supabase migration. Mỗi migration phải có bước deploy database riêng và truy vấn xác minh migration history cùng trạng thái runtime.
 
-### 3. Flex inference không phù hợp với đường tương tác
+### Flex inference là trade-off UX sai, không phải nguyên nhân của job này
 
-Gemini Flex là best-effort, ưu tiên chi phí thay vì độ trễ và có mục tiêu xử lý 1–15 phút. Vidlish hiển thị màn hình người học chờ bài học và baseline Standard đã đo khoảng 13–20 giây, nên hardcode Flex vào đường production chính là sai trade-off sản phẩm.
+Job bị kẹt bắt đầu trước khi deployment dùng Gemini Flex lên production, nên Flex không gây ra sự cố cụ thể này. Lỗi provider chính xác của lần chạy cũ cũng không được log đủ để khôi phục.
 
-Đường tạo bài học đã trở lại service tier Standard. Flex chỉ nên quay lại dưới dạng tác vụ không tương tác, có timeout/fallback rõ ràng và UX nói đúng thời gian chờ.
+Dù vậy, Flex là best-effort với độ trễ mục tiêu theo phút, trong khi Vidlish hiển thị màn hình người học chờ bài. Đường tạo bài học đã trở lại Standard; Flex chỉ phù hợp với tác vụ không tương tác có timeout, fallback và UX nói đúng thời gian chờ.
 
 ## Thay đổi
 
-1. Bỏ `ServiceTier.FLEX` khỏi Gemini lesson provider production.
+1. Lọc allowlist theo transcript tại database và thêm test mô phỏng ngưỡng 1.000 dòng.
 2. Thêm fail-closed invariant ở cuối workflow.
-3. Thêm unit test cho workflow thành công, lỗi ném ra và kết thúc không terminal.
+3. Đưa lesson generation trở lại Standard tier.
 4. Áp migration cron còn thiếu lên Supabase production.
+5. Route chẩn đoán production chỉ tồn tại trong một lượt kiểm tra và đã được xóa.
 
 ## Cách xác minh
 
@@ -56,11 +83,14 @@ Gemini Flex là best-effort, ưu tiên chi phí thay vì độ trễ và có m�
 - `pnpm build`
 - toàn bộ pgTAP và Playwright trong GitHub Actions
 - deployment production phải READY
-- bài học thật phải rời `analyzing_video` để sang `completed` hoặc `failed` trong thời gian hữu hạn
+- route chẩn đoán phải trả 404
+- lượt tạo bài thật phải lấy được permitted segments, gọi Gemini Standard và chuyển sang `completed`, hoặc thành `failed` trong thời gian hữu hạn
 
 ## Bài học giữ lại
 
+- Không lọc client-side sau một query có giới hạn ngầm; đẩy khóa nghiệp vụ xuống database.
 - Không coi HTTP 200 của polling là bằng chứng workflow đang tiến triển.
 - Mọi background workflow phải có invariant terminal ở ranh giới cuối.
 - Không merge migration mà không áp và kiểm tra production.
 - Không dùng tier có độ trễ theo phút cho UX đang hứa phản hồi theo giây chỉ vì rẻ hơn.
+- Khi provider error không được lưu, phải nói rõ là chưa biết; không thay bằng một nguyên nhân nghe hợp lý nhưng không có bằng chứng.

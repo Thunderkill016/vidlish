@@ -42,14 +42,6 @@ export class SupabaseLessonRepository implements LessonRepository {
   constructor(private readonly client: SupabaseClient) {}
 
   async listPermittedSegments(jobId: string, ownerUserId: string) {
-    // The eligibility allowlist is authoritative: a segment the language gate
-    // excluded must never reach the model.
-    const allowed = await this.client
-      .from("language_eligible_segments")
-      .select("segment_id,transcript_id")
-      .eq("owner_user_id", ownerUserId);
-    if (allowed.error) throw allowed.error;
-
     const job = await this.client
       .from("lesson_jobs")
       .select("canonical_transcript_id")
@@ -60,11 +52,21 @@ export class SupabaseLessonRepository implements LessonRepository {
     const transcriptId = job.data?.canonical_transcript_id;
     if (!transcriptId) return [];
 
+    // Filter the authoritative allowlist in Postgres, not after downloading an
+    // owner's entire history. Supabase caps Data API selects at 1,000 rows by
+    // default; client-side filtering silently lost newer transcripts once an
+    // owner crossed that limit and made eligible jobs look empty.
+    const allowed = await this.client
+      .from("language_eligible_segments")
+      .select("segment_id")
+      .eq("owner_user_id", ownerUserId)
+      .eq("transcript_id", transcriptId);
+    if (allowed.error) throw allowed.error;
+
     const permittedIds = new Set(
       z
-        .array(z.object({ segment_id: z.string(), transcript_id: z.string() }))
+        .array(z.object({ segment_id: z.string() }))
         .parse(allowed.data ?? [])
-        .filter((row) => row.transcript_id === transcriptId)
         .map((row) => row.segment_id),
     );
     if (permittedIds.size === 0) return [];
