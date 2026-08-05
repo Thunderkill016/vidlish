@@ -1,6 +1,6 @@
 import "server-only";
 
-import { GoogleGenAI } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel } from "@google/genai";
 import { z } from "zod";
 
 import {
@@ -218,6 +218,11 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
           responseMimeType: "application/json",
           responseJsonSchema: RESPONSE_JSON_SCHEMA,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
+          // gemini-3.5-flash-lite mặc định thinking = MINIMAL, và ở mức đó
+          // bài học hay chạm đáy mọi khoảng (1 điểm ngữ pháp, 3 câu hỏi).
+          // Đo trên cùng transcript: HIGH nâng đáy lên 2 ngữ pháp / 4 câu hỏi
+          // ở mọi lần chạy, đổi lại thời gian tăng từ ~8s lên ~16s.
+          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         },
       });
     } catch (error) {
