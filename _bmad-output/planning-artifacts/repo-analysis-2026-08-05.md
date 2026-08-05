@@ -2,6 +2,7 @@
 type: repository-analysis
 date: 2026-08-05
 analyzed_ref: f1387be
+also_reviewed: story/2-4-hosted-generated-transcript (draft PR #7, f43a6fc)
 scope: toàn bộ repository (code, migrations, tests, CI, BMAD artifacts)
 status: advisory
 ---
@@ -9,9 +10,16 @@ status: advisory
 # Vidlish — Phân tích toàn bộ repository (2026-08-05)
 
 > Tài liệu này là **advisory**, không normative. Nó không thay thế PRD, Architecture Spine,
-> Lesson Engine SPEC hay `epics.md`. Mọi đề xuất thay đổi artifact nằm ở mục 13 và chưa được áp dụng.
+> Lesson Engine SPEC hay `epics.md`. Mọi đề xuất thay đổi artifact nằm ở mục 14 và chưa được áp dụng.
 
 Phân tích tại commit `f1387be` (`docs: mark Story 2.3 done`). Mọi nhận định dẫn chứng bằng `file:line`.
+
+**Sửa lại 2026-08-05.** Bản đầu chỉ đọc nhánh mặc định nên bỏ sót draft PR #7
+(`story/2-4-hosted-generated-transcript`, mở 2026-08-04, 33 file). Các mục sau đã được cập nhật sau
+khi đọc code nhánh đó: **mục 1** (khoảng cách thứ hai), **mục 3** (dòng Story 2.4), **mục 5 D4**, và
+**mục 13** viết lại toàn bộ. Kết luận cốt lõi không đổi — trạng thái kết thúc vẫn không tồn tại trên
+cả `main` lẫn #7 — nhưng phạm vi story được khuyến nghị đã hẹp lại. Các mục khác được viết dựa trên
+`main` tại `f1387be` và chưa được đối chiếu lại với #7.
 
 ---
 
@@ -38,9 +46,11 @@ Ba khoảng cách lớn còn lại:
 
 - **Lesson Engine: 0 dòng code.** SPEC rất đầy đủ (`_bmad-output/specs/spec-vidlish-lesson-engine/`)
   nhưng không có port, không có schema DB, không có migration lesson.
-- **Chỉ 1 transcript strategy.** Registry/waterfall mà toàn bộ research và UX giả định
+- **Chỉ 1 transcript strategy trên `main`.** Registry/waterfall mà toàn bộ research và UX giả định
   (`EXPERIENCE.md:115-121`) chưa tồn tại — `TranscriptStrategy` bị hard-lock vào literal
   `"supadata-native-caption"` (`src/modules/transcript/ports/transcript-strategy.ts:4`).
+  Draft PR #7 thêm strategy thứ hai và nới generic, nhưng registry ở đó vẫn là container chứ không
+  phải orchestrator, và **không** thêm trạng thái kết thúc. Xem mục 13.
 - **Chưa có provider production nào từng chạy thật.** CI 100% fixtures
   (`.github/workflows/ci.yml:19-34`). Supadata, YouTube Data API, Inngest Cloud chưa có staging
   evidence trong bất kỳ artifact nào.
@@ -120,7 +130,8 @@ tức là aha moment thật nằm sau Epic 3 + 4.1, không phải sau Epic 3.
 | **2.1** Durable generation job | Job bền vững, idempotency, quota | `CreateLessonJob`, `GenerationPolicy`, partial unique index, RPC `create_or_reuse_lesson_job`, progress page | Supabase repo + Inngest dispatcher tồn tại; **Inngest Cloud chưa chạy** | unit ×8, pgTAP `generation_jobs_rls.test.sql` | Dispatch fail → job mồ côi nếu user đóng tab; quota TOCTOU; day boundary UTC | **CI-only** | Inngest Cloud + signing key + 1 job thật end-to-end |
 | **2.2** Native caption → canonical transcript | Fast path + normalize + persist atomic | `SupadataNativeCaptionStrategy`, `normalizeTranscript`, RPC `persist_canonical_transcript` | Supadata adapter code hoàn chỉnh, **API key chưa từng dùng** | unit adapter (mock fetch), normalize ×3, acquire ×4, pgTAP `canonical_transcripts.test.sql` (14 assert) | `translationStatus` **luôn** `"unknown"` từ provider thật → nhánh chống caption dịch là dead code ngoài fixture; `NO_USABLE_CAPTIONS` không có terminal state | **CI-only, có lỗ hổng thiết kế** | Supadata thật + xác minh `mode=native` không trả track dịch |
 | **2.3** Original-English gate | Chặn video không đủ tiếng Anh | `buildLanguageWindows`, `FrancLanguageAnalysisAdapter`, `evaluateLanguageEligibility`, RPC `persist_language_eligibility` | `franc-min` chạy **local, không cần provider** → phần **duy nhất production-ready thật** | unit ×4 policy, ×2 window, ×3 orchestration, pgTAP `language_eligibility.test.sql` (20 assert), e2e ×2 | `englishShare` chia cho reliable duration → false positive; ngưỡng chưa hiệu chỉnh; `insufficient_evidence` → vòng lặp chết | **Production-ready về runtime, chưa hiệu chỉnh** | 30–50 video thật đo false positive/negative |
-| **2.4–2.13** | Fallback, quota, telemetry, retention | **Không có gì** | — | — | — | **Chưa bắt đầu** | — |
+| **2.4** Hosted generated transcript | Fallback khi không có native caption | Trên `main`: không có gì. Trong draft PR #7: strategy Supadata `mode=generate`, bounded 202 polling, cost policy, generic strategy ID — xem mục 13 | Supadata `mode=generate` **chưa chạy thật** | Trong #7: unit adapter/policy/acquisition, pgTAP, e2e fixture | Hết strategy vẫn không có terminal state → treo sau khi đã tốn tiền provider | **Đang làm — draft PR #7, chưa merge** | Terminal outcomes (mục 13) + staging run thật |
+| **2.5–2.13** | Extractor, quota, telemetry, retention | **Không có gì** | — | — | — | **Chưa bắt đầu** | — |
 | **Epic 3** (Lesson Engine) | Bài học có căn cứ | **Không có gì.** Không port, không schema, không migration | — | — | SPEC hoàn chỉnh nhưng chưa chọn model provider | **Chỉ có planning artifact** | — |
 | **Epic 4, 5** | Học tương tác, thư viện | `library/page.tsx` là placeholder tĩnh | — | — | — | **Chưa bắt đầu** | — |
 
@@ -268,6 +279,9 @@ transcript cho cùng kết quả. Đây là thiết kế đúng cho tương lai,
   (`transcript-strategy.ts:4`); `TranscriptAttemptRecord.provider` là `"supadata"`
   (`transcript-repository.ts:11`); DB có `check (provider = 'supadata')`
   (`canonical_transcripts.sql:19`). Thêm strategy thứ 2 = migration + đổi type ở 6 file.
+  → **Đã được trả trong draft PR #7** (`TranscriptStrategyId`, `TranscriptCostBand`, migration
+  `20260804121000`). Chi phí dự đoán ở trên đã hiện thực đúng: #7 phải sửa 33 file. Nhận định này
+  vẫn đúng cho `main`, và là lý do nên nới generic *trước* khi thêm strategy, không phải cùng lúc.
 - **Quá lỏng:** `advanceStory21(jobId)` — **số hiệu story rò vào domain port**
   (`generation-job-repository.ts:36`). Port mô tả *khi nào nó được viết*, không phải *nó làm gì*.
 
@@ -901,121 +915,174 @@ Story 2.6 Gemini, Story 2.8 tab audio, Story 2.5 unofficial extractor.
 
 ## 13. Recommended next story
 
-### Story: Transcript strategy registry và kết thúc job an toàn
+> **Sửa lại 2026-08-05 sau khi đọc PR #7.** Bản đầu của mục này viết khi chưa biết có draft PR
+> `story/2-4-hosted-generated-transcript` (#7, 33 file, +2604/−139, mở 2026-08-04). Clone phân tích
+> chỉ lấy nhánh mặc định nên không thấy nó, và mục 3 xếp Story 2.4 là "chưa bắt đầu" — sai so với
+> công việc đang diễn ra, đúng so với `main`. Mục này đã được viết lại theo trạng thái thật của #7.
+> Kết luận **không đổi**; phạm vi story thì **hẹp lại đáng kể**.
 
-*(đề xuất định danh: Story 2.3.5 hoặc tái cắt phần đầu của Story 2.10)*
+### Bối cảnh: PR #7 đã làm được gì
 
-#### Vì sao phải làm nó trước
+Đọc code trên nhánh #7 (không phải body PR):
 
-Không phải vì dễ — nó động vào workflow, config, DB constraint, error contract và UI cùng lúc.
-Ba lý do:
+| Việc | Trạng thái trong #7 |
+|---|---|
+| Nới generic strategy ID/provider | ✅ Xong — `TranscriptStrategyId`, `TranscriptCostBand`, migration `20260804121000_extend_hosted_transcript_strategies.sql` |
+| `PollableTranscriptStrategy` + bounded 202 polling | ✅ Xong, dùng `step.sleep` đúng cách (`generate-lesson-workflow.ts:123-170`) |
+| Cost/duration guard trước khi gọi provider | ✅ `hosted-generated-transcript-policy.ts` — đóng luôn P1-1 |
+| `insufficient_evidence` → thử hosted generate | ✅ `generate-lesson-workflow.ts:99` — đóng **một phần** D3 |
+| Timeout của provider job | ✅ `recordTimeout` (`acquire-hosted-generated-transcript.ts:156`) |
 
-1. **Hôm nay sản phẩm không dùng được với video thật.** Ước tính 30–40% video YouTube phổ thông
-   không có caption dùng được. Với `maxActiveJobs = 2` và không có cancel, người dùng private beta
-   thứ nhất có thể bị khóa hoàn toàn sau 2 video.
-2. **Mọi story transcript tiếp theo kế thừa lỗ này.** Làm 2.4 trước = viết strategy thứ hai vào một
-   workflow không biết cách kết thúc, rồi phải sửa cả hai sau.
-3. **Nó là nợ kiến trúc, không phải nợ tính năng.** `TranscriptStrategy.id` literal + DB
-   `check (provider = 'supadata')` + `advanceStory21` — càng thêm story thì càng đắt để sửa.
+Ba việc **chưa** làm, và đây mới là phần quan trọng:
 
-**Vì sao không phải Story 2.4:** 2.4 tăng coverage nhưng không tạo ra trạng thái kết thúc. Video vẫn
-treo, chỉ treo muộn hơn và tốn tiền hơn.
-**Vì sao không phải Lesson Engine:** Epic 3 bị chặn cứng bởi P0-3 (ADR chưa có), và tạo bài học cho
-60% video trong khi 40% treo là tối ưu sai.
+1. **`TranscriptStrategyRegistry` là container, không phải orchestrator.** Nó nằm trong
+   `ports/transcript-strategy.ts` và chỉ có `list()` + `find()`. Nó không theo dõi strategy đã thử,
+   không quyết định chạy gì tiếp, không có khái niệm `exhausted`. Workflow vẫn hardcode native →
+   generated bằng biến boolean `useGenerated` (`generate-lesson-workflow.ts:74-77, 103`). Strategy
+   thứ ba vẫn phải sửa workflow. D4 chưa được trả.
 
-#### Nó unblock cái gì
+2. **Trạng thái kết thúc vẫn không tồn tại.** Kiểm chứng trên nhánh #7:
+   - `generationSafeErrorCodeSchema` vẫn chỉ có `VIDEO_LANGUAGE_UNSUPPORTED` (`generation.ts:29-31`);
+   - `TRANSCRIPT_UNAVAILABLE` và `exhausted` không xuất hiện ở bất kỳ đâu trong `src/` hay `supabase/`;
+   - không có lời gọi nào ghi `status = 'failed'`.
 
-Stories 2.4, 2.6, 2.7, 2.8 (mọi strategy mới cắm vào registry); Story 2.10 (circuit breaker cần
-registry); P1-2 cancel; toàn bộ Giai đoạn A acceptance.
+   Khi hết mọi strategy, `acquire-hosted-generated-transcript.ts:105-129` ghi:
+
+   ```ts
+   updateStatus(job.id, "acquiring_transcript", "automatic_transcript_unavailable")
+   ```
+
+   Status **vẫn là `acquiring_transcript`**; chỉ `currentStage` đổi. Hệ thống đã biết mình thất bại
+   nhưng không có cách nói ra điều đó một cách terminal.
+
+3. **UI vì thế vẫn poll vô hạn.** `terminal` được tính từ `phase`, mà `phase` suy ra từ `status`
+   (`job-progress.tsx:41`). Status là `acquiring_transcript` → phase `transcript` → không terminal →
+   `setInterval` 3 giây chạy mãi (`:89-98`). File có biến `automaticTranscriptUnavailable` (`:48-50`)
+   để hiện chữ, nhưng job không kết thúc và quota không được giải phóng.
+
+**PR #7 là bằng chứng ủng hộ khuyến nghị ban đầu, không phải phản chứng.** Câu trong bản đầu —
+*"2.4 tăng coverage nhưng không tạo ra trạng thái kết thúc; video vẫn treo, chỉ treo muộn hơn và tốn
+tiền hơn"* — mô tả chính xác trạng thái #7 hôm nay. Khác biệt là bây giờ job treo **sau khi** đã gọi
+Supadata `mode=generate` và poll nhiều vòng, tức là treo tốn tiền.
+
+### Story: Kết thúc an toàn cho transcript acquisition
+
+*(đề xuất định danh: Story 2.3.5; thay thế phạm vi registry rộng ở bản đầu)*
+
+#### Vì sao phải làm nó trước khi merge #7
+
+1. **Merge #7 nguyên trạng làm vấn đề tệ hơn, không phải tốt hơn.** Nó thêm một nhánh tốn tiền vào
+   một pipeline không biết kết thúc. Trước #7, video không caption treo sau ~2 giây. Sau #7, nó treo
+   sau khi đã tiêu một lần gọi `mode=generate` cộng tối đa `generatedMaxPolls` vòng poll.
+2. **Sản phẩm vẫn không dùng được với video thật.** Với `maxActiveJobs = 2` và không có cancel, hai
+   video thất bại là khóa vĩnh viễn một người dùng private beta.
+3. **Việc còn lại nhỏ và độc lập kiểm thử được.** Không còn là "viết registry + nới generic" như bản
+   đầu — #7 đã làm phần đó.
+
+**Vì sao không phải Lesson Engine:** Epic 3 vẫn bị chặn cứng bởi P0-3 (ADR chưa có).
+
+#### Thứ tự thực hiện đề xuất
+
+Ba phương án, khuyến nghị **(C)**:
+
+| | Cách làm | Đánh giá |
+|---|---|---|
+| A | Thêm terminal slice vào chính #7 trước khi merge | Nhanh nhất tới pipeline mạch lạc, nhưng #7 đã 33 file — review sẽ nặng thêm |
+| B | Merge #7 trước, làm terminal sau | ⛔ Đưa vào `main` một đường thất bại tốn tiền không có lối thoát |
+| C | **Terminal slice thành branch riêng từ `main`, merge trước, rồi rebase #7 lên** | ✅ Slice nhỏ, review độc lập; #7 rebase xong chỉ cần mở rộng điều kiện exhausted từ "native fail" thành "native + generated fail" |
+
+(C) khả thi vì trên `main` chỉ có một strategy, nên "hết strategy" = "native thất bại". Đó là một
+điều kiện đơn giản, kiểm thử được ngay, và #7 mở rộng nó một cách tự nhiên.
 
 #### Scope chính xác
 
 **TRONG scope:**
 
-1. `TranscriptStrategyRegistry` — application service điều phối thứ tự strategy, theo dõi strategy
-   đã thử, quyết định `exhausted`
-2. Nới generic: `strategyId`/`provider` từ literal → enum mở rộng; migration nới DB check
-3. Trạng thái kết thúc: `NO_USABLE_CAPTIONS` (hết strategy), `terminal_failure`, retry exhausted,
-   `insufficient_evidence` (hết strategy) → `status = 'failed'` với
-   `safe_error_code = 'TRANSCRIPT_UNAVAILABLE'`
-4. Mã lỗi sản phẩm mới `TRANSCRIPT_UNAVAILABLE` + action `choose_another_video` (hoặc
-   `provide_transcript` khi 2.7 đã có)
-5. Job timeout: watchdog đặt `failed` cho job non-terminal quá N phút
-6. UI: màn hình terminal cho transcript-unavailable, đúng 1 hành động chính
-7. Sửa `provider` hard-code trong `recordFailure` (D5)
-8. Đổi tên `advanceStory21` → `beginTranscriptAcquisition`
+1. Mã lỗi `TRANSCRIPT_UNAVAILABLE` trong `generationSafeErrorCodeSchema` + `product-error.ts`
+2. RPC `mark_transcript_exhausted(p_job_id, p_owner_user_id, p_reason)` đặt `status='failed'` +
+   `safe_error_code='TRANSCRIPT_UNAVAILABLE'`, idempotent, `security definer` như các RPC hiện có
+3. Workflow ghi terminal khi hết strategy, kể cả khi language gate trả `insufficient_evidence` mà
+   không còn strategy nào chưa thử
+4. Watchdog: job non-terminal quá N phút → `failed`
+5. UI: màn hình terminal, đúng một hành động chính, dừng poll
+6. Nâng `TranscriptStrategyRegistry` từ container thành orchestrator: theo dõi strategy đã thử,
+   trả `next` hoặc `exhausted`
+7. Đổi tên `advanceStory21` → `beginTranscriptAcquisition`
+8. Sửa `provider` hard-code trong `AcquireNativeCaption.recordFailure` (D5)
 
-**NGOÀI scope (nói rõ để không phình):**
+**NGOÀI scope:**
 
-- Thêm strategy thứ hai (đó là 2.4/2.7)
-- Circuit breaker, cost tracking, quota động (2.10)
-- Cancel endpoint (P1-2 — liên quan nhưng tách được)
-- Sửa policy ngôn ngữ (P0-2 — song song được)
-- Retention/cleanup (2.11)
+- Nới generic strategy ID/provider — #7 đã làm
+- Cost policy — #7 đã làm
+- Hosted generate strategy — là #7
+- Cancel endpoint (P1-2), circuit breaker (2.10), sửa policy ngôn ngữ (P0-2), retention (2.11)
 
 #### Acceptance criteria
 
 | ID | AC |
 |---|---|
-| AC1 | Registry nhận danh sách strategy đã cấu hình, chạy theo thứ tự, bỏ qua strategy disabled, và trả `exhausted` khi hết. Workflow không chứa if/else về strategy cụ thể |
-| AC2 | `strategyId` và `provider` là enum mở rộng ở TS lẫn DB; thêm strategy mới không cần đổi type ở domain |
-| AC3 | Mỗi `TranscriptStrategyResult` map tới đúng một hành vi: `retryable_failure` → retry trong strategy hiện tại (bounded) → strategy kế tiếp; `not_applicable` → strategy kế tiếp; `terminal_failure` → strategy kế tiếp nhưng ghi attempt; hết strategy → job `failed` |
-| AC4 | Job `failed` do transcript có `safe_error_code = 'TRANSCRIPT_UNAVAILABLE'`, không bao giờ dùng `VIDEO_LANGUAGE_UNSUPPORTED` |
-| AC5 | `insufficient_evidence` từ language gate quay lại registry; nếu không còn strategy chưa thử → `failed` với `TRANSCRIPT_UNAVAILABLE` (không phải language error) |
-| AC6 | Job non-terminal quá N phút (cấu hình) chuyển `failed`; N có tên hằng và comment giải thích nguồn gốc giá trị |
-| AC7 | UI hiển thị màn hình terminal với đúng 1 hành động chính; không lộ tên provider; poll dừng khi terminal |
-| AC8 | Attempt record ghi đúng `provider` của strategy thật đã chạy, kể cả fixture |
-| AC9 | Không có phương thức nào trong domain port mang số hiệu story |
-| AC10 | RLS/ownership không đổi; không có transcript text trong Inngest step output hay telemetry |
+| AC1 | Khi mọi strategy đã đăng ký đều thất bại, job chuyển `failed` với `safe_error_code = 'TRANSCRIPT_UNAVAILABLE'`; không bao giờ dùng `VIDEO_LANGUAGE_UNSUPPORTED` cho thất bại transcript |
+| AC2 | `insufficient_evidence` từ language gate quay lại registry; nếu không còn strategy chưa thử → terminal như AC1, không phải language error |
+| AC3 | Không còn trạng thái nào mà `currentStage` báo thất bại trong khi `status` vẫn non-terminal |
+| AC4 | Job non-terminal quá N phút chuyển `failed`; N là hằng có tên và comment giải thích nguồn gốc giá trị |
+| AC5 | Registry trả `next`/`exhausted`; workflow không chứa if/else về strategy cụ thể; thêm strategy mới không sửa workflow |
+| AC6 | UI hiển thị màn hình terminal với đúng một hành động chính, không lộ tên provider, và dừng poll |
+| AC7 | Attempt record ghi đúng `provider` của strategy thật đã chạy, kể cả fixture |
+| AC8 | Không có phương thức nào trong domain port mang số hiệu story |
+| AC9 | RLS/ownership không đổi; không có transcript text trong Inngest step output hay telemetry |
+| AC10 | Quota được giải phóng khi job vào terminal (job `failed` không còn tính là active) |
 
 #### Definition of Done
 
 - `pnpm typecheck && pnpm lint && pnpm test && pnpm build` xanh
 - `supabase test db` xanh với pgTAP mới
-- `pnpm test:e2e` xanh, có case `nocaption01` → terminal
+- `pnpm test:e2e` xanh, có case hết-strategy → terminal
 - Code review + adversarial review theo quy trình BMAD hiện tại
-- **Bằng chứng staging** (điều kiện mới, chưa có ở story trước): 1 lần chạy với `SUPADATA_API_KEY`
-  thật trên video không caption → job `failed` trong <2 phút, có ảnh chụp UI và bản ghi
-  `transcript_acquisition_attempts`
+- **Bằng chứng staging:** một lần chạy với credential thật trên video không caption → job `failed`
+  trong <2 phút, kèm ảnh chụp UI và bản ghi `transcript_acquisition_attempts`
 - `sprint-status.yaml` cập nhật
+- #7 rebase lên story này và mở rộng điều kiện exhausted
 
 #### Task theo thứ tự dependency
 
-1. Migration: nới `check (provider = ...)` và `check (strategy_id = ...)` thành `in (...)`; thêm
-   `TRANSCRIPT_UNAVAILABLE` vào tập safe error code hợp lệ
-2. Contracts: `generationSafeErrorCodeSchema` thêm mã mới; `strategyId`/`provider` thành enum;
-   `product-error.ts` thêm `transcriptUnavailable()`
-3. Port: đổi `TranscriptStrategy.id` thành enum; đổi tên `advanceStory21`
-4. `TranscriptStrategyRegistry` + unit tests (viết test trước — logic thuần, TDD hợp lý ở đây)
-5. Sửa `AcquireNativeCaption.recordFailure` lấy provider từ strategy
-6. Repository: `markTranscriptExhausted(jobId, reason)` qua RPC (giữ pattern security definer)
-7. Workflow: thay lời gọi trực tiếp bằng registry; thêm nhánh terminal
-8. Inline dispatcher: parity với workflow
-9. Watchdog timeout (Inngest cron function hoặc `sleepUntil` trong workflow)
-10. UI terminal state + dừng poll
-11. pgTAP cho transition mới
-12. E2E `nocaption01`
-13. Full CI + staging run
+1. Migration: thêm `TRANSCRIPT_UNAVAILABLE` vào tập safe error code hợp lệ; RPC
+   `mark_transcript_exhausted` idempotent
+2. pgTAP `supabase/tests/transcript_terminal.test.sql` — viết trước để có gate DB
+3. Contracts: `generationSafeErrorCodeSchema` + `product-error.ts` thêm `transcriptUnavailable()`
+4. Port: đổi tên `advanceStory21`; thêm `markTranscriptExhausted`
+5. **Test trước:** unit cho orchestrator (`next`/`exhausted`, không thử lại strategy đã terminal)
+6. Nâng `TranscriptStrategyRegistry` thành orchestrator
+7. Sửa `AcquireNativeCaption.recordFailure` lấy provider từ strategy
+8. Repository Supabase + in-memory: `markTranscriptExhausted`, giữ parity
+9. Workflow: nhánh terminal sau acquisition và sau language gate
+10. Inline dispatcher parity
+11. Watchdog timeout
+12. UI terminal + dừng poll
+13. E2E hết-strategy
+14. Full CI + staging run
+15. Rebase #7 và mở rộng điều kiện exhausted
 
 #### Test matrix
 
 | Lớp | Case |
 |---|---|
-| Unit registry | thứ tự đúng; skip disabled; exhausted khi hết; không thử lại strategy đã fail terminal; `insufficient_evidence` tiếp tục đúng |
-| Unit mapping | 4 loại `TranscriptStrategyResult` × 2 (còn strategy / hết strategy) = 8 case |
-| Unit adapter | `provider` trong attempt khớp strategy thật |
-| pgTAP | `acquiring_transcript` → `failed` + `TRANSCRIPT_UNAVAILABLE`; idempotent; cross-owner ẩn |
+| Unit orchestrator | trả `next` đúng thứ tự; `exhausted` khi hết; không thử lại strategy đã fail terminal; skip strategy disabled |
+| Unit terminal mapping | 4 loại `TranscriptStrategyResult` × (còn strategy / hết strategy) = 8 case |
+| Unit language handoff | `insufficient_evidence` + còn strategy → tiếp tục; + hết strategy → terminal |
+| Unit adapter | `provider` trong attempt khớp strategy thật đã chạy |
+| pgTAP | `acquiring_transcript` → `failed` + `TRANSCRIPT_UNAVAILABLE`; idempotent; cross-owner ẩn; job `failed` không tính vào active quota |
 | E2E | `nocaption01` → terminal screen; `captionrate` → retry rồi terminal; video hợp lệ → không hồi quy |
-| Watchdog | job đứng yên → failed sau N phút |
+| Watchdog | job đứng yên → `failed` sau N phút |
 
 #### Staging evidence cần thu thập
 
 1. Ảnh chụp UI terminal với video thật không caption
-2. Dòng `transcript_acquisition_attempts` với `result_kind='not_applicable'`, latency thật
+2. Dòng `transcript_acquisition_attempts` với `result_kind` và latency thật
 3. Log Inngest cho thấy workflow kết thúc, không retry loop
 4. Thời gian từ submit đến terminal
-5. Xác nhận `mode=native` có/không trả caption dịch (trả lời R2) — dùng 1 video tiếng Tây Ban Nha có
-   track tiếng Anh tự dịch
+5. Xác nhận quota được giải phóng sau khi job vào `failed`
+6. Xác nhận `mode=native` có/không trả caption dịch (trả lời R2) — dùng một video tiếng Tây Ban Nha
+   có track tiếng Anh tự dịch
 
 ---
 
