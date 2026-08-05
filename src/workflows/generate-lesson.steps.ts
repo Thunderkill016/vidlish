@@ -174,6 +174,42 @@ export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
 
 generateLessonStep.maxRetries = 5;
 
+/**
+ * Terminal outcome when the lesson step gives up.
+ *
+ * Without this, a job whose model step exhausts its retries simply stops:
+ * `analyzing_video` is not a terminal status, so the job keeps occupying one of
+ * the learner's GENERATION_MAX_ACTIVE_JOBS slots and the progress page sits
+ * there saying nothing. Two of those and the learner is locked out entirely —
+ * observed on production 2026-08-06. The pg_cron watchdog eventually clears it,
+ * but only after 15 minutes of silence.
+ *
+ * This is the same "terminate instead of hanging" rule Story 2.3.5 established
+ * for transcript acquisition; the lesson stage never got it.
+ */
+export async function resolveLessonFailureStep(
+  jobRef: GenerationWorkflowJobRef,
+) {
+  "use step";
+
+  const { generationRepository } = createStepRuntime();
+  const latest = await generationRepository.findOwnedById(
+    jobRef.jobId,
+    jobRef.ownerUserId,
+  );
+  if (!latest || latest.status !== "analyzing_video") {
+    return { kind: "already_settled" } as const;
+  }
+
+  await generationRepository.updateStatus(
+    jobRef.jobId,
+    "failed",
+    "failed",
+    "LESSON_GENERATION_FAILED",
+  );
+  return { kind: "terminated" } as const;
+}
+
 export async function loadFinalGenerationStateStep(
   jobRef: GenerationWorkflowJobRef,
 ) {

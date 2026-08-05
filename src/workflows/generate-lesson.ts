@@ -5,6 +5,7 @@ import {
   advanceToTranscriptAcquisition,
   checkOriginalEnglishStep,
   generateLessonStep,
+  resolveLessonFailureStep,
   loadFinalGenerationStateStep,
   resolveTranscriptExhaustionStep,
 } from "./generate-lesson.steps";
@@ -38,7 +39,14 @@ export async function generateLessonWorkflow(
 
   let lessonOutcome: string | undefined;
   if (languageOutcome === "eligible") {
-    lessonOutcome = (await generateLessonStep(jobRef)).kind;
+    try {
+      lessonOutcome = (await generateLessonStep(jobRef)).kind;
+    } catch {
+      // Retries are exhausted. Leaving the job in `analyzing_video` would hold
+      // one of the learner's active-job slots until the watchdog notices, and
+      // tell them nothing in the meantime.
+      lessonOutcome = (await resolveLessonFailureStep(jobRef)).kind;
+    }
   }
 
   const finalStatus = await loadFinalGenerationStateStep(jobRef);

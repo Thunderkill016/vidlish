@@ -88,7 +88,19 @@ function createInlineDispatcher(
       job.id,
     );
     if (!eligible || eligible.status !== "analyzing_video" || !transcript) return;
-    await generateLesson.execute(eligible, transcript.normalizedHash);
+    try {
+      await generateLesson.execute(eligible, transcript.normalizedHash);
+    } catch (error) {
+      // Parity with the durable workflow: a job that cannot produce a lesson
+      // must become terminal, not sit in `analyzing_video` holding a slot.
+      await repository.updateStatus(
+        eligible.id,
+        "failed",
+        "failed",
+        "LESSON_GENERATION_FAILED",
+      );
+      throw error;
+    }
   });
 }
 
