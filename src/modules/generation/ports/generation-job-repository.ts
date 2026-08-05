@@ -28,6 +28,9 @@ export type CreateGenerationJobRecord = {
 
 export interface GenerationJobRepository {
   findActive(input: ActiveGenerationJobKey): Promise<GenerationJob | null>;
+  /** Jobs still running, newest first. A learner who navigates away needs a
+   *  way back to one; without it the job keeps running and they cannot see it. */
+  listActiveOwned(ownerUserId: string): Promise<GenerationJob[]>;
   getPolicySnapshot(ownerUserId: string): Promise<GenerationPolicySnapshot>;
   createOrReuse(
     input: CreateGenerationJobRecord,

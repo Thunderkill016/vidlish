@@ -23,10 +23,15 @@ export default async function LibraryPage() {
 
   const generationRepository = createGenerationRepository();
   const transcriptRuntime = createTranscriptRuntime(generationRepository);
-  const lessons = await createLessonRepository(
-    generationRepository,
-    transcriptRuntime.repository,
-  ).listOwned(access.userId);
+  const [lessons, activeJobs] = await Promise.all([
+    createLessonRepository(
+      generationRepository,
+      transcriptRuntime.repository,
+    ).listOwned(access.userId),
+    // A job keeps running after the learner navigates away. Without it listed
+    // here they lose the only link to it and believe the work was thrown away.
+    generationRepository.listActiveOwned(access.userId),
+  ]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -35,7 +40,27 @@ export default async function LibraryPage() {
         <h1 className="text-3xl font-bold tracking-tight">Bài học đã lưu</h1>
       </div>
 
-      {lessons.length === 0 ? (
+      {activeJobs.length > 0 ? (
+        <ul className="space-y-3" data-testid="active-jobs">
+          {activeJobs.map((job) => (
+            <li key={job.id}>
+              <Link href={`/jobs/${job.id}`} className="block">
+                <Card className="space-y-1 border-dashed transition-colors hover:border-[var(--accent)]">
+                  <p className="text-sm font-semibold text-[var(--accent)]">
+                    Đang tạo · {job.cefrLevel}
+                  </p>
+                  <h2 className="text-lg font-semibold">{job.videoTitle}</h2>
+                  <p className="text-sm text-[var(--muted-foreground)]">
+                    Bấm để xem tiến trình. Bài học vẫn đang được soạn.
+                  </p>
+                </Card>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
+      {lessons.length === 0 && activeJobs.length === 0 ? (
         <Card className="space-y-3">
           <p className="text-[var(--muted-foreground)]">
             Chưa có bài học nào. Các bài đã tạo sẽ xuất hiện tại đây.
