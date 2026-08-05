@@ -24,6 +24,9 @@ const serverConfigSchema = z
     TRANSCRIPT_REPOSITORY: z.enum(["supabase", "fake"]).default("fake"),
     SUPADATA_API_KEY: z.string().min(1).optional(),
     SUPADATA_NATIVE_TIMEOUT_MS: z.coerce.number().int().min(500).max(30000).default(8000),
+    LESSON_PROVIDER: z.enum(["anthropic", "fixture"]).default("fixture"),
+    LESSON_MODEL_ID: z.string().min(1).default("claude-opus-5"),
+    ANTHROPIC_API_KEY: z.string().min(1).optional(),
     INNGEST_EVENT_KEY: z.string().min(1).optional(),
     INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   })
@@ -51,6 +54,12 @@ const serverConfigSchema = z
     }
     if (value.TRANSCRIPT_NATIVE_ENABLED && value.TRANSCRIPT_NATIVE_ADAPTER === "supadata" && !value.SUPADATA_API_KEY) {
       context.addIssue({ code: "custom", path: ["SUPADATA_API_KEY"], message: "Supadata API key is required for the native transcript adapter." });
+    }
+    if (value.NODE_ENV === "production" && !value.CI && value.LESSON_PROVIDER === "fixture") {
+      context.addIssue({ code: "custom", path: ["LESSON_PROVIDER"], message: "The fixture lesson provider cannot run in production." });
+    }
+    if (value.LESSON_PROVIDER === "anthropic" && !value.ANTHROPIC_API_KEY) {
+      context.addIssue({ code: "custom", path: ["ANTHROPIC_API_KEY"], message: "Anthropic API key is required for the lesson provider." });
     }
     if (
       value.GENERATION_DISPATCHER === "inngest" &&
@@ -89,6 +98,9 @@ export function getServerConfig(): ServerConfig {
     TRANSCRIPT_REPOSITORY: process.env.TRANSCRIPT_REPOSITORY,
     SUPADATA_API_KEY: process.env.SUPADATA_API_KEY,
     SUPADATA_NATIVE_TIMEOUT_MS: process.env.SUPADATA_NATIVE_TIMEOUT_MS,
+    LESSON_PROVIDER: process.env.LESSON_PROVIDER,
+    LESSON_MODEL_ID: process.env.LESSON_MODEL_ID,
+    ANTHROPIC_API_KEY: process.env.ANTHROPIC_API_KEY,
     INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
     INNGEST_SIGNING_KEY: process.env.INNGEST_SIGNING_KEY,
   });

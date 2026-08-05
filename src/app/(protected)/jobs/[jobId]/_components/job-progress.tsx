@@ -198,6 +198,26 @@ export function JobProgress({
         </section>
       ) : null}
 
+      {phase === "completed" ? (
+        <section
+          data-testid="lesson-ready"
+          className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5"
+        >
+          <div className="space-y-1">
+            <h2 className="text-xl font-semibold">Mở bài học của bạn</h2>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Mọi câu trích dẫn được lấy trực tiếp từ lời thoại trong video.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => window.location.assign(`/lessons/${job.id}`)}
+          >
+            Mở bài học
+          </Button>
+        </section>
+      ) : null}
+
       {job.dispatchStatus === "failed" && !terminal ? (
         <section className="space-y-3 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5">
           <div className="space-y-1">
