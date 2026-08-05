@@ -139,8 +139,10 @@ export const generationJobSchema = z
     currentStage: z.string().min(1).max(100),
     dispatchStatus: z.enum(["pending", "sent", "failed"]),
     safeErrorCode: generationSafeErrorCodeSchema.optional(),
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
+    // Supabase serializes timestamptz values with an explicit UTC offset
+    // (for example +00:00), while other adapters may use the equivalent Z form.
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }),
   })
   .strict();
 
