@@ -52,7 +52,9 @@ describe("generateLessonWorkflow", () => {
     expect(steps.resolveLessonFailureStep).toHaveBeenCalledWith(jobRef);
     expect(steps.loadFinalGenerationStateStep).toHaveBeenCalledTimes(2);
     expect(result.status).toBe("failed");
-    expect(result.lessonOutcome).toBe("terminated");
+    expect("lessonOutcome" in result ? result.lessonOutcome : undefined).toBe(
+      "terminated",
+    );
   });
 
   it("resolves a thrown lesson failure once and returns the terminal state", async () => {
