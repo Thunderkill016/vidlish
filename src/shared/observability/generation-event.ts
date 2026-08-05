@@ -18,7 +18,14 @@ export const generationEventSchema = z
       "workflow_terminalization",
     ]),
     action: z.enum(["started", "succeeded", "skipped", "failed"]),
-    provider: z.enum(["youtube", "supadata", "franc", "gemini", "workflow"]),
+    provider: z.enum([
+      "youtube",
+      "supadata",
+      "franc",
+      "gemini",
+      "fixture",
+      "workflow",
+    ]),
     modelId: safeIdentifierSchema.optional(),
     outcome: z
       .enum([
