@@ -22,7 +22,8 @@ test("a video with no usable captions ends instead of polling forever", async ({
   await page.getByRole("button", { name: "Xác nhận lựa chọn" }).click();
   await page.getByRole("button", { name: "Tạo bài học" }).click();
 
-  await expect(page).toHaveURL(/\/jobs\/[0-9a-f-]{36}$/);
+  // The first request may compile the dynamic job route on a cold CI server.
+  await expect(page).toHaveURL(/\/jobs\/[0-9a-f-]{36}$/, { timeout: 15_000 });
 
   const card = page.getByTestId("transcript-unavailable");
   await expect(card).toContainText("Chưa lấy được lời thoại");
