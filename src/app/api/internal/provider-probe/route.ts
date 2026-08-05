@@ -40,7 +40,7 @@ export async function GET() {
       config.YOUTUBE_METADATA_TIMEOUT_MS,
     ).lookup(PROBE_VIDEO_ID);
     result.youtube = {
-      ok: metadata.availability === "available",
+      ok: metadata.availability === "playable",
       availability: metadata.availability,
     };
   } catch (error) {
