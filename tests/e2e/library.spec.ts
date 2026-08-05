@@ -47,3 +47,4 @@ test("a published lesson appears in the library and opens from it", async ({ pag
   await expect(page).toHaveURL(/\/lessons\/[0-9a-f-]{36}$/);
   await expect(page.getByRole("heading", { name: "Điền từ" })).toBeVisible();
 });
+

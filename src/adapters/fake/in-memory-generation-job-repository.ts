@@ -120,6 +120,16 @@ export class InMemoryGenerationJobRepository
     }
   }
 
+  async listActiveOwned(ownerUserId: string): Promise<GenerationJob[]> {
+    return [...this.jobs.values()]
+      .filter(
+        (job) =>
+          job.ownerUserId === ownerUserId &&
+          (activeGenerationJobStatuses as readonly string[]).includes(job.status),
+      )
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  }
+
   async findOwnedById(
     jobId: string,
     ownerUserId: string,

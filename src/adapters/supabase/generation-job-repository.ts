@@ -166,6 +166,18 @@ export class SupabaseGenerationJobRepository
     return { job, created: result.created };
   }
 
+  async listActiveOwned(ownerUserId: string): Promise<GenerationJob[]> {
+    const result = await this.client
+      .from("lesson_jobs")
+      .select(jobSelect)
+      .eq("owner_user_id", ownerUserId)
+      .in("status", [...activeGenerationJobStatuses])
+      .order("created_at", { ascending: false })
+      .limit(20);
+    if (result.error) throw result.error;
+    return (result.data ?? []).map((row) => mapJob(row));
+  }
+
   async findOwnedById(
     jobId: string,
     ownerUserId: string,
