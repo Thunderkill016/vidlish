@@ -103,7 +103,10 @@ export const lessonProvenanceSchema = z
     transcriptHash: z.string().regex(/^[a-f0-9]{64}$/),
     inputTokens: z.number().int().nonnegative(),
     outputTokens: z.number().int().nonnegative(),
-    generatedAt: z.string().datetime(),
+    // Supabase serializes timestamptz with an explicit UTC offset, which a
+    // bare .datetime() rejects. Same fix as generation.ts — this one was
+    // missed, so every lesson page 500'd while generation itself worked.
+    generatedAt: z.string().datetime({ offset: true }),
   })
   .strict();
 
@@ -119,7 +122,7 @@ export const lessonSchema = z
     draft: lessonDraftSchema,
     citations: z.array(lessonCitationSchema).min(1),
     provenance: lessonProvenanceSchema,
-    createdAt: z.string().datetime(),
+    createdAt: z.string().datetime({ offset: true }),
   })
   .strict();
 
