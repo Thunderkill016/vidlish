@@ -39,7 +39,6 @@ env:
   TRANSCRIPT_REPOSITORY: fake
   SUPADATA_NATIVE_TIMEOUT_MS: "1000"
   LESSON_PROVIDER: fixture
-  INNGEST_DEV: "1"
 
 jobs:
   static:
