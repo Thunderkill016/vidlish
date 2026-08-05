@@ -8,22 +8,39 @@ import { createGenerateLesson } from "@/platform/lesson/create-lesson-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 import { generationRequestedEventSchema } from "@/shared/contracts/generation";
 
-const generationRepository = createGenerationRepository();
-const transcriptRuntime = createTranscriptRuntime(generationRepository);
-const acquireNativeCaption = new AcquireNativeCaption(
-  generationRepository,
-  transcriptRuntime.repository,
-  transcriptRuntime.strategy,
-  transcriptRuntime.enabled,
-);
-const checkOriginalEnglish = createOriginalEnglishGate(
-  generationRepository,
-  transcriptRuntime.repository,
-);
-const generateLesson = createGenerateLesson(
-  generationRepository,
-  transcriptRuntime.repository,
-);
+function createWorkflowRuntime() {
+  const generationRepository = createGenerationRepository();
+  const transcriptRuntime = createTranscriptRuntime(generationRepository);
+  const acquireNativeCaption = new AcquireNativeCaption(
+    generationRepository,
+    transcriptRuntime.repository,
+    transcriptRuntime.strategy,
+    transcriptRuntime.enabled,
+  );
+  const checkOriginalEnglish = createOriginalEnglishGate(
+    generationRepository,
+    transcriptRuntime.repository,
+  );
+  const generateLesson = createGenerateLesson(
+    generationRepository,
+    transcriptRuntime.repository,
+  );
+
+  return {
+    generationRepository,
+    transcriptRuntime,
+    acquireNativeCaption,
+    checkOriginalEnglish,
+    generateLesson,
+  };
+}
+
+let workflowRuntime: ReturnType<typeof createWorkflowRuntime> | undefined;
+
+function getWorkflowRuntime(): ReturnType<typeof createWorkflowRuntime> {
+  workflowRuntime ??= createWorkflowRuntime();
+  return workflowRuntime;
+}
 
 export const generateLessonWorkflow = inngest.createFunction(
   {
@@ -35,6 +52,13 @@ export const generateLessonWorkflow = inngest.createFunction(
     retries: 5,
   },
   async ({ event, step }) => {
+    const {
+      generationRepository,
+      transcriptRuntime,
+      acquireNativeCaption,
+      checkOriginalEnglish,
+      generateLesson,
+    } = getWorkflowRuntime();
     const payload = generationRequestedEventSchema.parse(event.data);
     const jobRef = await step.run(
       "advance-to-transcript-acquisition",

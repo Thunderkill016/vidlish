@@ -2,11 +2,9 @@ import "server-only";
 
 import { Inngest } from "inngest";
 
-import { getServerConfig } from "@/platform/config/server";
-
-const config = getServerConfig();
+const eventKey = process.env.INNGEST_EVENT_KEY;
 
 export const inngest = new Inngest({
   id: "vidlish",
-  ...(config.INNGEST_EVENT_KEY ? { eventKey: config.INNGEST_EVENT_KEY } : {}),
+  ...(eventKey ? { eventKey } : {}),
 });
