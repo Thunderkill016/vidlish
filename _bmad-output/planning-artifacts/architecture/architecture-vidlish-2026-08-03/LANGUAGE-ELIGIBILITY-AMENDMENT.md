@@ -4,6 +4,20 @@
 **Date:** 2026-08-03  
 **Authority:** This companion overrides conflicting language-related snippets in `ARCHITECTURE-SPINE.md`. All other architecture decisions remain unchanged.
 
+**Supersedes:** an earlier draft of this amendment that lived alongside it as
+`language-eligibility-amendment.md` (added in `08f5ffd`, removed 2026-08-05). That draft is
+superseded in full and must not be reintroduced. Two of its claims are wrong and were already
+rejected by the readiness process:
+
+- It defined a decision ID `AD-22`. The spine defines **AD-1 through AD-21 only**; `AD-22` does not
+  exist. See `implementation-readiness-report-2026-08-03.md:413` and the resolution in
+  `implementation-readiness-report-2026-08-03-rerun.md:216`. Cite this amendment plus AR12/AR13, never `AD-22`.
+- It named the persisted stage `validating_language`. The canonical stage is **`checking_language`**,
+  as implemented in `src/shared/contracts/generation.ts` and the `lesson_job_status` enum.
+
+`.memlog.md` still records both of those as decisions taken on 2026-08-03. That is correct as
+history and is deliberately left unedited; this file, not the memlog, is the current contract.
+
 ## Reason
 
 The canonical architecture spine predates the final English-language eligibility requirement. It contains two stale representations:

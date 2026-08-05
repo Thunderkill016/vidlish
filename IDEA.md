@@ -1,12 +1,29 @@
 # IDEA.md
 
+> **Historical, non-normative.** Đây là bản brainstorm gốc của Vidlish, giữ lại để tra cứu ý định ban
+> đầu. Nó **không** phải là contract và không được dùng làm căn cứ implementation. Khi file này mâu
+> thuẫn với các authority dưới đây, authority thắng:
+>
+> - Sản phẩm: `_bmad-output/planning-artifacts/prds/prd-vidlish-2026-08-03/prd.md` và language-eligibility amendment
+> - Lesson Engine: `_bmad-output/specs/spec-vidlish-lesson-engine/SPEC.md` và companions
+> - Kiến trúc: `ARCHITECTURE-SPINE.md`, `LANGUAGE-ELIGIBILITY-AMENDMENT.md`, `IMPLEMENTATION-DECISIONS.md`
+> - Backlog: `_bmad-output/planning-artifacts/epics.md` và `_bmad-output/implementation-artifacts/sprint-status.yaml`
+>
+> Những chỗ đã biết là lệch: mục **MVP** và **Mô hình dữ liệu sơ bộ** dưới đây liệt kê flashcard,
+> `learning_goal` và spaced repetition — SPEC loại chúng khỏi MVP (`SPEC.md` — Non-goals). Mục
+> **Hướng phát triển sau MVP** vẫn hợp lệ như danh sách ý tưởng, không phải cam kết.
+
 ## Tên ý tưởng
 
 **Vidlish**
 
 ## Tagline
 
-**Any video. Your English lesson.**
+**Any English video. Your English lesson.**
+
+> Bản gốc của file này ghi "Any video. Your English lesson.". Cách nói đó mâu thuẫn với invariant cốt
+> lõi: Vidlish chỉ nhận video có đủ lời nói tiếng Anh **gốc**, và không bao giờ dịch một video không
+> phải tiếng Anh thành bài học. Tagline canonical là dòng ở trên.
 
 ## Mô tả ngắn
 

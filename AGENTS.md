@@ -29,7 +29,10 @@ Bắt buộc:
 - Non-English segments không làm source quote, listening, grammar hoặc scored evidence.
 - Không dịch video không phải tiếng Anh, không tạo dub/TTS thay audio gốc, không trình bày generated English như source speech.
 
-Story 1.1 chưa triển khai pipeline này nhưng không được tạo cấu trúc làm yếu invariant.
+Pipeline này đã được triển khai qua Story 2.2 (canonical transcript) và Story 2.3 (original-English
+gate). Điểm dừng hiện tại là `analyzing_video`: Lesson Engine chưa tồn tại. Mọi story mới không được
+tạo cấu trúc làm yếu invariant, và không được đưa segment ngoài `language_eligible_segments` vào
+downstream evidence.
 
 ## Quy tắc implementation
 

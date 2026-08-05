@@ -10,10 +10,19 @@
 - Epics & Stories: final; 5 epics / 29 stories; coverage and quality validation PASS.
 - Implementation Readiness rerun: **READY/PASS**.
 - Sprint Planning: complete; canonical tracking exists at `_bmad-output/implementation-artifacts/sprint-status.yaml`.
-- Epic 1: `in-progress`.
-- Story 1.1: implemented, reviewed, CI green and ready to merge.
-- Story 1.2: next automatic create/validate/develop cycle.
-- Product code: started with the authenticated private-beta foundation.
+- Epic 1: `done` — Stories 1.1, 1.2 and 1.3 merged.
+- Epic 2: `in-progress` — Stories 2.1, 2.2 and 2.3 merged; Stories 2.4–2.13 remain `backlog`.
+- Epics 3, 4 and 5: `backlog`. No Lesson Engine code exists yet.
+- Product code: authenticated private-beta shell, URL/metadata validation, CEFR draft, durable
+  generation job, native-caption canonical transcript and the original-English eligibility gate.
+
+### What "done" currently means
+
+Every merged story passed CI, and CI runs entirely on fixtures and fakes
+(`.github/workflows/ci.yml`). No provider-backed story has been exercised against a live provider.
+Supabase Auth, YouTube Data API v3, Supadata and Inngest Cloud have **no staging evidence** recorded
+in any artifact. `franc-min` language analysis and the SQL layer (pgTAP against real Postgres) are
+the only parts verified outside fixtures. Treat merged stories as CI-complete, not production-proven.
 
 ## Product promise
 
@@ -105,8 +114,21 @@ No translation-based lesson mode, AI tutor chat, pronunciation scoring, gamifica
 - Backlog validation: `_bmad-output/planning-artifacts/epics/final-validation.md`
 - Readiness PASS: `_bmad-output/planning-artifacts/implementation-readiness-report-2026-08-03-rerun.md`
 - Sprint tracking: `_bmad-output/implementation-artifacts/sprint-status.yaml`
-- Current story: `_bmad-output/implementation-artifacts/1-1-truy-cap-private-beta-va-dang-nhap-an-toan.md`
+- Last completed story: `_bmad-output/implementation-artifacts/2-3-kiem-tra-video-co-du-tieng-anh-goc.md`
+- Repository analysis: `_bmad-output/planning-artifacts/repo-analysis-2026-08-05.md` (advisory)
 
 ## Next workflow
 
-Run the Story 1.1 validation workflow. Only after validation passes may `bmad-dev-story` start implementation.
+The canonical backlog order puts **Story 2.4** (hosted generated-transcript fallback) next.
+
+The 2026-08-05 repository analysis recommends inserting a new story **before** 2.4: a transcript
+strategy registry plus terminal/recoverable outcomes. The reason is a defect, not a preference —
+no code path writes `status = 'failed'` for a transcript failure, so a video without usable captions
+leaves its job in `acquiring_transcript` indefinitely while the progress page polls forever. Story
+2.4 adds a second strategy to a workflow that still cannot end, and Story 2.4 AC1 already assumes an
+"automatic registry" that does not exist. See section 13 of the analysis for scope and acceptance
+criteria.
+
+That insertion is a **recommendation pending decision**; `epics.md` and `sprint-status.yaml` remain
+the canonical backlog until it is accepted. Once the next story is chosen, run
+`bmad-create-story`, then the validation workflow, and only then `bmad-dev-story`.
