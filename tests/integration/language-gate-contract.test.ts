@@ -3,7 +3,11 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 const workflow = readFileSync(
-  join(process.cwd(), "src/adapters/inngest/generate-lesson-workflow.ts"),
+  join(process.cwd(), "src/workflows/generate-lesson.ts"),
+  "utf8",
+);
+const steps = readFileSync(
+  join(process.cwd(), "src/workflows/generate-lesson.steps.ts"),
   "utf8",
 );
 const policy = readFileSync(
@@ -22,23 +26,27 @@ const evaluator = readFileSync(
 );
 
 describe("original-English gate architecture contract", () => {
-  it("runs acquisition before the language gate and stops before Lesson Engine", () => {
-    expect(workflow.indexOf('"acquire-native-caption"')).toBeGreaterThan(-1);
-    expect(workflow.indexOf('"check-original-english"')).toBeGreaterThan(
-      workflow.indexOf('"acquire-native-caption"'),
-    );
+  it("orders caption acquisition, language gating and lesson generation", () => {
+    const acquisition = workflow.indexOf("acquireNativeCaptionStep");
+    const languageGate = workflow.indexOf("checkOriginalEnglishStep");
+    const lesson = workflow.indexOf("generateLessonStep");
+
+    expect(acquisition).toBeGreaterThan(-1);
+    expect(languageGate).toBeGreaterThan(acquisition);
+    expect(lesson).toBeGreaterThan(languageGate);
     expect(workflow).not.toMatch(
-      /LessonEngine|generateContent|Gemini|analyzeVideoAdapter|composeActivities|publishLesson/i,
+      /generateContent|Gemini|analyzeVideoAdapter|composeActivities|publishLesson/i,
     );
   });
 
   it("keeps durable step output free of video and transcript content", () => {
-    expect(workflow).not.toMatch(
+    const durableCode = `${workflow}\n${steps}`;
+    expect(durableCode).not.toMatch(
       /videoTitle|channelName|segment\.text|transcript\.text/,
     );
     expect(workflow).toMatch(/jobId/);
-    expect(workflow).toMatch(/ownerUserId/);
-    expect(workflow).toMatch(/reportId/);
+    expect(steps).toMatch(/ownerUserId/);
+    expect(steps).toMatch(/outcome\.kind/);
   });
 
   it("uses one versioned policy and never reads declared caption language", () => {
