@@ -1,7 +1,7 @@
 import "server-only";
 
-import Anthropic from "@anthropic-ai/sdk";
-import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
+import { GoogleGenAI } from "@google/genai";
+import { z } from "zod";
 
 import {
   LessonGenerationFailure,
@@ -13,13 +13,17 @@ import { lessonDraftSchema } from "@/shared/contracts/lesson";
 
 export const LESSON_PROMPT_VERSION = "lesson-prompt:v1" as const;
 
-/**
- * Streaming is required: the draft is large enough that a non-streaming call
- * risks the SDK's HTTP timeout.
- */
+/** Generous enough for the full draft; a truncated response is a retryable failure. */
 const MAX_OUTPUT_TOKENS = 24_000;
 
-const SYSTEM_PROMPT = `Bạn soạn bài học tiếng Anh cho người Việt tự học, dựa trên lời thoại thật của một video YouTube.
+/**
+ * The response schema is derived from the same Zod schema that validates the
+ * result, so the contract the model is given and the contract we enforce cannot
+ * drift apart.
+ */
+const RESPONSE_JSON_SCHEMA = z.toJSONSchema(lessonDraftSchema);
+
+const SYSTEM_INSTRUCTION = `Bạn soạn bài học tiếng Anh cho người Việt tự học, dựa trên lời thoại thật của một video YouTube.
 
 Nguyên tắc bắt buộc:
 - Chỉ dạy ngôn ngữ thực sự xuất hiện trong transcript được cung cấp. Không thêm từ, cụm từ hay cấu trúc không có trong đó.
@@ -32,7 +36,7 @@ Nguyên tắc bắt buộc:
 - Ưu tiên từ và cụm từ hữu ích trong giao tiếp. Bỏ qua tên riêng, tên thương hiệu và thuật ngữ quá chuyên ngành trừ khi cần để hiểu video.
 - Điều chỉnh độ khó theo trình độ CEFR được yêu cầu: mức thấp thì giải thích kỹ và chọn từ phổ thông, mức cao thì chọn cách diễn đạt tinh tế hơn.
 
-Giữ nội dung tập trung và ngắn gọn. Không thêm mục ngoài schema, không viết lời dẫn.`;
+Chỉ trả về JSON đúng schema. Không viết lời dẫn, không bọc trong markdown.`;
 
 function renderTranscript(input: LessonGenerationInput): string {
   return input.permittedSegments
@@ -40,13 +44,21 @@ function renderTranscript(input: LessonGenerationInput): string {
     .join("\n");
 }
 
-export class ClaudeLessonProvider implements LessonGenerationProvider {
-  private readonly client: Anthropic;
+/** Some models still wrap JSON in a ```json fence despite a JSON mime type. */
+function stripCodeFence(text: string): string {
+  const trimmed = text.trim();
+  if (!trimmed.startsWith("```")) return trimmed;
+  return trimmed
+    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/```$/, "")
+    .trim();
+}
 
-  constructor(
-    private readonly options: { apiKey: string; modelId: string },
-  ) {
-    this.client = new Anthropic({ apiKey: options.apiKey });
+export class GeminiLessonProvider implements LessonGenerationProvider {
+  private readonly client: GoogleGenAI;
+
+  constructor(private readonly options: { apiKey: string; modelId: string }) {
+    this.client = new GoogleGenAI({ apiKey: options.apiKey });
   }
 
   async generate(
@@ -54,7 +66,7 @@ export class ClaudeLessonProvider implements LessonGenerationProvider {
   ): Promise<LessonGenerationResult> {
     // The transcript is untrusted data. It is fenced and labelled so that text
     // inside it cannot be read as instructions.
-    const userContent = [
+    const prompt = [
       `Trình độ người học: ${input.cefrLevel}`,
       `Video: ${input.videoTitle} — kênh ${input.channelName}`,
       "",
@@ -66,65 +78,66 @@ export class ClaudeLessonProvider implements LessonGenerationProvider {
       "Soạn bài học theo schema.",
     ].join("\n");
 
-    let message: Anthropic.Message;
+    let response;
     try {
-      const stream = this.client.messages.stream({
+      response = await this.client.models.generateContent({
         model: this.options.modelId,
-        max_tokens: MAX_OUTPUT_TOKENS,
-        system: [
-          {
-            type: "text",
-            text: SYSTEM_PROMPT,
-            // The system prompt is byte-stable across every lesson, so it is
-            // the natural cache prefix. The transcript varies and stays after it.
-            cache_control: { type: "ephemeral" },
-          },
-        ],
-        output_config: { format: zodOutputFormat(lessonDraftSchema) },
-        messages: [{ role: "user", content: userContent }],
+        contents: prompt,
+        config: {
+          systemInstruction: SYSTEM_INSTRUCTION,
+          responseMimeType: "application/json",
+          responseJsonSchema: RESPONSE_JSON_SCHEMA,
+          maxOutputTokens: MAX_OUTPUT_TOKENS,
+        },
       });
-      message = await stream.finalMessage();
     } catch (error) {
-      const retryable =
-        error instanceof Anthropic.RateLimitError ||
-        error instanceof Anthropic.APIConnectionError ||
-        (error instanceof Anthropic.APIError && (error.status ?? 0) >= 500);
+      // Transport and rate-limit failures are worth retrying; a rejected
+      // request shape is not. Without a typed error class, treat unknown
+      // failures as retryable and let the workflow's retry budget bound it.
+      const message = error instanceof Error ? error.message : "unknown error";
+      const permanent = /\b(400|401|403|404)\b/.test(message);
       throw new LessonGenerationFailure(
-        `Lesson provider request failed${retryable ? " (retryable)" : ""}.`,
-        retryable,
+        `Lesson provider request failed.`,
+        !permanent,
       );
     }
 
-    if (message.stop_reason === "refusal") {
-      throw new LessonGenerationFailure("Lesson provider declined.", false);
-    }
-    if (message.stop_reason === "max_tokens") {
+    const finishReason = response.candidates?.[0]?.finishReason;
+    if (finishReason === "MAX_TOKENS") {
       throw new LessonGenerationFailure("Lesson output was truncated.", true);
     }
+    if (finishReason && finishReason !== "STOP") {
+      // SAFETY, RECITATION and friends: the model declined or was cut off for
+      // policy reasons. Retrying the same transcript will not help.
+      throw new LessonGenerationFailure("Lesson provider declined.", false);
+    }
 
-    const text = message.content.find((block) => block.type === "text");
-    if (!text || text.type !== "text") {
+    const text = response.text;
+    if (!text) {
       throw new LessonGenerationFailure("Lesson provider returned no text.", true);
     }
 
     let parsed: unknown;
     try {
-      parsed = JSON.parse(text.text);
+      parsed = JSON.parse(stripCodeFence(text));
     } catch {
       throw new LessonGenerationFailure("Lesson output was not valid JSON.", true);
     }
 
     const draft = lessonDraftSchema.safeParse(parsed);
     if (!draft.success) {
-      throw new LessonGenerationFailure("Lesson output failed schema validation.", true);
+      throw new LessonGenerationFailure(
+        "Lesson output failed schema validation.",
+        true,
+      );
     }
 
     return {
       draft: draft.data,
-      modelId: message.model,
+      modelId: response.modelVersion ?? this.options.modelId,
       promptVersion: LESSON_PROMPT_VERSION,
-      inputTokens: message.usage.input_tokens,
-      outputTokens: message.usage.output_tokens,
+      inputTokens: response.usageMetadata?.promptTokenCount ?? 0,
+      outputTokens: response.usageMetadata?.candidatesTokenCount ?? 0,
     };
   }
 }
