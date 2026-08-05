@@ -28,11 +28,13 @@ insert into public.lesson_jobs (
   ('44444444-4444-4444-8444-444444444444','11111111-1111-4111-8111-111111111111',
    '33333333-3333-4333-8333-333333333333','B1','fixture:v1','generation-pipeline:v1',
    'analyzing_video','analyzing_video','sent', now() - interval '2 hours'),
+  -- Trình độ khác nhau: lesson_jobs có unique constraint chặn hai job đang
+  -- chạy cùng một (chủ sở hữu, video, trình độ, phiên bản pipeline).
   ('55555555-5555-4555-8555-555555555555','11111111-1111-4111-8111-111111111111',
-   '33333333-3333-4333-8333-333333333333','B1','fixture:v1','generation-pipeline:v1',
+   '33333333-3333-4333-8333-333333333333','B2','fixture:v1','generation-pipeline:v1',
    'analyzing_video','analyzing_video','sent', now()),
   ('66666666-6666-4666-8666-666666666666','11111111-1111-4111-8111-111111111111',
-   '33333333-3333-4333-8333-333333333333','B1','fixture:v1','generation-pipeline:v1',
+   '33333333-3333-4333-8333-333333333333','C1','fixture:v1','generation-pipeline:v1',
    'completed','completed','sent', now() - interval '2 hours');
 
 create temporary table expired on commit drop as
