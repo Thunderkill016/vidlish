@@ -44,6 +44,11 @@ export function JobProgress({
     job.safeErrorCode === "VIDEO_LANGUAGE_UNSUPPORTED";
   const transcriptUnavailable =
     phase === "failed" && job.safeErrorCode === "TRANSCRIPT_UNAVAILABLE";
+  // The job had a usable transcript and still did not produce a lesson — the
+  // model step stalled or kept failing. Without its own card the learner would
+  // watch the page go quiet and never learn what happened.
+  const lessonGenerationFailed =
+    phase === "failed" && job.safeErrorCode === "LESSON_GENERATION_FAILED";
   const currentIndex = useMemo(
     () => phases.findIndex((item) => item.id === phase),
     [phase],
@@ -171,6 +176,29 @@ export function JobProgress({
             onClick={() => window.location.assign("/create")}
           >
             Chọn video khác
+          </Button>
+        </section>
+      ) : null}
+
+      {lessonGenerationFailed ? (
+        <section
+          data-testid="lesson-generation-failed"
+          className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5"
+        >
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">Chưa soạn được bài học</h2>
+            <p role="alert" className="text-sm text-[var(--foreground)]">
+              Vidlish đã lấy được lời thoại nhưng chưa soạn xong bài học cho video này.
+            </p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Video vẫn dùng được. Bạn thử lại ngay được, và lần này thường sẽ xong.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => window.location.assign("/create")}
+          >
+            Thử lại
           </Button>
         </section>
       ) : null}
