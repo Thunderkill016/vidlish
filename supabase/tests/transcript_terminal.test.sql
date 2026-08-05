@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(17);
 
 select has_function(
   'public', 'mark_transcript_exhausted', array['uuid', 'uuid', 'text'],
