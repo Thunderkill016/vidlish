@@ -107,7 +107,10 @@ export function getServerConfig(): ServerConfig {
   });
 
   if (!result.success) {
-    throw new Error("Server application configuration is invalid.");
+    const details = result.error.issues
+      .map((issue) => `${issue.path.join(".") || "config"}: ${issue.message}`)
+      .join("; ");
+    throw new Error(`Server application configuration is invalid: ${details}`);
   }
 
   cached = result.data;
