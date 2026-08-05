@@ -248,14 +248,29 @@ Xem `tests/integration/full-real-path.test.ts`.
 
 ### Chưa làm
 
-- **Chưa deploy.** Vercel project `atoenglish`
-  (`prj_2lnCWZp4PvBvuTBksDjMtPPruVqL`) vẫn đang trỏ repo
-  `Thunderkill016/AtoEnglish`, chưa phải `Thunderkill016/vidlish`. Phải đổi Git repo
-  trước; nếu cài Inngest hoặc deploy ngay sẽ cấu hình nhầm sản phẩm.
-- Sau khi nối đúng repo, cài **Inngest Vercel integration** cho project này. Integration
-  chính thức tự tạo `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` và tự sync
-  `/api/inngest` sau mỗi deployment. Bước kết nối tài khoản Inngest cần chủ tài khoản
-  xác nhận trong trình duyệt.
+- **Chưa kiểm chứng durable flow với Supabase thật + Inngest dispatcher.** Đây là bước
+  tiếp theo, trước khi quyết định deploy.
+- **Lấy Inngest key không phụ thuộc Vercel.** Có thể tạo app trên Inngest Cloud rồi lấy
+  `INNGEST_EVENT_KEY` và `INNGEST_SIGNING_KEY` trực tiếp trong dashboard. Vercel
+  integration chỉ là tiện ích provision/sync biến môi trường và endpoint khi deploy,
+  không phải con đường duy nhất.
+- **Local Inngest Dev Server không bắt buộc key thật.** Với `INNGEST_DEV=1`, kiểm tra chữ
+  ký được tắt cho local; Event Key có thể để trống hoặc dùng giá trị giả. Key thật cần
+  khi kết nối Inngest Cloud/production.
+- Để kiểm chứng local bằng lưu trữ thật, đổi đúng ba dòng trong `.env.local`:
+  `GENERATION_REPOSITORY=supabase`, `GENERATION_DISPATCHER=inngest`,
+  `TRANSCRIPT_REPOSITORY=supabase`. Code hiện tại chỉ có **hai** biến `*_REPOSITORY`;
+  không có `LESSON_REPOSITORY`.
+- Chạy `npx inngest-cli@latest dev` và `pnpm dev`, tạo một bài học qua UI, rồi kiểm tra
+  dữ liệu thật được ghi theo chuỗi `lesson_jobs → transcripts →
+  language_eligibility_reports → lessons`. Sau đó chạy
+  `tests/integration/full-real-path.test.ts` với key thật.
+- **Chưa deploy.** Chỉ quyết định Vercel sau khi local durable flow đã pass:
+  - Trỏ project `atoenglish` (`prj_2lnCWZp4PvBvuTBksDjMtPPruVqL`) từ
+    `Thunderkill016/AtoEnglish` sang `Thunderkill016/vidlish` nếu muốn giữ domain hiện
+    tại. Việc này thay site đang chạy.
+  - Hoặc tạo Vercel project mới cho `Thunderkill016/vidlish`, giữ nguyên AtoEnglish.
+    Phương án này an toàn hơn và dễ hoàn tác; hai app vẫn có thể dùng chung Supabase.
 - Khi deploy, **production cấm mọi adapter giả**: bắt buộc
   `AUTH_ADAPTER=supabase`, `VIDEO_METADATA_ADAPTER=youtube`,
   `GENERATION_REPOSITORY=supabase`, `GENERATION_DISPATCHER=inngest`,
@@ -270,6 +285,10 @@ Xem `tests/integration/full-real-path.test.ts`.
 `.env.local` đã có đủ ba key (Gemini, Supadata, YouTube Data API) và đang bật dịch vụ
 thật cho metadata và transcript, nhưng lưu trữ vẫn trong RAM. Chạy `pnpm dev`, đăng nhập
 `invited@example.com` với mã `123456`.
+
+Để chuyển sang durable flow local, chỉ đổi `GENERATION_REPOSITORY`,
+`GENERATION_DISPATCHER`, `TRANSCRIPT_REPOSITORY` như trên và chạy Inngest Dev Server.
+Không cần đụng Vercel ở bước này.
 
 ## 8. Quy tắc làm việc
 
