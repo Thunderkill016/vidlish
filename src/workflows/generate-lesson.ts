@@ -49,7 +49,16 @@ export async function generateLessonWorkflow(
     }
   }
 
-  const finalStatus = await loadFinalGenerationStateStep(jobRef);
+  let finalStatus = await loadFinalGenerationStateStep(jobRef);
+
+  // Fail closed at the workflow boundary. A step can return a non-throwing
+  // outcome such as `skipped`, or the workflow runtime can resume after a
+  // partial execution. Either way, a completed workflow must never leave the
+  // learner polling `analyzing_video` forever.
+  if (finalStatus === "analyzing_video") {
+    lessonOutcome = (await resolveLessonFailureStep(jobRef)).kind;
+    finalStatus = await loadFinalGenerationStateStep(jobRef);
+  }
 
   return {
     jobId: event.jobId,
