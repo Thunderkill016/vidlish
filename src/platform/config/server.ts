@@ -85,7 +85,8 @@ export function getServerConfig(): ServerConfig {
     NODE_ENV: process.env.NODE_ENV ?? "development",
     CI: process.env.CI,
     AUTH_ADAPTER: process.env.AUTH_ADAPTER,
-    SUPABASE_SECRET_KEY: process.env.SUPABASE_SECRET_KEY,
+    SUPABASE_SECRET_KEY:
+      process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
     AUTH_FAKE_CODE: process.env.AUTH_FAKE_CODE,
     TEST_BETA_EMAILS: process.env.TEST_BETA_EMAILS,
     VIDEO_METADATA_ADAPTER: process.env.VIDEO_METADATA_ADAPTER,
