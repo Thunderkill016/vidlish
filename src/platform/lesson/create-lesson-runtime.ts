@@ -25,11 +25,16 @@ export function createGenerateLesson(
   transcriptRepository: TranscriptRepository,
 ): GenerateLesson {
   const config = getServerConfig();
+
+  if (config.LESSON_PROVIDER === "gemini" && !config.GEMINI_API_KEY) {
+    throw new Error("Lesson provider configuration is invalid.");
+  }
+
   const provider =
     config.LESSON_PROVIDER === "fixture"
       ? new FixtureLessonProvider()
       : new GeminiLessonProvider({
-          apiKey: config.GEMINI_API_KEY ?? "",
+          apiKey: config.GEMINI_API_KEY!,
           modelId: config.LESSON_MODEL_ID,
         });
 

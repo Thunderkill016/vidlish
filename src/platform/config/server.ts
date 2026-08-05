@@ -16,17 +16,47 @@ const serverConfigSchema = z
     VIDEO_METADATA_ADAPTER: z.enum(["youtube", "fixture"]).default("fixture"),
     YOUTUBE_DATA_API_KEY: z.string().min(1).optional(),
     YOUTUBE_VIEWER_REGION: z.string().regex(/^[A-Z]{2}$/).default("VN"),
-    YOUTUBE_METADATA_TIMEOUT_MS: z.coerce.number().int().min(500).max(15000).default(5000),
+    YOUTUBE_METADATA_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(500)
+      .max(15000)
+      .default(5000),
     GENERATION_REPOSITORY: z.enum(["supabase", "fake"]).default("fake"),
     GENERATION_DISPATCHER: z.enum(["inngest", "inline"]).default("inline"),
-    GENERATION_MAX_ACTIVE_JOBS: z.coerce.number().int().min(1).max(20).default(2),
-    GENERATION_MAX_JOBS_PER_DAY: z.coerce.number().int().min(1).max(1000).default(20),
-    GENERATION_MAX_JOBS_PER_MINUTE: z.coerce.number().int().min(1).max(60).default(3),
-    TRANSCRIPT_NATIVE_ENABLED: z.enum(["true", "false"]).default("true").transform((value) => value === "true"),
-    TRANSCRIPT_NATIVE_ADAPTER: z.enum(["supadata", "fixture"]).default("fixture"),
+    GENERATION_MAX_ACTIVE_JOBS: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(20)
+      .default(2),
+    GENERATION_MAX_JOBS_PER_DAY: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(1000)
+      .default(20),
+    GENERATION_MAX_JOBS_PER_MINUTE: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(60)
+      .default(3),
+    TRANSCRIPT_NATIVE_ENABLED: z
+      .enum(["true", "false"])
+      .default("true")
+      .transform((value) => value === "true"),
+    TRANSCRIPT_NATIVE_ADAPTER: z
+      .enum(["supadata", "fixture"])
+      .default("fixture"),
     TRANSCRIPT_REPOSITORY: z.enum(["supabase", "fake"]).default("fake"),
     SUPADATA_API_KEY: z.string().min(1).optional(),
-    SUPADATA_NATIVE_TIMEOUT_MS: z.coerce.number().int().min(500).max(30000).default(8000),
+    SUPADATA_NATIVE_TIMEOUT_MS: z.coerce
+      .number()
+      .int()
+      .min(500)
+      .max(30000)
+      .default(8000),
     LESSON_PROVIDER: z.enum(["gemini", "fixture"]).default("fixture"),
     // Overridable so a newer Gemini model can be adopted without a code change.
     LESSON_MODEL_ID: z.string().min(1).default("gemini-3.5-flash-lite"),
@@ -35,42 +65,82 @@ const serverConfigSchema = z
     INNGEST_SIGNING_KEY: z.string().min(1).optional(),
   })
   .superRefine((value, context) => {
-    if (value.NODE_ENV === "production" && !value.CI && value.AUTH_ADAPTER === "fake") {
-      context.addIssue({ code: "custom", path: ["AUTH_ADAPTER"], message: "The fake authentication adapter cannot run in production." });
-    }
-    if (value.NODE_ENV === "production" && !value.CI && value.VIDEO_METADATA_ADAPTER === "fixture") {
-      context.addIssue({ code: "custom", path: ["VIDEO_METADATA_ADAPTER"], message: "The fixture metadata adapter cannot run in production." });
-    }
-    if (value.VIDEO_METADATA_ADAPTER === "youtube" && !value.YOUTUBE_DATA_API_KEY) {
-      context.addIssue({ code: "custom", path: ["YOUTUBE_DATA_API_KEY"], message: "YouTube Data API key is required for the YouTube adapter." });
-    }
-    if (value.NODE_ENV === "production" && !value.CI && value.GENERATION_REPOSITORY === "fake") {
-      context.addIssue({ code: "custom", path: ["GENERATION_REPOSITORY"], message: "The fake generation repository cannot run in production." });
-    }
-    if (value.NODE_ENV === "production" && !value.CI && value.GENERATION_DISPATCHER === "inline") {
-      context.addIssue({ code: "custom", path: ["GENERATION_DISPATCHER"], message: "The inline generation dispatcher cannot run in production." });
-    }
-    if (value.NODE_ENV === "production" && !value.CI && value.TRANSCRIPT_NATIVE_ADAPTER === "fixture") {
-      context.addIssue({ code: "custom", path: ["TRANSCRIPT_NATIVE_ADAPTER"], message: "The fixture transcript adapter cannot run in production." });
-    }
-    if (value.NODE_ENV === "production" && !value.CI && value.TRANSCRIPT_REPOSITORY === "fake") {
-      context.addIssue({ code: "custom", path: ["TRANSCRIPT_REPOSITORY"], message: "The fake transcript repository cannot run in production." });
-    }
-    if (value.TRANSCRIPT_NATIVE_ENABLED && value.TRANSCRIPT_NATIVE_ADAPTER === "supadata" && !value.SUPADATA_API_KEY) {
-      context.addIssue({ code: "custom", path: ["SUPADATA_API_KEY"], message: "Supadata API key is required for the native transcript adapter." });
-    }
-    if (value.NODE_ENV === "production" && !value.CI && value.LESSON_PROVIDER === "fixture") {
-      context.addIssue({ code: "custom", path: ["LESSON_PROVIDER"], message: "The fixture lesson provider cannot run in production." });
-    }
-    if (value.LESSON_PROVIDER === "gemini" && !value.GEMINI_API_KEY) {
-      context.addIssue({ code: "custom", path: ["GEMINI_API_KEY"], message: "Gemini API key is required for the lesson provider." });
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.AUTH_ADAPTER === "fake"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["AUTH_ADAPTER"],
+        message: "The fake authentication adapter cannot run in production.",
+      });
     }
     if (
-      value.GENERATION_DISPATCHER === "inngest" &&
       value.NODE_ENV === "production" &&
-      (!value.INNGEST_EVENT_KEY || !value.INNGEST_SIGNING_KEY)
+      !value.CI &&
+      value.VIDEO_METADATA_ADAPTER === "fixture"
     ) {
-      context.addIssue({ code: "custom", path: ["INNGEST_EVENT_KEY"], message: "Inngest event and signing keys are required in production." });
+      context.addIssue({
+        code: "custom",
+        path: ["VIDEO_METADATA_ADAPTER"],
+        message: "The fixture metadata adapter cannot run in production.",
+      });
+    }
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.GENERATION_REPOSITORY === "fake"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["GENERATION_REPOSITORY"],
+        message: "The fake generation repository cannot run in production.",
+      });
+    }
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.GENERATION_DISPATCHER === "inline"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["GENERATION_DISPATCHER"],
+        message: "The inline generation dispatcher cannot run in production.",
+      });
+    }
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.TRANSCRIPT_NATIVE_ADAPTER === "fixture"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["TRANSCRIPT_NATIVE_ADAPTER"],
+        message: "The fixture transcript adapter cannot run in production.",
+      });
+    }
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.TRANSCRIPT_REPOSITORY === "fake"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["TRANSCRIPT_REPOSITORY"],
+        message: "The fake transcript repository cannot run in production.",
+      });
+    }
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.LESSON_PROVIDER === "fixture"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["LESSON_PROVIDER"],
+        message: "The fixture lesson provider cannot run in production.",
+      });
     }
   });
 
@@ -81,29 +151,43 @@ let cached: ServerConfig | undefined;
 export function getServerConfig(): ServerConfig {
   if (cached) return cached;
 
+  const nodeEnv = process.env.NODE_ENV ?? "development";
+  const isProduction = nodeEnv === "production";
+
   const result = serverConfigSchema.safeParse({
-    NODE_ENV: process.env.NODE_ENV ?? "development",
+    NODE_ENV: nodeEnv,
     CI: process.env.CI,
     AUTH_ADAPTER: process.env.AUTH_ADAPTER,
     SUPABASE_SECRET_KEY:
       process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
     AUTH_FAKE_CODE: process.env.AUTH_FAKE_CODE,
     TEST_BETA_EMAILS: process.env.TEST_BETA_EMAILS,
-    VIDEO_METADATA_ADAPTER: process.env.VIDEO_METADATA_ADAPTER,
+    VIDEO_METADATA_ADAPTER:
+      process.env.VIDEO_METADATA_ADAPTER ??
+      (isProduction ? "youtube" : undefined),
     YOUTUBE_DATA_API_KEY: process.env.YOUTUBE_DATA_API_KEY,
     YOUTUBE_VIEWER_REGION: process.env.YOUTUBE_VIEWER_REGION,
     YOUTUBE_METADATA_TIMEOUT_MS: process.env.YOUTUBE_METADATA_TIMEOUT_MS,
-    GENERATION_REPOSITORY: process.env.GENERATION_REPOSITORY,
-    GENERATION_DISPATCHER: process.env.GENERATION_DISPATCHER,
+    GENERATION_REPOSITORY:
+      process.env.GENERATION_REPOSITORY ??
+      (isProduction ? "supabase" : undefined),
+    GENERATION_DISPATCHER:
+      process.env.GENERATION_DISPATCHER ??
+      (isProduction ? "inngest" : undefined),
     GENERATION_MAX_ACTIVE_JOBS: process.env.GENERATION_MAX_ACTIVE_JOBS,
     GENERATION_MAX_JOBS_PER_DAY: process.env.GENERATION_MAX_JOBS_PER_DAY,
     GENERATION_MAX_JOBS_PER_MINUTE: process.env.GENERATION_MAX_JOBS_PER_MINUTE,
     TRANSCRIPT_NATIVE_ENABLED: process.env.TRANSCRIPT_NATIVE_ENABLED,
-    TRANSCRIPT_NATIVE_ADAPTER: process.env.TRANSCRIPT_NATIVE_ADAPTER,
-    TRANSCRIPT_REPOSITORY: process.env.TRANSCRIPT_REPOSITORY,
+    TRANSCRIPT_NATIVE_ADAPTER:
+      process.env.TRANSCRIPT_NATIVE_ADAPTER ??
+      (isProduction ? "supadata" : undefined),
+    TRANSCRIPT_REPOSITORY:
+      process.env.TRANSCRIPT_REPOSITORY ??
+      (isProduction ? "supabase" : undefined),
     SUPADATA_API_KEY: process.env.SUPADATA_API_KEY,
     SUPADATA_NATIVE_TIMEOUT_MS: process.env.SUPADATA_NATIVE_TIMEOUT_MS,
-    LESSON_PROVIDER: process.env.LESSON_PROVIDER,
+    LESSON_PROVIDER:
+      process.env.LESSON_PROVIDER ?? (isProduction ? "gemini" : undefined),
     LESSON_MODEL_ID: process.env.LESSON_MODEL_ID,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
     INNGEST_EVENT_KEY: process.env.INNGEST_EVENT_KEY,
