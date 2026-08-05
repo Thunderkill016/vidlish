@@ -3,6 +3,7 @@ import "server-only";
 import type { GenerationJobRepository } from "@/modules/generation/ports/generation-job-repository";
 import type {
   LessonRepository,
+  LessonSummary,
   PublishLessonInput,
 } from "@/modules/lesson/ports/lesson-repository";
 import type { TranscriptRepository } from "@/modules/transcript/ports/transcript-repository";
@@ -79,6 +80,29 @@ export class InMemoryLessonRepository implements LessonRepository {
       null,
     );
     return { lessonId: lesson.id, created: true };
+  }
+
+  async listOwned(ownerUserId: string): Promise<LessonSummary[]> {
+    const owned: LessonSummary[] = [];
+    for (const lesson of this.byJobId.values()) {
+      const job = await this.generationRepository.findOwnedById(
+        lesson.jobId,
+        ownerUserId,
+      );
+      if (!job) continue;
+      owned.push({
+        id: lesson.id,
+        jobId: lesson.jobId,
+        videoId: lesson.videoId,
+        videoTitle: lesson.videoTitle,
+        channelName: lesson.channelName,
+        cefrLevel: lesson.cefrLevel,
+        titleVi: lesson.draft.titleVi,
+        vocabularyCount: lesson.draft.vocabulary.length,
+        createdAt: lesson.createdAt,
+      });
+    }
+    return owned.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
   }
 
   async findOwnedByJobId(

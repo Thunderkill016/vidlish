@@ -1,9 +1,32 @@
 import "server-only";
 
+import { createHash } from "node:crypto";
+
 import type { IdentityUser } from "@/modules/identity/domain/identity-user";
 import type { IdentityProvider } from "@/modules/identity/ports/identity-provider";
 import { authErrors } from "@/shared/errors/product-error";
 import type { CookieStoreLike } from "@/adapters/fake/cookie-store";
+
+/**
+ * A UUID derived from the email, not a `fake-<email>` string.
+ *
+ * The Supabase schema types `owner_user_id` as `uuid references auth.users(id)`,
+ * so a non-UUID id makes it impossible to run the fake auth adapter against the
+ * real database — which is exactly the configuration used to verify the durable
+ * flow locally. Deriving it from the email keeps it stable across restarts, so
+ * one matching row in `auth.users` is enough.
+ */
+export function fakeUserId(email: string): string {
+  const h = createHash("sha256").update(email.trim().toLowerCase()).digest("hex");
+  const variant = ((parseInt(h[16], 16) & 0x3) | 0x8).toString(16);
+  return [
+    h.slice(0, 8),
+    h.slice(8, 12),
+    `4${h.slice(13, 16)}`,
+    `${variant}${h.slice(17, 20)}`,
+    h.slice(20, 32),
+  ].join("-");
+}
 
 export const fakeSessionCookieName = "vidlish_test_session";
 
@@ -35,7 +58,7 @@ export class FakeIdentityProvider implements IdentityProvider {
 
     try {
       const email = decodeURIComponent(value);
-      return { id: `fake-${email}`, email };
+      return { id: fakeUserId(email), email };
     } catch {
       return null;
     }
