@@ -28,6 +28,7 @@ export type GenerationJobStatus = z.infer<typeof generationJobStatusSchema>;
 
 export const generationSafeErrorCodeSchema = z.enum([
   "VIDEO_LANGUAGE_UNSUPPORTED",
+  "TRANSCRIPT_UNAVAILABLE",
 ]);
 export type GenerationSafeErrorCode = z.infer<
   typeof generationSafeErrorCodeSchema

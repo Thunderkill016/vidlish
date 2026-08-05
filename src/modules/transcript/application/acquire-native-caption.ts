@@ -67,7 +67,7 @@ export class AcquireNativeCaption {
       ownerUserId: job.ownerUserId,
       jobId: job.id,
       strategyId: this.strategy.id,
-      provider: "supadata",
+      provider: this.strategy.provider,
       result,
       latencyMs,
     });

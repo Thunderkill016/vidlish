@@ -15,6 +15,7 @@ export const productErrorCodeSchema = z.enum([
   "VIDEO_UNAVAILABLE",
   "VIDEO_METADATA_FAILED",
   "VIDEO_LANGUAGE_UNSUPPORTED",
+  "TRANSCRIPT_UNAVAILABLE",
   "JOB_CONCURRENCY_LIMIT",
   "ACCOUNT_QUOTA_EXCEEDED",
   "RATE_LIMITED",
@@ -155,6 +156,16 @@ export const videoErrors = {
     new ProductError(
       "VIDEO_LANGUAGE_UNSUPPORTED",
       "Video này không có đủ lời nói tiếng Anh gốc để tạo một bài học có căn cứ.",
+      false,
+      "choose_another_video",
+    ),
+  // Every transcript strategy gave up. This says nothing about the spoken
+  // language; the action becomes `provide_transcript` once Story 2.7 lets a
+  // learner supply their own.
+  transcriptUnavailable: () =>
+    new ProductError(
+      "TRANSCRIPT_UNAVAILABLE",
+      "Vidlish chưa lấy được lời thoại của video này. Hãy thử một video khác.",
       false,
       "choose_another_video",
     ),

@@ -42,6 +42,8 @@ export function JobProgress({
   const unsupportedLanguage =
     phase === "failed" &&
     job.safeErrorCode === "VIDEO_LANGUAGE_UNSUPPORTED";
+  const transcriptUnavailable =
+    phase === "failed" && job.safeErrorCode === "TRANSCRIPT_UNAVAILABLE";
   const currentIndex = useMemo(
     () => phases.findIndex((item) => item.id === phase),
     [phase],
@@ -127,7 +129,9 @@ export function JobProgress({
 
   const currentLabel = unsupportedLanguage
     ? "Video không đủ tiếng Anh gốc"
-    : phases.find((item) => item.id === phase)?.label ??
+    : transcriptUnavailable
+      ? "Chưa lấy được lời thoại"
+      : phases.find((item) => item.id === phase)?.label ??
       (phase === "completed"
         ? "Bài học đã sẵn sàng"
         : phase === "cancelled"
@@ -160,6 +164,29 @@ export function JobProgress({
             </p>
             <p className="text-sm text-[var(--muted-foreground)]">
               Từ tiếng Anh xuất hiện rời rạc, phụ đề dịch hoặc nội dung lồng tiếng không được dùng thay cho lời nói nguồn.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => window.location.assign("/create")}
+          >
+            Chọn video khác
+          </Button>
+        </section>
+      ) : null}
+
+      {transcriptUnavailable ? (
+        <section
+          data-testid="transcript-unavailable"
+          className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5"
+        >
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">Chưa lấy được lời thoại</h2>
+            <p role="alert" className="text-sm text-[var(--foreground)]">
+              Vidlish đã thử mọi cách hiện có nhưng không lấy được lời thoại của video này.
+            </p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Điều này không có nghĩa video sai ngôn ngữ. Video có phụ đề thường xử lý được ngay.
             </p>
           </div>
           <Button

@@ -40,14 +40,33 @@ function createInlineDispatcher(
     if (outcome.kind === "retryable_failure") {
       throw new Error(`Native caption retry: ${outcome.reason}`);
     }
-    if (outcome.kind !== "persisted" && outcome.kind !== "already_advanced") {
-      return;
+
+    let languageOutcome: string | undefined;
+    if (outcome.kind === "persisted" || outcome.kind === "already_advanced") {
+      const latest = await repository.findOwnedById(job.id, job.ownerUserId);
+      if (latest?.status === "checking_language") {
+        languageOutcome = (await checkOriginalEnglish.execute(latest)).status;
+      }
     }
 
-    const latest = await repository.findOwnedById(job.id, job.ownerUserId);
-    if (latest?.status === "checking_language") {
-      await checkOriginalEnglish.execute(latest);
-    }
+    // Parity with the durable workflow: exhaustion is terminal here too, so
+    // local and CI runs cannot pass while hosted runs hang.
+    const needsAnotherSource =
+      outcome.kind === "not_applicable" ||
+      outcome.kind === "terminal_failure" ||
+      languageOutcome === "insufficient_evidence";
+    if (!needsAnotherSource) return;
+
+    const current = await repository.findOwnedById(job.id, job.ownerUserId);
+    if (!current) return;
+    if (await transcriptRuntime.orchestrator.hasUntriedStrategy(current)) return;
+    await repository.markTranscriptExhausted(
+      current.id,
+      current.ownerUserId,
+      languageOutcome === "insufficient_evidence"
+        ? "TRANSCRIPT_EVIDENCE_TOO_WEAK"
+        : "NO_USABLE_TRANSCRIPT",
+    );
   });
 }
 

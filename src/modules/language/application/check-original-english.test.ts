@@ -80,7 +80,7 @@ async function setup() {
       availability: "playable",
     },
   });
-  await generationRepository.advanceStory21(created.job.id);
+  await generationRepository.beginTranscriptAcquisition(created.job.id);
 
   const transcriptRepository = new InMemoryTranscriptRepository(
     generationRepository,

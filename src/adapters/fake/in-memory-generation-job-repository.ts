@@ -128,7 +128,35 @@ export class InMemoryGenerationJobRepository
     return job?.ownerUserId === ownerUserId ? job : null;
   }
 
-  async advanceStory21(jobId: string): Promise<GenerationJob | null> {
+  async markTranscriptExhausted(
+    jobId: string,
+    ownerUserId: string,
+    _reason: string,
+  ): Promise<GenerationJob | null> {
+    void _reason;
+    const job = this.jobs.get(jobId);
+    if (!job || job.ownerUserId !== ownerUserId) {
+      throw new Error("generation job not found");
+    }
+    // Mirrors mark_transcript_exhausted: already-terminal jobs keep their outcome.
+    if (
+      job.status === "completed" ||
+      job.status === "failed" ||
+      job.status === "cancelled"
+    ) {
+      return job;
+    }
+    return this.updateStatus(
+      jobId,
+      "failed",
+      "transcript_unavailable",
+      "TRANSCRIPT_UNAVAILABLE",
+    );
+  }
+
+  async beginTranscriptAcquisition(
+    jobId: string,
+  ): Promise<GenerationJob | null> {
     const job = this.jobs.get(jobId);
     if (!job) return null;
     if (job.status !== "queued" && job.status !== "validating_video") {

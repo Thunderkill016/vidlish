@@ -34,7 +34,9 @@ export const generateLessonWorkflow = inngest.createFunction(
     const jobRef = await step.run(
       "advance-to-transcript-acquisition",
       async () => {
-        const job = await generationRepository.advanceStory21(payload.jobId);
+        const job = await generationRepository.beginTranscriptAcquisition(
+          payload.jobId,
+        );
         return job
           ? {
               jobId: job.id,
@@ -91,6 +93,35 @@ export const generateLessonWorkflow = inngest.createFunction(
         },
       );
       languageOutcome = languageResult.status;
+    }
+
+    // Acquisition gave up, or the language gate asked for a better source. Both
+    // land here so exhaustion is decided in one place. Weak evidence is never
+    // reported as an unsupported source language.
+    const needsAnotherSource =
+      transcriptOutcome.kind === "not_applicable" ||
+      transcriptOutcome.kind === "terminal_failure" ||
+      languageOutcome === "insufficient_evidence";
+
+    if (needsAnotherSource) {
+      await step.run("resolve-transcript-exhaustion", async () => {
+        const latest = await generationRepository.findOwnedById(
+          jobRef.jobId,
+          jobRef.ownerUserId,
+        );
+        if (!latest) return { kind: "missing" } as const;
+        if (await transcriptRuntime.orchestrator.hasUntriedStrategy(latest)) {
+          return { kind: "strategy_remaining" } as const;
+        }
+        await generationRepository.markTranscriptExhausted(
+          latest.id,
+          latest.ownerUserId,
+          languageOutcome === "insufficient_evidence"
+            ? "TRANSCRIPT_EVIDENCE_TOO_WEAK"
+            : "NO_USABLE_TRANSCRIPT",
+        );
+        return { kind: "terminated" } as const;
+      });
     }
 
     const finalStatus = await step.run(

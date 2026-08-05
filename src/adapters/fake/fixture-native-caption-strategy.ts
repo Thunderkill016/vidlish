@@ -36,6 +36,9 @@ function timedChunks(texts: string[]) {
 
 export class FixtureNativeCaptionStrategy implements TranscriptStrategy {
   readonly id = NATIVE_CAPTION_STRATEGY_ID;
+  // The fixture stands in for Supadata, so attempts stay attributable to the
+  // provider the canonical transcript claims.
+  readonly provider = "supadata" as const;
 
   async acquire(input: { videoId: string }): Promise<TranscriptStrategyResult> {
     if (input.videoId === "nocaption01") {
