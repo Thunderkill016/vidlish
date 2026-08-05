@@ -5,7 +5,10 @@ import { z } from "zod";
 const serverConfigSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]),
-    CI: z.enum(["true", "false"]).default("false").transform((value) => value === "true"),
+    CI: z
+      .enum(["true", "false", "1", "0"])
+      .default("false")
+      .transform((value) => value === "true" || value === "1"),
     AUTH_ADAPTER: z.enum(["supabase", "fake"]).default("supabase"),
     SUPABASE_SECRET_KEY: z.string().min(1),
     AUTH_FAKE_CODE: z.string().regex(/^\d{6}$/).default("123456"),
