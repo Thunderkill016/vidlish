@@ -89,7 +89,16 @@ test("revoked fake session cannot open protected content", async ({
 
 test("keyboard flow exposes labeled controls and visible focus", async ({ page }) => {
   await page.goto("/sign-in");
+
+  const googleButton = page.getByRole("button", {
+    name: "Đăng nhập bằng Google",
+  });
+  const emailInput = page.getByLabel("Email được mời");
+
   await page.keyboard.press("Tab");
-  await expect(page.getByLabel("Email được mời")).toBeFocused();
-  await expect(page.getByLabel("Email được mời")).toHaveAttribute("type", "email");
+  await expect(googleButton).toBeFocused();
+
+  await page.keyboard.press("Tab");
+  await expect(emailInput).toBeFocused();
+  await expect(emailInput).toHaveAttribute("type", "email");
 });
