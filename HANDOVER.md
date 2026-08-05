@@ -237,21 +237,30 @@ Chuỗi hoàn chỉnh đã chạy đầu-cuối với dịch vụ thật, 21,7 g
 `YouTube Data API → Supadata (61 segment phụ đề gốc) → franc → Gemini → bài học 10 trích dẫn`.
 Xem `tests/integration/full-real-path.test.ts`.
 
+### Đã hoàn thành sau bàn giao
+
+- **Schema đã đẩy lên Supabase ngày 2026-08-05.** Đã áp dụng đủ 6 migration trong
+  `supabase/migrations/` lên project **AtoEnglish** (`zpiwddskhduuykpxltun`), tạo đủ
+  9 bảng mới mà không đụng các bảng có sẵn. Đã kiểm tra cả 9 bảng đều bật RLS, đủ 8
+  RPC, và `lesson_jobs` có đủ ba liên kết `canonical_transcript_id`,
+  `language_eligibility_report_id`, `lesson_id`. Không chạy lại các migration này bằng
+  SQL Editor. Trạng thái triển khai tiếp theo được theo dõi ở issue #19.
+
 ### Chưa làm
 
-- **Schema chưa đẩy lên Supabase.** File SQL sẵn sàng ở
-  `/home/thunder/Code/vidlish-migrations-for-supabase.sql` (1170 dòng, đã rà: không một
-  câu `drop`/`truncate`/`delete`). Dán vào Supabase SQL Editor rồi Run. Nó chỉ thêm 9
-  bảng mới, không đụng bảng nào đang có (đã kiểm: **không trùng tên bảng lẫn tên hàm**).
-  Sau đó đổi ba dòng `*_REPOSITORY` trong `.env.local` sang `supabase`.
 - **Chưa deploy.** Vercel project `atoenglish`
-  (`prj_2lnCWZp4PvBvuTBksDjMtPPruVqL`) đang trỏ repo `Thunderkill016/AtoEnglish`.
-  Trỏ sang repo này thì cần thêm biến môi trường, và **production cấm mọi adapter giả**:
-  bắt buộc `AUTH_ADAPTER=supabase`, `VIDEO_METADATA_ADAPTER=youtube`,
+  (`prj_2lnCWZp4PvBvuTBksDjMtPPruVqL`) vẫn đang trỏ repo
+  `Thunderkill016/AtoEnglish`, chưa phải `Thunderkill016/vidlish`. Phải đổi Git repo
+  trước; nếu cài Inngest hoặc deploy ngay sẽ cấu hình nhầm sản phẩm.
+- Sau khi nối đúng repo, cài **Inngest Vercel integration** cho project này. Integration
+  chính thức tự tạo `INNGEST_EVENT_KEY`, `INNGEST_SIGNING_KEY` và tự sync
+  `/api/inngest` sau mỗi deployment. Bước kết nối tài khoản Inngest cần chủ tài khoản
+  xác nhận trong trình duyệt.
+- Khi deploy, **production cấm mọi adapter giả**: bắt buộc
+  `AUTH_ADAPTER=supabase`, `VIDEO_METADATA_ADAPTER=youtube`,
   `GENERATION_REPOSITORY=supabase`, `GENERATION_DISPATCHER=inngest`,
   `TRANSCRIPT_NATIVE_ADAPTER=supadata`, `TRANSCRIPT_REPOSITORY=supabase`,
-  `LESSON_PROVIDER=gemini`. Nghĩa là **còn thiếu `INNGEST_EVENT_KEY` và
-  `INNGEST_SIGNING_KEY`** (Inngest có gói free).
+  `LESSON_PROVIDER=gemini`.
 - **PR #7** (Story 2.4 — transcript tự sinh) còn ở dạng nháp. Nếu làm tiếp, nên hiện thực
   bằng **Gemini đọc URL YouTube** thay vì Supadata `mode=generate`, vì lý do chi phí ở mục 6.
 - **PR #8–#11** là tài liệu, chưa merge. Không ảnh hưởng sản phẩm chạy hay không.
