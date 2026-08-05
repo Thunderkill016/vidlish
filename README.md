@@ -6,6 +6,7 @@ Vidlish biến video YouTube có đủ lời nói tiếng Anh gốc thành bài 
 
 ## Trạng thái
 
+- Production: Vercel project `vidlish` đã kết nối Supabase project `vidlish`; redeploy từ checkpoint này để nhận environment variables mới.
 - Epic 1: email OTP/private beta, URL + metadata validation, CEFR và confirmed Create draft.
 - Story 2.1: durable generation job, owner-scoped progress page, idempotency, quota boundary và Inngest workflow entry.
 - Story 2.2: native-caption fast path, deterministic normalization, canonical transcript persistence và handoff tới `checking_language`.
