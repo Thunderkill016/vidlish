@@ -10,7 +10,9 @@ import {
   learningLabAttemptResponseSchema,
   type LearningLabAttemptResponse,
 } from "@/shared/contracts/learning-lab";
+import type { VerifiedLearningMedia } from "@/shared/contracts/learning-media";
 import type { ActivityResponse } from "@/shared/contracts/lesson-v2";
+import { YouTubeEvidencePlayer } from "./youtube-evidence-player";
 
 const PHASE_LABELS: Record<LearnerActivityView["phase"], string> = {
   gist: "Nắm ý chính",
@@ -130,10 +132,10 @@ function ActivityInput({
 
 export function LearningSessionLab({
   blueprint,
-  audioByActivity,
+  media,
 }: {
   blueprint: LearnerBlueprintView;
-  audioByActivity: Record<string, string>;
+  media: VerifiedLearningMedia;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [started, setStarted] = useState(false);
@@ -147,7 +149,6 @@ export function LearningSessionLab({
   const [checkedCriteria, setCheckedCriteria] = useState<number[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
-  const [audioStatus, setAudioStatus] = useState("");
 
   const current = blueprint.activities[currentIndex];
   const currentAttempt = current ? attempts[current.id] : undefined;
@@ -224,30 +225,6 @@ export function LearningSessionLab({
     setText("");
     setCheckedCriteria([]);
     setError("");
-    setAudioStatus("");
-  }
-
-  function playSyntheticClip() {
-    if (!current) return;
-    const narration = audioByActivity[current.id];
-    if (!narration) {
-      setAudioStatus("Hoạt động này không cần phát lại đoạn nguồn.");
-      return;
-    }
-    if (!("speechSynthesis" in window)) {
-      setAudioStatus("Trình duyệt này không hỗ trợ giọng đọc thử nghiệm.");
-      return;
-    }
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(narration);
-    utterance.lang = "en-US";
-    utterance.rate = 0.95;
-    utterance.onstart = () =>
-      setAudioStatus("Đang phát giọng tổng hợp thử nghiệm.");
-    utterance.onend = () => setAudioStatus("Đã phát xong đoạn thử nghiệm.");
-    utterance.onerror = () => setAudioStatus("Không phát được đoạn thử nghiệm.");
-    window.speechSynthesis.speak(utterance);
   }
 
   async function submitAttempt(event: FormEvent<HTMLFormElement>) {
@@ -319,7 +296,6 @@ export function LearningSessionLab({
   }
 
   function resetLab() {
-    window.speechSynthesis?.cancel();
     window.localStorage.removeItem(storageKey(blueprint.blueprintId));
     clearActivityDraft();
     setStarted(false);
@@ -341,14 +317,14 @@ export function LearningSessionLab({
       <section className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
         <div className="space-y-2">
           <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-            Learning Model v2 · deterministic lab
+            Learning Model v2 · verified media slice
           </p>
           <h1 className="text-3xl font-bold tracking-tight">
             Không đọc một bài dài. Hãy hoàn thành một vòng học.
           </h1>
           <p className="text-[var(--muted-foreground)]">
-            Mẫu này dùng transcript fixture và giọng tổng hợp để kiểm chứng
-            interaction. Nó không được trình bày như audio YouTube thật.
+            Mẫu này dùng video YouTube công khai và các range đã đối chiếu với
+            canonical caption. Transcript và đáp án vẫn bị giữ lại trước attempt.
           </p>
         </div>
 
@@ -422,6 +398,8 @@ export function LearningSessionLab({
   const evidenceRange = current.evidence[0];
   const result = currentAttempt?.evaluation;
   const canRetry = result?.verdict === "incorrect";
+  const captionControlAllowed =
+    Boolean(result) || evidenceRange?.captionPolicy !== "hidden_first";
 
   return (
     <div className="space-y-5">
@@ -449,33 +427,29 @@ export function LearningSessionLab({
         <aside className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 lg:sticky lg:top-5 lg:self-start">
           <div>
             <p className="text-sm font-semibold text-[var(--accent)]">
-              Đoạn nguồn · lab fixture
+              Đoạn nguồn · YouTube đã đối chiếu caption
             </p>
             <h2 className="mt-1 text-xl font-bold">
               {blueprint.source.videoTitle}
             </h2>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              {blueprint.source.channelName}
+            </p>
           </div>
 
           {evidenceRange ? (
-            <div className="rounded-xl bg-[var(--muted)] p-4">
+            <div className="space-y-3 rounded-xl bg-[var(--muted)] p-4">
               <p className="font-mono text-sm">
                 {formatTime(evidenceRange.startMs)}–
                 {formatTime(evidenceRange.endMs)}
               </p>
-              <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                Giọng đọc tổng hợp chỉ dùng để thử flow. Production phải dùng
-                audio/video nguồn cùng canonical timestamp.
-              </p>
-              <button
-                type="button"
-                onClick={playSyntheticClip}
-                className="mt-4 min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 font-semibold hover:bg-[var(--background)]"
-              >
-                Nghe đoạn thử nghiệm
-              </button>
-              <p className="mt-2 text-sm" aria-live="polite">
-                {audioStatus}
-              </p>
+              <YouTubeEvidencePlayer
+                key={`${current.id}:${Boolean(result)}`}
+                videoId={media.videoId}
+                videoTitle={blueprint.source.videoTitle}
+                evidence={evidenceRange}
+                captionControlAllowed={captionControlAllowed}
+              />
             </div>
           ) : (
             <p className="rounded-xl bg-[var(--muted)] p-4 text-sm">
@@ -485,8 +459,8 @@ export function LearningSessionLab({
           )}
 
           <p className="text-xs text-[var(--muted-foreground)]">
-            Đáp án và transcript viết ra không được gửi xuống trình duyệt trước
-            attempt.
+            Player chỉ nhận video ID và timestamp đã verified. Transcript viết
+            ra và answer contract không được gửi xuống trước attempt.
           </p>
         </aside>
 
