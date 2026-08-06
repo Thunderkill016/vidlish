@@ -15,6 +15,7 @@ async function activeJob(repository: InMemoryGenerationJobRepository) {
       channelName: "Fixture channel",
       durationMs: 41_000,
       metadataVersion: "youtube-oembed:v1",
+      availability: "playable",
     },
   });
   await repository.beginTranscriptAcquisition(created.job.id);
