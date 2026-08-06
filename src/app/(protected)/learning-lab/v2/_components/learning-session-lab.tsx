@@ -1,11 +1,6 @@
 "use client";
 
-import {
-  useEffect,
-  useMemo,
-  useState,
-  type FormEvent,
-} from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import type {
   LearnerActivityView,
@@ -102,7 +97,6 @@ function ActivityInput({
     );
   }
 
-  const rows = activity.activityType === "guided_transfer" ? 5 : 3;
   return (
     <div className="space-y-3">
       {activity.activityType === "guided_transfer" ? (
@@ -111,13 +105,16 @@ function ActivityInput({
           <p className="mt-1">{activity.scenarioVi}</p>
         </div>
       ) : null}
-      <label htmlFor={`${activity.id}-response`} className="block text-lg font-semibold">
+      <label
+        htmlFor={`${activity.id}-response`}
+        className="block text-lg font-semibold"
+      >
         {activity.promptVi}
       </label>
       <textarea
         id={`${activity.id}-response`}
         value={text}
-        rows={rows}
+        rows={activity.activityType === "guided_transfer" ? 5 : 3}
         onChange={(event) => onText(event.target.value)}
         autoComplete="off"
         className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
@@ -154,46 +151,50 @@ export function LearningSessionLab({
 
   const current = blueprint.activities[currentIndex];
   const currentAttempt = current ? attempts[current.id] : undefined;
-  const currentTarget = useMemo(() => {
-    if (!current) return undefined;
-    const targetId =
-      current.activityType === "meaning_in_context" ||
+  const targetId = current
+    ? current.activityType === "meaning_in_context" ||
       current.activityType === "chunk_recall"
-        ? current.targetItemId
-        : current.activityType === "guided_transfer"
-          ? current.targetItemIds[0]
-          : undefined;
-    return blueprint.targetItems.find((item) => item.id === targetId);
-  }, [blueprint.targetItems, current]);
+      ? current.targetItemId
+      : current.activityType === "guided_transfer"
+        ? current.targetItemIds[0]
+        : undefined
+    : undefined;
+  const currentTarget = blueprint.targetItems.find((item) => item.id === targetId);
 
   useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(storageKey(blueprint.blueprintId));
-      if (stored) {
-        const parsed = JSON.parse(stored) as StoredLabState;
-        if (parsed.blueprintId === blueprint.blueprintId) {
-          setStarted(Boolean(parsed.started));
-          setCompleted(Boolean(parsed.completed));
-          setCurrentIndex(
-            Math.min(
-              Math.max(0, Number(parsed.currentIndex) || 0),
-              blueprint.activities.length - 1,
-            ),
-          );
-          const restored = Object.fromEntries(
-            Object.entries(parsed.attempts ?? {}).flatMap(([id, value]) => {
-              const result = learningLabAttemptResponseSchema.safeParse(value);
-              return result.success ? [[id, result.data]] : [];
-            }),
-          );
-          setAttempts(restored);
+    const timer = window.setTimeout(() => {
+      try {
+        const stored = window.localStorage.getItem(
+          storageKey(blueprint.blueprintId),
+        );
+        if (stored) {
+          const parsed = JSON.parse(stored) as StoredLabState;
+          if (parsed.blueprintId === blueprint.blueprintId) {
+            const restored = Object.fromEntries(
+              Object.entries(parsed.attempts ?? {}).flatMap(([id, value]) => {
+                const result = learningLabAttemptResponseSchema.safeParse(value);
+                return result.success ? [[id, result.data]] : [];
+              }),
+            );
+            setStarted(Boolean(parsed.started));
+            setCompleted(Boolean(parsed.completed));
+            setCurrentIndex(
+              Math.min(
+                Math.max(0, Number(parsed.currentIndex) || 0),
+                blueprint.activities.length - 1,
+              ),
+            );
+            setAttempts(restored);
+          }
         }
+      } catch {
+        window.localStorage.removeItem(storageKey(blueprint.blueprintId));
+      } finally {
+        setLoaded(true);
       }
-    } catch {
-      window.localStorage.removeItem(storageKey(blueprint.blueprintId));
-    } finally {
-      setLoaded(true);
-    }
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, [blueprint.activities.length, blueprint.blueprintId]);
 
   useEffect(() => {
@@ -205,16 +206,26 @@ export function LearningSessionLab({
       completed,
       attempts,
     };
-    window.localStorage.setItem(storageKey(blueprint.blueprintId), JSON.stringify(state));
-  }, [attempts, blueprint.blueprintId, completed, currentIndex, loaded, started]);
+    window.localStorage.setItem(
+      storageKey(blueprint.blueprintId),
+      JSON.stringify(state),
+    );
+  }, [
+    attempts,
+    blueprint.blueprintId,
+    completed,
+    currentIndex,
+    loaded,
+    started,
+  ]);
 
-  useEffect(() => {
+  function clearActivityDraft() {
     setChoice("");
     setText("");
     setCheckedCriteria([]);
     setError("");
     setAudioStatus("");
-  }, [currentIndex]);
+  }
 
   function playSyntheticClip() {
     if (!current) return;
@@ -232,7 +243,8 @@ export function LearningSessionLab({
     const utterance = new SpeechSynthesisUtterance(narration);
     utterance.lang = "en-US";
     utterance.rate = 0.95;
-    utterance.onstart = () => setAudioStatus("Đang phát giọng tổng hợp thử nghiệm.");
+    utterance.onstart = () =>
+      setAudioStatus("Đang phát giọng tổng hợp thử nghiệm.");
     utterance.onend = () => setAudioStatus("Đã phát xong đoạn thử nghiệm.");
     utterance.onerror = () => setAudioStatus("Không phát được đoạn thử nghiệm.");
     window.speechSynthesis.speak(utterance);
@@ -288,6 +300,7 @@ export function LearningSessionLab({
   }
 
   function continueSession() {
+    clearActivityDraft();
     if (currentIndex >= blueprint.activities.length - 1) {
       setCompleted(true);
       return;
@@ -302,14 +315,13 @@ export function LearningSessionLab({
       delete next[current.id];
       return next;
     });
-    setChoice("");
-    setText("");
-    setCheckedCriteria([]);
+    clearActivityDraft();
   }
 
   function resetLab() {
     window.speechSynthesis?.cancel();
     window.localStorage.removeItem(storageKey(blueprint.blueprintId));
+    clearActivityDraft();
     setStarted(false);
     setCompleted(false);
     setCurrentIndex(0);
@@ -317,7 +329,11 @@ export function LearningSessionLab({
   }
 
   if (!loaded) {
-    return <p className="py-12 text-center text-[var(--muted-foreground)]">Đang khôi phục phiên học…</p>;
+    return (
+      <p className="py-12 text-center text-[var(--muted-foreground)]">
+        Đang khôi phục phiên học…
+      </p>
+    );
   }
 
   if (!started) {
@@ -331,7 +347,8 @@ export function LearningSessionLab({
             Không đọc một bài dài. Hãy hoàn thành một vòng học.
           </h1>
           <p className="text-[var(--muted-foreground)]">
-            Mẫu này dùng transcript fixture và giọng tổng hợp để kiểm chứng interaction. Nó không được trình bày như audio YouTube thật.
+            Mẫu này dùng transcript fixture và giọng tổng hợp để kiểm chứng
+            interaction. Nó không được trình bày như audio YouTube thật.
           </p>
         </div>
 
@@ -344,7 +361,9 @@ export function LearningSessionLab({
           </div>
           <div className="rounded-xl bg-[var(--muted)] p-4">
             <p className="text-sm font-semibold">Thử thách của đoạn</p>
-            <p className="mt-1 text-sm">{blueprint.videoProfile.challengeSummaryVi}</p>
+            <p className="mt-1 text-sm">
+              {blueprint.videoProfile.challengeSummaryVi}
+            </p>
           </div>
         </div>
 
@@ -352,7 +371,10 @@ export function LearningSessionLab({
           <h2 className="text-lg font-semibold">Sau phiên này, bạn có thể</h2>
           <ul className="space-y-2">
             {blueprint.outcomes.map((outcome) => (
-              <li key={outcome.id} className="flex gap-3 rounded-xl border border-[var(--border)] p-3">
+              <li
+                key={outcome.id}
+                className="flex gap-3 rounded-xl border border-[var(--border)] p-3"
+              >
                 <span aria-hidden="true">✓</span>
                 <span>{outcome.canDoVi}</span>
               </li>
@@ -374,10 +396,15 @@ export function LearningSessionLab({
   if (completed) {
     return (
       <section className="mx-auto max-w-2xl space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-center">
-        <p className="text-sm font-semibold text-[var(--accent)]">Phiên thử nghiệm đã hoàn tất</p>
-        <h1 className="text-3xl font-bold">Bạn đã nghe, nhớ lại và vận dụng.</h1>
+        <p className="text-sm font-semibold text-[var(--accent)]">
+          Phiên thử nghiệm đã hoàn tất
+        </p>
+        <h1 className="text-3xl font-bold">
+          Bạn đã nghe, nhớ lại và vận dụng.
+        </h1>
         <p className="text-[var(--muted-foreground)]">
-          Completion ở đây chỉ ghi nhận đã đi hết vòng học; nó không được coi là mastery.
+          Completion ở đây chỉ ghi nhận đã đi hết vòng học; nó không được coi
+          là mastery.
         </p>
         <button
           type="button"
@@ -424,16 +451,20 @@ export function LearningSessionLab({
             <p className="text-sm font-semibold text-[var(--accent)]">
               Đoạn nguồn · lab fixture
             </p>
-            <h2 className="mt-1 text-xl font-bold">{blueprint.source.videoTitle}</h2>
+            <h2 className="mt-1 text-xl font-bold">
+              {blueprint.source.videoTitle}
+            </h2>
           </div>
 
           {evidenceRange ? (
             <div className="rounded-xl bg-[var(--muted)] p-4">
               <p className="font-mono text-sm">
-                {formatTime(evidenceRange.startMs)}–{formatTime(evidenceRange.endMs)}
+                {formatTime(evidenceRange.startMs)}–
+                {formatTime(evidenceRange.endMs)}
               </p>
               <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-                Giọng đọc tổng hợp chỉ dùng để thử flow. Production phải dùng audio/video nguồn cùng canonical timestamp.
+                Giọng đọc tổng hợp chỉ dùng để thử flow. Production phải dùng
+                audio/video nguồn cùng canonical timestamp.
               </p>
               <button
                 type="button"
@@ -448,19 +479,22 @@ export function LearningSessionLab({
             </div>
           ) : (
             <p className="rounded-xl bg-[var(--muted)] p-4 text-sm">
-              Bước này dùng nội dung bạn đã học, không phát lại evidence mặc định.
+              Bước này dùng nội dung bạn đã học, không phát lại evidence mặc
+              định.
             </p>
           )}
 
           <p className="text-xs text-[var(--muted-foreground)]">
-            Đáp án và transcript viết ra không được gửi xuống trình duyệt trước attempt.
+            Đáp án và transcript viết ra không được gửi xuống trình duyệt trước
+            attempt.
           </p>
         </aside>
 
         <main className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
           <div className="space-y-2">
             <p className="text-sm font-semibold text-[var(--accent)]">
-              Bước {currentIndex + 1}/{blueprint.activities.length} · {PHASE_LABELS[current.phase]}
+              Bước {currentIndex + 1}/{blueprint.activities.length} ·{" "}
+              {PHASE_LABELS[current.phase]}
             </p>
             <h1 className="text-2xl font-bold">{current.instructionVi}</h1>
           </div>
@@ -475,7 +509,10 @@ export function LearningSessionLab({
                 onText={setText}
               />
               {error ? (
-                <p className="rounded-xl bg-red-950/30 p-3 text-sm" role="alert">
+                <p
+                  className="rounded-xl bg-red-950/30 p-3 text-sm"
+                  role="alert"
+                >
                   {error}
                 </p>
               ) : null}
@@ -508,9 +545,14 @@ export function LearningSessionLab({
 
               {currentAttempt?.hydratedEvidence.length ? (
                 <div className="space-y-2 rounded-xl border border-[var(--border)] p-4">
-                  <p className="font-semibold">Evidence từ transcript canonical</p>
+                  <p className="font-semibold">
+                    Evidence từ transcript canonical
+                  </p>
                   {currentAttempt.hydratedEvidence.map((evidence) => (
-                    <blockquote key={evidence.segmentId} className="border-l-2 border-[var(--accent)] pl-3 text-sm">
+                    <blockquote
+                      key={evidence.segmentId}
+                      className="border-l-2 border-[var(--accent)] pl-3 text-sm"
+                    >
                       <span className="font-mono text-xs text-[var(--accent)]">
                         {formatTime(evidence.startMs)}
                       </span>{" "}
@@ -520,42 +562,57 @@ export function LearningSessionLab({
                 </div>
               ) : null}
 
-              {currentTarget && current.activityType === "meaning_in_context" ? (
+              {currentTarget &&
+              current.activityType === "meaning_in_context" ? (
                 <div className="space-y-2 rounded-xl border border-[var(--border)] p-4">
-                  <p className="text-xl font-bold">{currentTarget.surfaceForm}</p>
+                  <p className="text-xl font-bold">
+                    {currentTarget.surfaceForm}
+                  </p>
                   <p>{currentTarget.contextualMeaningVi}</p>
                   <p className="text-sm text-[var(--muted-foreground)]">
-                    Chức năng: {currentTarget.communicativeFunctionVi} · Register: {currentTarget.register}
+                    Chức năng: {currentTarget.communicativeFunctionVi} ·
+                    Register: {currentTarget.register}
                   </p>
                   {currentTarget.pronunciationNoteVi ? (
-                    <p className="text-sm">Âm thanh: {currentTarget.pronunciationNoteVi}</p>
+                    <p className="text-sm">
+                      Âm thanh: {currentTarget.pronunciationNoteVi}
+                    </p>
                   ) : null}
                 </div>
               ) : null}
 
               {result.verdict === "self_check" ? (
                 <div className="space-y-3 rounded-xl border border-[var(--border)] p-4">
-                  <p className="font-semibold">Tự đối chiếu sau khi đã viết</p>
-                  {currentAttempt.selfCheckCriteriaVi?.map((criterion, index) => (
-                    <label key={criterion} className="flex min-h-11 items-start gap-3">
-                      <input
-                        type="checkbox"
-                        checked={checkedCriteria.includes(index)}
-                        onChange={() =>
-                          setCheckedCriteria((previous) =>
-                            previous.includes(index)
-                              ? previous.filter((value) => value !== index)
-                              : [...previous, index],
-                          )
-                        }
-                        className="mt-1 size-4"
-                      />
-                      <span>{criterion}</span>
-                    </label>
-                  ))}
+                  <p className="font-semibold">
+                    Tự đối chiếu sau khi đã viết
+                  </p>
+                  {currentAttempt.selfCheckCriteriaVi?.map(
+                    (criterion, index) => (
+                      <label
+                        key={criterion}
+                        className="flex min-h-11 items-start gap-3"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={checkedCriteria.includes(index)}
+                          onChange={() =>
+                            setCheckedCriteria((previous) =>
+                              previous.includes(index)
+                                ? previous.filter((value) => value !== index)
+                                : [...previous, index],
+                            )
+                          }
+                          className="mt-1 size-4"
+                        />
+                        <span>{criterion}</span>
+                      </label>
+                    ),
+                  )}
                   {result.exemplarAfterAttempt ? (
                     <p className="rounded-lg bg-[var(--muted)] p-3 text-sm">
-                      <span className="font-semibold">Ví dụ mới, không phải câu trong video:</span>{" "}
+                      <span className="font-semibold">
+                        Ví dụ mới, không phải câu trong video:
+                      </span>{" "}
                       {result.exemplarAfterAttempt}
                     </p>
                   ) : null}
@@ -588,7 +645,8 @@ export function LearningSessionLab({
       </div>
 
       <p className="text-center text-xs text-[var(--muted-foreground)]">
-        Lab chỉ lưu progress/feedback trong trình duyệt và không lưu câu trả lời riêng tư. Migration server-side đã được thiết kế riêng cho v2 production.
+        Lab chỉ lưu progress/feedback trong trình duyệt và không lưu câu trả lời
+        riêng tư. Migration server-side đã được thiết kế riêng cho v2 production.
       </p>
     </div>
   );
