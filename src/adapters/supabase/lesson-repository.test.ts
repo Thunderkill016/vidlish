@@ -37,6 +37,11 @@ class FakeQuery implements PromiseLike<QueryResult> {
     return this;
   }
 
+  in(column: string, values: readonly unknown[]) {
+    this.filters.push({ column, value: values });
+    return this;
+  }
+
   order() {
     return this;
   }
@@ -91,10 +96,22 @@ class FakeQuery implements PromiseLike<QueryResult> {
     }
 
     if (this.table === "transcript_segments") {
+      const idFilter = this.filters.find(
+        (filter) => filter.column === "id" && Array.isArray(filter.value),
+      );
+      const permittedIds = new Set(
+        Array.isArray(idFilter?.value) ? idFilter.value : [],
+      );
+      const source = idFilter
+        ? this.dataset.segments.filter((segment) =>
+            permittedIds.has(segment.id),
+          )
+        : this.dataset.segments;
+
       return {
-        data: this.dataset.segments.slice(this.rangeFrom, this.rangeTo + 1),
+        data: source.slice(this.rangeFrom, this.rangeTo + 1),
         error: null,
-        count: this.dataset.segments.length,
+        count: source.length,
       };
     }
 
