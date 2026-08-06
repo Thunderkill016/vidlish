@@ -35,8 +35,8 @@ import {
 const jobIdSchema = z.string().uuid();
 const titleSchema = z.string().min(1).max(500);
 const channelSchema = z.string().min(1).max(300);
-
 const WORD_PATTERN = /[a-z]+(?:['’][a-z]+)*/gi;
+
 const TECHNICAL_TERMS = new Set([
   "api",
   "algorithm",
@@ -50,6 +50,7 @@ const TECHNICAL_TERMS = new Set([
   "hardware",
   "javascript",
   "model",
+  "parameters",
   "player",
   "server",
   "software",
@@ -135,26 +136,23 @@ function clamp01(value: number): number {
   return Math.min(1, Math.max(0, value));
 }
 
-function countOccurrences(haystack: string, needle: string): number {
-  if (needle.length === 0) {
-    return 0;
-  }
+function countWholePhrase(haystack: string, needle: string): number {
+  const normalizedHaystack = normalizeEnglish(haystack);
+  const normalizedNeedle = normalizeEnglish(needle);
+  if (!normalizedHaystack || !normalizedNeedle) return 0;
 
+  const paddedHaystack = ` ${normalizedHaystack} `;
+  const paddedNeedle = ` ${normalizedNeedle} `;
   let count = 0;
   let cursor = 0;
-  while (cursor <= haystack.length - needle.length) {
-    const index = haystack.indexOf(needle, cursor);
-    if (index < 0) {
-      break;
-    }
-    const before = index === 0 ? " " : haystack[index - 1];
-    const afterIndex = index + needle.length;
-    const after = afterIndex >= haystack.length ? " " : haystack[afterIndex];
-    if (before === " " && after === " ") {
-      count += 1;
-    }
-    cursor = index + Math.max(1, needle.length);
+
+  while (cursor <= paddedHaystack.length - paddedNeedle.length) {
+    const index = paddedHaystack.indexOf(paddedNeedle, cursor);
+    if (index < 0) break;
+    count += 1;
+    cursor = index + paddedNeedle.length - 1;
   }
+
   return count;
 }
 
@@ -164,10 +162,12 @@ function mergeSpeechDurationMs(
   const intervals = segments
     .map((segment) => [segment.startMs, segment.endMs] as const)
     .sort((left, right) => left[0] - right[0]);
+  if (intervals.length === 0) return 0;
 
   let durationMs = 0;
-  let currentStart = intervals[0]?.[0] ?? 0;
-  let currentEnd = intervals[0]?.[1] ?? 0;
+  let currentStart = intervals[0][0];
+  let currentEnd = intervals[0][1];
+
   for (const [startMs, endMs] of intervals.slice(1)) {
     if (startMs <= currentEnd) {
       currentEnd = Math.max(currentEnd, endMs);
@@ -177,21 +177,13 @@ function mergeSpeechDurationMs(
     currentStart = startMs;
     currentEnd = endMs;
   }
-  if (intervals.length > 0) {
-    durationMs += currentEnd - currentStart;
-  }
-  return durationMs;
+
+  return durationMs + currentEnd - currentStart;
 }
 
-function confidenceFromReport(
-  report: LanguageEligibilityReport,
-): number {
-  if (report.confidenceBand === "high") {
-    return 0.95;
-  }
-  if (report.confidenceBand === "medium") {
-    return 0.8;
-  }
+function confidenceFromReport(report: LanguageEligibilityReport): number {
+  if (report.confidenceBand === "high") return 0.95;
+  if (report.confidenceBand === "medium") return 0.8;
   return 0.65;
 }
 
@@ -208,46 +200,43 @@ function buildLearningWindows(
 ): LearningWindowCandidate[] {
   const windows: LearningWindowCandidate[] = [];
   let current: CanonicalTranscript["segments"] = [];
+  let currentWordCount = 0;
 
   const flush = () => {
     const first = current[0];
     const last = current[current.length - 1];
-    if (!first || !last) {
-      return;
-    }
+    if (!first || !last) return;
+
     windows.push({
       id: createWindowId(first.id, last.id),
       sourceSegmentIds: current.map((segment) => segment.id),
       startMs: first.startMs,
       endMs: last.endMs,
-      wordCount: current.reduce(
-        (sum, segment) => sum + countWords(segment.text),
-        0,
-      ),
+      wordCount: currentWordCount,
       evidenceConfidence,
     });
     current = [];
+    currentWordCount = 0;
   };
 
   for (const segment of segments) {
     const first = current[0];
     const last = current[current.length - 1];
-    const currentWords = current.reduce(
-      (sum, item) => sum + countWords(item.text),
-      0,
-    );
     const gapMs = last ? segment.startMs - last.endMs : 0;
     const projectedDurationMs = first ? segment.endMs - first.startMs : 0;
 
     if (
       current.length > 0 &&
-      (gapMs > 3_500 || projectedDurationMs > 30_000 || currentWords >= 90)
+      (gapMs > 3_500 || projectedDurationMs > 30_000 || currentWordCount >= 90)
     ) {
       flush();
     }
+
     current.push(segment);
+    currentWordCount += countWords(segment.text);
   }
   flush();
+
   return windows;
 }
 
@@ -268,22 +257,13 @@ function learnerGapScore(
   snapshot: LearnerContextSnapshot,
   itemKey: string,
 ): number {
-  if (snapshot.weakItemKeys.includes(itemKey)) {
-    return 1;
-  }
+  if (snapshot.weakItemKeys.includes(itemKey)) return 1;
+
   const latest = latestReviewOutcome(snapshot, itemKey);
-  if (latest === "again") {
-    return 0.9;
-  }
-  if (latest === "hard") {
-    return 0.75;
-  }
-  if (latest === "good") {
-    return 0.15;
-  }
-  if (snapshot.knownItemKeys.includes(itemKey)) {
-    return 0.25;
-  }
+  if (latest === "again") return 0.9;
+  if (latest === "hard") return 0.75;
+  if (latest === "good") return 0.15;
+  if (snapshot.knownItemKeys.includes(itemKey)) return 0.25;
   return 0.65;
 }
 
@@ -291,7 +271,10 @@ function recurrenceOrFrequencyScore(
   recurrenceCount: number,
   frequencyBand: CandidateLanguageProposal["corpusFrequencyBand"],
 ): number {
-  const recurrence = Math.min(1, 0.25 + Math.max(0, recurrenceCount - 1) * 0.2);
+  const recurrence = Math.min(
+    1,
+    0.25 + Math.max(0, recurrenceCount - 1) * 0.2,
+  );
   const frequency = {
     high: 0.8,
     mid: 0.6,
@@ -307,6 +290,7 @@ function cognitiveCostPenalty(
 ): number {
   const tokenCount = countWords(candidate.surfaceForm);
   let penalty = tokenCount <= 3 ? 0 : tokenCount === 4 ? 0.05 : 0.12;
+
   if (
     candidate.kind === "grammar_function" ||
     candidate.kind === "pronunciation_pattern"
@@ -316,18 +300,20 @@ function cognitiveCostPenalty(
   if (snapshot.supportPreference === "more_support" && tokenCount >= 4) {
     penalty += 0.03;
   }
+
   return clamp01(penalty);
 }
 
-function looksLikeProperNounOrTrivia(candidate: CandidateLanguageProposal): boolean {
-  if (candidate.properNounOrTrivia) {
-    return true;
-  }
+function looksLikeProperNounOrTrivia(
+  candidate: CandidateLanguageProposal,
+): boolean {
+  if (candidate.properNounOrTrivia) return true;
+
   const words = candidate.surfaceForm.match(/[A-Za-z][A-Za-z0-9-]*/g) ?? [];
-  if (words.length === 0) {
-    return false;
-  }
-  return words.every((word) => /^[A-Z][A-Za-z0-9-]*$/.test(word));
+  return (
+    words.length > 0 &&
+    words.every((word) => /^[A-Z][A-Za-z0-9-]*$/.test(word))
+  );
 }
 
 function scoreCandidate(
@@ -375,9 +361,6 @@ function scoreCandidate(
 export function assembleLearningGenerationContext(
   input: Omit<PrepareLearningAuthoringBriefInput, "diagnosisProposal">,
 ): LearningGenerationContext {
-  const jobId = jobIdSchema.parse(input.jobId);
-  const videoTitle = titleSchema.parse(input.videoTitle);
-  const channelName = channelSchema.parse(input.channelName);
   const transcript = canonicalTranscriptSchema.parse(input.transcript);
   const eligibility = languageEligibilityReportSchema.parse(input.eligibility);
   const learnerSnapshot = learnerContextSnapshotSchema.parse(
@@ -396,6 +379,7 @@ export function assembleLearningGenerationContext(
   );
   const englishIds = new Set(eligibility.englishSegmentIds);
   const permittedIds = new Set(eligibility.permittedSegmentIds);
+
   if (permittedIds.size === 0) {
     throw new Error("Learning v2 requires at least one permitted segment.");
   }
@@ -416,9 +400,9 @@ export function assembleLearningGenerationContext(
   permittedSegments.sort((left, right) => left.position - right.position);
 
   return {
-    jobId,
-    videoTitle,
-    channelName,
+    jobId: jobIdSchema.parse(input.jobId),
+    videoTitle: titleSchema.parse(input.videoTitle),
+    channelName: channelSchema.parse(input.channelName),
     transcript,
     eligibility,
     learnerSnapshot,
@@ -441,13 +425,13 @@ export function diagnoseLearningVideo(
     speechDurationMs > 0
       ? round(wordCount / (speechDurationMs / 60_000), 1)
       : null;
-  const allWords = context.permittedSegments.flatMap(
-    (segment) => normalizeEnglish(segment.text).split(" ").filter(Boolean),
+  const words = context.permittedSegments.flatMap((segment) =>
+    normalizeEnglish(segment.text).split(" ").filter(Boolean),
   );
-  const technicalCount = allWords.filter((word) =>
+  const technicalCount = words.filter((word) =>
     TECHNICAL_TERMS.has(word),
   ).length;
-  const technicalRatio = allWords.length > 0 ? technicalCount / allWords.length : 0;
+  const technicalRatio = words.length > 0 ? technicalCount / words.length : 0;
   const register: VideoLearningProfileV2["register"] =
     technicalCount >= 2 ? ["neutral", "technical"] : ["neutral"];
   const backgroundKnowledgeDependency =
@@ -506,12 +490,9 @@ export function gateLearningCandidates(
   const windowById = new Map(
     profile.candidateWindows.map((window) => [window.id, window] as const),
   );
-  const proposalWindowById = new Map(
-    proposal.windows.map((window) => [window.windowId, window] as const),
-  );
-  const normalizedTranscript = normalizeEnglish(
-    context.permittedSegments.map((segment) => segment.text).join(" "),
-  );
+  const transcriptText = context.permittedSegments
+    .map((segment) => segment.text)
+    .join(" ");
   const rejections: LearningCandidateSelection["rejections"] = [];
   const scored: ScoredCandidate[] = [];
   const seenCandidateIds = new Set<string>();
@@ -551,17 +532,17 @@ export function gateLearningCandidates(
         reject(rejections, candidate.id, "OUTCOME_NOT_FOUND");
         continue;
       }
+
       const normalizedForm = normalizeEnglish(candidate.surfaceForm);
       if (normalizedForm !== normalizeEnglish(candidate.normalizedForm)) {
         reject(rejections, candidate.id, "NORMALIZED_FORM_MISMATCH");
         continue;
       }
-      const candidateSource = normalizeEnglish(
-        candidate.sourceSegmentIds
-          .map((segmentId) => segmentById.get(segmentId)?.text ?? "")
-          .join(" "),
-      );
-      if (countOccurrences(` ${candidateSource} `, ` ${normalizedForm} `) === 0) {
+
+      const sourceText = candidate.sourceSegmentIds
+        .map((segmentId) => segmentById.get(segmentId)?.text ?? "")
+        .join(" ");
+      if (countWholePhrase(sourceText, normalizedForm) === 0) {
         reject(rejections, candidate.id, "SOURCE_FORM_NOT_FOUND");
         continue;
       }
@@ -592,15 +573,7 @@ export function gateLearningCandidates(
 
       const recurrenceCount = Math.max(
         1,
-        countOccurrences(
-          ` ${normalizedTranscript} `,
-          ` ${normalizedForm} `,
-        ),
-      );
-      const score = scoreCandidate(
-        candidate,
-        context.learnerSnapshot,
-        recurrenceCount,
+        countWholePhrase(transcriptText, normalizedForm),
       );
       const outcomes = candidate.outcomeIds.map((outcomeId) => {
         const outcome = outcomeById.get(outcomeId);
@@ -613,13 +586,18 @@ export function gateLearningCandidates(
           successEvidenceVi: outcome.successEvidenceVi,
         };
       });
+
       scored.push({
         candidate: {
           ...candidate,
           normalizedForm,
           windowId: window.id,
           recurrenceCount,
-          score,
+          score: scoreCandidate(
+            candidate,
+            context.learnerSnapshot,
+            recurrenceCount,
+          ),
         },
         outcomes,
       });
@@ -648,20 +626,19 @@ export function gateLearningCandidates(
       reject(rejections, item.candidate.id, "DIVERSITY_LIMIT");
       continue;
     }
+
     const addsWindow = !selectedWindows.has(item.candidate.windowId);
-    if (addsWindow && selectedWindows.size >= limits.maxWindows) {
+    if (
+      selected.length >= limits.maxItems ||
+      (addsWindow && selectedWindows.size >= limits.maxWindows)
+    ) {
       reject(rejections, item.candidate.id, "BUDGET_LIMIT");
       continue;
     }
-    if (selected.length >= limits.maxItems) {
-      reject(rejections, item.candidate.id, "BUDGET_LIMIT");
-      continue;
-    }
-    const prospectiveOutcomeIds = new Set(selectedOutcomes);
-    for (const outcome of item.outcomes) {
-      prospectiveOutcomeIds.add(outcome.id);
-    }
-    if (prospectiveOutcomeIds.size > 4) {
+
+    const prospectiveOutcomes = new Set(selectedOutcomes);
+    for (const outcome of item.outcomes) prospectiveOutcomes.add(outcome.id);
+    if (prospectiveOutcomes.size > 4) {
       reject(rejections, item.candidate.id, "BUDGET_LIMIT");
       continue;
     }
@@ -669,9 +646,7 @@ export function gateLearningCandidates(
     selected.push(item);
     selectedForms.add(item.candidate.normalizedForm);
     selectedWindows.add(item.candidate.windowId);
-    for (const outcome of item.outcomes) {
-      selectedOutcomes.add(outcome.id);
-    }
+    for (const outcome of item.outcomes) selectedOutcomes.add(outcome.id);
     kindCounts.set(
       item.candidate.kind,
       (kindCounts.get(item.candidate.kind) ?? 0) + 1,
@@ -714,6 +689,7 @@ export function buildLearningAuthoringBrief(
     profile.candidateWindows.map((window) => [window.id, window] as const),
   );
   const outcomeById = new Map<string, CanDoOutcome>();
+
   for (const window of proposal.windows) {
     for (const outcome of window.outcomeCandidates) {
       outcomeById.set(outcome.id, {
@@ -738,6 +714,7 @@ export function buildLearningAuthoringBrief(
       evidenceConfidence: diagnosed.evidenceConfidence,
     };
   });
+
   const outcomes = selection.selectedOutcomeIds.map((outcomeId) => {
     const outcome = outcomeById.get(outcomeId);
     if (!outcome) {
@@ -790,5 +767,6 @@ export function prepareLearningAuthoringBrief(
     input.diagnosisProposal,
     selection,
   );
+
   return { videoProfile, selection, authoringBrief };
 }
