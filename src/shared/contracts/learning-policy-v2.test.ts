@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { createFixtureLearningBlueprint } from "@/adapters/fake/fixture-learning-blueprint";
+import { createFixtureLearningRuntimePolicy } from "@/adapters/fake/fixture-learning-runtime-policy";
 import {
   activityCompletionBlockers,
   canUseSupportStep,
@@ -13,80 +14,15 @@ import {
   type LearningRuntimePolicyV2,
 } from "@/shared/contracts/learning-policy-v2";
 
-function createPolicy(): LearningRuntimePolicyV2 {
-  return learningRuntimePolicyV2Schema.parse({
-    schemaVersion: "learning-runtime-policy:v2",
-    blueprintId: "11111111-1111-4111-8111-111111111111",
-    activityPolicies: [
-      {
-        activityId: "activity_gist",
-        taskScope: "micro_item",
-        support: {
-          steps: [
-            "replay",
-            "context_hint",
-            "keyword_hint",
-            "english_caption",
-            "vietnamese_meaning",
-          ],
-          minimumAttemptsBeforeFullReveal: 1,
-        },
-        retry: {
-          requiredAfterCorrection: true,
-          retryScope: "same_item",
-          maxCorrections: 1,
-          maxAttemptsPerSession: 3,
-        },
-        transfer: null,
-      },
-      {
-        activityId: "activity_transfer",
-        taskScope: "capability",
-        support: {
-          steps: ["context_hint", "keyword_hint", "english_caption"],
-          minimumAttemptsBeforeFullReveal: 1,
-        },
-        retry: {
-          requiredAfterCorrection: true,
-          retryScope: "full_task",
-          maxCorrections: 2,
-          maxAttemptsPerSession: 3,
-        },
-        transfer: {
-          changedDimensions: ["relationship", "information"],
-          answerExposure: "after_attempt",
-          unseenInput: false,
-        },
-      },
-    ],
-    capabilityPolicies: [
-      {
-        outcomeId: "outcome_main_topic",
-        kind: "comprehension",
-        requiredForIndependent: ["comprehension", "delayed_transfer"],
-      },
-      {
-        outcomeId: "outcome_reuse_affiliation",
-        kind: "interactional",
-        requiredForIndependent: [
-          "comprehension",
-          "productive_recall",
-          "interactional_use",
-          "delayed_transfer",
-        ],
-      },
-    ],
-  });
-}
-
 describe("learning runtime policy v2", () => {
-  it("accepts a policy with progressive support, full-task retry and changed-context transfer", () => {
+  it("accepts the golden-session policy with ordered support, retry and transfer", () => {
     const blueprint = createFixtureLearningBlueprint();
-    const policy = createPolicy();
+    const policy = createFixtureLearningRuntimePolicy();
 
     expect(
       validateLearningRuntimePolicyAgainstBlueprint(policy, blueprint),
     ).toEqual([]);
+    expect(policy.activityPolicies).toHaveLength(blueprint.activities.length);
   });
 
   it("rejects support ladders that reveal help out of canonical order", () => {
@@ -117,35 +53,30 @@ describe("learning runtime policy v2", () => {
   });
 
   it("requires a corrected capability task to be retried as a full task", () => {
+    const policy = createFixtureLearningRuntimePolicy();
     const result = learningRuntimePolicyV2Schema.safeParse({
-      ...createPolicy(),
-      activityPolicies: [
-        {
-          activityId: "activity_transfer",
-          taskScope: "capability",
-          support: null,
-          retry: {
-            requiredAfterCorrection: true,
-            retryScope: "same_item",
-            maxCorrections: 2,
-            maxAttemptsPerSession: 3,
-          },
-          transfer: {
-            changedDimensions: ["speaker"],
-            answerExposure: "after_attempt",
-            unseenInput: true,
-          },
-        },
-      ],
+      ...policy,
+      activityPolicies: policy.activityPolicies.map((activityPolicy) =>
+        activityPolicy.activityId === "activity_transfer"
+          ? {
+              ...activityPolicy,
+              retry: {
+                ...activityPolicy.retry,
+                retryScope: "same_item",
+              },
+            }
+          : activityPolicy,
+      ),
     });
 
     expect(result.success).toBe(false);
   });
 
   it("does not complete a corrected task until retry and transfer evidence exist", () => {
-    const transferPolicy = createPolicy().activityPolicies.find(
-      (policy) => policy.activityId === "activity_transfer",
-    );
+    const transferPolicy =
+      createFixtureLearningRuntimePolicy().activityPolicies.find(
+        (policy) => policy.activityId === "activity_transfer",
+      );
     expect(transferPolicy).toBeDefined();
 
     expect(
@@ -196,7 +127,7 @@ describe("learning runtime policy v2", () => {
 
   it("rejects guided transfer without a declared changed-context policy", () => {
     const blueprint = createFixtureLearningBlueprint();
-    const policy = createPolicy();
+    const policy = createFixtureLearningRuntimePolicy();
     const brokenPolicy: LearningRuntimePolicyV2 = {
       ...policy,
       activityPolicies: policy.activityPolicies.map((activityPolicy) =>
