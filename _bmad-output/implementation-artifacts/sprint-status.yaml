@@ -1,9 +1,15 @@
 # generated: 2026-08-03T22:49:00+07:00
-# last_updated: 2026-08-04T12:04:00+07:00
+# last_updated: 2026-08-06T15:12:00+07:00
 # project: Vidlish
 # project_key: NOKEY
 # tracking_system: file-system
 # story_location: _bmad-output/implementation-artifacts
+#
+# IMPORTANT:
+# This tracker is mapped to merged code as of PR #42. Some implementation was delivered
+# outside the original BMAD story sequence. Read HANDOVER.md and the living development
+# plan before selecting work. A status of in-progress may mean the runtime slice exists
+# but the full original story acceptance set is not complete.
 
 # STATUS DEFINITIONS:
 # ==================
@@ -12,36 +18,15 @@
 #   - in-progress: Epic actively being worked on
 #   - done: All stories in epic completed
 #
-# Epic Status Transitions:
-#   - backlog → in-progress: Automatically when first story is created (via create-story)
-#   - in-progress → done: Manually when all stories reach 'done' status
-#
 # Story Status:
-#   - backlog: Story only exists in epic file
-#   - ready-for-dev: Story file created in implementation artifacts
-#   - in-progress: Developer actively working on implementation
+#   - backlog: Story not implemented or superseded approach must be replanned
+#   - ready-for-dev: Story artifact is current and ready
+#   - in-progress: Partial runtime slice exists or acceptance remains open
 #   - review: Ready for code review
-#   - done: Story completed
-#
-# Retrospective Status:
-#   - optional: Can be completed but is not required
-#   - done: Retrospective has been completed
-#
-# Action Item Status:
-#   - open: Committed during a retrospective, not yet addressed
-#   - in-progress: Actively being worked on
-#   - done: Completed
-#
-# WORKFLOW NOTES:
-# ===============
-# - Epic transitions to 'in-progress' automatically when its first story artifact is created
-# - Stories may run in parallel if dependencies and capacity permit
-# - Default flow is create story → validate story → develop → review → done
-# - The next story is usually created after the previous one is done so learnings can transfer
-# - Retrospective action items are appended under action_items when they exist
+#   - done: Implemented and merged
 
 generated: "2026-08-03T22:49:00+07:00"
-last_updated: "2026-08-04T12:04:00+07:00"
+last_updated: "2026-08-06T15:12:00+07:00"
 project: Vidlish
 project_key: NOKEY
 tracking_system: file-system
@@ -58,36 +43,43 @@ development_status:
   2-1-tao-generation-job-ben-vung: done
   2-2-lay-caption-goc-va-tao-canonical-transcript: done
   2-3-kiem-tra-video-co-du-tieng-anh-goc: done
+  # PR #7's Supadata generated-mode approach is obsolete; fallback must be replanned.
   2-4-lay-transcript-qua-hosted-generated-transcript-provider: backlog
   2-5-tich-hop-unofficial-extractor-theo-policy: backlog
+  # Preferred future fallback after M0/M1: Gemini public YouTube URL with fps 0.2.
   2-6-tao-transcript-tu-public-youtube-url-bang-gemini: backlog
   2-7-nhan-transcript-hoac-subtitle-tu-nguoi-dung: backlog
   2-8-tao-transcript-tu-audio-cua-tab: backlog
   2-9-xu-ly-video-dai-bang-budget-va-chunking: backlog
-  2-10-kiem-soat-quota-retry-circuit-breaker-va-cancellation: backlog
+  # Retry/idempotency/watchdog exist; circuit breaker and cancellation remain incomplete.
+  2-10-kiem-soat-quota-retry-circuit-breaker-va-cancellation: in-progress
   2-11-don-artifact-tam-va-ap-dung-transcript-retention: backlog
-  2-12-ghi-telemetry-an-toan-va-co-lap-environment: backlog
+  # Structured telemetry is merged; retention/environment isolation remain open.
+  2-12-ghi-telemetry-an-toan-va-co-lap-environment: in-progress
   2-13-dien-tap-backup-restore-va-khoa-epic-2-regression: backlog
   epic-2-retrospective: optional
 
-  epic-3: backlog
-  3-1-tien-xu-ly-transcript-va-phan-tich-video: backlog
-  3-2-chon-ngon-ngu-dang-hoc-va-muc-tieu-bai-hoc: backlog
-  3-3-soan-core-lesson-qua-pipeline-nhieu-buoc: backlog
-  3-4-kiem-dinh-cham-chat-luong-va-sua-co-gioi-han: backlog
-  3-5-chay-golden-regression-va-khoa-release-chat-luong: backlog
-  3-6-publish-nguyen-tu-va-luu-immutable-lesson-version: backlog
-  3-7-hien-thi-lesson-viewer-de-doc-va-responsive: backlog
+  epic-3: in-progress
+  3-1-tien-xu-ly-transcript-va-phan-tich-video: done
+  # English is fixed product scope and CEFR exists; broader goal selection remains open.
+  3-2-chon-ngon-ngu-dang-hoc-va-muc-tieu-bai-hoc: in-progress
+  3-3-soan-core-lesson-qua-pipeline-nhieu-buoc: done
+  3-4-kiem-dinh-cham-chat-luong-va-sua-co-gioi-han: done
+  # Full-real integration exists; production milestone M0 is still 1/3 acceptances.
+  3-5-chay-golden-regression-va-khoa-release-chat-luong: in-progress
+  3-6-publish-nguyen-tu-va-luu-immutable-lesson-version: done
+  3-7-hien-thi-lesson-viewer-de-doc-va-responsive: done
   epic-3-retrospective: optional
 
-  epic-4: backlog
-  4-1-dieu-huong-video-bang-timestamp-evidence: backlog
+  epic-4: in-progress
+  4-1-dieu-huong-video-bang-timestamp-evidence: done
   4-2-lam-hoat-dong-va-nhan-feedback: backlog
   4-3-retrieval-transfer-va-hoan-thanh-lesson: backlog
   epic-4-retrospective: optional
 
-  epic-5: backlog
-  5-1-xem-thu-vien-va-mo-lai-lesson-da-luu: backlog
-  5-2-loc-thu-vien-va-khoi-phuc-job-loi: backlog
+  epic-5: in-progress
+  5-1-xem-thu-vien-va-mo-lai-lesson-da-luu: done
+  # Active jobs and safe failure cards exist; full filtering/recovery acceptance remains open.
+  5-2-loc-thu-vien-va-khoi-phuc-job-loi: in-progress
   5-3-xoa-lesson-va-du-lieu-phu-thuoc-theo-policy: backlog
   epic-5-retrospective: optional
