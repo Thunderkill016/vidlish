@@ -123,7 +123,7 @@ export function YouTubeEvidencePlayer({
   captionControlAllowed: boolean;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
-  const playerRef = useRef<YouTubePlayer>();
+  const playerRef = useRef<YouTubePlayer | null>(null);
   const [ready, setReady] = useState(false);
   const [captionsShown, setCaptionsShown] = useState(
     evidence.captionPolicy === "shown",
@@ -140,7 +140,7 @@ export function YouTubeEvidencePlayer({
     if (!shell) return;
 
     let disposed = false;
-    let localPlayer: YouTubePlayer | undefined;
+    let localPlayer: YouTubePlayer | null = null;
     shell.replaceChildren();
     const host = document.createElement("div");
     shell.append(host);
@@ -207,7 +207,7 @@ export function YouTubeEvidencePlayer({
 
     return () => {
       disposed = true;
-      if (playerRef.current === localPlayer) playerRef.current = undefined;
+      if (playerRef.current === localPlayer) playerRef.current = null;
       localPlayer?.destroy();
       shell.replaceChildren();
     };
