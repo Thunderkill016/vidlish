@@ -46,9 +46,20 @@ export const learningLabAttemptResponseSchema = z
 export type LearningLabAttemptRequest = z.infer<
   typeof learningLabAttemptRequestSchema
 >;
-export type LearningLabAttemptResponse = z.infer<
+
+type ParsedLearningLabAttemptResponse = z.infer<
   typeof learningLabAttemptResponseSchema
 >;
+
+export type LearningLabAttemptResponse = Omit<
+  ParsedLearningLabAttemptResponse,
+  "evaluation"
+> & {
+  evaluation: ParsedLearningLabAttemptResponse["evaluation"] & {
+    reveal?: { answer: string };
+  };
+};
+
 export type LearnerTargetAfterAttempt = z.infer<
   typeof learnerTargetAfterAttemptSchema
 >;
