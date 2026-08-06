@@ -53,11 +53,6 @@ export class SubmitLearningActivityAttempt {
     if (!session) {
       throw new LearningSessionProgressError("Learning session was not found.");
     }
-    if (session.currentActivityId !== input.activityId) {
-      throw new LearningSessionProgressError(
-        "Activity is not current for this learning session.",
-      );
-    }
 
     const activityIndex = input.blueprint.activities.findIndex(
       (activity) => activity.id === input.activityId,
