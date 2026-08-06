@@ -116,11 +116,13 @@ export function YouTubeEvidencePlayer({
   videoTitle,
   evidence,
   captionControlAllowed,
+  onPlay,
 }: {
   videoId: string;
   videoTitle: string;
   evidence: EvidenceRef;
   captionControlAllowed: boolean;
+  onPlay?: () => void;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -133,7 +135,7 @@ export function YouTubeEvidencePlayer({
   const startSeconds = evidence.startMs / 1000;
   const endSeconds = evidence.endMs / 1000;
   const nativeControlsVisible =
-    evidence.captionPolicy !== "hidden_first" || captionControlAllowed;
+    evidence.captionPolicy === "shown" || captionControlAllowed;
 
   useEffect(() => {
     const shell = shellRef.current;
@@ -232,6 +234,7 @@ export function YouTubeEvidencePlayer({
       startSeconds,
       endSeconds,
     });
+    onPlay?.();
     setStatus(
       `Đang phát đoạn ${formatTime(evidence.startMs)}–${formatTime(evidence.endMs)}.`,
     );
@@ -284,9 +287,9 @@ export function YouTubeEvidencePlayer({
         ) : null}
       </div>
 
-      {!captionControlAllowed && evidence.captionPolicy === "hidden_first" ? (
+      {!captionControlAllowed && evidence.captionPolicy !== "shown" ? (
         <p className="text-xs text-[var(--muted-foreground)]">
-          Lượt nghe đầu ẩn phụ đề và native controls. Phụ đề mở sau attempt.
+          Lượt nghe đầu ẩn phụ đề và native controls. Phụ đề chỉ mở theo support ladder.
         </p>
       ) : null}
 
