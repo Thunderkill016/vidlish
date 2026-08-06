@@ -6,20 +6,56 @@ Vidlish biến video YouTube có đủ lời nói tiếng Anh gốc thành bài 
 
 ## Trạng thái
 
-- Production: Vercel project `vidlish` đã kết nối Supabase project `vidlish`.
-- Epic 1: Google OAuth/email OTP private beta, URL + metadata validation, CEFR và confirmed Create draft.
-- Story 2.1: durable generation job, owner-scoped progress page, idempotency, quota boundary và Vercel Workflow dispatcher.
-- Story 2.2: native-caption fast path, deterministic normalization, canonical transcript persistence và handoff tới `checking_language`.
-- Story 2.3: versioned original-English eligibility gate, mixed-language allowlist và terminal unsupported-language UX.
-- Lesson Engine tạo bài bằng Gemini, hydrate citation từ transcript segments và lưu kết quả vào Supabase.
+Vidlish đang chạy private beta trên Vercel với Supabase production.
+
+Luồng hiện tại:
+
+```text
+YouTube metadata
+→ Vercel Workflow durable job
+→ Supadata native caption
+→ original-English eligibility gate
+→ Gemini lesson generation
+→ server-side citation grounding
+→ atomic publish
+→ lesson viewer + library
+```
+
+Các phần đã hoạt động production:
+
+- Google OAuth/email OTP private beta;
+- YouTube metadata và availability validation;
+- durable generation job, idempotency và quota boundary;
+- canonical transcript persistence;
+- original-English eligibility + permitted-segment allowlist;
+- Gemini Lesson Engine;
+- citation text/timestamp hydrate từ Supabase;
+- lesson viewer, library và active-job recovery;
+- structured generation telemetry;
+- watchdog pg_cron mỗi 2 phút, dọn job active quá 5 phút.
+
+PR #42 đã thêm pagination đầy đủ cho transcript và permitted-segment reads vượt giới hạn
+1.000 rows của Supabase Data API. Full CI xanh và production deployment READY.
+
+Đọc trước khi phát triển:
+
+- [`HANDOVER.md`](./HANDOVER.md) — invariant, bẫy production và kiến thức đắt tiền;
+- [`continuous-development-plan.md`](./_bmad-output/planning-artifacts/continuous-development-plan.md) — backlog và việc hiện tại.
+
+## Lời hứa dữ liệu
+
+**Mọi citation trong bài học phải là lời thoại thật của video.**
+
+Model không trả văn bản trích dẫn. Model chỉ trả segment labels/IDs; server ánh xạ về
+segment thật, hydrate text/timestamp từ database và từ chối ID ngoài allowlist trước khi publish.
 
 ## Chạy ứng dụng cục bộ
 
 Yêu cầu:
 
-- Node.js 24 LTS
-- Corepack + pnpm 10.15.0
-- Docker-compatible container runtime khi chạy Supabase local
+- Node.js 24 LTS;
+- Corepack + pnpm 10.15.0;
+- Docker-compatible runtime khi chạy Supabase local.
 
 ```bash
 corepack enable
@@ -30,106 +66,73 @@ supabase start
 pnpm dev
 ```
 
-Cấu hình email OTP local nằm trong `supabase/templates/magic_link.html` và dùng `{{ .Token }}`. Hosted Supabase project phải cấu hình template tương đương trước khi staging acceptance.
+Email OTP local dùng `supabase/templates/magic_link.html` với `{{ .Token }}`.
 
-### Chế độ auth giả cho test giao diện
-
-Chỉ local/test:
+### Chế độ fixture cho local/CI
 
 ```bash
-AUTH_ADAPTER=fake \
-AUTH_FAKE_CODE=123456 \
-TEST_BETA_EMAILS=invited@example.com \
-pnpm dev
-```
+AUTH_ADAPTER=fake
+AUTH_FAKE_CODE=123456
+TEST_BETA_EMAILS=invited@example.com
 
-`AUTH_ADAPTER=fake` bị từ chối trong production.
-
-### Video metadata adapter
-
-Local và CI mặc định dùng fixture, không gọi YouTube thật:
-
-```bash
 VIDEO_METADATA_ADAPTER=fixture
-YOUTUBE_VIEWER_REGION=VN
-YOUTUBE_METADATA_TIMEOUT_MS=5000
-```
-
-Staging/production dùng YouTube Data API v3:
-
-```bash
-VIDEO_METADATA_ADAPTER=youtube
-YOUTUBE_DATA_API_KEY=replace-with-server-only-key
-YOUTUBE_VIEWER_REGION=VN
-YOUTUBE_METADATA_TIMEOUT_MS=5000
-```
-
-`YOUTUBE_DATA_API_KEY` chỉ được đọc từ server config. Khi chọn adapter `youtube` mà thiếu key, ứng dụng fail closed và không tự đổi sang provider khác. Metadata vẫn đi qua Zod và canonical availability mapping.
-
-### Durable generation job
-
-Local và CI dùng repository in-memory cùng inline dispatcher:
-
-```bash
 GENERATION_REPOSITORY=fake
 GENERATION_DISPATCHER=inline
-GENERATION_MAX_ACTIVE_JOBS=2
-GENERATION_MAX_JOBS_PER_DAY=20
-GENERATION_MAX_JOBS_PER_MINUTE=3
+TRANSCRIPT_NATIVE_ADAPTER=fixture
+TRANSCRIPT_REPOSITORY=fake
+LESSON_PROVIDER=fixture
 ```
 
-Hosted staging/production dùng:
+Adapter giả bị từ chối trong production.
+
+### Cấu hình hosted
 
 ```bash
+AUTH_ADAPTER=supabase
+VIDEO_METADATA_ADAPTER=youtube
+YOUTUBE_DATA_API_KEY=replace-with-server-only-key
+
 GENERATION_REPOSITORY=supabase
 GENERATION_DISPATCHER=workflow
+
+TRANSCRIPT_NATIVE_ENABLED=true
+TRANSCRIPT_NATIVE_ADAPTER=supadata
+TRANSCRIPT_REPOSITORY=supabase
+SUPADATA_API_KEY=replace-with-server-only-key
+
+LESSON_PROVIDER=gemini
+GEMINI_API_KEY=replace-with-server-only-key
 ```
 
-`workflow/next` tích hợp trực tiếp vào Next.js. Dispatcher gọi `start()` và trả về ngay sau khi run được xếp hàng; các hàm `"use step"` lưu checkpoint và retry độc lập. Job luôn được persist trước dispatch, còn duplicate submit được chặn bằng unique active-job key trong Postgres.
+`GENERATION_DISPATCHER=workflow` dùng Vercel Workflow DevKit. Inngest không còn thuộc
+kiến trúc hiện tại.
 
-Watchdog cho job đứng chạy bằng `pg_cron` trong chính Supabase mỗi 7 phút, không phụ thuộc tài khoản orchestration bên ngoài.
-
-Có thể mở dashboard workflow cục bộ bằng:
+Có thể mở dashboard workflow local:
 
 ```bash
 pnpm exec workflow web
 ```
 
-### Native caption fast path
+## Native caption và language gate
 
-Local/CI dùng transcript fixture và in-memory repository:
+Supadata fast path gọi transcript với `mode=native`; không dùng AI generation cho tầng này.
+Candidate được validate, normalize deterministic và persist atomically trước khi chuyển sang
+`checking_language`.
 
-```bash
-TRANSCRIPT_NATIVE_ENABLED=true
-TRANSCRIPT_NATIVE_ADAPTER=fixture
-TRANSCRIPT_REPOSITORY=fake
-SUPADATA_NATIVE_TIMEOUT_MS=8000
-```
+Language gate dùng `franc-min` trên coherent windows. Metadata language và provider-declared
+language chỉ là evidence, không phải quyết định cuối. Chỉ reliable English segment IDs được ghi
+vào allowlist cho Lesson Engine.
 
-Hosted workflow dùng Supadata native captions và Supabase persistence:
+## Supabase Data API
 
-```bash
-TRANSCRIPT_NATIVE_ENABLED=true
-TRANSCRIPT_NATIVE_ADAPTER=supadata
-TRANSCRIPT_REPOSITORY=supabase
-SUPADATA_API_KEY=replace-with-server-only-key
-SUPADATA_NATIVE_TIMEOUT_MS=8000
-```
+Mỗi response có thể bị giới hạn ở 1.000 rows dù query thành công. Với tập dữ liệu có thể lớn:
 
-Adapter gọi universal `GET /v1/transcript` với `mode=native` và `text=false`. Vidlish không gửi `lang`, không gọi translation endpoint và không dùng AI generation cho native-caption fast path. Candidate được Zod-validate, normalized deterministically, rồi transcript + segments + acquisition attempt được commit atomically trước khi job chuyển sang `checking_language`.
+- lọc nghiệp vụ trong Postgres;
+- deterministic order;
+- `count: "exact"` + `range()`;
+- fail closed nếu pagination kết thúc trước exact count.
 
-### Original-English eligibility gate
-
-Language gate dùng `franc-min@6.2.0` sau `LanguageAnalysisPort` để tạo evidence theo coherent windows. Caption language, video metadata và segment language do provider khai báo không được dùng làm quyết định. Detector rank được lưu như raw evidence, không được trình bày như xác suất.
-
-Policy `original-english:v1` nằm trong `src/modules/language/application/default-language-policy.ts` và xét đồng thời:
-
-- tỷ lệ English trong phần evidence đủ tin cậy;
-- thời lượng English liên tục;
-- số từ English đủ tin cậy;
-- coverage, số từ và số window tối thiểu để được phép kết luận.
-
-Video chủ yếu nói tiếng Anh hoặc có một English portion đủ dài/coherent được đánh dấu `eligible`. Chỉ segment IDs thuộc reliable English windows được ghi vào downstream allowlist trước khi job chuyển sang `analyzing_video`. Video được xác nhận không đủ tiếng Anh gốc chuyển sang `failed` với `VIDEO_LANGUAGE_UNSUPPORTED`. Evidence quá yếu quay lại transcript fallback; nó không bị gắn nhãn sai là unsupported language.
+Không tải owner-wide rồi lọc nghiệp vụ trong Node.
 
 ## Kiểm thử
 
@@ -137,16 +140,20 @@ Video chủ yếu nói tiếng Anh hoặc có một English portion đủ dài/c
 pnpm typecheck
 pnpm lint
 pnpm test
-pnpm test:e2e
-supabase test db
 pnpm build
+supabase test db
+pnpm test:e2e
 ```
 
-CI chạy typecheck/lint, unit tests, production build, Supabase pgTAP và Chromium journeys theo các job song song. Fixtures bảo đảm CI không gọi Gemini, YouTube, Supadata hoặc Workflow backend thật.
+CI chạy typecheck/lint, unit, production build, Supabase migrations/RLS, Chromium product
+journeys và CI gate. Fixtures không chứng minh provider thật; thay đổi provider phải dùng
+`tests/integration/full-real-path.test.ts` khi có key và quyền tiêu quota.
+
+Local `pnpm build` cần `CI=true` cùng các biến env trong `.github/workflows/ci.yml`.
 
 ## BMAD cho Codex
 
-BMAD được cấu hình ở phiên bản `6.10.0`, module `bmm`, tích hợp Codex qua `.agents/skills/`.
+BMAD được cấu hình ở phiên bản `6.10.0`, module `bmm`, tích hợp qua `.agents/skills/`.
 
 ```bash
 chmod +x install-bmad.sh
@@ -166,4 +173,5 @@ Hoặc:
 pnpm bmad:install
 ```
 
-Planning artifacts nằm trong `_bmad-output/planning-artifacts/`; sprint/story artifacts nằm trong `_bmad-output/implementation-artifacts/`.
+Planning artifacts nằm trong `_bmad-output/planning-artifacts/`; sprint/story artifacts nằm
+trong `_bmad-output/implementation-artifacts/`.
