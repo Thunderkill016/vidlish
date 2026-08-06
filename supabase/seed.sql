@@ -50,7 +50,7 @@ insert into public.transcripts (
   '11ebc77b-cec1-4b7b-a136-93b53beb428c',
   '70000000-0000-4000-8000-000000000002',
   '70000000-0000-4000-8000-000000000001',
-  'fixture-native-caption', 'fixture', 'native_caption', 'en', array['en'],
+  'supadata-native-caption', 'supadata', 'native_caption', 'en', array['en'],
   'unknown', 'unknown', repeat('e', 64), 'transcript-normalization:v1',
   24000, 1
 )
