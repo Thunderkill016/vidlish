@@ -6,17 +6,19 @@ import type {
   StartLearningSessionInput,
 } from "@/modules/learning/ports/learning-session-repository";
 import {
-  activityAttemptSchema,
   lessonSessionSchema,
-  type ActivityAttempt,
   type LessonSession,
 } from "@/shared/contracts/lesson-v2";
+import {
+  privacySafeActivityAttemptSchema,
+  type PrivacySafeActivityAttempt,
+} from "@/shared/contracts/privacy-safe-learning-evidence";
 
 export class InMemoryLearningSessionRepository
   implements LearningSessionRepository
 {
   private readonly sessions = new Map<string, LessonSession>();
-  private readonly attempts = new Map<string, ActivityAttempt>();
+  private readonly attempts = new Map<string, PrivacySafeActivityAttempt>();
   private readonly attemptIdsByIdempotency = new Map<string, string>();
 
   async start(input: StartLearningSessionInput) {
@@ -85,13 +87,13 @@ export class InMemoryLearningSessionRepository
           attempt.activityId === input.activityId,
       ).length + 1;
     const now = new Date().toISOString();
-    const attempt = activityAttemptSchema.parse({
+    const attempt = privacySafeActivityAttemptSchema.parse({
       id: randomUUID(),
       sessionId: input.sessionId,
       activityId: input.activityId,
       attemptNumber,
       idempotencyKey: input.idempotencyKey,
-      response: input.response,
+      responseEvidence: input.responseEvidence,
       evaluation: input.evaluation,
       submittedAt: now,
     });
