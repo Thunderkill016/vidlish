@@ -23,7 +23,9 @@ describe("evaluateLearningActivity", () => {
 
     expect(result.verdict).toBe("correct");
     expect(result.evidenceRefs).toHaveLength(1);
-    expect(result.reveal?.answer).toMatch(/toàn bộ thông điệp/i);
+    if (result.verdict === "correct") {
+      expect(result.reveal?.answer).toMatch(/toàn bộ thông điệp/i);
+    }
   });
 
   it("returns evidence-specific next-step feedback for a wrong answer", () => {
@@ -44,7 +46,9 @@ describe("evaluateLearningActivity", () => {
     });
 
     expect(result.verdict).toBe("correct");
-    expect(result.reveal?.answer).toBe("pay attention to");
+    if (result.verdict === "correct") {
+      expect(result.reveal?.answer).toBe("pay attention to");
+    }
   });
 
   it("does not fake-grade an open transfer response", () => {
