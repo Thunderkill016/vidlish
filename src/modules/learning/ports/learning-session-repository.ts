@@ -1,10 +1,12 @@
 import type {
-  ActivityAttempt,
   ActivityEvaluation,
-  ActivityResponse,
   LearningPhase,
   LessonSession,
 } from "@/shared/contracts/lesson-v2";
+import type {
+  PrivacySafeActivityAttempt,
+  PrivacySafeActivityResponse,
+} from "@/shared/contracts/privacy-safe-learning-evidence";
 
 export type StartLearningSessionInput = {
   ownerUserId: string;
@@ -18,7 +20,7 @@ export type RecordLearningAttemptInput = {
   sessionId: string;
   activityId: string;
   idempotencyKey: string;
-  response: ActivityResponse;
+  responseEvidence: PrivacySafeActivityResponse;
   evaluation: ActivityEvaluation;
   nextPhase: LearningPhase;
   nextActivityId: string;
@@ -38,7 +40,7 @@ export interface LearningSessionRepository {
   recordAttempt(
     input: RecordLearningAttemptInput,
   ): Promise<{
-    attempt: ActivityAttempt;
+    attempt: PrivacySafeActivityAttempt;
     session: LessonSession;
     created: boolean;
   }>;
