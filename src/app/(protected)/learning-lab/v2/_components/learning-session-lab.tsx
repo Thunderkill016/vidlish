@@ -21,6 +21,7 @@ import {
 } from "@/modules/learning/application/learning-runtime-progress";
 import {
   learningLabAttemptResponseSchema,
+  learningLabSessionResponseSchema,
   type LearningLabAttemptResponse,
 } from "@/shared/contracts/learning-lab";
 import type { VerifiedLearningMedia } from "@/shared/contracts/learning-media";
@@ -30,7 +31,7 @@ import {
   type LearningRuntimePolicyV2,
   type SupportStep,
 } from "@/shared/contracts/learning-policy-v2";
-import type { ActivityResponse } from "@/shared/contracts/lesson-v2";
+import type { ActivityResponse, LessonSession } from "@/shared/contracts/lesson-v2";
 import { YouTubeEvidencePlayer } from "./youtube-evidence-player";
 
 const PHASE_LABELS: Record<LearnerActivityView["phase"], string> = {
@@ -52,8 +53,9 @@ const SUPPORT_LABELS: Record<SupportStep, string> = {
 };
 
 type StoredLabState = {
-  version: 2;
+  version: 3;
   blueprintId: string;
+  sessionId: string | null;
   started: boolean;
   currentIndex: number;
   completed: boolean;
@@ -61,7 +63,7 @@ type StoredLabState = {
 };
 
 function storageKey(blueprintId: string): string {
-  return `vidlish:learning-lab:v2:${blueprintId}`;
+  return `vidlish:learning-lab:v3:${blueprintId}`;
 }
 
 function formatTime(ms: number): string {
@@ -239,6 +241,7 @@ export function LearningSessionLab({
   supportCopy: LearningSupportCopyByActivity;
 }) {
   const [loaded, setLoaded] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -249,6 +252,7 @@ export function LearningSessionLab({
   const [text, setText] = useState("");
   const [checkedCriteria, setCheckedCriteria] = useState<number[]>([]);
   const [retrying, setRetrying] = useState(false);
+  const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
@@ -285,9 +289,12 @@ export function LearningSessionLab({
         if (stored) {
           const parsed = JSON.parse(stored) as Partial<StoredLabState>;
           if (
-            parsed.version === 2 &&
+            parsed.version === 3 &&
             parsed.blueprintId === blueprint.blueprintId
           ) {
+            setSessionId(
+              typeof parsed.sessionId === "string" ? parsed.sessionId : null,
+            );
             setStarted(Boolean(parsed.started));
             setCompleted(Boolean(parsed.completed));
             setCurrentIndex(
@@ -317,8 +324,9 @@ export function LearningSessionLab({
   useEffect(() => {
     if (!loaded) return;
     const state: StoredLabState = {
-      version: 2,
+      version: 3,
       blueprintId: blueprint.blueprintId,
+      sessionId,
       started,
       currentIndex,
       completed,
@@ -334,6 +342,7 @@ export function LearningSessionLab({
     currentIndex,
     loaded,
     progressByActivity,
+    sessionId,
     started,
   ]);
 
@@ -358,6 +367,72 @@ export function LearningSessionLab({
     setError("");
   }
 
+  function activityIndexForSession(session: LessonSession): number {
+    const index = blueprint.activities.findIndex(
+      (activity) => activity.id === session.currentActivityId,
+    );
+    return index >= 0 ? index : 0;
+  }
+
+  async function startOrResumeSession(): Promise<string> {
+    const request = await fetch("/api/learning-lab/v2/sessions", {
+      method: "POST",
+    });
+    const body = (await request.json()) as unknown;
+    if (!request.ok) {
+      throw new Error("Vidlish chưa thể mở phiên học.");
+    }
+    const parsed = learningLabSessionResponseSchema.parse(body);
+    setSessionId(parsed.session.id);
+    setCurrentIndex(activityIndexForSession(parsed.session));
+    setCompleted(parsed.session.status === "completed");
+    return parsed.session.id;
+  }
+
+  async function beginSession() {
+    if (starting) return;
+    setStarting(true);
+    setError("");
+    try {
+      await startOrResumeSession();
+      setStarted(true);
+    } catch (caught) {
+      setError(
+        caught instanceof Error ? caught.message : "Vidlish chưa thể mở phiên học.",
+      );
+    } finally {
+      setStarting(false);
+    }
+  }
+
+  async function sendAttempt(
+    response: ActivityResponse,
+    idempotencyKey = crypto.randomUUID(),
+  ): Promise<LearningLabAttemptResponse> {
+    if (!current) throw new Error("Không tìm thấy activity hiện tại.");
+    const activeSessionId = sessionId ?? (await startOrResumeSession());
+    const request = await fetch("/api/learning-lab/v2/attempts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeSessionId,
+        activityId: current.id,
+        idempotencyKey,
+        response,
+      }),
+    });
+    const body = (await request.json()) as unknown;
+    if (!request.ok) {
+      throw new Error("Vidlish chưa thể kiểm tra câu trả lời.");
+    }
+    const parsed = learningLabAttemptResponseSchema.parse(body);
+    if (!parsed.persistedAttempt || !parsed.session) {
+      throw new Error("Attempt chưa được lưu bền vững.");
+    }
+    setSessionId(parsed.session.id);
+    return parsed;
+  }
+
   async function submitAttempt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (!current || !currentPolicy || submitting) return;
@@ -377,20 +452,7 @@ export function LearningSessionLab({
     setSubmitting(true);
     setError("");
     try {
-      const request = await fetch("/api/learning-lab/v2/attempts", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          activityId: current.id,
-          idempotencyKey: crypto.randomUUID(),
-          response,
-        }),
-      });
-      const body = (await request.json()) as unknown;
-      if (!request.ok) {
-        throw new Error("Vidlish chưa thể kiểm tra câu trả lời.");
-      }
-      const parsed = learningLabAttemptResponseSchema.parse(body);
+      const parsed = await sendAttempt(response);
       updateProgress((progress) => appendLearningAttempt(progress, parsed));
       setRetrying(false);
       setCheckedCriteria([]);
@@ -413,8 +475,41 @@ export function LearningSessionLab({
     setRetrying(true);
   }
 
+  async function confirmSelfCheck() {
+    if (
+      !current ||
+      current.activityType !== "guided_transfer" ||
+      !allCriteriaSelected ||
+      !text.trim() ||
+      submitting
+    ) {
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+    try {
+      const parsed = await sendAttempt({
+        kind: "self_check",
+        text: text.trim(),
+        checkedCriteria,
+      });
+      updateProgress((progress) =>
+        confirmLearningSelfCheck(appendLearningAttempt(progress, parsed)),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Vidlish chưa thể lưu xác nhận transfer.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
   function continueSession() {
-    if (!currentPolicy) return;
+    if (!currentPolicy || !currentAttempt?.session) return;
     const state = learningActivityCompletionState(
       currentPolicy,
       currentProgress,
@@ -423,13 +518,27 @@ export function LearningSessionLab({
       setError(blockerMessage(state.blockers[0]));
       return;
     }
+
+    const nextActivity = blueprint.activities[currentIndex + 1];
+    if (!nextActivity) {
+      if (currentAttempt.session.status !== "completed") {
+        setError("Server chưa xác nhận phiên học đã hoàn tất.");
+        return;
+      }
+      clearDraft();
+      setRetrying(false);
+      setCompleted(true);
+      return;
+    }
+
+    if (currentAttempt.session.currentActivityId !== nextActivity.id) {
+      setError("Server chưa xác nhận activity tiếp theo.");
+      return;
+    }
+
     clearDraft();
     setRetrying(false);
-    if (currentIndex === blueprint.activities.length - 1) {
-      setCompleted(true);
-    } else {
-      setCurrentIndex((index) => index + 1);
-    }
+    setCurrentIndex((index) => index + 1);
   }
 
   function openNextSupport() {
@@ -454,15 +563,10 @@ export function LearningSessionLab({
     setError("");
   }
 
-  function confirmSelfCheck() {
-    if (!allCriteriaSelected) return;
-    updateProgress(confirmLearningSelfCheck);
-    setError("");
-  }
-
   function resetLab() {
     window.localStorage.removeItem(storageKey(blueprint.blueprintId));
     clearDraft();
+    setSessionId(null);
     setStarted(false);
     setCompleted(false);
     setCurrentIndex(0);
@@ -495,12 +599,14 @@ export function LearningSessionLab({
             Giới thiệu mình thuộc một nhóm trong tình huống công việc mới.
           </p>
         </div>
+        {error ? <p role="alert">{error}</p> : null}
         <button
           type="button"
-          onClick={() => setStarted(true)}
-          className="min-h-12 w-full rounded-xl bg-[var(--primary)] px-4 py-3 font-semibold text-white"
+          onClick={beginSession}
+          disabled={starting}
+          className="min-h-12 w-full rounded-xl bg-[var(--primary)] px-4 py-3 font-semibold text-white disabled:opacity-60"
         >
-          Bắt đầu nghe không phụ đề
+          {starting ? "Đang mở phiên…" : "Bắt đầu nghe không phụ đề"}
         </button>
       </section>
     );
@@ -516,10 +622,10 @@ export function LearningSessionLab({
       0,
     );
     const recall = latestLearningAttempt(
-      progressByActivity["activity_recall"] ??
+      progressByActivity.activity_recall ??
         createEmptyLearningActivityProgress(),
     );
-    const transfer = progressByActivity["activity_transfer"];
+    const transfer = progressByActivity.activity_transfer;
 
     return (
       <section className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8">
@@ -839,10 +945,10 @@ export function LearningSessionLab({
                       <button
                         type="button"
                         onClick={confirmSelfCheck}
-                        disabled={!allCriteriaSelected}
+                        disabled={!allCriteriaSelected || submitting}
                         className="min-h-11 rounded-xl bg-[var(--primary)] px-3 py-2 font-semibold text-white disabled:opacity-50"
                       >
-                        Xác nhận đủ tiêu chí
+                        {submitting ? "Đang lưu…" : "Xác nhận đủ tiêu chí"}
                       </button>
                     </div>
                   )}
@@ -877,8 +983,9 @@ export function LearningSessionLab({
       </div>
 
       <p className="text-center text-xs text-[var(--muted-foreground)]">
-        Lab chỉ lưu attempt result, support usage và progress. Nội dung câu trả lời
-        mở không được ghi vào local storage.
+        Server lưu attempt result, bounded support/progress evidence và session
+        state. Nội dung câu trả lời mở không được ghi vào local storage hoặc
+        persistence.
       </p>
     </div>
   );
