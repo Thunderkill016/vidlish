@@ -25,7 +25,9 @@ Không mở rộng MVP sang tutor chat, thanh toán, gamification, dịch video 
 
 **Ổn định hóa production và khóa regression của luồng tạo bài học thật.**
 
-Không còn ở Epic 1/Story 1.1. Production đã có auth private beta, YouTube metadata, durable job, Supadata native transcript, original-English eligibility gate, Gemini lesson generation, atomic publish, lesson viewer và library. Tuy nhiên acceptance production sau bản sửa mới nhất vẫn chưa được chạy vì việc đó ghi dữ liệu thật và tiêu quota Gemini.
+Production đã có auth private beta, YouTube metadata, durable job, Supadata native transcript, original-English eligibility gate, Gemini lesson generation, atomic publish, lesson viewer và library.
+
+Bản sửa sự cố `analyzing_video` đã qua một production acceptance thật ngày 2026-08-06. Đây là bằng chứng mạnh cho job và video từng lỗi, nhưng milestone M0 chưa đóng vì tiêu chí yêu cầu 3 lượt liên tiếp trên ít nhất 2 video khác nhau.
 
 ## 3. Phần đã hoạt động thật
 
@@ -33,10 +35,11 @@ Không còn ở Epic 1/Story 1.1. Production đã có auth private beta, YouTube
 |---|---|---|
 | Private beta auth bằng Google/email OTP | Hoạt động production | Trang đăng nhập production trả HTTP 200; auth adapter production là Supabase |
 | YouTube metadata/playability | Hoạt động production | Adapter YouTube + server-only API key; đã tạo metadata/job thật |
-| Durable generation job | Hoạt động production | Vercel Workflow build nhận 11 steps / 1 workflow; job persist trước dispatch |
+| Durable generation job | Hoạt động production | Vercel Workflow build nhận workflow/steps; job persist trước dispatch |
 | Native transcript | Hoạt động production | Supadata `mode=native`; canonical transcript + segments tồn tại trong Supabase |
 | Original-English eligibility | Hoạt động production | Job thật có report `eligible`, 339 permitted segments, 1.630 reliable English words |
-| Lesson Engine + grounding | Đã từng chạy end-to-end thật | Database từng có lesson thật với citation/timestamp; `tests/integration/full-real-path.test.ts` đã pass |
+| Lesson Engine + grounding | **Đã kiểm chứng lại production sau fix** | 339 segment → Gemini Standard → lesson completed trong 17.638 ms; 16/16 citation khớp allowlist + text/timestamp |
+| Structured observability | Hoạt động production | Event `vidlish_generation` ghi `started` và `succeeded/published`, không chứa dữ liệu nhạy cảm |
 | Lesson viewer và library | Hoạt động theo test và production | PR #28, #30, #33; CI Chromium desktop/mobile xanh |
 | Watchdog job treo | Hoạt động production | pg_cron `*/2 * * * *`, dọn job quá 5 phút |
 | CI bắt buộc | Hoạt động | typecheck/lint, unit, production build, Supabase migrations/RLS, Chromium journeys, CI gate |
@@ -55,27 +58,37 @@ Job `c1f4ac68-ff00-4c92-a9c5-010c9e5c0b9f` có transcript và vượt language g
 2. nhận tối đa 1.000 rows mặc định từ Supabase Data API;
 3. lọc `transcript_id` trong Node.js.
 
-Tài khoản production đã có hơn 1.000 allowlist rows từ các lần thử. 339 rows của transcript hiện tại nằm ngoài trang đầu, nên ứng dụng trả `no_permitted_segments` dù SQL trực tiếp xác nhận chúng tồn tại. Gemini không được gọi.
+339 rows của transcript hiện tại nằm ngoài trang đầu, nên ứng dụng trả `no_permitted_segments` dù SQL trực tiếp xác nhận chúng tồn tại. Gemini không được gọi.
 
-PR #39 sửa bằng cách lấy `canonical_transcript_id` trước rồi lọc allowlist ngay trong Postgres bằng cả `owner_user_id` và `transcript_id`. Unit test mới mô phỏng đúng 1.000 rows cũ che mất transcript hiện tại. Full CI run #134 xanh toàn bộ.
+PR #39 sửa bằng cách lấy `canonical_transcript_id` trước rồi lọc allowlist ngay trong Postgres bằng cả `owner_user_id` và `transcript_id`. Unit test mô phỏng đúng 1.000 rows cũ che mất transcript hiện tại. Full CI run #134 xanh toàn bộ.
+
+### Acceptance production sau sửa
+
+Ngày 2026-08-06, sau PR #39 và PR #41:
+
+- permitted segments: 339;
+- provider/model: Gemini Standard / `gemini-3.5-flash-lite`;
+- lesson step: 15.578 ms;
+- tổng endpoint acceptance: 17.638 ms;
+- outcome: `published`;
+- trạng thái cuối: `completed`;
+- input/output tokens: 5.552 / 1.280;
+- lesson rows cho job: 1;
+- citation count: 16;
+- 16/16 citation thuộc canonical transcript;
+- 16/16 citation thuộc allowlist;
+- 16/16 citation khớp tuyệt đối text, start và end với transcript segment;
+- endpoint acceptance một lần đã bị xóa;
+- cleanup deployment `a50cbeda4421bab6c383fb32aad196fa1e7c6a64` READY;
+- production route acceptance trả 404; trang chính trả 200.
 
 ### Các lớp bảo vệ đã thêm
 
 - PR #38: workflow fail closed nếu kết thúc mà job vẫn là `analyzing_video`.
-- Gemini production trở lại Standard tier; không dùng Flex cho UX tương tác.
-- Migration watchdog đã được áp thật lên Supabase production: quét 2 phút, ngưỡng 5 phút.
+- Gemini production dùng Standard tier; không dùng Flex cho UX tương tác.
+- Watchdog Supabase quét mỗi 2 phút với ngưỡng 5 phút.
+- PR #41: structured event + privacy-safe schema + workflow boundary tests + production runbook.
 - Incident memory: `docs/production-incidents/2026-08-06-analyzing-video-stall.md`.
-- Mọi route chẩn đoán một lần đã được xóa; production trả 404.
-
-### Phần chưa được kiểm chứng
-
-Chưa chạy lại một bài học production sau PR #39. Acceptance này sẽ:
-
-- ghi lesson thật vào Supabase;
-- gọi Gemini Standard và tiêu quota/chi phí;
-- có thể cần đưa một failed job về trạng thái có thể chạy lại hoặc tạo job mới.
-
-Do đó trạng thái là **blocked — cần cho phép production data write + provider quota**. Không được tuyên bố sự cố đã hết hoàn toàn trước acceptance này.
 
 ## 5. Milestone
 
@@ -92,6 +105,8 @@ Tiêu chí hoàn thành:
 - lỗi provider được log bằng mã an toàn, không log transcript hoặc secret;
 - full CI xanh tại commit production.
 
+**Tiến độ: 1/3 lượt, 1/2 video.** Lượt đầu đã pass toàn bộ grounding và persistence checks. Hai lượt còn lại cần quyền ghi production và tiêu provider quota riêng.
+
 ### M1 — Chẩn đoán được production mà không dựng route tạm
 
 Mục tiêu: mỗi bước provider/workflow có structured telemetry đủ để biết job dừng ở đâu, trong bao lâu và vì loại lỗi nào.
@@ -103,6 +118,8 @@ Tiêu chí hoàn thành:
 - có runbook truy vấn Vercel logs + Supabase state;
 - test xác nhận redaction và event shape;
 - một failure test có thể xác định nguyên nhân chỉ từ log và database.
+
+**Tiến độ:** success path đã được quan sát thật trên Vercel Runtime Logs; failure path đã được khóa bằng unit test nhưng chưa chủ động gây lỗi production.
 
 ### M2 — Transcript fallback có kiểm soát
 
@@ -116,10 +133,10 @@ Sau khi generation ổn định: lesson activities/feedback, trạng thái hoàn
 
 | Ưu tiên | Việc | Tác động | Chi phí/rủi ro | Trạng thái |
 |---|---|---|---|---|
-| P0 | Acceptance production sau PR #39 | Chứng minh sửa đúng luồng thật | Ghi dữ liệu + tốn Gemini quota | **Blocked: cần cho phép** |
-| P0 | Structured observability cho generation providers/workflow | Giảm thời gian chẩn đoán, bỏ route tạm | Thấp; cần giữ privacy | Ready |
-| P1 | Reconcile `project-context.md`, README và sprint tracker | AI/maintainer không làm theo trạng thái cũ | Thấp | In progress |
-| P1 | Production runbook + incident checklist | Chẩn đoán nhất quán | Thấp | Ready |
+| P0 | Hoàn tất M0 bằng 2 acceptance production còn lại trên ít nhất 1 video khác | Chứng minh độ ổn định, không chỉ sửa một case | Ghi dữ liệu + Gemini/Supadata quota | **Blocked: cần cho phép từng đợt** |
+| P0 | Structured observability cho generation | Giảm thời gian chẩn đoán, bỏ route tạm | Thấp; privacy-sensitive | **Done + success path verified** |
+| P1 | Rà soát các Supabase query owner-wide rồi lọc client-side | Ngăn lặp lại lỗi giới hạn 1.000 rows | Thấp | Ready |
+| P1 | Đồng bộ README và BMAD sprint tracker với trạng thái code | Tránh agent làm theo trạng thái cũ | Thấp | Partial |
 | P1 | Kiểm tra lại flaky unavailable-video journey | Giữ CI đáng tin | Trung bình; cần bằng chứng trước sửa | Ready |
 | P2 | Gemini URL transcript fallback | Tăng coverage video | Provider quota + chất lượng ASR | Chờ M0/M1 |
 | P2 | Quota/circuit breaker/cancellation hoàn chỉnh | Bảo vệ provider và UX | Trung bình | Backlog |
@@ -130,21 +147,23 @@ Sau khi generation ổn định: lesson activities/feedback, trạng thái hoàn
 
 ### Đang làm
 
-- Cập nhật kế hoạch sống và đánh dấu các tracker cũ bị lệch.
-- Chuẩn bị thiết kế structured observability không chứa dữ liệu nhạy cảm.
+- Rà soát các query Supabase có nguy cơ lặp lại lỗi client-side filtering sau row cap.
+- Đồng bộ tracker/tài liệu còn chậm hơn code.
 
 ### Đã hoàn thành trong vòng lặp hiện tại
 
 - Chẩn đoán job production bằng Vercel logs + Supabase state.
-- Xác minh migration watchdog chưa được áp rồi áp và kiểm tra runtime.
+- Áp và kiểm tra migration watchdog production.
 - PR #38: terminal invariant + Standard Gemini; full CI xanh; production READY.
-- Tái hiện nguyên nhân allowlist bị cắt ở 1.000 rows.
-- PR #39: filter allowlist tại database + regression test; full CI xanh; merged.
-- Xóa toàn bộ route chẩn đoán tạm và xác minh production 404.
+- PR #39: filter allowlist tại database + regression test; merged.
+- PR #41: structured observability + runbook + privacy tests; full CI run #141 xanh; merged và deployed.
+- Chạy đúng một production acceptance được cho phép.
+- Xác minh lesson provenance và grounding bằng SQL.
+- Xóa endpoint acceptance và xác minh production 404 + homepage 200.
 
 ### Bị chặn
 
-- Production acceptance thật sau PR #39: cần quyền ghi dữ liệu production và tiêu Gemini quota.
+- Hai acceptance production còn lại của M0 cần quyền ghi dữ liệu thật và tiêu provider quota mới.
 
 ## 8. Definition of Done cho mỗi thay đổi
 
@@ -186,19 +205,20 @@ CI gate phải xanh; không merge bằng cách bỏ job, giảm assertion hoặc
 
 ## 10. Rủi ro
 
-- **Thiếu observability:** lỗi provider hiện chưa để lại đủ nguyên nhân an toàn.
-- **Tracker drift:** BMAD sprint status và project context có thể khiến agent quay lại làm việc đã xong hoặc bỏ qua lỗi production.
-- **Fixture confidence:** CI fixtures không chứng minh YouTube/Supadata/Gemini thật; provider changes luôn cần integration/full-real path hoặc acceptance production được cho phép.
+- **M0 mới đạt 1/3 lượt:** chưa đủ bằng chứng để tuyên bố toàn bộ production path ổn định trên nhiều video.
+- **Failure telemetry chưa quan sát thật:** success path đã xác minh; failure path mới có test.
+- **Tracker drift:** README/BMAD sprint status có thể khiến agent quay lại làm việc đã xong.
+- **Fixture confidence:** CI fixtures không chứng minh YouTube/Supadata/Gemini thật.
 - **Quota/cost:** Supadata Free chỉ 100 credits/tháng; Gemini acceptance tiêu quota và có thể phát sinh phí khi billing bật.
 - **Data API limits:** mọi query owner-wide có client-side filtering cần được rà soát để tránh giới hạn 1.000 rows tương tự.
-- **Auto deploy:** commit vào `main` có thể kích hoạt Vercel production; code changes phải dừng ở PR khi chưa có quyền deploy.
+- **Auto deploy:** commit runtime vào `main` kích hoạt Vercel production; code changes phải dừng ở PR khi chưa có quyền deploy.
 
 ## 11. Việc tiếp theo
 
-1. Hoàn thành PR tài liệu để kế hoạch sống phản ánh đúng production.
-2. Tạo PR structured observability cho generation path, chạy full CI nhưng không merge/deploy production khi chưa được cho phép.
-3. Khi được cho phép: chạy acceptance production sau PR #39, ghi lại elapsed time, permitted segment count, lesson provenance và citations; không giữ route tạm.
-4. Dựa trên acceptance: đóng M0 hoặc tiếp tục chẩn đoán lỗi thật tiếp theo.
+1. Rà soát toàn bộ Supabase repositories để tìm query owner-wide rồi lọc client-side; chỉ sửa khi có bằng chứng.
+2. Đồng bộ README và sprint tracker với production stabilization.
+3. Điều tra flaky unavailable-video journey từ workflow history/log thật, không thêm retry mù.
+4. Khi được cho phép mới chạy hai acceptance production còn lại của M0.
 
 ## 12. Việc không nên làm lại
 
