@@ -81,7 +81,10 @@ select throws_ok(
       'a6666666-6666-4666-8666-666666666666',
       'a2222222-2222-4222-8222-222222222222',
       'lesson:v2',
-      '{"schemaVersion":"lesson:v2","activities":[]}'::jsonb
+      '{
+        "schemaVersion":"lesson:v2",
+        "activities":[{"id":"activity_gist","phase":"gist"}]
+      }'::jsonb
     )$$,
   '23503',
   null,
@@ -95,7 +98,10 @@ insert into public.lesson_versions (
   'a6666666-6666-4666-8666-666666666666',
   'a1111111-1111-4111-8111-111111111111',
   'lesson:v2',
-  '{"schemaVersion":"lesson:v2","activities":[{"id":"activity_gist"}]}'::jsonb
+  '{
+    "schemaVersion":"lesson:v2",
+    "activities":[{"id":"activity_gist","phase":"gist"}]
+  }'::jsonb
 );
 
 select throws_ok(
