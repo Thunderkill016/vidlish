@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { fetchAllRows } from "@/adapters/supabase/fetch-all-rows";
 import type {
   LessonRepository,
   LessonSummary,
@@ -52,32 +53,36 @@ export class SupabaseLessonRepository implements LessonRepository {
     const transcriptId = job.data?.canonical_transcript_id;
     if (!transcriptId) return [];
 
-    // Filter the authoritative allowlist in Postgres, not after downloading an
-    // owner's entire history. Supabase caps Data API selects at 1,000 rows by
-    // default; client-side filtering silently lost newer transcripts once an
-    // owner crossed that limit and made eligible jobs look empty.
-    const allowed = await this.client
-      .from("language_eligible_segments")
-      .select("segment_id")
-      .eq("owner_user_id", ownerUserId)
-      .eq("transcript_id", transcriptId);
-    if (allowed.error) throw allowed.error;
+    // Filter the authoritative allowlist in Postgres and page the complete
+    // transcript-scoped result. Supabase caps each Data API response at the
+    // project max_rows value, even when the query itself succeeds.
+    const allowedRows = await fetchAllRows((from, to) =>
+      this.client
+        .from("language_eligible_segments")
+        .select("segment_id", { count: "exact" })
+        .eq("owner_user_id", ownerUserId)
+        .eq("transcript_id", transcriptId)
+        .order("segment_id", { ascending: true })
+        .range(from, to),
+    );
 
     const permittedIds = new Set(
       z
         .array(z.object({ segment_id: z.string() }))
-        .parse(allowed.data ?? [])
+        .parse(allowedRows)
         .map((row) => row.segment_id),
     );
     if (permittedIds.size === 0) return [];
 
-    const segments = await this.client
-      .from("transcript_segments")
-      .select("id,start_ms,end_ms,text")
-      .eq("transcript_id", transcriptId)
-      .eq("owner_user_id", ownerUserId)
-      .order("position", { ascending: true });
-    if (segments.error) throw segments.error;
+    const segmentRows = await fetchAllRows((from, to) =>
+      this.client
+        .from("transcript_segments")
+        .select("id,start_ms,end_ms,text", { count: "exact" })
+        .eq("transcript_id", transcriptId)
+        .eq("owner_user_id", ownerUserId)
+        .order("position", { ascending: true })
+        .range(from, to),
+    );
 
     return z
       .array(
@@ -88,7 +93,7 @@ export class SupabaseLessonRepository implements LessonRepository {
           text: z.string(),
         }),
       )
-      .parse(segments.data ?? [])
+      .parse(segmentRows)
       .filter((segment) => permittedIds.has(segment.id))
       .map((segment) => ({
         id: segment.id,
@@ -126,9 +131,8 @@ export class SupabaseLessonRepository implements LessonRepository {
   }
 
   async listOwned(ownerUserId: string): Promise<LessonSummary[]> {
-    // Only the fields the library renders. `draft->>titleVi` and the vocabulary
-    // length are computed in Postgres so a shelf of lessons never ships every
-    // draft over the wire.
+    // Only the fields the library renders. The explicit limit is a product
+    // choice for the private beta shelf, not an accidental Data API truncation.
     const result = await this.client
       .from("lessons")
       .select(
