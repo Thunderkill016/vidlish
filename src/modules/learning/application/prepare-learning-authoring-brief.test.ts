@@ -6,7 +6,10 @@ import {
   prepareLearningAuthoringBrief,
 } from "@/modules/learning/application/prepare-learning-authoring-brief";
 import type { LanguageEligibilityReport } from "@/shared/contracts/language-eligibility";
-import type { ConstrainedDiagnosisProposal } from "@/shared/contracts/learning-generation-v2";
+import type {
+  CandidateLanguageProposal,
+  ConstrainedDiagnosisProposal,
+} from "@/shared/contracts/learning-generation-v2";
 import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
 import type { CanonicalTranscript } from "@/shared/contracts/transcript";
 
@@ -127,6 +130,49 @@ function createLearnerSnapshot(): LearnerContextSnapshot {
   };
 }
 
+type CandidateInput = Pick<
+  CandidateLanguageProposal,
+  "id" | "key" | "surfaceForm" | "sourceSegmentIds" | "outcomeIds"
+> &
+  Partial<
+    Omit<
+      CandidateLanguageProposal,
+      "id" | "key" | "surfaceForm" | "sourceSegmentIds" | "outcomeIds"
+    >
+  >;
+
+function createCandidate(input: CandidateInput): CandidateLanguageProposal {
+  return {
+    id: input.id,
+    key: input.key,
+    surfaceForm: input.surfaceForm,
+    normalizedForm:
+      input.normalizedForm ?? input.surfaceForm.toLocaleLowerCase("en-US"),
+    sourceSegmentIds: input.sourceSegmentIds,
+    outcomeIds: input.outcomeIds,
+    kind: input.kind ?? "chunk",
+    contextualMeaningVi:
+      input.contextualMeaningVi ?? "ý nghĩa theo ngữ cảnh của đoạn nguồn",
+    communicativeFunctionVi:
+      input.communicativeFunctionVi ?? "thực hiện một chức năng giao tiếp rõ ràng",
+    register: input.register ?? "neutral",
+    corpusFrequencyBand: input.corpusFrequencyBand ?? "mid",
+    evidenceConfidence: input.evidenceConfidence ?? 0.95,
+    properNounOrTrivia: input.properNounOrTrivia ?? false,
+    generatedScenarioPossible: input.generatedScenarioPossible ?? true,
+    scoringHints: input.scoringHints ?? {
+      outcomeRelevance: 0.85,
+      transferValue: 0.8,
+      contextualClarity: 0.95,
+      pragmaticRegisterValue: 0.65,
+      acousticTeachability: 0.55,
+    },
+    rationaleVi:
+      input.rationaleVi ??
+      "Candidate có nguồn rõ, chức năng giao tiếp rõ và có thể chuyển giao.",
+  };
+}
+
 function createProposal(): ConstrainedDiagnosisProposal {
   return {
     proposalVersion: "learning-diagnosis-proposal:v2",
@@ -155,22 +201,13 @@ function createProposal(): ConstrainedDiagnosisProposal {
           },
         ],
         itemCandidates: [
-          {
+          createCandidate({
             id: "candidate_member_of",
             key: "a-member-of",
             surfaceForm: "a member of",
-            normalizedForm: "a member of",
             sourceSegmentIds: [segA],
             outcomeIds: ["outcome_affiliation"],
-            kind: "chunk",
-            contextualMeaningVi: "một thành viên thuộc một nhóm hoặc tổ chức",
-            communicativeFunctionVi:
-              "giới thiệu mối liên hệ của người nói với một tập thể",
-            register: "neutral",
             corpusFrequencyBand: "high",
-            evidenceConfidence: 0.98,
-            properNounOrTrivia: false,
-            generatedScenarioPossible: true,
             scoringHints: {
               outcomeRelevance: 0.98,
               transferValue: 0.95,
@@ -178,85 +215,29 @@ function createProposal(): ConstrainedDiagnosisProposal {
               pragmaticRegisterValue: 0.8,
               acousticTeachability: 0.7,
             },
-            rationaleVi:
-              "Cụm ngắn, có chức năng giao tiếp rõ và learner đang đánh dấu là điểm yếu.",
-          },
-          {
+          }),
+          createCandidate({
             id: "candidate_different_ways",
             key: "different-ways-of",
             surfaceForm: "different ways of",
-            normalizedForm: "different ways of",
             sourceSegmentIds: [segB],
             outcomeIds: ["outcome_main_topic"],
-            kind: "chunk",
-            contextualMeaningVi: "nhiều cách khác nhau để thực hiện một việc",
-            communicativeFunctionVi:
-              "mở ra một danh sách lựa chọn hoặc phương án",
-            register: "neutral",
-            corpusFrequencyBand: "mid",
-            evidenceConfidence: 0.96,
-            properNounOrTrivia: false,
-            generatedScenarioPossible: true,
-            scoringHints: {
-              outcomeRelevance: 0.86,
-              transferValue: 0.84,
-              contextualClarity: 0.95,
-              pragmaticRegisterValue: 0.68,
-              acousticTeachability: 0.55,
-            },
-            rationaleVi:
-              "Cụm có thể tái sử dụng khi trình bày nhiều lựa chọn trong context mới.",
-          },
-          {
+          }),
+          createCandidate({
             id: "candidate_invented",
             key: "invented-phrase",
             surfaceForm: "invented phrase",
-            normalizedForm: "invented phrase",
             sourceSegmentIds: [segB],
             outcomeIds: ["outcome_main_topic"],
-            kind: "chunk",
-            contextualMeaningVi: "một cụm không tồn tại trong nguồn",
-            communicativeFunctionVi: "không có chức năng nguồn đáng tin",
-            register: "neutral",
-            corpusFrequencyBand: "unknown",
-            evidenceConfidence: 0.9,
-            properNounOrTrivia: false,
-            generatedScenarioPossible: true,
-            scoringHints: {
-              outcomeRelevance: 0.8,
-              transferValue: 0.8,
-              contextualClarity: 0.8,
-              pragmaticRegisterValue: 0.5,
-              acousticTeachability: 0.5,
-            },
-            rationaleVi:
-              "Candidate này cố tình sai để kiểm tra deterministic grounding gate.",
-          },
-          {
+          }),
+          createCandidate({
             id: "candidate_player",
             key: "player",
             surfaceForm: "player",
-            normalizedForm: "player",
             sourceSegmentIds: [segB],
             outcomeIds: ["outcome_main_topic"],
             kind: "word",
-            contextualMeaningVi: "trình phát nội dung đa phương tiện",
-            communicativeFunctionVi: "gọi tên thành phần đang được trình bày",
-            register: "technical",
-            corpusFrequencyBand: "high",
-            evidenceConfidence: 0.95,
-            properNounOrTrivia: false,
-            generatedScenarioPossible: true,
-            scoringHints: {
-              outcomeRelevance: 0.8,
-              transferValue: 0.7,
-              contextualClarity: 0.95,
-              pragmaticRegisterValue: 0.4,
-              acousticTeachability: 0.4,
-            },
-            rationaleVi:
-              "Từ có nguồn rõ nhưng learner vừa retrieve thành công nên chưa đến lượt ôn.",
-          },
+          }),
         ],
       },
       {
@@ -273,32 +254,15 @@ function createProposal(): ConstrainedDiagnosisProposal {
           },
         ],
         itemCandidates: [
-          {
+          createCandidate({
             id: "candidate_player_parameters",
             key: "player-parameters",
             surfaceForm: "player parameters",
-            normalizedForm: "player parameters",
             sourceSegmentIds: [segC],
             outcomeIds: ["outcome_parameters"],
-            kind: "chunk",
-            contextualMeaningVi: "các tham số điều khiển trình phát",
-            communicativeFunctionVi:
-              "chỉ nhóm thiết lập kỹ thuật sắp được giải thích",
             register: "technical",
             corpusFrequencyBand: "low",
-            evidenceConfidence: 0.94,
-            properNounOrTrivia: false,
-            generatedScenarioPossible: true,
-            scoringHints: {
-              outcomeRelevance: 0.82,
-              transferValue: 0.68,
-              contextualClarity: 0.94,
-              pragmaticRegisterValue: 0.45,
-              acousticTeachability: 0.45,
-            },
-            rationaleVi:
-              "Candidate grounded và rõ nhưng nằm ở window thứ hai ngoài budget 5 phút.",
-          },
+          }),
         ],
       },
       {
@@ -315,31 +279,18 @@ function createProposal(): ConstrainedDiagnosisProposal {
           },
         ],
         itemCandidates: [
-          {
+          createCandidate({
             id: "candidate_acme_platform",
             key: "acme-platform",
             surfaceForm: "Acme Platform",
             normalizedForm: "acme platform",
             sourceSegmentIds: [segD],
             outcomeIds: ["outcome_background_detail"],
-            kind: "chunk",
-            contextualMeaningVi: "tên riêng của một nền tảng",
-            communicativeFunctionVi: "gọi tên một sản phẩm cụ thể",
             register: "technical",
             corpusFrequencyBand: "low",
-            evidenceConfidence: 0.9,
             properNounOrTrivia: true,
             generatedScenarioPossible: false,
-            scoringHints: {
-              outcomeRelevance: 0.2,
-              transferValue: 0.1,
-              contextualClarity: 0.9,
-              pragmaticRegisterValue: 0.1,
-              acousticTeachability: 0.2,
-            },
-            rationaleVi:
-              "Tên riêng không phục vụ outcome giao tiếp và không đáng chiếm cognitive budget.",
-          },
+          }),
         ],
       },
     ],
@@ -416,6 +367,7 @@ describe("prepareLearningAuthoringBrief", () => {
       "candidate_member_of",
       "candidate_different_ways",
     ]);
+    expect(prepared.selection.selectedItems).toHaveLength(2);
     expect(prepared.selection.selectedItems[0].score.learnerGap).toBe(1);
     expect(prepared.selection.rejections).toEqual(
       expect.arrayContaining([
@@ -433,7 +385,7 @@ describe("prepareLearningAuthoringBrief", () => {
         },
         {
           candidateId: "candidate_player_parameters",
-          reason: "BUDGET_LIMIT",
+          reason: "DIVERSITY_LIMIT",
         },
       ]),
     );
