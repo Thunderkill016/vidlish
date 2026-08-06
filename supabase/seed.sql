@@ -86,6 +86,16 @@ insert into public.lesson_versions (
   '70000000-0000-4000-8000-000000000004',
   '133f314f-4bfd-46aa-8fc6-b6a33252232b',
   'lesson:v2',
-  '{"schemaVersion":"lesson:v2","fixtureId":"golden-session-v1"}'::jsonb
+  '{
+    "schemaVersion":"lesson:v2",
+    "fixtureId":"golden-session-v1",
+    "activities":[
+      {"id":"activity_gist"},
+      {"id":"activity_meaning"},
+      {"id":"activity_recall"},
+      {"id":"activity_transfer"},
+      {"id":"activity_exit"}
+    ]
+  }'::jsonb
 )
 on conflict (id) do nothing;
