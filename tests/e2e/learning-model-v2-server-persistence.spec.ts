@@ -1,4 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
+import { createClient } from "@supabase/supabase-js";
 
 test.describe.configure({ retries: 0 });
 test.skip(
@@ -204,4 +205,42 @@ test("server-backed golden session preserves retry transfer and privacy boundari
     submitted: true,
   });
   expect(exitEvidence).not.toHaveProperty("text");
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SECRET_KEY;
+  expect(supabaseUrl).toBeTruthy();
+  expect(serviceKey).toBeTruthy();
+  const admin = createClient(supabaseUrl!, serviceKey!, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+      detectSessionInUrl: false,
+    },
+  });
+  const { data: attempts, error: attemptsError } = await admin
+    .from("activity_attempts")
+    .select("activity_id,attempt_number,idempotency_key,response")
+    .eq("session_id", sessionId)
+    .order("submitted_at", { ascending: true });
+
+  expect(attemptsError).toBeNull();
+  expect(
+    attempts?.map((attempt) => [
+      attempt.activity_id,
+      attempt.attempt_number,
+      attempt.idempotency_key,
+    ]),
+  ).toEqual([
+    ["activity_gist", 1, "71111111-1111-4111-8111-111111111111"],
+    ["activity_gist", 2, "72222222-2222-4222-8222-222222222222"],
+    ["activity_meaning", 1, "73333333-3333-4333-8333-333333333333"],
+    ["activity_recall", 1, "74444444-4444-4444-8444-444444444444"],
+    ["activity_transfer", 1, "75555555-5555-4555-8555-555555555555"],
+    ["activity_transfer", 2, "76666666-6666-4666-8666-666666666666"],
+    ["activity_exit", 1, "77777777-7777-4777-8777-777777777778"],
+  ]);
+  for (const attempt of attempts ?? []) {
+    const response = attempt.response as Record<string, unknown>;
+    expect(Object.prototype.hasOwnProperty.call(response, "text")).toBe(false);
+  }
 });
