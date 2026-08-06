@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vitest";
 
+import { createFixtureLearningBlueprint } from "@/adapters/fake/fixture-learning-blueprint";
 import {
   evaluateLearningActivity,
   LearningActivityEvaluationError,
 } from "@/modules/learning/application/evaluate-learning-activity";
-import { validLearningBlueprint } from "@/shared/contracts/lesson-v2.test";
 
 function activity(type: string) {
-  const found = validLearningBlueprint().activities.find(
+  const found = createFixtureLearningBlueprint().activities.find(
     (candidate) => candidate.activityType === type,
   );
   if (!found) throw new Error(`Missing fixture activity: ${type}`);
