@@ -179,7 +179,7 @@ jobs:
           if-no-files-found: ignore
           retention-days: 5
 
-  durable-learning:
+  durable_learning:
     name: Supabase-backed learning journey
     runs-on: ubuntu-24.04
     timeout-minutes: 30
@@ -256,7 +256,7 @@ jobs:
       - build
       - database
       - e2e
-      - durable-learning
+      - durable_learning
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     env:
@@ -265,7 +265,7 @@ jobs:
       BUILD_RESULT: ${{ needs.build.result }}
       DATABASE_RESULT: ${{ needs.database.result }}
       E2E_RESULT: ${{ needs.e2e.result }}
-      DURABLE_LEARNING_RESULT: ${{ needs['durable-learning'].result }}
+      DURABLE_LEARNING_RESULT: ${{ needs.durable_learning.result }}
     steps:
       - name: Publish CI summary
         run: |
