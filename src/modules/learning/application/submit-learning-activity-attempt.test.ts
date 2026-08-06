@@ -32,6 +32,10 @@ describe("SubmitLearningActivityAttempt", () => {
 
     expect(result.created).toBe(true);
     expect(result.attempt.evaluation.verdict).toBe("correct");
+    expect(result.attempt.responseEvidence).toEqual({
+      kind: "choice",
+      optionId: "option_embedded_player",
+    });
     expect(result.session.currentActivityId).toBe("activity_meaning");
     expect(result.session.currentPhase).toBe("practice");
   });
@@ -75,6 +79,45 @@ describe("SubmitLearningActivityAttempt", () => {
         },
       }),
     ).rejects.toThrow(/not current/i);
+  });
+
+  it("stores only bounded metadata for productive free-text responses", async () => {
+    const { repository, session } = await startedRepository();
+    const useCase = new SubmitLearningActivityAttempt(repository);
+    const blueprint = createFixtureLearningBlueprint();
+
+    await useCase.execute({
+      ownerUserId,
+      sessionId: session.id,
+      blueprint,
+      activityId: "activity_gist",
+      idempotencyKey: "56111111-1111-4111-8111-111111111111",
+      response: { kind: "choice", optionId: "option_embedded_player" },
+    });
+    await useCase.execute({
+      ownerUserId,
+      sessionId: session.id,
+      blueprint,
+      activityId: "activity_meaning",
+      idempotencyKey: "56222222-2222-4222-8222-222222222222",
+      response: { kind: "choice", optionId: "option_affiliation" },
+    });
+    const rawAnswer = "a member of";
+    const result = await useCase.execute({
+      ownerUserId,
+      sessionId: session.id,
+      blueprint,
+      activityId: "activity_recall",
+      idempotencyKey: "56333333-3333-4333-8333-333333333333",
+      response: { kind: "text", text: rawAnswer },
+    });
+
+    expect(result.attempt.responseEvidence).toEqual({
+      kind: "text",
+      submitted: true,
+      characterCount: rawAnswer.length,
+    });
+    expect(JSON.stringify(result.attempt)).not.toContain(rawAnswer);
   });
 
   it("marks the session completed only after the exit ticket attempt", async () => {
@@ -132,5 +175,6 @@ describe("SubmitLearningActivityAttempt", () => {
     expect(last?.session.status).toBe("completed");
     expect(last?.session.currentPhase).toBe("completed");
     expect(last?.session.completedAt).not.toBeNull();
+    expect(JSON.stringify(last?.attempt)).not.toContain("luyện lại chunk");
   });
 });
