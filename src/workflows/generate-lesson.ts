@@ -10,6 +10,7 @@ import {
   resolveLessonFailureStep,
   resolveTranscriptExhaustionStep,
 } from "./generate-lesson.steps";
+import { resolveTranscriptTerminalStateStep } from "./resolve-transcript-terminal-state";
 
 export async function generateLessonWorkflow(
   event: GenerationRequestedEvent,
@@ -35,12 +36,19 @@ export async function generateLessonWorkflow(
     }
   }
 
-  const needsAnotherSource =
+  if (languageOutcome === "insufficient_evidence") {
+    // A canonical transcript can be valid yet too short to satisfy the learning
+    // evidence policy. Treating its successful strategy as "untried" leaves the
+    // job in acquiring_transcript forever because this workflow has no second
+    // acquisition step to execute.
+    await resolveTranscriptTerminalStateStep(
+      jobRef,
+      "TRANSCRIPT_EVIDENCE_TOO_WEAK",
+    );
+  } else if (
     transcriptOutcome.kind === "not_applicable" ||
-    transcriptOutcome.kind === "terminal_failure" ||
-    languageOutcome === "insufficient_evidence";
-
-  if (needsAnotherSource) {
+    transcriptOutcome.kind === "terminal_failure"
+  ) {
     await resolveTranscriptExhaustionStep(jobRef, languageOutcome);
   }
 
@@ -62,6 +70,16 @@ export async function generateLessonWorkflow(
   // outcome such as `skipped`, or the workflow runtime can resume after a
   // partial execution. Either way, a completed workflow must never leave the
   // learner polling an active stage forever.
+  if (finalStatus === "acquiring_transcript") {
+    await resolveTranscriptTerminalStateStep(
+      jobRef,
+      languageOutcome === "insufficient_evidence"
+        ? "TRANSCRIPT_EVIDENCE_TOO_WEAK"
+        : "NO_USABLE_TRANSCRIPT",
+    );
+    finalStatus = await loadFinalGenerationStateStep(jobRef);
+  }
+
   if (finalStatus === "checking_language") {
     const resolution = await resolveLanguageFailureStep(jobRef);
     languageOutcome =
