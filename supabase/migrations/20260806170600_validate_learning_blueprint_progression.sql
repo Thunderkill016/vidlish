@@ -14,7 +14,7 @@ as $$
 declare
   v_activity_count integer;
 begin
-  if jsonb_typeof(p_blueprint -> 'activities') <> 'array' then
+  if jsonb_typeof(p_blueprint -> 'activities') is distinct from 'array' then
     return false;
   end if;
 
