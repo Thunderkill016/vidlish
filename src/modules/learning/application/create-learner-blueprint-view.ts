@@ -72,8 +72,8 @@ export type LearnerBlueprintView = Pick<
   | "learnerSnapshot"
   | "videoProfile"
   | "outcomes"
-  | "targetItems"
 > & {
+  targetItems: Array<{ id: string; itemKey: string }>;
   activities: LearnerActivityView[];
 };
 
@@ -149,7 +149,10 @@ export function createLearnerBlueprintView(
     learnerSnapshot: blueprint.learnerSnapshot,
     videoProfile: blueprint.videoProfile,
     outcomes: blueprint.outcomes,
-    targetItems: blueprint.targetItems,
+    targetItems: blueprint.targetItems.map((item) => ({
+      id: item.id,
+      itemKey: item.itemKey,
+    })),
     activities,
   };
 }
