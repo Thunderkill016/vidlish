@@ -4,6 +4,7 @@ import type {
   ActivityResponse,
   LessonBlueprintV2,
 } from "@/shared/contracts/lesson-v2";
+import { createPrivacySafeActivityResponse } from "@/shared/contracts/privacy-safe-learning-evidence";
 
 export class LearningSessionProgressError extends Error {
   readonly name = "LearningSessionProgressError";
@@ -39,6 +40,7 @@ export class SubmitLearningActivityAttempt {
     }
 
     const evaluation = evaluateLearningActivity(activity, input.response);
+    const responseEvidence = createPrivacySafeActivityResponse(input.response);
     const nextActivity = input.blueprint.activities[activityIndex + 1];
     const complete = !nextActivity;
 
@@ -50,7 +52,7 @@ export class SubmitLearningActivityAttempt {
       sessionId: input.sessionId,
       activityId: activity.id,
       idempotencyKey: input.idempotencyKey,
-      response: input.response,
+      responseEvidence,
       evaluation,
       nextPhase: nextActivity?.phase ?? "completed",
       nextActivityId: nextActivity?.id ?? activity.id,
