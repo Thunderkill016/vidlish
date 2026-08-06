@@ -138,7 +138,7 @@ jobs:
           version: 2.111.0
       - name: Show Supabase CLI version
         run: supabase --version
-      - name: Rebuild local database from migrations and seed
+      - name: Rebuild local database from migrations and baseline seed
         run: |
           supabase db start
           supabase db reset --local --yes
@@ -184,7 +184,7 @@ jobs:
   durable_learning:
     name: Supabase-backed learning journey
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 35
     env:
       AUTH_ADAPTER: fake
       AUTH_FAKE_CODE: "123456"
@@ -214,11 +214,26 @@ jobs:
         run: pnpm install --frozen-lockfile --prefer-offline
       - name: Install Chromium headless shell
         run: pnpm exec playwright install --with-deps --only-shell chromium
-      - name: Start isolated local Supabase
+      - name: Start clean isolated Supabase and run pgTAP
         run: |
           supabase start
-          supabase db reset --local --yes
+          supabase db reset --local --yes --no-seed
           supabase test db
+      - name: Load dedicated durable Golden Session fixture
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+          supabase status -o env > /tmp/supabase-status.env
+          set -a
+          source /tmp/supabase-status.env
+          set +a
+          test -n "${DB_URL:-}"
+          echo "::add-mask::$DB_URL"
+          psql "$DB_URL" \
+            --set ON_ERROR_STOP=1 \
+            --file supabase/fixtures/learning_model_v2_durable.sql
       - name: Export local Supabase API credentials
         run: |
           supabase status -o env \
@@ -234,6 +249,7 @@ jobs:
             NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
             SUPABASE_SECRET_KEY; do
             value="${!name}"
+            test -n "$value"
             echo "::add-mask::$value"
             printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
           done
@@ -242,6 +258,8 @@ jobs:
           pnpm exec playwright test
           tests/e2e/learning-model-v2-server-persistence.spec.ts
           --project=chromium
+          --workers=1
+          --retries=0
       - name: Upload durable failure evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
