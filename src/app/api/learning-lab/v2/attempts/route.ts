@@ -1,6 +1,7 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { createGoldenSessionLearningBlueprint } from "@/adapters/fake/fixture-golden-learning-blueprint";
+import { evaluateLearningActivity } from "@/modules/learning/application/evaluate-learning-activity";
 import { SubmitLearningActivityAttempt } from "@/modules/learning/application/submit-learning-activity-attempt";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningSessionRepository } from "@/platform/learning/create-learning-session-repository";
@@ -42,17 +43,21 @@ export async function POST(request: NextRequest) {
     );
     if (!activity) throw authErrors.rejected();
 
-    const persisted = await new SubmitLearningActivityAttempt(
-      createLearningSessionRepository(),
-    ).execute({
-      ownerUserId: access.userId,
-      sessionId: parsed.data.sessionId,
-      blueprint,
-      activityId: parsed.data.activityId,
-      idempotencyKey: parsed.data.idempotencyKey,
-      response: parsed.data.response,
-    });
-    const evaluation = persisted.attempt.evaluation;
+    const persisted = parsed.data.sessionId
+      ? await new SubmitLearningActivityAttempt(
+          createLearningSessionRepository(),
+        ).execute({
+          ownerUserId: access.userId,
+          sessionId: parsed.data.sessionId,
+          blueprint,
+          activityId: parsed.data.activityId,
+          idempotencyKey: parsed.data.idempotencyKey,
+          response: parsed.data.response,
+        })
+      : null;
+    const evaluation =
+      persisted?.attempt.evaluation ??
+      evaluateLearningActivity(activity, parsed.data.response);
     const evidenceIds = new Set(
       evaluation.evidenceRefs.flatMap((reference) =>
         reference.sourceSegmentIds,
@@ -78,9 +83,13 @@ export async function POST(request: NextRequest) {
       activityId: activity.id,
       idempotencyKey: parsed.data.idempotencyKey,
       evaluation,
-      persistedAttempt: persisted.attempt,
-      session: persisted.session,
-      created: persisted.created,
+      ...(persisted
+        ? {
+            persistedAttempt: persisted.attempt,
+            session: persisted.session,
+            created: persisted.created,
+          }
+        : {}),
       hydratedEvidence,
       ...(activity.activityType === "guided_transfer"
         ? { selfCheckCriteriaVi: activity.evaluation.criteriaVi }
@@ -105,7 +114,7 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json(payload, {
-      status: persisted.created ? 201 : 200,
+      status: persisted?.created ? 201 : 200,
       headers: { "Cache-Control": "private, no-store" },
     });
   } catch (error) {
