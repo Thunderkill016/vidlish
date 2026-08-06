@@ -65,7 +65,7 @@ describe("SubmitLearningActivityAttempt progression", () => {
       blueprint,
       activityId: "activity_gist",
       idempotencyKey: "41111111-1111-4111-8111-111111111111",
-      response: { kind: "choice", optionId: "option_unrelated_topic" },
+      response: { kind: "choice", optionId: "option_camera_hardware" },
     });
 
     expect(wrong.attempt.evaluation.verdict).toBe("incorrect");
