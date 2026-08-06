@@ -25,7 +25,7 @@ env:
   SUPABASE_SECRET_KEY: test-secret-key
   AUTH_ADAPTER: fake
   AUTH_FAKE_CODE: "123456"
-  TEST_BETA_EMAILS: invited@example.com
+  TEST_BETA_EMAILS: invited@example.com,fresh@example.com,learning-preview@example.com
   VIDEO_METADATA_ADAPTER: fixture
   YOUTUBE_VIEWER_REGION: VN
   YOUTUBE_METADATA_TIMEOUT_MS: "1000"
@@ -179,6 +179,74 @@ jobs:
           if-no-files-found: ignore
           retention-days: 5
 
+  durable-learning:
+    name: Supabase-backed learning journey
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    env:
+      AUTH_ADAPTER: fake
+      AUTH_FAKE_CODE: "123456"
+      TEST_BETA_EMAILS: learning-preview@example.com
+      LEARNING_SESSION_REPOSITORY: supabase
+      LEARNING_LAB_V2_LESSON_VERSION_ID: 77777777-7777-4777-8777-777777777777
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.15.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.111.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Install Chromium headless shell
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+      - name: Start isolated local Supabase
+        run: |
+          supabase start
+          supabase db reset --local --yes
+          supabase test db
+      - name: Export local Supabase API credentials
+        run: |
+          supabase status -o env > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          echo "::add-mask::$ANON_KEY"
+          echo "::add-mask::$SERVICE_ROLE_KEY"
+          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
+          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+      - name: Run durable Golden Session journey
+        run: >-
+          pnpm exec playwright test
+          tests/e2e/learning-model-v2-server-persistence.spec.ts
+          --project=chromium
+      - name: Upload durable failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: durable-learning-failure-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 5
+      - name: Stop isolated local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
   gate:
     name: CI gate
     if: always()
@@ -188,6 +256,7 @@ jobs:
       - build
       - database
       - e2e
+      - durable-learning
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     env:
@@ -196,6 +265,7 @@ jobs:
       BUILD_RESULT: ${{ needs.build.result }}
       DATABASE_RESULT: ${{ needs.database.result }}
       E2E_RESULT: ${{ needs.e2e.result }}
+      DURABLE_LEARNING_RESULT: ${{ needs.durable-learning.result }}
     steps:
       - name: Publish CI summary
         run: |
@@ -209,6 +279,7 @@ jobs:
             echo "| Production build | $BUILD_RESULT |"
             echo "| Supabase migration and RLS | $DATABASE_RESULT |"
             echo "| Chromium journeys | $E2E_RESULT |"
+            echo "| Supabase-backed learning journey | $DURABLE_LEARNING_RESULT |"
           } >> "$GITHUB_STEP_SUMMARY"
 
           for result in \
@@ -216,7 +287,8 @@ jobs:
             "$UNIT_RESULT" \
             "$BUILD_RESULT" \
             "$DATABASE_RESULT" \
-            "$E2E_RESULT"; do
+            "$E2E_RESULT" \
+            "$DURABLE_LEARNING_RESULT"; do
             if [[ "$result" != "success" ]]; then
               echo "One or more required CI jobs did not succeed."
               exit 1
