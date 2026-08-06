@@ -4,7 +4,20 @@ import {
   activityEvaluationSchema,
   activityResponseSchema,
   sourceEvidenceSchema,
+  targetLanguageItemSchema,
 } from "@/shared/contracts/lesson-v2";
+
+const learnerTargetAfterAttemptSchema = targetLanguageItemSchema
+  .pick({
+    id: true,
+    itemKey: true,
+    surfaceForm: true,
+    contextualMeaningVi: true,
+    communicativeFunctionVi: true,
+    register: true,
+    pronunciationNoteVi: true,
+  })
+  .strict();
 
 export const learningLabAttemptRequestSchema = z
   .object({
@@ -21,6 +34,12 @@ export const learningLabAttemptResponseSchema = z
     evaluation: activityEvaluationSchema,
     hydratedEvidence: z.array(sourceEvidenceSchema).max(16),
     selfCheckCriteriaVi: z.array(z.string().min(5).max(300)).max(4).optional(),
+    postAttemptSupport: z
+      .object({
+        targetItem: learnerTargetAfterAttemptSchema.nullable(),
+        chunkBoundaryText: z.string().min(1).max(1_000).nullable(),
+      })
+      .strict(),
   })
   .strict();
 
@@ -29,4 +48,7 @@ export type LearningLabAttemptRequest = z.infer<
 >;
 export type LearningLabAttemptResponse = z.infer<
   typeof learningLabAttemptResponseSchema
+>;
+export type LearnerTargetAfterAttempt = z.infer<
+  typeof learnerTargetAfterAttemptSchema
 >;
