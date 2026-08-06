@@ -5,8 +5,12 @@ import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
 import { SupabaseLearningSessionRepository } from "@/adapters/supabase/learning-session-repository";
 import type { LearningSessionRepository } from "@/modules/learning/ports/learning-session-repository";
 
-let fakeRepository: InMemoryLearningSessionRepository | undefined;
-let supabaseRepository: SupabaseLearningSessionRepository | undefined;
+type LearningRepositoryGlobal = typeof globalThis & {
+  __vidlishFakeLearningSessionRepository?: InMemoryLearningSessionRepository;
+  __vidlishSupabaseLearningSessionRepository?: SupabaseLearningSessionRepository;
+};
+
+const repositoryGlobal = globalThis as LearningRepositoryGlobal;
 
 function configuredRepository(): "fake" | "supabase" {
   const value =
@@ -28,12 +32,12 @@ function configuredRepository(): "fake" | "supabase" {
 
 export function createLearningSessionRepository(): LearningSessionRepository {
   if (configuredRepository() === "fake") {
-    fakeRepository ??= new InMemoryLearningSessionRepository();
-    return fakeRepository;
+    repositoryGlobal.__vidlishFakeLearningSessionRepository ??=
+      new InMemoryLearningSessionRepository();
+    return repositoryGlobal.__vidlishFakeLearningSessionRepository;
   }
 
-  supabaseRepository ??= new SupabaseLearningSessionRepository(
-    getAdminSupabaseClient(),
-  );
-  return supabaseRepository;
+  repositoryGlobal.__vidlishSupabaseLearningSessionRepository ??=
+    new SupabaseLearningSessionRepository(getAdminSupabaseClient());
+  return repositoryGlobal.__vidlishSupabaseLearningSessionRepository;
 }
