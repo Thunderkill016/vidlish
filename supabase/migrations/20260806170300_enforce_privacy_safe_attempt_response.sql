@@ -1,6 +1,10 @@
 -- Learning Model v2 persists evaluation evidence, not unrestricted learner text.
 -- Choice IDs are bounded contract values. Productive and reflective responses
 -- store only submission metadata and optional criterion indexes.
+--
+-- The application schema is strict about the complete JSON shape. This
+-- database constraint is an independent safety boundary: raw learner text is
+-- always forbidden, and every response kind must contain its bounded evidence.
 
 alter table public.activity_attempts
   add constraint activity_attempts_response_privacy_safe check (
@@ -8,21 +12,23 @@ alter table public.activity_attempts
     and response ->> 'kind' in ('choice', 'text', 'self_check', 'reflection')
     and case response ->> 'kind'
       when 'choice' then
-        jsonb_typeof(response -> 'optionId') = 'string'
-        and jsonb_object_length(response) = 2
+        response ?& array['kind', 'optionId']
+        and jsonb_typeof(response -> 'optionId') = 'string'
       when 'text' then
-        response -> 'submitted' = 'true'::jsonb
+        response ?& array['kind', 'submitted', 'characterCount']
+        and response -> 'submitted' = 'true'::jsonb
         and jsonb_typeof(response -> 'characterCount') = 'number'
-        and jsonb_object_length(response) = 3
       when 'self_check' then
-        response -> 'submitted' = 'true'::jsonb
+        response ?& array[
+          'kind', 'submitted', 'characterCount', 'checkedCriteria'
+        ]
+        and response -> 'submitted' = 'true'::jsonb
         and jsonb_typeof(response -> 'characterCount') = 'number'
         and jsonb_typeof(response -> 'checkedCriteria') = 'array'
-        and jsonb_object_length(response) = 4
       when 'reflection' then
-        response -> 'submitted' = 'true'::jsonb
+        response ?& array['kind', 'submitted', 'characterCount']
+        and response -> 'submitted' = 'true'::jsonb
         and jsonb_typeof(response -> 'characterCount') = 'number'
-        and jsonb_object_length(response) = 3
       else false
     end
   );
