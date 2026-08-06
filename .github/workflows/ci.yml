@@ -138,8 +138,10 @@ jobs:
           version: 2.111.0
       - name: Show Supabase CLI version
         run: supabase --version
-      - name: Start local database and apply migrations
-        run: supabase db start
+      - name: Rebuild local database from migrations and seed
+        run: |
+          supabase db start
+          supabase db reset --local --yes
       - name: Run pgTAP tests
         run: supabase test db
 
