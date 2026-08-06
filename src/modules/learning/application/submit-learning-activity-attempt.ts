@@ -37,16 +37,14 @@ export class SubmitLearningActivityAttempt {
         "Activity does not belong to this lesson blueprint.",
       );
     }
-    if (session.currentActivityId !== activity.id) {
-      throw new LearningSessionProgressError(
-        "Activity is not current for this learning session.",
-      );
-    }
 
     const evaluation = evaluateLearningActivity(activity, input.response);
     const nextActivity = input.blueprint.activities[activityIndex + 1];
     const complete = !nextActivity;
 
+    // The repository resolves an owned idempotency key before checking the
+    // current activity. A network retry may arrive after the first request has
+    // already advanced the session and must still return the original attempt.
     return this.repository.recordAttempt({
       ownerUserId: input.ownerUserId,
       sessionId: input.sessionId,
