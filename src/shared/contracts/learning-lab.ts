@@ -3,9 +3,11 @@ import { z } from "zod";
 import {
   activityEvaluationSchema,
   activityResponseSchema,
+  lessonSessionSchema,
   sourceEvidenceSchema,
   targetLanguageItemSchema,
 } from "@/shared/contracts/lesson-v2";
+import { privacySafeActivityAttemptSchema } from "@/shared/contracts/privacy-safe-learning-evidence";
 
 const learnerTargetAfterAttemptSchema = targetLanguageItemSchema
   .pick({
@@ -19,8 +21,16 @@ const learnerTargetAfterAttemptSchema = targetLanguageItemSchema
   })
   .strict();
 
+export const learningLabSessionResponseSchema = z
+  .object({
+    session: lessonSessionSchema,
+    created: z.boolean(),
+  })
+  .strict();
+
 export const learningLabAttemptRequestSchema = z
   .object({
+    sessionId: z.string().uuid(),
     activityId: z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/),
     idempotencyKey: z.string().uuid(),
     response: activityResponseSchema,
@@ -32,6 +42,9 @@ export const learningLabAttemptResponseSchema = z
     activityId: z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/),
     idempotencyKey: z.string().uuid(),
     evaluation: activityEvaluationSchema,
+    persistedAttempt: privacySafeActivityAttemptSchema,
+    session: lessonSessionSchema,
+    created: z.boolean(),
     hydratedEvidence: z.array(sourceEvidenceSchema).max(16),
     selfCheckCriteriaVi: z.array(z.string().min(5).max(300)).max(4).optional(),
     postAttemptSupport: z
@@ -42,6 +55,10 @@ export const learningLabAttemptResponseSchema = z
       .strict(),
   })
   .strict();
+
+export type LearningLabSessionResponse = z.infer<
+  typeof learningLabSessionResponseSchema
+>;
 
 export type LearningLabAttemptRequest = z.infer<
   typeof learningLabAttemptRequestSchema
