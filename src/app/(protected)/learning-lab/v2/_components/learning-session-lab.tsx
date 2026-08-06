@@ -2,15 +2,34 @@
 
 import { useEffect, useState, type FormEvent } from "react";
 
+import type { LearningSupportCopyByActivity } from "@/adapters/fake/fixture-learning-runtime-policy";
 import type {
   LearnerActivityView,
   LearnerBlueprintView,
 } from "@/modules/learning/application/create-learner-blueprint-view";
 import {
+  appendLearningAttempt,
+  confirmLearningSelfCheck,
+  createEmptyLearningActivityProgress,
+  highestOpenedSupportStep,
+  latestLearningAttempt,
+  learningActivityCompletionState,
+  openLearningSupportStep,
+  recordLearningPlayback,
+  requestLearningSelfCheckCorrection,
+  type LearningActivityRuntimeProgress,
+} from "@/modules/learning/application/learning-runtime-progress";
+import {
   learningLabAttemptResponseSchema,
   type LearningLabAttemptResponse,
 } from "@/shared/contracts/learning-lab";
 import type { VerifiedLearningMedia } from "@/shared/contracts/learning-media";
+import {
+  canUseSupportStep,
+  supportStepSchema,
+  type LearningRuntimePolicyV2,
+  type SupportStep,
+} from "@/shared/contracts/learning-policy-v2";
 import type { ActivityResponse } from "@/shared/contracts/lesson-v2";
 import { YouTubeEvidencePlayer } from "./youtube-evidence-player";
 
@@ -22,12 +41,23 @@ const PHASE_LABELS: Record<LearnerActivityView["phase"], string> = {
   reflect: "Kết thúc",
 };
 
+const SUPPORT_LABELS: Record<SupportStep, string> = {
+  replay: "Nghe lại đoạn",
+  context_hint: "Gợi ý ngữ cảnh",
+  keyword_hint: "Gợi ý từ khóa",
+  english_caption: "Phụ đề tiếng Anh",
+  chunk_boundaries: "Chia cụm câu nói",
+  vietnamese_meaning: "Nghĩa tiếng Việt",
+  slower_playback: "Phát chậm hơn",
+};
+
 type StoredLabState = {
+  version: 2;
   blueprintId: string;
   started: boolean;
   currentIndex: number;
   completed: boolean;
-  attempts: Record<string, LearningLabAttemptResponse>;
+  progressByActivity: Record<string, LearningActivityRuntimeProgress>;
 };
 
 function storageKey(blueprintId: string): string {
@@ -44,19 +74,52 @@ function createResponse(
   choice: string,
   text: string,
 ): ActivityResponse | null {
-  switch (activity.activityType) {
-    case "gist_choice":
-    case "meaning_in_context":
-      return choice ? { kind: "choice", optionId: choice } : null;
-    case "chunk_recall":
-      return text.trim() ? { kind: "text", text: text.trim() } : null;
-    case "guided_transfer":
-      return text.trim()
-        ? { kind: "self_check", text: text.trim(), checkedCriteria: [] }
-        : null;
-    case "exit_ticket":
-      return text.trim() ? { kind: "reflection", text: text.trim() } : null;
+  if (
+    activity.activityType === "gist_choice" ||
+    activity.activityType === "meaning_in_context"
+  ) {
+    return choice ? { kind: "choice", optionId: choice } : null;
   }
+  if (activity.activityType === "chunk_recall") {
+    return text.trim() ? { kind: "text", text: text.trim() } : null;
+  }
+  if (activity.activityType === "guided_transfer") {
+    return text.trim()
+      ? { kind: "self_check", text: text.trim(), checkedCriteria: [] }
+      : null;
+  }
+  return text.trim() ? { kind: "reflection", text: text.trim() } : null;
+}
+
+function restoreProgress(value: unknown): LearningActivityRuntimeProgress {
+  const empty = createEmptyLearningActivityProgress();
+  if (!value || typeof value !== "object") return empty;
+  const candidate = value as Partial<LearningActivityRuntimeProgress>;
+  const attempts = Array.isArray(candidate.attempts)
+    ? candidate.attempts.flatMap((attempt) => {
+        const parsed = learningLabAttemptResponseSchema.safeParse(attempt);
+        return parsed.success ? [parsed.data] : [];
+      })
+    : [];
+  const openedSupportSteps = Array.isArray(candidate.openedSupportSteps)
+    ? candidate.openedSupportSteps.flatMap((step) => {
+        const parsed = supportStepSchema.safeParse(step);
+        return parsed.success ? [parsed.data] : [];
+      })
+    : [];
+
+  return {
+    attempts,
+    openedSupportSteps: [...new Set(openedSupportSteps)],
+    playCount:
+      typeof candidate.playCount === "number" && candidate.playCount >= 0
+        ? Math.floor(candidate.playCount)
+        : 0,
+    selfCheckConfirmed: Boolean(candidate.selfCheckConfirmed),
+    selfCheckCorrectionRequested: Boolean(
+      candidate.selfCheckCorrectionRequested,
+    ),
+  };
 }
 
 function ActivityInput({
@@ -69,8 +132,8 @@ function ActivityInput({
   activity: LearnerActivityView;
   choice: string;
   text: string;
-  onChoice: (value: string) => void;
-  onText: (value: string) => void;
+  onChoice(value: string): void;
+  onText(value: string): void;
 }) {
   if (
     activity.activityType === "gist_choice" ||
@@ -87,7 +150,6 @@ function ActivityInput({
             <input
               type="radio"
               name={activity.id}
-              value={option.id}
               checked={choice === option.id}
               onChange={() => onChoice(option.id)}
               className="mt-1 size-4"
@@ -121,46 +183,98 @@ function ActivityInput({
         autoComplete="off"
         className="w-full rounded-xl border border-[var(--border)] bg-[var(--card)] p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
       />
-      {activity.activityType === "chunk_recall" && activity.hintVi ? (
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Gợi ý: {activity.hintVi}
-        </p>
-      ) : null}
     </div>
   );
+}
+
+function supportMessage(
+  step: SupportStep,
+  activityId: string,
+  supportCopy: LearningSupportCopyByActivity,
+  attempt: LearningLabAttemptResponse | undefined,
+): string {
+  if (step === "replay") return "Bạn đã chủ động nghe lại đoạn nguồn.";
+  if (step === "english_caption") {
+    return "Phụ đề tiếng Anh đã được mở trong trình phát.";
+  }
+  if (step === "chunk_boundaries") {
+    return (
+      attempt?.postAttemptSupport.chunkBoundaryText ??
+      "Vidlish chưa có đủ evidence để chia cụm câu nói này."
+    );
+  }
+  if (step === "vietnamese_meaning") {
+    return (
+      attempt?.postAttemptSupport.targetItem?.contextualMeaningVi ??
+      "Vidlish chưa có nghĩa theo ngữ cảnh đã kiểm chứng."
+    );
+  }
+  if (step === "slower_playback") return "Fixture này chưa bật phát chậm.";
+  return supportCopy[activityId]?.[step] ?? "Không có gợi ý bổ sung.";
+}
+
+function blockerMessage(blocker: string | undefined): string {
+  if (blocker === "ATTEMPT_REQUIRED") return "Hãy trả lời trước khi tiếp tục.";
+  if (blocker === "RETRY_REQUIRED") {
+    return "Sau correction, bạn cần thử lại trước khi tiếp tục.";
+  }
+  if (blocker === "TRANSFER_REQUIRED") {
+    return "Hãy hoàn thành tình huống mới trước khi tiếp tục.";
+  }
+  if (blocker === "SELF_CHECK_REQUIRED") {
+    return "Hãy đối chiếu đủ tiêu chí hoặc chỉnh lại toàn bộ câu.";
+  }
+  return "Bước này chưa đủ evidence để hoàn thành.";
 }
 
 export function LearningSessionLab({
   blueprint,
   media,
+  policy,
+  supportCopy,
 }: {
   blueprint: LearnerBlueprintView;
   media: VerifiedLearningMedia;
+  policy: LearningRuntimePolicyV2;
+  supportCopy: LearningSupportCopyByActivity;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [started, setStarted] = useState(false);
   const [completed, setCompleted] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [attempts, setAttempts] = useState<
-    Record<string, LearningLabAttemptResponse>
+  const [progressByActivity, setProgressByActivity] = useState<
+    Record<string, LearningActivityRuntimeProgress>
   >({});
   const [choice, setChoice] = useState("");
   const [text, setText] = useState("");
   const [checkedCriteria, setCheckedCriteria] = useState<number[]>([]);
+  const [retrying, setRetrying] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState("");
 
   const current = blueprint.activities[currentIndex];
-  const currentAttempt = current ? attempts[current.id] : undefined;
-  const targetId = current
-    ? current.activityType === "meaning_in_context" ||
-      current.activityType === "chunk_recall"
-      ? current.targetItemId
-      : current.activityType === "guided_transfer"
-        ? current.targetItemIds[0]
-        : undefined
+  const currentPolicy = current
+    ? policy.activityPolicies.find((item) => item.activityId === current.id)
     : undefined;
-  const currentTarget = blueprint.targetItems.find((item) => item.id === targetId);
+  const currentProgress = current
+    ? progressByActivity[current.id] ?? createEmptyLearningActivityProgress()
+    : createEmptyLearningActivityProgress();
+  const currentAttempt = latestLearningAttempt(currentProgress);
+  const result = currentAttempt?.evaluation;
+  const completionState = currentPolicy
+    ? learningActivityCompletionState(currentPolicy, currentProgress)
+    : null;
+  const evidenceRange = current?.evidence[0];
+  const captionControlAllowed = currentProgress.openedSupportSteps.includes(
+    "english_caption",
+  );
+  const nextSupportStep = currentPolicy?.support?.steps.find(
+    (step) => !currentProgress.openedSupportSteps.includes(step),
+  );
+  const allCriteriaSelected = Boolean(
+    currentAttempt?.selfCheckCriteriaVi?.length &&
+      checkedCriteria.length === currentAttempt.selfCheckCriteriaVi.length,
+  );
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -169,14 +283,11 @@ export function LearningSessionLab({
           storageKey(blueprint.blueprintId),
         );
         if (stored) {
-          const parsed = JSON.parse(stored) as StoredLabState;
-          if (parsed.blueprintId === blueprint.blueprintId) {
-            const restored = Object.fromEntries(
-              Object.entries(parsed.attempts ?? {}).flatMap(([id, value]) => {
-                const result = learningLabAttemptResponseSchema.safeParse(value);
-                return result.success ? [[id, result.data]] : [];
-              }),
-            );
+          const parsed = JSON.parse(stored) as Partial<StoredLabState>;
+          if (
+            parsed.version === 2 &&
+            parsed.blueprintId === blueprint.blueprintId
+          ) {
             setStarted(Boolean(parsed.started));
             setCompleted(Boolean(parsed.completed));
             setCurrentIndex(
@@ -185,7 +296,13 @@ export function LearningSessionLab({
                 blueprint.activities.length - 1,
               ),
             );
-            setAttempts(restored);
+            setProgressByActivity(
+              Object.fromEntries(
+                Object.entries(parsed.progressByActivity ?? {}).map(
+                  ([activityId, value]) => [activityId, restoreProgress(value)],
+                ),
+              ),
+            );
           }
         }
       } catch {
@@ -194,33 +311,47 @@ export function LearningSessionLab({
         setLoaded(true);
       }
     }, 0);
-
     return () => window.clearTimeout(timer);
   }, [blueprint.activities.length, blueprint.blueprintId]);
 
   useEffect(() => {
     if (!loaded) return;
     const state: StoredLabState = {
+      version: 2,
       blueprintId: blueprint.blueprintId,
       started,
       currentIndex,
       completed,
-      attempts,
+      progressByActivity,
     };
     window.localStorage.setItem(
       storageKey(blueprint.blueprintId),
       JSON.stringify(state),
     );
   }, [
-    attempts,
     blueprint.blueprintId,
     completed,
     currentIndex,
     loaded,
+    progressByActivity,
     started,
   ]);
 
-  function clearActivityDraft() {
+  function updateProgress(
+    updater: (
+      progress: LearningActivityRuntimeProgress,
+    ) => LearningActivityRuntimeProgress,
+  ) {
+    if (!current) return;
+    setProgressByActivity((previous) => ({
+      ...previous,
+      [current.id]: updater(
+        previous[current.id] ?? createEmptyLearningActivityProgress(),
+      ),
+    }));
+  }
+
+  function clearDraft() {
     setChoice("");
     setText("");
     setCheckedCriteria([]);
@@ -229,7 +360,14 @@ export function LearningSessionLab({
 
   async function submitAttempt(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!current || submitting) return;
+    if (!current || !currentPolicy || submitting) return;
+    if (
+      currentProgress.attempts.length >=
+      currentPolicy.retry.maxAttemptsPerSession
+    ) {
+      setError("Bước này đã đạt giới hạn attempt của phiên.");
+      return;
+    }
     const response = createResponse(current, choice, text);
     if (!response) {
       setError("Hãy trả lời trước khi kiểm tra.");
@@ -250,21 +388,12 @@ export function LearningSessionLab({
       });
       const body = (await request.json()) as unknown;
       if (!request.ok) {
-        const message =
-          typeof body === "object" &&
-          body !== null &&
-          "error" in body &&
-          typeof body.error === "object" &&
-          body.error !== null &&
-          "messageVi" in body.error &&
-          typeof body.error.messageVi === "string"
-            ? body.error.messageVi
-            : "Vidlish chưa thể kiểm tra câu trả lời.";
-        throw new Error(message);
+        throw new Error("Vidlish chưa thể kiểm tra câu trả lời.");
       }
-
       const parsed = learningLabAttemptResponseSchema.parse(body);
-      setAttempts((previous) => ({ ...previous, [current.id]: parsed }));
+      updateProgress((progress) => appendLearningAttempt(progress, parsed));
+      setRetrying(false);
+      setCheckedCriteria([]);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -276,130 +405,187 @@ export function LearningSessionLab({
     }
   }
 
-  function continueSession() {
-    clearActivityDraft();
-    if (currentIndex >= blueprint.activities.length - 1) {
-      setCompleted(true);
-      return;
+  function retryCurrent() {
+    if (result?.verdict === "self_check") {
+      updateProgress(requestLearningSelfCheckCorrection);
     }
-    setCurrentIndex((index) => index + 1);
+    clearDraft();
+    setRetrying(true);
   }
 
-  function retryCurrent() {
-    if (!current) return;
-    setAttempts((previous) => {
-      const next = { ...previous };
-      delete next[current.id];
-      return next;
-    });
-    clearActivityDraft();
+  function continueSession() {
+    if (!currentPolicy) return;
+    const state = learningActivityCompletionState(
+      currentPolicy,
+      currentProgress,
+    );
+    if (!state.canContinue) {
+      setError(blockerMessage(state.blockers[0]));
+      return;
+    }
+    clearDraft();
+    setRetrying(false);
+    if (currentIndex === blueprint.activities.length - 1) {
+      setCompleted(true);
+    } else {
+      setCurrentIndex((index) => index + 1);
+    }
+  }
+
+  function openNextSupport() {
+    if (!current || !currentPolicy?.support || !nextSupportStep) return;
+    if (nextSupportStep === "replay") {
+      setError("Nhấn Phát đoạn lần thứ hai để dùng hỗ trợ Nghe lại đoạn.");
+      return;
+    }
+    if (
+      !canUseSupportStep(
+        currentPolicy.support,
+        nextSupportStep,
+        currentProgress.attempts.length,
+      )
+    ) {
+      setError("Hãy thử trả lời trước khi mở mức hỗ trợ này.");
+      return;
+    }
+    updateProgress((progress) =>
+      openLearningSupportStep(progress, nextSupportStep),
+    );
+    setError("");
+  }
+
+  function confirmSelfCheck() {
+    if (!allCriteriaSelected) return;
+    updateProgress(confirmLearningSelfCheck);
+    setError("");
   }
 
   function resetLab() {
     window.localStorage.removeItem(storageKey(blueprint.blueprintId));
-    clearActivityDraft();
+    clearDraft();
     setStarted(false);
     setCompleted(false);
     setCurrentIndex(0);
-    setAttempts({});
+    setProgressByActivity({});
+    setRetrying(false);
   }
 
   if (!loaded) {
-    return (
-      <p className="py-12 text-center text-[var(--muted-foreground)]">
-        Đang khôi phục phiên học…
-      </p>
-    );
+    return <p className="py-12 text-center">Đang khôi phục phiên học…</p>;
   }
 
   if (!started) {
     return (
-      <section className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6">
-        <div className="space-y-2">
-          <p className="text-sm font-semibold uppercase tracking-[0.14em] text-[var(--accent)]">
-            Learning Model v2 · verified media slice
+      <section className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8">
+        <p className="text-sm font-semibold text-[var(--accent)]">
+          Phiên học thử · khoảng {blueprint.learnerSnapshot.timeBudgetMinutes} phút
+        </p>
+        <h1 className="text-3xl font-bold sm:text-4xl">
+          Nghe rõ một đoạn thật. Dùng được một cụm thật.
+        </h1>
+        <p className="text-[var(--muted-foreground)]">
+          Bạn sẽ nghe trước khi thấy phụ đề, nhận hỗ trợ từng mức, tự nhớ lại
+          và dùng ngôn ngữ trong một tình huống mới.
+        </p>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <p className="rounded-xl bg-[var(--muted)] p-4">
+            Nhận ra chủ đề của đoạn mở đầu mà chưa cần transcript.
           </p>
-          <h1 className="text-3xl font-bold tracking-tight">
-            Không đọc một bài dài. Hãy hoàn thành một vòng học.
-          </h1>
-          <p className="text-[var(--muted-foreground)]">
-            Mẫu này dùng video YouTube công khai và các range đã đối chiếu với
-            canonical caption. Transcript và đáp án vẫn bị giữ lại trước attempt.
+          <p className="rounded-xl bg-[var(--muted)] p-4">
+            Giới thiệu mình thuộc một nhóm trong tình huống công việc mới.
           </p>
         </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div className="rounded-xl bg-[var(--muted)] p-4">
-            <p className="text-sm font-semibold">Thời lượng</p>
-            <p className="mt-1 text-2xl font-bold">
-              {blueprint.learnerSnapshot.timeBudgetMinutes} phút
-            </p>
-          </div>
-          <div className="rounded-xl bg-[var(--muted)] p-4">
-            <p className="text-sm font-semibold">Thử thách của đoạn</p>
-            <p className="mt-1 text-sm">
-              {blueprint.videoProfile.challengeSummaryVi}
-            </p>
-          </div>
-        </div>
-
-        <div className="space-y-3">
-          <h2 className="text-lg font-semibold">Sau phiên này, bạn có thể</h2>
-          <ul className="space-y-2">
-            {blueprint.outcomes.map((outcome) => (
-              <li
-                key={outcome.id}
-                className="flex gap-3 rounded-xl border border-[var(--border)] p-3"
-              >
-                <span aria-hidden="true">✓</span>
-                <span>{outcome.canDoVi}</span>
-              </li>
-            ))}
-          </ul>
-        </div>
-
         <button
           type="button"
           onClick={() => setStarted(true)}
-          className="min-h-12 w-full rounded-xl bg-[var(--primary)] px-4 py-3 font-semibold text-white hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          className="min-h-12 w-full rounded-xl bg-[var(--primary)] px-4 py-3 font-semibold text-white"
         >
-          Bắt đầu với ý chính
+          Bắt đầu nghe không phụ đề
         </button>
       </section>
     );
   }
 
   if (completed) {
+    const totalAttempts = Object.values(progressByActivity).reduce(
+      (sum, progress) => sum + progress.attempts.length,
+      0,
+    );
+    const supportCount = Object.values(progressByActivity).reduce(
+      (sum, progress) => sum + progress.openedSupportSteps.length,
+      0,
+    );
+    const recall = latestLearningAttempt(
+      progressByActivity["activity_recall"] ??
+        createEmptyLearningActivityProgress(),
+    );
+    const transfer = progressByActivity["activity_transfer"];
+
     return (
-      <section className="mx-auto max-w-2xl space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 text-center">
-        <p className="text-sm font-semibold text-[var(--accent)]">
-          Phiên thử nghiệm đã hoàn tất
-        </p>
-        <h1 className="text-3xl font-bold">
-          Bạn đã nghe, nhớ lại và vận dụng.
-        </h1>
-        <p className="text-[var(--muted-foreground)]">
-          Completion ở đây chỉ ghi nhận đã đi hết vòng học; nó không được coi
-          là mastery.
+      <section className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8">
+        <div className="space-y-2 text-center">
+          <p className="font-semibold text-[var(--accent)]">
+            Phiên đầu đã hoàn tất
+          </p>
+          <h1 className="text-3xl font-bold">
+            Bạn đã tạo được evidence cho lần học hôm nay.
+          </h1>
+          <p className="text-[var(--muted-foreground)]">
+            Đây là completion của phiên đầu, không phải tuyên bố đã thành thạo.
+          </p>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          <p className="rounded-xl bg-[var(--muted)] p-4">
+            Attempt đã thực hiện: <strong>{totalAttempts}</strong>
+          </p>
+          <p className="rounded-xl bg-[var(--muted)] p-4">
+            Mức hỗ trợ đã mở: <strong>{supportCount}</strong>
+          </p>
+          <p className="rounded-xl border border-[var(--border)] p-4">
+            {recall?.evaluation.verdict === "correct"
+              ? "Đã nhớ lại đúng trong phiên này"
+              : "Đã thử; cần đưa trở lại khi ôn"}
+          </p>
+          <p className="rounded-xl border border-[var(--border)] p-4">
+            {transfer?.selfCheckConfirmed
+              ? "Đã viết và tự đối chiếu đủ tiêu chí"
+              : "Đã thử; chưa đủ tiêu chí xác nhận"}
+          </p>
+        </div>
+        <p className="rounded-xl border border-[var(--accent)] p-4 text-sm">
+          Vidlish cần kiểm tra lại bằng input hoặc bối cảnh khác sau một khoảng
+          thời gian trước khi có thể nói năng lực này ổn định.
         </p>
         <button
           type="button"
           onClick={resetLab}
-          className="min-h-11 rounded-xl border border-[var(--border)] px-4 py-2 font-semibold hover:bg-[var(--muted)]"
+          className="min-h-11 w-full rounded-xl border border-[var(--border)] px-4 py-2 font-semibold"
         >
-          Chạy lại learning lab
+          Chạy lại phiên học thử
         </button>
       </section>
     );
   }
 
-  if (!current) return null;
+  if (!current || !currentPolicy) {
+    return <p role="alert">Runtime policy không khớp với lesson fixture.</p>;
+  }
 
-  const evidenceRange = current.evidence[0];
-  const result = currentAttempt?.evaluation;
-  const canRetry = result?.verdict === "incorrect";
-  const captionControlAllowed =
-    Boolean(result) || evidenceRange?.captionPolicy !== "hidden_first";
+  const assistedCompletion = completionState?.assistedCompletion ?? false;
+  const showAttemptForm = !result || retrying;
+  const showCanonicalEvidence =
+    assistedCompletion ||
+    currentProgress.openedSupportSteps.includes("english_caption") ||
+    currentProgress.openedSupportSteps.includes("chunk_boundaries");
+  const showTargetExplanation =
+    assistedCompletion ||
+    (result?.verdict === "correct" &&
+      current.activityType === "meaning_in_context") ||
+    currentProgress.openedSupportSteps.includes("vietnamese_meaning");
+  const supportLevel = highestOpenedSupportStep(
+    currentPolicy,
+    currentProgress,
+  );
 
   return (
     <div className="space-y-5">
@@ -409,13 +595,7 @@ export function LearningSessionLab({
             <li
               key={activity.id}
               aria-current={index === currentIndex ? "step" : undefined}
-              className={`rounded-full px-3 py-2 text-xs font-semibold ${
-                index === currentIndex
-                  ? "bg-[var(--primary)] text-white"
-                  : index < currentIndex
-                    ? "bg-[var(--muted)] text-[var(--foreground)]"
-                    : "border border-[var(--border)] text-[var(--muted-foreground)]"
-              }`}
+              className="rounded-full border border-[var(--border)] px-3 py-2 text-xs font-semibold"
             >
               {PHASE_LABELS[activity.phase]}
             </li>
@@ -427,12 +607,12 @@ export function LearningSessionLab({
         <aside className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 lg:sticky lg:top-5 lg:self-start">
           <div>
             <p className="text-sm font-semibold text-[var(--accent)]">
-              Đoạn nguồn · YouTube đã đối chiếu caption
+              Đoạn nguồn
             </p>
             <h2 className="mt-1 text-xl font-bold">
               {blueprint.source.videoTitle}
             </h2>
-            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            <p className="text-sm text-[var(--muted-foreground)]">
               {blueprint.source.channelName}
             </p>
           </div>
@@ -444,36 +624,82 @@ export function LearningSessionLab({
                 {formatTime(evidenceRange.endMs)}
               </p>
               <YouTubeEvidencePlayer
-                key={`${current.id}:${Boolean(result)}`}
+                key={`${current.id}:${captionControlAllowed}`}
                 videoId={media.videoId}
                 videoTitle={blueprint.source.videoTitle}
                 evidence={evidenceRange}
                 captionControlAllowed={captionControlAllowed}
+                onPlay={() =>
+                  updateProgress((progress) =>
+                    recordLearningPlayback(progress, currentPolicy),
+                  )
+                }
               />
             </div>
           ) : (
             <p className="rounded-xl bg-[var(--muted)] p-4 text-sm">
-              Bước này dùng nội dung bạn đã học, không phát lại evidence mặc
-              định.
+              Bước này dùng ngôn ngữ vừa học trong một tình huống mới.
             </p>
           )}
 
-          <p className="text-xs text-[var(--muted-foreground)]">
-            Player chỉ nhận video ID và timestamp đã verified. Transcript viết
-            ra và answer contract không được gửi xuống trước attempt.
-          </p>
+          <div className="space-y-3 rounded-xl border border-[var(--border)] p-4">
+            <div className="flex items-center justify-between gap-3">
+              <p className="font-semibold">Hỗ trợ từng mức</p>
+              <span className="text-xs text-[var(--muted-foreground)]">
+                {supportLevel ? SUPPORT_LABELS[supportLevel] : "Chưa dùng"}
+              </span>
+            </div>
+            {currentProgress.openedSupportSteps.map((step) => (
+              <div
+                key={step}
+                className="rounded-lg bg-[var(--muted)] p-3 text-sm"
+              >
+                <p className="font-semibold">{SUPPORT_LABELS[step]}</p>
+                <p className="mt-1">
+                  {supportMessage(
+                    step,
+                    current.id,
+                    supportCopy,
+                    currentAttempt,
+                  )}
+                </p>
+              </div>
+            ))}
+            {nextSupportStep === "replay" ? (
+              <p className="text-sm text-[var(--muted-foreground)]">
+                Nghe lần đầu, sau đó nhấn Phát đoạn lần thứ hai để mở “Nghe lại
+                đoạn”.
+              </p>
+            ) : nextSupportStep ? (
+              <button
+                type="button"
+                onClick={openNextSupport}
+                className="min-h-11 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold"
+              >
+                Mở {SUPPORT_LABELS[nextSupportStep].toLocaleLowerCase("vi")}
+              </button>
+            ) : (
+              <p className="text-sm text-[var(--muted-foreground)]">
+                {currentPolicy.support
+                  ? "Bạn đã mở hết support ladder của bước này."
+                  : "Bước này không có answer reveal trước khi bạn tự viết."}
+              </p>
+            )}
+          </div>
         </aside>
 
         <main className="space-y-5 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 sm:p-6">
-          <div className="space-y-2">
+          <div>
             <p className="text-sm font-semibold text-[var(--accent)]">
               Bước {currentIndex + 1}/{blueprint.activities.length} ·{" "}
               {PHASE_LABELS[current.phase]}
             </p>
-            <h1 className="text-2xl font-bold">{current.instructionVi}</h1>
+            <h1 className="mt-2 text-2xl font-bold">
+              {current.instructionVi}
+            </h1>
           </div>
 
-          {!result ? (
+          {showAttemptForm ? (
             <form className="space-y-5" onSubmit={submitAttempt}>
               <ActivityInput
                 activity={current}
@@ -482,32 +708,29 @@ export function LearningSessionLab({
                 onChoice={setChoice}
                 onText={setText}
               />
-              {error ? (
-                <p
-                  className="rounded-xl bg-red-950/30 p-3 text-sm"
-                  role="alert"
-                >
-                  {error}
-                </p>
-              ) : null}
+              {error ? <p role="alert">{error}</p> : null}
               <button
                 type="submit"
                 disabled={submitting}
-                className="min-h-12 w-full rounded-xl bg-[var(--primary)] px-4 py-3 font-semibold text-white hover:bg-[var(--primary-hover)] disabled:opacity-60"
+                className="min-h-12 w-full rounded-xl bg-[var(--primary)] px-4 py-3 font-semibold text-white disabled:opacity-60"
               >
-                {submitting ? "Đang kiểm tra…" : "Gửi attempt"}
+                {submitting
+                  ? "Đang kiểm tra…"
+                  : retrying
+                    ? "Gửi lần thử lại"
+                    : "Kiểm tra câu trả lời"}
               </button>
             </form>
-          ) : (
+          ) : result && currentAttempt ? (
             <section className="space-y-5" aria-live="polite">
               <div className="rounded-xl bg-[var(--muted)] p-4">
-                <p className="text-sm font-semibold uppercase tracking-wide">
+                <p className="font-semibold">
                   {result.verdict === "correct"
                     ? "Đúng"
                     : result.verdict === "incorrect"
                       ? "Chưa đúng"
                       : result.verdict === "self_check"
-                        ? "Tự kiểm tra"
+                        ? "Tự đối chiếu"
                         : "Tự phản ánh"}
                 </p>
                 <p className="mt-2 font-semibold">{result.goalVi}</p>
@@ -517,49 +740,61 @@ export function LearningSessionLab({
                 </p>
               </div>
 
-              {currentAttempt?.hydratedEvidence.length ? (
+              {showCanonicalEvidence &&
+              currentAttempt.hydratedEvidence.length ? (
                 <div className="space-y-2 rounded-xl border border-[var(--border)] p-4">
-                  <p className="font-semibold">
-                    Evidence từ transcript canonical
-                  </p>
+                  <p className="font-semibold">Đối chiếu với câu nguồn</p>
                   {currentAttempt.hydratedEvidence.map((evidence) => (
                     <blockquote
                       key={evidence.segmentId}
                       className="border-l-2 border-[var(--accent)] pl-3 text-sm"
                     >
-                      <span className="font-mono text-xs text-[var(--accent)]">
-                        {formatTime(evidence.startMs)}
-                      </span>{" "}
-                      “{evidence.text}”
+                      {formatTime(evidence.startMs)} “{evidence.text}”
                     </blockquote>
                   ))}
                 </div>
               ) : null}
 
-              {currentTarget &&
-              current.activityType === "meaning_in_context" ? (
+              {showTargetExplanation &&
+              currentAttempt.postAttemptSupport.targetItem ? (
                 <div className="space-y-2 rounded-xl border border-[var(--border)] p-4">
                   <p className="text-xl font-bold">
-                    {currentTarget.surfaceForm}
+                    {currentAttempt.postAttemptSupport.targetItem.surfaceForm}
                   </p>
-                  <p>{currentTarget.contextualMeaningVi}</p>
+                  <p>
+                    {
+                      currentAttempt.postAttemptSupport.targetItem
+                        .contextualMeaningVi
+                    }
+                  </p>
                   <p className="text-sm text-[var(--muted-foreground)]">
-                    Chức năng: {currentTarget.communicativeFunctionVi} ·
-                    Register: {currentTarget.register}
+                    Chức năng:{" "}
+                    {
+                      currentAttempt.postAttemptSupport.targetItem
+                        .communicativeFunctionVi
+                    }
+                    {" · "}Register:{" "}
+                    {currentAttempt.postAttemptSupport.targetItem.register}
                   </p>
-                  {currentTarget.pronunciationNoteVi ? (
-                    <p className="text-sm">
-                      Âm thanh: {currentTarget.pronunciationNoteVi}
-                    </p>
-                  ) : null}
                 </div>
+              ) : null}
+
+              {result.verdict === "correct" && result.reveal?.answer ? (
+                <p className="rounded-xl border border-[var(--border)] p-4 text-sm">
+                  <strong>Đáp án đã tự nhớ lại:</strong> {result.reveal.answer}
+                </p>
+              ) : null}
+
+              {assistedCompletion && result.reveal?.answer ? (
+                <p className="rounded-xl border border-amber-700 p-4 text-sm">
+                  Hoàn thành có hỗ trợ: {result.reveal.answer}. Kết quả này không
+                  được tính là tự nhớ lại thành công.
+                </p>
               ) : null}
 
               {result.verdict === "self_check" ? (
                 <div className="space-y-3 rounded-xl border border-[var(--border)] p-4">
-                  <p className="font-semibold">
-                    Tự đối chiếu sau khi đã viết
-                  </p>
+                  <p className="font-semibold">Tự đối chiếu câu bạn vừa viết</p>
                   {currentAttempt.selfCheckCriteriaVi?.map(
                     (criterion, index) => (
                       <label
@@ -584,21 +819,43 @@ export function LearningSessionLab({
                   )}
                   {result.exemplarAfterAttempt ? (
                     <p className="rounded-lg bg-[var(--muted)] p-3 text-sm">
-                      <span className="font-semibold">
-                        Ví dụ mới, không phải câu trong video:
-                      </span>{" "}
+                      <strong>Ví dụ mới, không phải câu trong video:</strong>{" "}
                       {result.exemplarAfterAttempt}
                     </p>
                   ) : null}
+                  {currentProgress.selfCheckConfirmed ? (
+                    <p className="font-semibold">
+                      Đã xác nhận đủ tiêu chí cho lần thử này.
+                    </p>
+                  ) : (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      <button
+                        type="button"
+                        onClick={retryCurrent}
+                        className="min-h-11 rounded-xl border border-[var(--border)] px-3 py-2 font-semibold"
+                      >
+                        Chỉnh lại toàn bộ câu
+                      </button>
+                      <button
+                        type="button"
+                        onClick={confirmSelfCheck}
+                        disabled={!allCriteriaSelected}
+                        className="min-h-11 rounded-xl bg-[var(--primary)] px-3 py-2 font-semibold text-white disabled:opacity-50"
+                      >
+                        Xác nhận đủ tiêu chí
+                      </button>
+                    </div>
+                  )}
                 </div>
               ) : null}
 
+              {error ? <p role="alert">{error}</p> : null}
               <div className="flex flex-col gap-3 sm:flex-row">
-                {canRetry ? (
+                {result.verdict === "incorrect" && !assistedCompletion ? (
                   <button
                     type="button"
                     onClick={retryCurrent}
-                    className="min-h-11 flex-1 rounded-xl border border-[var(--border)] px-4 py-2 font-semibold hover:bg-[var(--muted)]"
+                    className="min-h-11 flex-1 rounded-xl border border-[var(--border)] px-4 py-2 font-semibold"
                   >
                     Thử lại
                   </button>
@@ -606,7 +863,8 @@ export function LearningSessionLab({
                 <button
                   type="button"
                   onClick={continueSession}
-                  className="min-h-11 flex-1 rounded-xl bg-[var(--primary)] px-4 py-2 font-semibold text-white hover:bg-[var(--primary-hover)]"
+                  disabled={!completionState?.canContinue}
+                  className="min-h-11 flex-1 rounded-xl bg-[var(--primary)] px-4 py-2 font-semibold text-white disabled:opacity-50"
                 >
                   {currentIndex === blueprint.activities.length - 1
                     ? "Hoàn tất phiên"
@@ -614,13 +872,13 @@ export function LearningSessionLab({
                 </button>
               </div>
             </section>
-          )}
+          ) : null}
         </main>
       </div>
 
       <p className="text-center text-xs text-[var(--muted-foreground)]">
-        Lab chỉ lưu progress/feedback trong trình duyệt và không lưu câu trả lời
-        riêng tư. Migration server-side đã được thiết kế riêng cho v2 production.
+        Lab chỉ lưu attempt result, support usage và progress. Nội dung câu trả lời
+        mở không được ghi vào local storage.
       </p>
     </div>
   );
