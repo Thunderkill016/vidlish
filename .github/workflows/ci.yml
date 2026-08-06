@@ -219,15 +219,22 @@ jobs:
           supabase test db
       - name: Export local Supabase API credentials
         run: |
-          supabase status -o env > /tmp/supabase.env
+          supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.service_role_key=SUPABASE_SECRET_KEY \
+            > /tmp/supabase.env
           set -a
           source /tmp/supabase.env
           set +a
-          echo "::add-mask::$ANON_KEY"
-          echo "::add-mask::$SERVICE_ROLE_KEY"
-          echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
-          echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$ANON_KEY" >> "$GITHUB_ENV"
-          echo "SUPABASE_SECRET_KEY=$SERVICE_ROLE_KEY" >> "$GITHUB_ENV"
+          for name in \
+            NEXT_PUBLIC_SUPABASE_URL \
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            SUPABASE_SECRET_KEY; do
+            value="${!name}"
+            echo "::add-mask::$value"
+            printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
+          done
       - name: Run durable Golden Session journey
         run: >-
           pnpm exec playwright test
