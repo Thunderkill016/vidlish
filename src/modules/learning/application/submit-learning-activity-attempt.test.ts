@@ -27,7 +27,7 @@ describe("SubmitLearningActivityAttempt", () => {
       blueprint: createFixtureLearningBlueprint(),
       activityId: "activity_gist",
       idempotencyKey: "33333333-3333-4333-8333-333333333333",
-      response: { kind: "choice", optionId: "option_whole_message" },
+      response: { kind: "choice", optionId: "option_embedded_player" },
     });
 
     expect(result.created).toBe(true);
@@ -47,7 +47,7 @@ describe("SubmitLearningActivityAttempt", () => {
       idempotencyKey: "44444444-4444-4444-8444-444444444444",
       response: {
         kind: "choice" as const,
-        optionId: "option_whole_message",
+        optionId: "option_embedded_player",
       },
     };
 
@@ -70,7 +70,7 @@ describe("SubmitLearningActivityAttempt", () => {
         idempotencyKey: "55555555-5555-4555-8555-555555555555",
         response: {
           kind: "self_check",
-          text: "Pay attention to the order.",
+          text: "I'm a member of the release team.",
           checkedCriteria: [],
         },
       }),
@@ -85,24 +85,27 @@ describe("SubmitLearningActivityAttempt", () => {
       {
         activityId: "activity_gist",
         idempotencyKey: "61111111-1111-4111-8111-111111111111",
-        response: { kind: "choice" as const, optionId: "option_whole_message" },
+        response: {
+          kind: "choice" as const,
+          optionId: "option_embedded_player",
+        },
       },
       {
         activityId: "activity_meaning",
         idempotencyKey: "62222222-2222-4222-8222-222222222222",
-        response: { kind: "choice" as const, optionId: "option_focus" },
+        response: { kind: "choice" as const, optionId: "option_affiliation" },
       },
       {
         activityId: "activity_recall",
         idempotencyKey: "63333333-3333-4333-8333-333333333333",
-        response: { kind: "text" as const, text: "pay attention to" },
+        response: { kind: "text" as const, text: "a member of" },
       },
       {
         activityId: "activity_transfer",
         idempotencyKey: "64444444-4444-4444-8444-444444444444",
         response: {
           kind: "self_check" as const,
-          text: "Pay attention to the order of the steps.",
+          text: "I'm a member of the release team.",
           checkedCriteria: [0, 1, 2],
         },
       },
