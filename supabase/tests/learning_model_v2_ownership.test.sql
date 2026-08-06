@@ -132,7 +132,7 @@ select throws_ok(
       'a2222222-2222-4222-8222-222222222222',
       'activity_gist', 1,
       'a9999999-9999-4999-8999-999999999999',
-      '{"kind":"choice"}'::jsonb,
+      '{"kind":"choice","optionId":"option_embedded_player"}'::jsonb,
       '{"verdict":"correct"}'::jsonb
     )$$,
   '23503',
