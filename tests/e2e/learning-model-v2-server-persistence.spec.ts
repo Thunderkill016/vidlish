@@ -18,193 +18,111 @@ async function login(page: Page) {
   await expect(page).toHaveURL(/\/create$/);
 }
 
-async function postJson(
-  page: Page,
-  path: string,
-  body?: Record<string, unknown>,
-) {
-  return page.evaluate(
-    async ({ requestPath, requestBody }) => {
-      const response = await fetch(requestPath, {
-        method: "POST",
-        headers: requestBody
-          ? { "Content-Type": "application/json" }
-          : undefined,
-        body: requestBody ? JSON.stringify(requestBody) : undefined,
-      });
-      return {
-        status: response.status,
-        body: (await response.json()) as Record<string, unknown>,
-      };
-    },
-    { requestPath: path, requestBody: body },
-  );
+async function mockYouTubeIframeApi(page: Page) {
+  await page.route("https://www.youtube.com/iframe_api", async (route) => {
+    await route.fulfill({
+      contentType: "application/javascript",
+      body: `
+        window.YT = {
+          PlayerState: { PLAYING: 1, PAUSED: 2, ENDED: 0 },
+          Player: function (element, options) {
+            const iframe = document.createElement("iframe");
+            iframe.dataset.mockYoutube = "true";
+            element.replaceWith(iframe);
+            const player = {
+              cueVideoById() {},
+              loadVideoById() {
+                options.events.onStateChange({ target: player, data: 1 });
+              },
+              pauseVideo() {
+                options.events.onStateChange({ target: player, data: 2 });
+              },
+              destroy() { iframe.remove(); },
+              getIframe() { return iframe; }
+            };
+            setTimeout(() => options.events.onReady({ target: player }), 0);
+            return player;
+          }
+        };
+        setTimeout(() => window.onYouTubeIframeAPIReady?.(), 0);
+      `,
+    });
+  });
 }
 
-function sessionFrom(result: Awaited<ReturnType<typeof postJson>>) {
-  return result.body.session as {
-    id: string;
-    status: string;
-    currentPhase: string;
-    currentActivityId: string;
-  };
-}
-
-async function submit(
-  page: Page,
-  input: {
-    sessionId: string;
-    activityId: string;
-    idempotencyKey: string;
-    response: Record<string, unknown>;
-  },
-) {
-  const result = await postJson(page, "/api/learning-lab/v2/attempts", input);
-  expect([200, 201]).toContain(result.status);
-  return result;
-}
-
-test("server-backed golden session preserves retry transfer and privacy boundaries", async ({
+test("Golden Session UI persists retry transfer completion and privacy-safe evidence", async ({
   page,
 }) => {
+  await mockYouTubeIframeApi(page);
   await login(page);
+  await page.goto("/learning-lab/v2");
 
-  const started = await postJson(page, "/api/learning-lab/v2/sessions");
-  expect([200, 201]).toContain(started.status);
-  const sessionId = sessionFrom(started).id;
-  expect(sessionFrom(started)).toMatchObject({
-    status: "in_progress",
-    currentPhase: "gist",
-    currentActivityId: "activity_gist",
-  });
+  await page
+    .getByRole("button", { name: "Bắt đầu nghe không phụ đề" })
+    .click();
+  await expect(page.getByText("Bước 1/5 · Nắm ý chính")).toBeVisible();
 
-  const wrong = await submit(page, {
-    sessionId,
-    activityId: "activity_gist",
-    idempotencyKey: "71111111-1111-4111-8111-111111111111",
-    response: { kind: "choice", optionId: "option_camera_hardware" },
-  });
-  expect(wrong.body.evaluation).toMatchObject({ verdict: "incorrect" });
-  expect(sessionFrom(wrong).currentActivityId).toBe("activity_gist");
+  await page.getByLabel("Cách chọn phần cứng quay video").check();
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
+  await expect(page.getByText("Chưa đúng", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
 
-  const correct = await submit(page, {
-    sessionId,
-    activityId: "activity_gist",
-    idempotencyKey: "72222222-2222-4222-8222-222222222222",
-    response: { kind: "choice", optionId: "option_embedded_player" },
-  });
-  expect(correct.body.created).toBe(true);
-  expect(sessionFrom(correct)).toMatchObject({
-    currentPhase: "practice",
-    currentActivityId: "activity_meaning",
-  });
-  const correctAttemptId = (
-    correct.body.persistedAttempt as { id: string }
-  ).id;
+  await page.getByRole("button", { name: "Thử lại" }).click();
+  await page
+    .getByLabel("Các cách tùy chỉnh trình phát YouTube nhúng")
+    .check();
+  await page.getByRole("button", { name: "Gửi lần thử lại" }).click();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
 
-  const networkRetry = await submit(page, {
-    sessionId,
-    activityId: "activity_gist",
-    idempotencyKey: "72222222-2222-4222-8222-222222222222",
-    response: { kind: "choice", optionId: "option_embedded_player" },
-  });
-  expect(networkRetry.status).toBe(200);
-  expect(networkRetry.body.created).toBe(false);
-  expect(
-    (networkRetry.body.persistedAttempt as { id: string }).id,
-  ).toBe(correctAttemptId);
-  expect(sessionFrom(networkRetry).currentActivityId).toBe("activity_meaning");
+  await expect(page.getByText("Bước 2/5 · Hiểu cách dùng")).toBeVisible();
+  await page.reload();
+  await expect(page.getByText("Bước 2/5 · Hiểu cách dùng")).toBeVisible();
 
-  await submit(page, {
-    sessionId,
-    activityId: "activity_meaning",
-    idempotencyKey: "73333333-3333-4333-8333-333333333333",
-    response: { kind: "choice", optionId: "option_affiliation" },
-  });
+  await page.getByLabel("Giới thiệu người nói thuộc một đội").check();
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
 
-  const recall = await submit(page, {
-    sessionId,
-    activityId: "activity_recall",
-    idempotencyKey: "74444444-4444-4444-8444-444444444444",
-    response: { kind: "text", text: "a member of" },
-  });
-  const recallEvidence = (
-    recall.body.persistedAttempt as {
-      responseEvidence: Record<string, unknown>;
-    }
-  ).responseEvidence;
-  expect(recallEvidence).toEqual({
-    kind: "text",
-    submitted: true,
-    characterCount: "a member of".length,
-  });
-  expect(recallEvidence).not.toHaveProperty("text");
+  await page
+    .getByLabel("Complete: I'm ___ the Developer Relations team.")
+    .fill("a member of");
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
 
-  const transferPending = await submit(page, {
-    sessionId,
-    activityId: "activity_transfer",
-    idempotencyKey: "75555555-5555-4555-8555-555555555555",
-    response: {
-      kind: "self_check",
-      text: "I'm a member of the release team.",
-      checkedCriteria: [],
-    },
-  });
-  expect(sessionFrom(transferPending)).toMatchObject({
-    currentPhase: "transfer",
-    currentActivityId: "activity_transfer",
-  });
+  await page
+    .getByLabel(
+      "Viết một câu giới thiệu bạn là thành viên của nhóm bằng a member of.",
+    )
+    .fill("I'm a member of the release team.");
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
+  const criteria = page.locator('input[type="checkbox"]');
+  await criteria.nth(0).check();
+  await criteria.nth(1).check();
+  await criteria.nth(2).check();
+  await page.getByRole("button", { name: "Xác nhận đủ tiêu chí" }).click();
+  await expect(
+    page.getByText("Đã xác nhận đủ tiêu chí cho lần thử này."),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Tiếp tục" }).click();
 
-  const transferConfirmed = await submit(page, {
-    sessionId,
-    activityId: "activity_transfer",
-    idempotencyKey: "76666666-6666-4666-8666-666666666666",
-    response: {
-      kind: "self_check",
-      text: "I'm a member of the release team.",
-      checkedCriteria: [0, 1, 2],
-    },
-  });
-  expect(sessionFrom(transferConfirmed)).toMatchObject({
-    currentPhase: "reflect",
-    currentActivityId: "activity_exit",
-  });
-  const transferEvidence = (
-    transferConfirmed.body.persistedAttempt as {
-      responseEvidence: Record<string, unknown>;
-    }
-  ).responseEvidence;
-  expect(transferEvidence).toMatchObject({
-    kind: "self_check",
-    submitted: true,
-    checkedCriteria: [0, 1, 2],
-  });
-  expect(transferEvidence).not.toHaveProperty("text");
+  await page
+    .getByLabel(
+      "Không nhìn câu mẫu: bạn nghe được cách nói nào để giới thiệu người nói thuộc một nhóm?",
+    )
+    .fill("a member of");
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
+  await page.getByRole("button", { name: "Hoàn tất phiên" }).click();
 
-  const completed = await submit(page, {
-    sessionId,
-    activityId: "activity_exit",
-    idempotencyKey: "77777777-7777-4777-8777-777777777778",
-    response: {
-      kind: "reflection",
-      text: "Tôi nghe rõ cụm a member of hơn lần đầu.",
-    },
-  });
-  expect(sessionFrom(completed)).toMatchObject({
-    status: "completed",
-    currentPhase: "completed",
-    currentActivityId: "activity_exit",
-  });
-  const exitEvidence = (
-    completed.body.persistedAttempt as {
-      responseEvidence: Record<string, unknown>;
-    }
-  ).responseEvidence;
-  expect(exitEvidence).toMatchObject({
-    kind: "reflection",
-    submitted: true,
-  });
-  expect(exitEvidence).not.toHaveProperty("text");
+  await expect(
+    page.getByRole("heading", {
+      name: "Bạn đã tạo được evidence cho lần học hôm nay.",
+    }),
+  ).toBeVisible();
+
+  const localState = await page.evaluate(() =>
+    Object.values(localStorage).join("\n"),
+  );
+  expect(localState).not.toContain("I'm a member of the release team.");
+  expect(localState).not.toContain("a member of\"");
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SECRET_KEY;
@@ -217,9 +135,25 @@ test("server-backed golden session preserves retry transfer and privacy boundari
       detectSessionInUrl: false,
     },
   });
+
+  const { data: sessions, error: sessionsError } = await admin
+    .from("lesson_sessions")
+    .select("id,status,current_phase,current_activity_id,completed_at")
+    .eq("owner_user_id", "133f314f-4bfd-46aa-8fc6-b6a33252232b")
+    .eq("lesson_version_id", "77777777-7777-4777-8777-777777777777");
+  expect(sessionsError).toBeNull();
+  expect(sessions).toHaveLength(1);
+  expect(sessions?.[0]).toMatchObject({
+    status: "completed",
+    current_phase: "completed",
+    current_activity_id: "activity_exit",
+  });
+  expect(sessions?.[0]?.completed_at).toBeTruthy();
+
+  const sessionId = sessions?.[0]?.id as string;
   const { data: attempts, error: attemptsError } = await admin
     .from("activity_attempts")
-    .select("activity_id,attempt_number,idempotency_key,response")
+    .select("activity_id,attempt_number,response,evaluation")
     .eq("session_id", sessionId)
     .order("submitted_at", { ascending: true });
 
@@ -228,19 +162,28 @@ test("server-backed golden session preserves retry transfer and privacy boundari
     attempts?.map((attempt) => [
       attempt.activity_id,
       attempt.attempt_number,
-      attempt.idempotency_key,
+      (attempt.evaluation as { verdict?: string }).verdict,
     ]),
   ).toEqual([
-    ["activity_gist", 1, "71111111-1111-4111-8111-111111111111"],
-    ["activity_gist", 2, "72222222-2222-4222-8222-222222222222"],
-    ["activity_meaning", 1, "73333333-3333-4333-8333-333333333333"],
-    ["activity_recall", 1, "74444444-4444-4444-8444-444444444444"],
-    ["activity_transfer", 1, "75555555-5555-4555-8555-555555555555"],
-    ["activity_transfer", 2, "76666666-6666-4666-8666-666666666666"],
-    ["activity_exit", 1, "77777777-7777-4777-8777-777777777778"],
+    ["activity_gist", 1, "incorrect"],
+    ["activity_gist", 2, "correct"],
+    ["activity_meaning", 1, "correct"],
+    ["activity_recall", 1, "correct"],
+    ["activity_transfer", 1, "self_check"],
+    ["activity_transfer", 2, "self_check"],
+    ["activity_exit", 1, "unscored"],
   ]);
+
   for (const attempt of attempts ?? []) {
     const response = attempt.response as Record<string, unknown>;
     expect(Object.prototype.hasOwnProperty.call(response, "text")).toBe(false);
   }
+  expect(attempts?.[4]?.response).toMatchObject({
+    kind: "self_check",
+    checkedCriteria: [],
+  });
+  expect(attempts?.[5]?.response).toMatchObject({
+    kind: "self_check",
+    checkedCriteria: [0, 1, 2],
+  });
 });
