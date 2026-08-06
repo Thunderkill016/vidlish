@@ -29,6 +29,7 @@ begin
     where jsonb_typeof(activity) <> 'object'
       or activity ->> 'id' is null
       or activity ->> 'id' !~ '^[a-z][a-z0-9_-]{2,63}$'
+      or activity ->> 'phase' is null
       or activity ->> 'phase' not in (
         'orientation', 'activation', 'gist', 'focus', 'notice', 'practice',
         'retrieve', 'transfer', 'reflect'
