@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 async function login(page: import("@playwright/test").Page) {
   await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill("invited@example.com");
+  await page.getByLabel("Email được mời").fill("fresh@example.com");
   await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
   await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
   await page.getByRole("button", { name: "Đăng nhập" }).click();
