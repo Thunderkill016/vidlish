@@ -52,10 +52,15 @@ async function submitAndContinue(
   await page.getByRole("button", { name: "Tiếp tục" }).click();
 }
 
-test("golden session remains usable without horizontal overflow on a narrow mobile viewport", async ({
-  page,
-}) => {
-  await page.setViewportSize({ width: 390, height: 844 });
+test("golden session remains usable without horizontal overflow on a narrow mobile viewport", async (
+  { page },
+  testInfo,
+) => {
+  test.skip(
+    testInfo.project.name !== "mobile-chromium",
+    "This is the dedicated journey for the real mobile-emulation project.",
+  );
+
   await mockYouTubeIframeApi(page);
   await login(page);
   await page.goto("/learning-lab/v2");
