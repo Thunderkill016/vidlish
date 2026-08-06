@@ -90,11 +90,11 @@ insert into public.lesson_versions (
     "schemaVersion":"lesson:v2",
     "fixtureId":"golden-session-v1",
     "activities":[
-      {"id":"activity_gist"},
-      {"id":"activity_meaning"},
-      {"id":"activity_recall"},
-      {"id":"activity_transfer"},
-      {"id":"activity_exit"}
+      {"id":"activity_gist","phase":"gist"},
+      {"id":"activity_meaning","phase":"practice"},
+      {"id":"activity_recall","phase":"retrieve"},
+      {"id":"activity_transfer","phase":"transfer"},
+      {"id":"activity_exit","phase":"reflect"}
     ]
   }'::jsonb
 )
