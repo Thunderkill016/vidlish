@@ -141,9 +141,8 @@ export class InMemoryGenerationJobRepository
   async markTranscriptExhausted(
     jobId: string,
     ownerUserId: string,
-    _reason: string,
+    reason: string,
   ): Promise<GenerationJob | null> {
-    void _reason;
     const job = this.jobs.get(jobId);
     if (!job || job.ownerUserId !== ownerUserId) {
       throw new Error("generation job not found");
@@ -156,11 +155,17 @@ export class InMemoryGenerationJobRepository
     ) {
       return job;
     }
+
+    const weakEvidence = reason === "TRANSCRIPT_EVIDENCE_TOO_WEAK";
     return this.updateStatus(
       jobId,
       "failed",
-      "transcript_unavailable",
-      "TRANSCRIPT_UNAVAILABLE",
+      weakEvidence
+        ? "transcript_evidence_too_weak"
+        : "transcript_unavailable",
+      weakEvidence
+        ? "TRANSCRIPT_EVIDENCE_TOO_WEAK"
+        : "TRANSCRIPT_UNAVAILABLE",
     );
   }
 
