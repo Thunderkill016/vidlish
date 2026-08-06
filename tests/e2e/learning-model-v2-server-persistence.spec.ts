@@ -1,5 +1,11 @@
 import { expect, test, type Page } from "@playwright/test";
 
+test.describe.configure({ retries: 0 });
+test.skip(
+  process.env.LEARNING_SESSION_REPOSITORY !== "supabase",
+  "This specification is reserved for the isolated Supabase-backed CI job.",
+);
+
 async function login(page: Page) {
   await page.goto("/sign-in");
   await page
