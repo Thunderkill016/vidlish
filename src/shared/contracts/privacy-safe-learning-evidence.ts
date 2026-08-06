@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import type { ActivityResponse } from "@/shared/contracts/lesson-v2";
+import {
+  activityEvaluationSchema,
+  type ActivityResponse,
+} from "@/shared/contracts/lesson-v2";
 
 const entityIdSchema = z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/);
 
@@ -78,11 +81,7 @@ export const privacySafeActivityAttemptSchema = z
     attemptNumber: z.number().int().positive(),
     idempotencyKey: z.string().uuid(),
     responseEvidence: privacySafeActivityResponseSchema,
-    evaluation: z
-      .object({
-        verdict: z.enum(["correct", "incorrect", "self_check", "unscored"]),
-      })
-      .passthrough(),
+    evaluation: activityEvaluationSchema,
     submittedAt: z.string().datetime({ offset: true }),
   })
   .strict();
