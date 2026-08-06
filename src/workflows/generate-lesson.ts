@@ -5,8 +5,9 @@ import {
   advanceToTranscriptAcquisition,
   checkOriginalEnglishStep,
   generateLessonStep,
-  resolveLessonFailureStep,
   loadFinalGenerationStateStep,
+  resolveLanguageFailureStep,
+  resolveLessonFailureStep,
   resolveTranscriptExhaustionStep,
 } from "./generate-lesson.steps";
 
@@ -25,7 +26,13 @@ export async function generateLessonWorkflow(
     transcriptOutcome.kind === "persisted" ||
     transcriptOutcome.kind === "already_advanced"
   ) {
-    languageOutcome = (await checkOriginalEnglishStep(jobRef)).status;
+    try {
+      languageOutcome = (await checkOriginalEnglishStep(jobRef)).status;
+    } catch {
+      const resolution = await resolveLanguageFailureStep(jobRef);
+      languageOutcome =
+        resolution.kind === "terminated" ? "failed" : undefined;
+    }
   }
 
   const needsAnotherSource =
@@ -54,7 +61,14 @@ export async function generateLessonWorkflow(
   // Fail closed at the workflow boundary. A step can return a non-throwing
   // outcome such as `skipped`, or the workflow runtime can resume after a
   // partial execution. Either way, a completed workflow must never leave the
-  // learner polling `analyzing_video` forever.
+  // learner polling an active stage forever.
+  if (finalStatus === "checking_language") {
+    const resolution = await resolveLanguageFailureStep(jobRef);
+    languageOutcome =
+      resolution.kind === "terminated" ? "failed" : languageOutcome;
+    finalStatus = await loadFinalGenerationStateStep(jobRef);
+  }
+
   if (finalStatus === "analyzing_video") {
     lessonOutcome = (await resolveLessonFailureStep(jobRef)).kind;
     finalStatus = await loadFinalGenerationStateStep(jobRef);

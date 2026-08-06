@@ -120,6 +120,63 @@ export async function checkOriginalEnglishStep(
 
 checkOriginalEnglishStep.maxRetries = 5;
 
+/**
+ * Terminal outcome when the language step gives up after its retries.
+ *
+ * This deliberately exposes no database or provider detail to the learner. The
+ * generic failed state releases the active-job slot immediately, while the
+ * watchdog remains a final safety net if even this resolver cannot persist.
+ */
+export async function resolveLanguageFailureStep(
+  jobRef: GenerationWorkflowJobRef,
+) {
+  "use step";
+
+  const { generationRepository } = createStepRuntime();
+  const latest = await generationRepository.findOwnedById(
+    jobRef.jobId,
+    jobRef.ownerUserId,
+  );
+  if (!latest) {
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "workflow_terminalization",
+      action: "skipped",
+      provider: "workflow",
+      reason: "job_missing",
+    });
+    return { kind: "already_settled" } as const;
+  }
+
+  if (latest.status !== "checking_language") {
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "workflow_terminalization",
+      action: "skipped",
+      provider: "workflow",
+      outcome: "already_settled",
+      reason: "status_mismatch",
+    });
+    return { kind: "already_settled" } as const;
+  }
+
+  await generationRepository.updateStatus(jobRef.jobId, "failed", "failed");
+  emitGenerationEvent({
+    level: "warning",
+    jobId: jobRef.jobId,
+    stage: "workflow_terminalization",
+    action: "succeeded",
+    provider: "workflow",
+    outcome: "terminated",
+    reason: "language_check_failed",
+  });
+  return { kind: "terminated" } as const;
+}
+
+resolveLanguageFailureStep.maxRetries = 5;
+
 export async function resolveTranscriptExhaustionStep(
   jobRef: GenerationWorkflowJobRef,
   languageOutcome?: string,
@@ -156,7 +213,9 @@ export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
   const config = getServerConfig();
   const provider = config.LESSON_PROVIDER;
   const providerFields =
-    provider === "gemini" ? { provider, modelId: config.LESSON_MODEL_ID } : { provider };
+    provider === "gemini"
+      ? { provider, modelId: config.LESSON_MODEL_ID }
+      : { provider };
   const { generationRepository, transcriptRuntime, generateLesson } =
     createStepRuntime();
   const latest = await generationRepository.findOwnedById(

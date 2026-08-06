@@ -5,6 +5,7 @@ const steps = vi.hoisted(() => ({
   acquireNativeCaptionStep: vi.fn(),
   checkOriginalEnglishStep: vi.fn(),
   generateLessonStep: vi.fn(),
+  resolveLanguageFailureStep: vi.fn(),
   resolveLessonFailureStep: vi.fn(),
   loadFinalGenerationStateStep: vi.fn(),
   resolveTranscriptExhaustionStep: vi.fn(),
@@ -30,6 +31,7 @@ describe("generateLessonWorkflow", () => {
     steps.acquireNativeCaptionStep.mockResolvedValue({ kind: "persisted" });
     steps.checkOriginalEnglishStep.mockResolvedValue({ status: "eligible" });
     steps.generateLessonStep.mockResolvedValue({ kind: "published" });
+    steps.resolveLanguageFailureStep.mockResolvedValue({ kind: "terminated" });
     steps.resolveLessonFailureStep.mockResolvedValue({ kind: "terminated" });
     steps.loadFinalGenerationStateStep.mockResolvedValue("completed");
     steps.resolveTranscriptExhaustionStep.mockResolvedValue({ kind: "terminated" });
@@ -38,7 +40,40 @@ describe("generateLessonWorkflow", () => {
   it("keeps a successfully completed lesson unchanged", async () => {
     const result = await generateLessonWorkflow(event);
     expect(result.status).toBe("completed");
+    expect(steps.resolveLanguageFailureStep).not.toHaveBeenCalled();
     expect(steps.resolveLessonFailureStep).not.toHaveBeenCalled();
+  });
+
+  it("terminalizes a language check after its retries are exhausted", async () => {
+    steps.checkOriginalEnglishStep.mockRejectedValue(
+      new Error("database contract rejected partial coverage"),
+    );
+    steps.loadFinalGenerationStateStep.mockResolvedValue("failed");
+
+    const result = await generateLessonWorkflow(event);
+
+    expect(steps.resolveLanguageFailureStep).toHaveBeenCalledTimes(1);
+    expect(steps.resolveLanguageFailureStep).toHaveBeenCalledWith(jobRef);
+    expect(steps.generateLessonStep).not.toHaveBeenCalled();
+    expect(result.status).toBe("failed");
+    expect("languageOutcome" in result ? result.languageOutcome : undefined).toBe(
+      "failed",
+    );
+  });
+
+  it("fails closed when the workflow would otherwise finish in checking_language", async () => {
+    steps.checkOriginalEnglishStep.mockResolvedValue({
+      status: "checking_language",
+    });
+    steps.loadFinalGenerationStateStep
+      .mockResolvedValueOnce("checking_language")
+      .mockResolvedValueOnce("failed");
+
+    const result = await generateLessonWorkflow(event);
+
+    expect(steps.resolveLanguageFailureStep).toHaveBeenCalledWith(jobRef);
+    expect(steps.loadFinalGenerationStateStep).toHaveBeenCalledTimes(2);
+    expect(result.status).toBe("failed");
   });
 
   it("fails closed when the workflow would otherwise finish in analyzing_video", async () => {

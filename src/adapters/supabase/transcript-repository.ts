@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { fetchAllRows } from "@/adapters/supabase/fetch-all-rows";
 import type {
   TranscriptAttemptRecord,
   TranscriptRepository,
@@ -146,7 +147,8 @@ export class SupabaseTranscriptRepository implements TranscriptRepository {
     if (job.error) throw job.error;
     if (!job.data?.canonical_transcript_id) return null;
 
-    const [transcriptResult, segmentsResult] = await Promise.all([
+    const transcriptId = job.data.canonical_transcript_id;
+    const [transcriptResult, segmentRows] = await Promise.all([
       this.client
         .from("transcripts")
         .select(
@@ -164,28 +166,30 @@ export class SupabaseTranscriptRepository implements TranscriptRepository {
             videos!inner (youtube_video_id)
           `,
         )
-        .eq("id", job.data.canonical_transcript_id)
+        .eq("id", transcriptId)
         .eq("owner_user_id", ownerUserId)
         .maybeSingle(),
-      this.client
-        .from("transcript_segments")
-        .select(
-          "id,position,start_ms,end_ms,text,confidence,detected_language",
-        )
-        .eq("transcript_id", job.data.canonical_transcript_id)
-        .eq("owner_user_id", ownerUserId)
-        .order("position", { ascending: true }),
+      fetchAllRows((from, to) =>
+        this.client
+          .from("transcript_segments")
+          .select(
+            "id,position,start_ms,end_ms,text,confidence,detected_language",
+            { count: "exact" },
+          )
+          .eq("transcript_id", transcriptId)
+          .eq("owner_user_id", ownerUserId)
+          .order("position", { ascending: true })
+          .range(from, to),
+      ),
     ]);
-    if (transcriptResult.error || segmentsResult.error) {
-      throw transcriptResult.error ?? segmentsResult.error;
-    }
+    if (transcriptResult.error) throw transcriptResult.error;
     if (!transcriptResult.data) return null;
 
     const transcript = rawTranscriptSchema.parse(transcriptResult.data);
     const video = Array.isArray(transcript.videos)
       ? transcript.videos[0]
       : transcript.videos;
-    const segments = z.array(rawSegmentSchema).parse(segmentsResult.data ?? []);
+    const segments = z.array(rawSegmentSchema).parse(segmentRows);
 
     return canonicalTranscriptSchema.parse({
       videoId: video.youtube_video_id,

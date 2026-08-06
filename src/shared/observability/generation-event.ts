@@ -46,6 +46,7 @@ export const generationEventSchema = z
         "job_missing",
         "status_mismatch",
         "transcript_missing",
+        "language_check_failed",
         "provider_failure",
         "unexpected_error",
       ])

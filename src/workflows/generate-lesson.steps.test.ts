@@ -55,7 +55,10 @@ vi.mock("@/shared/observability/generation-event", () => ({
 
 import { LessonGenerationFailure } from "@/modules/lesson/ports/lesson-generation-provider";
 
-import { generateLessonStep } from "./generate-lesson.steps";
+import {
+  generateLessonStep,
+  resolveLanguageFailureStep,
+} from "./generate-lesson.steps";
 
 const jobRef = {
   jobId: "11111111-1111-4111-8111-111111111111",
@@ -129,5 +132,55 @@ describe("generateLessonStep observability", () => {
     );
     expect(failedEvent).not.toHaveProperty("message");
     expect(JSON.stringify(failedEvent)).not.toContain("sensitive provider response");
+  });
+});
+
+describe("resolveLanguageFailureStep", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("releases the active slot after the language step exhausts retries", async () => {
+    mocks.findOwnedById.mockResolvedValue({
+      ...job,
+      status: "checking_language",
+    });
+    mocks.updateStatus.mockResolvedValue({
+      ...job,
+      status: "failed",
+    });
+
+    await expect(resolveLanguageFailureStep(jobRef)).resolves.toEqual({
+      kind: "terminated",
+    });
+
+    expect(mocks.updateStatus).toHaveBeenCalledWith(
+      jobRef.jobId,
+      "failed",
+      "failed",
+    );
+    expect(mocks.emitGenerationEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: "warning",
+        jobId: jobRef.jobId,
+        stage: "workflow_terminalization",
+        action: "succeeded",
+        outcome: "terminated",
+        reason: "language_check_failed",
+      }),
+    );
+  });
+
+  it("does not overwrite a job that another recovery path already settled", async () => {
+    mocks.findOwnedById.mockResolvedValue({
+      ...job,
+      status: "failed",
+    });
+
+    await expect(resolveLanguageFailureStep(jobRef)).resolves.toEqual({
+      kind: "already_settled",
+    });
+
+    expect(mocks.updateStatus).not.toHaveBeenCalled();
   });
 });
