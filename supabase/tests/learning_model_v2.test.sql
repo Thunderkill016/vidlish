@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(38);
+select plan(41);
 
 -- ---------------------------------------------------------------------------
 -- Shape, RLS and browser privileges
@@ -146,8 +146,8 @@ insert into public.lesson_versions (
   '{
     "schemaVersion":"lesson:v2",
     "activities":[
-      {"id":"activity_gist"},
-      {"id":"activity_transfer"}
+      {"id":"activity_gist","phase":"gist"},
+      {"id":"activity_transfer","phase":"transfer"}
     ]
   }'::jsonb
 );
@@ -203,6 +203,63 @@ select throws_ok(
   ),
   'activity is not current for this session',
   'server refuses skipping ahead in the immutable activity sequence'
+);
+
+select throws_ok(
+  format(
+    $$select * from public.record_lesson_v2_attempt(
+      '11111111-1111-4111-8111-111111111111',
+      %L::uuid,
+      'activity_gist',
+      '88888888-8888-4888-8888-888888888889',
+      '{"kind":"choice"}'::jsonb,
+      '{"verdict":"incorrect"}'::jsonb,
+      'transfer',
+      'activity_gist',
+      false
+    )$$,
+    (select session_id from first_session)
+  ),
+  'a non-advancing attempt must preserve the current phase',
+  'database rejects changing phase while staying on the same activity'
+);
+
+select throws_ok(
+  format(
+    $$select * from public.record_lesson_v2_attempt(
+      '11111111-1111-4111-8111-111111111111',
+      %L::uuid,
+      'activity_gist',
+      '88888888-8888-4888-8888-888888888890',
+      '{"kind":"choice"}'::jsonb,
+      '{"verdict":"correct"}'::jsonb,
+      'transfer',
+      'activity_unknown',
+      false
+    )$$,
+    (select session_id from first_session)
+  ),
+  'attempt progression must follow the immutable activity order',
+  'database rejects an arbitrary next activity id'
+);
+
+select throws_ok(
+  format(
+    $$select * from public.record_lesson_v2_attempt(
+      '11111111-1111-4111-8111-111111111111',
+      %L::uuid,
+      'activity_gist',
+      '88888888-8888-4888-8888-888888888891',
+      '{"kind":"choice"}'::jsonb,
+      '{"verdict":"correct"}'::jsonb,
+      'completed',
+      'activity_gist',
+      true
+    )$$,
+    (select session_id from first_session)
+  ),
+  'only the final immutable activity can complete a session',
+  'database rejects premature session completion'
 );
 
 create temporary table first_attempt on commit drop as
