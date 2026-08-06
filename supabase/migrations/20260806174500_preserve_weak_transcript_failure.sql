@@ -1,3 +1,18 @@
+alter table public.lesson_jobs
+  drop constraint if exists lesson_jobs_safe_error_code;
+
+alter table public.lesson_jobs
+  add constraint lesson_jobs_safe_error_code
+  check (
+    safe_error_code is null
+    or safe_error_code in (
+      'VIDEO_LANGUAGE_UNSUPPORTED',
+      'TRANSCRIPT_UNAVAILABLE',
+      'TRANSCRIPT_EVIDENCE_TOO_WEAK',
+      'LESSON_GENERATION_FAILED'
+    )
+  );
+
 create or replace function public.mark_transcript_exhausted(
   p_job_id uuid,
   p_owner_user_id uuid,
