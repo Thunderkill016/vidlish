@@ -7,6 +7,10 @@ const JOB_ID = "11111111-1111-4111-8111-111111111111";
 const OWNER_ID = "22222222-2222-4222-8222-222222222222";
 const TRANSCRIPT_ID = "33333333-3333-4333-8333-333333333333";
 
+function segmentId(index: number) {
+  return `seg_${index.toString(16).padStart(32, "0")}`;
+}
+
 type QueryResult = { data: unknown; error: null; count: number | null };
 
 class FakeQuery implements PromiseLike<QueryResult> {
@@ -73,7 +77,7 @@ class FakeQuery implements PromiseLike<QueryResult> {
           normalized_hash: "a".repeat(64),
           normalization_version: "transcript-normalization:v1",
           duration_ms: 1_973_840,
-          videos: { youtube_video_id: "video123" },
+          videos: { youtube_video_id: "video123abc" },
         },
         error: null,
         count: 1,
@@ -95,7 +99,7 @@ class FakeQuery implements PromiseLike<QueryResult> {
 describe("SupabaseTranscriptRepository.findCanonicalForJob", () => {
   it("returns all 1,149 ordered segments instead of a successful partial transcript", async () => {
     const segmentRows = Array.from({ length: 1_149 }, (_, index) => ({
-      id: `seg_${index}`,
+      id: segmentId(index),
       position: index,
       start_ms: index * 1_000,
       end_ms: index * 1_000 + 900,
@@ -117,7 +121,7 @@ describe("SupabaseTranscriptRepository.findCanonicalForJob", () => {
 
     expect(transcript?.segments).toHaveLength(1_149);
     expect(transcript?.segments.at(-1)).toEqual({
-      id: "seg_1148",
+      id: segmentId(1_148),
       position: 1_148,
       startMs: 1_148_000,
       endMs: 1_148_900,
