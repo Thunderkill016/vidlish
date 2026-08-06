@@ -48,7 +48,7 @@ async function mockYouTubeIframeApi(
   });
 }
 
-test("Learning Model v2 binds real media, requires attempts and resumes", async ({
+test("golden Learning Model v2 session enforces support retry transfer and honest completion", async ({
   page,
 }) => {
   await mockYouTubeIframeApi(page);
@@ -57,60 +57,43 @@ test("Learning Model v2 binds real media, requires attempts and resumes", async 
 
   await expect(
     page.getByRole("heading", {
-      name: "Không đọc một bài dài. Hãy hoàn thành một vòng học.",
+      name: "Nghe rõ một đoạn thật. Dùng được một cụm thật.",
     }),
   ).toBeVisible();
-  await expect(page.getByText("Sau phiên này, bạn có thể")).toBeVisible();
-  await expect(page.getByText("Evidence từ transcript canonical")).toHaveCount(0);
+  await expect(page.getByText("a member of", { exact: true })).toHaveCount(0);
+  await page
+    .getByRole("button", { name: "Bắt đầu nghe không phụ đề" })
+    .click();
 
-  await page.getByRole("button", { name: "Bắt đầu với ý chính" }).click();
   await expect(page.getByText("Bước 1/5 · Nắm ý chính")).toBeVisible();
-  await expect(page.getByTestId("youtube-player")).toBeVisible();
   await expect(page.getByRole("button", { name: "Bật phụ đề" })).toHaveCount(0);
-  await expect(page.getByText(/lượt nghe đầu ẩn phụ đề/i)).toBeVisible();
-
   await page.getByRole("button", { name: "Phát đoạn" }).click();
-  await expect(page.getByText("Đang phát đoạn 0:16–0:24.")).toBeVisible();
-  const mediaCall = await page.evaluate(() => {
-    const calls = (
-      window as typeof window & {
-        __vidlishYouTubeCalls?: Array<{
-          method: string;
-          input?: { videoId: string; startSeconds: number; endSeconds: number };
-        }>;
-      }
-    ).__vidlishYouTubeCalls;
-    return calls?.find((call) => call.method === "load");
-  });
-  expect(mediaCall?.input).toEqual({
-    videoId: "M7lc1UVf-VE",
-    startSeconds: 16,
-    endSeconds: 24,
-  });
+  await page.getByRole("button", { name: "Phát đoạn" }).click();
+  await expect(page.getByText("Bạn đã chủ động nghe lại đoạn nguồn.")).toBeVisible();
+  await page.getByRole("button", { name: "Mở gợi ý ngữ cảnh" }).click();
+  await expect(page.getByText(/buổi hướng dẫn kỹ thuật/i)).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mở phụ đề tiếng anh" })).toHaveCount(0);
 
+  await page.getByLabel("Cách chọn phần cứng quay video").check();
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
+  await expect(page.getByText("Chưa đúng", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+  await page.getByRole("button", { name: "Mở gợi ý từ khóa" }).click();
+  await page.getByRole("button", { name: "Mở phụ đề tiếng anh" }).click();
+  await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
+  await page.getByRole("button", { name: "Thử lại" }).click();
   await page
     .getByLabel("Các cách tùy chỉnh trình phát YouTube nhúng")
     .check();
-  await page.getByRole("button", { name: "Gửi attempt" }).click();
-
+  await page.getByRole("button", { name: "Gửi lần thử lại" }).click();
   await expect(page.getByText("Đúng", { exact: true })).toBeVisible();
-  await expect(page.getByText("Evidence từ transcript canonical")).toBeVisible();
-  await expect(
-    page.getByText(/different ways of customizing the YouTube-embedded player/),
-  ).toBeVisible();
-  await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
-
   await page.getByRole("button", { name: "Tiếp tục" }).click();
-  await expect(page.getByText("Bước 2/5 · Hiểu cách dùng")).toBeVisible();
 
-  // Lab progress survives a page reload, while private free-text responses are
-  // intentionally not written to local storage.
+  await expect(page.getByText("Bước 2/5 · Hiểu cách dùng")).toBeVisible();
   await page.reload();
   await expect(page.getByText("Bước 2/5 · Hiểu cách dùng")).toBeVisible();
-  await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
-
   await page.getByLabel("Giới thiệu người nói thuộc một đội").check();
-  await page.getByRole("button", { name: "Gửi attempt" }).click();
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
   await expect(page.getByText("a member of", { exact: true })).toBeVisible();
   await expect(page.getByText(/Register: neutral/)).toBeVisible();
   await page.getByRole("button", { name: "Tiếp tục" }).click();
@@ -118,8 +101,14 @@ test("Learning Model v2 binds real media, requires attempts and resumes", async 
   await expect(page.getByText("Bước 3/5 · Tự nhớ lại")).toBeVisible();
   await page
     .getByLabel("Complete: I'm ___ the Developer Relations team.")
+    .fill("member of");
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
+  await expect(page.getByText("Chưa đúng", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Thử lại" }).click();
+  await page
+    .getByLabel("Complete: I'm ___ the Developer Relations team.")
     .fill("a member of");
-  await page.getByRole("button", { name: "Gửi attempt" }).click();
+  await page.getByRole("button", { name: "Gửi lần thử lại" }).click();
   await expect(page.getByText("Bạn đã nhớ lại đúng toàn bộ cụm.")).toBeVisible();
   await page.getByRole("button", { name: "Tiếp tục" }).click();
 
@@ -130,26 +119,50 @@ test("Learning Model v2 binds real media, requires attempts and resumes", async 
     .getByLabel(
       "Viết một câu giới thiệu bạn là thành viên của nhóm bằng a member of.",
     )
-    .fill("I'm a member of the release team.");
-  await page.getByRole("button", { name: "Gửi attempt" }).click();
-  await expect(page.getByText("Tự đối chiếu sau khi đã viết")).toBeVisible();
+    .fill("I'm in the release team.");
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
+  await expect(page.getByText("Tự đối chiếu câu bạn vừa viết")).toBeVisible();
+
+  const criteria = page.locator('input[type="checkbox"]');
+  await criteria.nth(0).check();
+  await criteria.nth(1).check();
   await expect(
-    page.getByText("Ví dụ mới, không phải câu trong video:"),
+    page.getByRole("button", { name: "Xác nhận đủ tiêu chí" }),
+  ).toBeDisabled();
+  await page.getByRole("button", { name: "Chỉnh lại toàn bộ câu" }).click();
+
+  await page
+    .getByLabel(
+      "Viết một câu giới thiệu bạn là thành viên của nhóm bằng a member of.",
+    )
+    .fill("I'm a member of the release team.");
+  await page.getByRole("button", { name: "Gửi lần thử lại" }).click();
+  await criteria.nth(0).check();
+  await criteria.nth(1).check();
+  await criteria.nth(2).check();
+  await page.getByRole("button", { name: "Xác nhận đủ tiêu chí" }).click();
+  await expect(
+    page.getByText("Đã xác nhận đủ tiêu chí cho lần thử này."),
   ).toBeVisible();
-  await expect(page.getByText("Đúng", { exact: true })).toHaveCount(0);
-  await expect(page.getByText("Chưa đúng", { exact: true })).toHaveCount(0);
   await page.getByRole("button", { name: "Tiếp tục" }).click();
 
   await expect(page.getByText("Bước 5/5 · Kết thúc")).toBeVisible();
+  await expect(page.getByTestId("youtube-player")).toBeVisible();
+  await page.getByRole("button", { name: "Phát đoạn" }).click();
   await page
-    .getByLabel("Bạn cần nghe lại ý chính hay luyện dùng chunk thêm?")
-    .fill("Tôi muốn luyện dùng chunk thêm trong một tình huống mới.");
-  await page.getByRole("button", { name: "Gửi attempt" }).click();
+    .getByLabel(
+      "Không nhìn câu mẫu: bạn nghe được cách nói nào để giới thiệu người nói thuộc một nhóm?",
+    )
+    .fill("a member of");
+  await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
   await expect(page.getByText(/không phải điểm năng lực khách quan/i)).toBeVisible();
   await page.getByRole("button", { name: "Hoàn tất phiên" }).click();
 
   await expect(
-    page.getByRole("heading", { name: "Bạn đã nghe, nhớ lại và vận dụng." }),
+    page.getByRole("heading", {
+      name: "Bạn đã tạo được evidence cho lần học hôm nay.",
+    }),
   ).toBeVisible();
-  await expect(page.getByText(/không được coi là mastery/i)).toBeVisible();
+  await expect(page.getByText(/không phải tuyên bố đã thành thạo/i)).toBeVisible();
+  await expect(page.getByText("Đã viết và tự đối chiếu đủ tiêu chí")).toBeVisible();
 });
