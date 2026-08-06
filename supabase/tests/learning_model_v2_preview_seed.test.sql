@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(4);
+select plan(5);
 
 select ok(
   exists(
@@ -34,6 +34,24 @@ select is(
   ),
   'lesson:v2',
   'preview fixture uses the v2 lesson schema'
+);
+
+select is(
+  (
+    select array_agg(activity ->> 'id' order by ordinal_position)
+    from public.lesson_versions lv,
+      lateral jsonb_array_elements(lv.blueprint -> 'activities')
+        with ordinality as activities(activity, ordinal_position)
+    where lv.id = '77777777-7777-4777-8777-777777777777'
+  ),
+  array[
+    'activity_gist',
+    'activity_meaning',
+    'activity_recall',
+    'activity_transfer',
+    'activity_exit'
+  ]::text[],
+  'preview immutable blueprint contains the complete ordered Golden Session'
 );
 
 select ok(
