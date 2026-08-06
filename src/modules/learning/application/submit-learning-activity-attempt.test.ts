@@ -117,7 +117,8 @@ describe("SubmitLearningActivityAttempt", () => {
       submitted: true,
       characterCount: rawAnswer.length,
     });
-    expect(JSON.stringify(result.attempt)).not.toContain(rawAnswer);
+    expect(result.attempt.responseEvidence).not.toHaveProperty("text");
+    expect(result.attempt.evaluation).toHaveProperty("reveal.answer", rawAnswer);
   });
 
   it("marks the session completed only after the exit ticket attempt", async () => {
@@ -175,6 +176,11 @@ describe("SubmitLearningActivityAttempt", () => {
     expect(last?.session.status).toBe("completed");
     expect(last?.session.currentPhase).toBe("completed");
     expect(last?.session.completedAt).not.toBeNull();
-    expect(JSON.stringify(last?.attempt)).not.toContain("luyện lại chunk");
+    expect(last?.attempt.responseEvidence).toEqual({
+      kind: "reflection",
+      submitted: true,
+      characterCount: "Tôi muốn luyện lại chunk này ngày mai.".length,
+    });
+    expect(last?.attempt.responseEvidence).not.toHaveProperty("text");
   });
 });
