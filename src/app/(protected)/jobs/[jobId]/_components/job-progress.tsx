@@ -44,6 +44,9 @@ export function JobProgress({
     job.safeErrorCode === "VIDEO_LANGUAGE_UNSUPPORTED";
   const transcriptUnavailable =
     phase === "failed" && job.safeErrorCode === "TRANSCRIPT_UNAVAILABLE";
+  const transcriptEvidenceTooWeak =
+    phase === "failed" &&
+    job.safeErrorCode === "TRANSCRIPT_EVIDENCE_TOO_WEAK";
   // The job had a usable transcript and still did not produce a lesson — the
   // model step stalled or kept failing. Without its own card the learner would
   // watch the page go quiet and never learn what happened.
@@ -134,14 +137,16 @@ export function JobProgress({
 
   const currentLabel = unsupportedLanguage
     ? "Video không đủ tiếng Anh gốc"
-    : transcriptUnavailable
-      ? "Chưa lấy được lời thoại"
-      : phases.find((item) => item.id === phase)?.label ??
-      (phase === "completed"
-        ? "Bài học đã sẵn sàng"
-        : phase === "cancelled"
-          ? "Đã hủy"
-          : "Cần xử lý lại");
+    : transcriptEvidenceTooWeak
+      ? "Video chưa đủ nội dung để tạo bài học"
+      : transcriptUnavailable
+        ? "Chưa lấy được lời thoại"
+        : phases.find((item) => item.id === phase)?.label ??
+          (phase === "completed"
+            ? "Bài học đã sẵn sàng"
+            : phase === "cancelled"
+              ? "Đã hủy"
+              : "Cần xử lý lại");
 
   return (
     <div className="space-y-6">
@@ -176,6 +181,31 @@ export function JobProgress({
             onClick={() => window.location.assign("/create")}
           >
             Chọn video khác
+          </Button>
+        </section>
+      ) : null}
+
+      {transcriptEvidenceTooWeak ? (
+        <section
+          data-testid="transcript-evidence-too-weak"
+          className="space-y-4 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5"
+        >
+          <div className="space-y-2">
+            <h2 className="text-xl font-semibold">
+              Video quá ngắn để tạo bài học đáng tin cậy
+            </h2>
+            <p role="alert" className="text-sm text-[var(--foreground)]">
+              Vidlish đã lấy được lời thoại, nhưng phần tiếng Anh rõ ràng chưa đủ dài để chọn mục tiêu học và tạo hoạt động có căn cứ.
+            </p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Hãy chọn video có hơn khoảng một phút lời nói tiếng Anh liên tục. Vidlish không kéo dài bài học bằng nội dung AI tự bịa chỉ để xử lý được Shorts.
+            </p>
+          </div>
+          <Button
+            type="button"
+            onClick={() => window.location.assign("/create")}
+          >
+            Chọn video dài hơn
           </Button>
         </section>
       ) : null}

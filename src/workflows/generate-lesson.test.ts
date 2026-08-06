@@ -9,9 +9,24 @@ const steps = vi.hoisted(() => ({
   resolveLessonFailureStep: vi.fn(),
   loadFinalGenerationStateStep: vi.fn(),
   resolveTranscriptExhaustionStep: vi.fn(),
+  resolveTranscriptTerminalStateStep: vi.fn(),
 }));
 
-vi.mock("./generate-lesson.steps", () => steps);
+vi.mock("./generate-lesson.steps", () => ({
+  advanceToTranscriptAcquisition: steps.advanceToTranscriptAcquisition,
+  acquireNativeCaptionStep: steps.acquireNativeCaptionStep,
+  checkOriginalEnglishStep: steps.checkOriginalEnglishStep,
+  generateLessonStep: steps.generateLessonStep,
+  resolveLanguageFailureStep: steps.resolveLanguageFailureStep,
+  resolveLessonFailureStep: steps.resolveLessonFailureStep,
+  loadFinalGenerationStateStep: steps.loadFinalGenerationStateStep,
+  resolveTranscriptExhaustionStep: steps.resolveTranscriptExhaustionStep,
+}));
+
+vi.mock("./resolve-transcript-terminal-state", () => ({
+  resolveTranscriptTerminalStateStep:
+    steps.resolveTranscriptTerminalStateStep,
+}));
 
 import { generateLessonWorkflow } from "./generate-lesson";
 
@@ -35,6 +50,9 @@ describe("generateLessonWorkflow", () => {
     steps.resolveLessonFailureStep.mockResolvedValue({ kind: "terminated" });
     steps.loadFinalGenerationStateStep.mockResolvedValue("completed");
     steps.resolveTranscriptExhaustionStep.mockResolvedValue({ kind: "terminated" });
+    steps.resolveTranscriptTerminalStateStep.mockResolvedValue({
+      kind: "terminated",
+    });
   });
 
   it("keeps a successfully completed lesson unchanged", async () => {
@@ -42,6 +60,53 @@ describe("generateLessonWorkflow", () => {
     expect(result.status).toBe("completed");
     expect(steps.resolveLanguageFailureStep).not.toHaveBeenCalled();
     expect(steps.resolveLessonFailureStep).not.toHaveBeenCalled();
+    expect(steps.resolveTranscriptTerminalStateStep).not.toHaveBeenCalled();
+  });
+
+  it("terminalizes a short transcript that has too little learning evidence", async () => {
+    steps.checkOriginalEnglishStep.mockResolvedValue({
+      status: "insufficient_evidence",
+    });
+    steps.loadFinalGenerationStateStep.mockResolvedValue("failed");
+
+    const result = await generateLessonWorkflow(event);
+
+    expect(steps.resolveTranscriptTerminalStateStep).toHaveBeenCalledTimes(1);
+    expect(steps.resolveTranscriptTerminalStateStep).toHaveBeenCalledWith(
+      jobRef,
+      "TRANSCRIPT_EVIDENCE_TOO_WEAK",
+    );
+    expect(steps.resolveTranscriptExhaustionStep).not.toHaveBeenCalled();
+    expect(steps.generateLessonStep).not.toHaveBeenCalled();
+    expect(result.status).toBe("failed");
+    expect("languageOutcome" in result ? result.languageOutcome : undefined).toBe(
+      "insufficient_evidence",
+    );
+  });
+
+  it("fails closed when transcript routing would leave an active job behind", async () => {
+    steps.acquireNativeCaptionStep.mockResolvedValue({
+      kind: "terminal_failure",
+    });
+    steps.resolveTranscriptExhaustionStep.mockResolvedValue({
+      kind: "strategy_remaining",
+    });
+    steps.loadFinalGenerationStateStep
+      .mockResolvedValueOnce("acquiring_transcript")
+      .mockResolvedValueOnce("failed");
+
+    const result = await generateLessonWorkflow(event);
+
+    expect(steps.resolveTranscriptExhaustionStep).toHaveBeenCalledWith(
+      jobRef,
+      undefined,
+    );
+    expect(steps.resolveTranscriptTerminalStateStep).toHaveBeenCalledWith(
+      jobRef,
+      "NO_USABLE_TRANSCRIPT",
+    );
+    expect(steps.loadFinalGenerationStateStep).toHaveBeenCalledTimes(2);
+    expect(result.status).toBe("failed");
   });
 
   it("terminalizes a language check after its retries are exhausted", async () => {
