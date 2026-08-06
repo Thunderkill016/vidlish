@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(4);
+select plan(5);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
@@ -138,6 +138,23 @@ select throws_ok(
   '23503',
   null,
   'attempt owner must match the session owner'
+);
+
+select throws_ok(
+  $$insert into public.activity_attempts (
+      session_id, owner_user_id, activity_id, attempt_number,
+      idempotency_key, response, evaluation
+    ) values (
+      'a8888888-8888-4888-8888-888888888888',
+      'a1111111-1111-4111-8111-111111111111',
+      'activity_gist', 1,
+      'ab999999-9999-4999-8999-999999999999',
+      '{"kind":"text","text":"raw learner answer"}'::jsonb,
+      '{"verdict":"incorrect"}'::jsonb
+    )$$,
+  '23514',
+  null,
+  'database rejects unrestricted learner text in attempt response'
 );
 
 select throws_ok(
