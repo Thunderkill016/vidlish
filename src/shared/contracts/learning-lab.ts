@@ -56,7 +56,10 @@ export type LearningLabAttemptResponse = Omit<
   "evaluation"
 > & {
   evaluation: ParsedLearningLabAttemptResponse["evaluation"] & {
-    reveal?: { answer: string };
+    reveal?: {
+      answer?: string;
+      explanationVi?: string;
+    };
   };
 };
 
