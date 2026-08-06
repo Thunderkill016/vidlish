@@ -4,15 +4,30 @@ import { InMemoryLearningSessionRepository } from "@/adapters/fake/in-memory-lea
 import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
 import { SupabaseLearningSessionRepository } from "@/adapters/supabase/learning-session-repository";
 import type { LearningSessionRepository } from "@/modules/learning/ports/learning-session-repository";
-import { getServerConfig } from "@/platform/config/server";
 
 let fakeRepository: InMemoryLearningSessionRepository | undefined;
 let supabaseRepository: SupabaseLearningSessionRepository | undefined;
 
-export function createLearningSessionRepository(): LearningSessionRepository {
-  const config = getServerConfig();
+function configuredRepository(): "fake" | "supabase" {
+  const value =
+    process.env.LEARNING_SESSION_REPOSITORY ??
+    (process.env.NODE_ENV === "production" ? "supabase" : "fake");
+  if (value !== "fake" && value !== "supabase") {
+    throw new Error(
+      "LEARNING_SESSION_REPOSITORY must be either fake or supabase.",
+    );
+  }
+  const isCi = process.env.CI === "true" || process.env.CI === "1";
+  if (process.env.NODE_ENV === "production" && !isCi && value === "fake") {
+    throw new Error(
+      "The fake learning session repository cannot run in production.",
+    );
+  }
+  return value;
+}
 
-  if (config.LEARNING_SESSION_REPOSITORY === "fake") {
+export function createLearningSessionRepository(): LearningSessionRepository {
+  if (configuredRepository() === "fake") {
     fakeRepository ??= new InMemoryLearningSessionRepository();
     return fakeRepository;
   }
