@@ -13,9 +13,10 @@ export function createFixtureLearningBlueprint(): LessonBlueprintV2 {
     blueprintId: "11111111-1111-4111-8111-111111111111",
     source: {
       jobId: "22222222-2222-4222-8222-222222222222",
-      videoId: "dQw4w9WgXcQ",
-      videoTitle: "Learning from real speech",
-      channelName: "Fixture channel",
+      videoId: "M7lc1UVf-VE",
+      videoTitle:
+        "YouTube Developers Live: Embedded Web Player Customization",
+      channelName: "Google for Developers",
       transcriptHash: "f".repeat(64),
     },
     learnerSnapshot: {
@@ -24,60 +25,60 @@ export function createFixtureLearningBlueprint(): LessonBlueprintV2 {
       timeBudgetMinutes: 5,
       supportPreference: "balanced",
       knownItemKeys: [],
-      weakItemKeys: ["pay-attention-to"],
+      weakItemKeys: ["a-member-of"],
       recentReviewOutcomes: [],
     },
     videoProfile: {
-      durationMs: 40_000,
+      durationMs: 1_344_000,
       challengeSummaryVi:
-        "Người nói trình bày lời khuyên liên tục với tốc độ vừa phải.",
-      challengeDimensions: ["reduction"],
+        "Giọng thuyết trình rõ và vừa phải, nhưng có tên đội và thuật ngữ web cần kiến thức nền.",
+      challengeDimensions: ["background_knowledge"],
       lexicalCoverageEstimate: 0.94,
     },
     outcomes: [
       {
-        id: "outcome_main_idea",
-        canDoVi: "Xác định được lời khuyên chính của đoạn nghe ngắn.",
+        id: "outcome_main_topic",
+        canDoVi: "Xác định được chủ đề chính trong phần mở đầu ngắn của video.",
         successEvidenceVi:
-          "Chọn đúng ý chính trước khi xem toàn bộ lời thoại.",
+          "Chọn đúng nội dung người nói sắp trình bày trước khi xem lời thoại.",
       },
       {
-        id: "outcome_reuse_chunk",
+        id: "outcome_reuse_affiliation",
         canDoVi:
-          "Dùng cụm pay attention to để đưa ra một lời khuyên mới.",
+          "Dùng cụm a member of để giới thiệu mình thuộc một nhóm hoặc tổ chức.",
         successEvidenceVi:
-          "Tự viết một câu phù hợp và đối chiếu bằng tiêu chí.",
+          "Tự viết một câu phù hợp và đối chiếu bằng tiêu chí sau attempt.",
       },
     ],
     targetItems: [
       {
-        id: "item_pay_attention",
-        itemKey: "pay-attention-to",
-        surfaceForm: "pay attention to",
+        id: "item_member_of",
+        itemKey: "a-member-of",
+        surfaceForm: "a member of",
         kind: "chunk",
-        contextualMeaningVi: "chú ý có chủ đích đến một điều cụ thể",
+        contextualMeaningVi: "một thành viên thuộc một nhóm hoặc tổ chức",
         communicativeFunctionVi:
-          "hướng sự tập trung của người nghe vào điều quan trọng",
+          "giới thiệu vai trò hoặc mối liên hệ của người nói với một tập thể",
         register: "neutral",
         pronunciationNoteVi:
-          "Trong lời nói nhanh, attention thường mang trọng âm chính.",
-        sourceSegmentIds: [segB],
+          "Trong lời nói liền mạch, member of thường được nối âm nhẹ giữa /r/ và /əv/.",
+        sourceSegmentIds: [segA],
       },
     ],
     evidenceCatalog: [
       {
         origin: "source_quote",
         segmentId: segA,
-        startMs: 0,
-        endMs: 19_500,
-        text: "A useful study routine begins with the whole message. Listen once without pausing, write a short summary, and then return to the exact moments where your understanding became uncertain or incomplete.",
+        startMs: 16_000,
+        endMs: 19_000,
+        text: "I'm a member of the Developer Relations team.",
       },
       {
         origin: "source_quote",
         segmentId: segB,
-        startMs: 20_000,
-        endMs: 39_500,
-        text: "On the second pass, pay attention to phrases rather than isolated words. Speakers often rely on familiar groups of words, and those groups carry meaning more naturally than a list of separate definitions.",
+        startMs: 21_000,
+        endMs: 24_000,
+        text: "different ways of customizing the YouTube-embedded player.",
       },
     ],
     activities: [
@@ -85,79 +86,88 @@ export function createFixtureLearningBlueprint(): LessonBlueprintV2 {
         id: "activity_gist",
         phase: "gist",
         activityType: "gist_choice",
-        outcomeIds: ["outcome_main_idea"],
-        instructionVi: "Nghe đoạn đầu và chọn lời khuyên chính.",
+        outcomeIds: ["outcome_main_topic"],
+        instructionVi: "Nghe phần mở đầu và chọn chủ đề người nói sắp trình bày.",
         evidence: [
           {
-            sourceSegmentIds: [segA],
-            startMs: 0,
-            endMs: 19_500,
+            sourceSegmentIds: [segA, segB],
+            startMs: 16_000,
+            endMs: 24_000,
             captionPolicy: "hidden_first",
             replayAllowed: true,
           },
         ],
         estimatedSeconds: 45,
-        promptVi: "Người nói khuyên bạn bắt đầu lần nghe đầu như thế nào?",
+        promptVi: "Video sắp tập trung vào chủ đề nào?",
         options: [
           {
-            id: "option_whole_message",
-            textVi: "Nghe toàn bộ thông điệp trước",
+            id: "option_embedded_player",
+            textVi: "Các cách tùy chỉnh trình phát YouTube nhúng",
           },
-          { id: "option_word_list", textVi: "Tra từng từ trước khi nghe" },
-          { id: "option_skip_audio", textVi: "Chỉ đọc transcript" },
+          {
+            id: "option_camera_hardware",
+            textVi: "Cách chọn phần cứng quay video",
+          },
+          {
+            id: "option_music_channel",
+            textVi: "Cách xây dựng một kênh âm nhạc",
+          },
         ],
         evaluation: {
           kind: "single_choice",
-          correctOptionId: "option_whole_message",
+          correctOptionId: "option_embedded_player",
         },
         feedback: {
-          goalVi: "Xác định ý chính trước khi dựa vào transcript.",
+          goalVi: "Xác định chủ đề chính trước khi dựa vào transcript.",
           correctEvidenceVi:
-            "Đúng: người nói bắt đầu bằng toàn bộ thông điệp.",
+            "Đúng: người nói giới thiệu nội dung về tùy chỉnh trình phát YouTube nhúng.",
           incorrectEvidenceVi:
-            "Đoạn này chưa yêu cầu tra từng từ hay bỏ phần nghe.",
-          nextStepVi: "Nghe lại đoạn được đánh dấu rồi tiếp tục.",
+            "Đoạn mở đầu không nói về phần cứng quay phim hoặc xây kênh âm nhạc.",
+          nextStepVi: "Phát lại đoạn được đánh dấu rồi tiếp tục.",
         },
       },
       {
         id: "activity_meaning",
         phase: "practice",
         activityType: "meaning_in_context",
-        outcomeIds: ["outcome_reuse_chunk"],
+        outcomeIds: ["outcome_reuse_affiliation"],
         instructionVi: "Chọn chức năng của cụm trong câu thật.",
         evidence: [
           {
-            sourceSegmentIds: [segB],
-            startMs: 20_000,
-            endMs: 39_500,
+            sourceSegmentIds: [segA],
+            startMs: 16_000,
+            endMs: 19_000,
             captionPolicy: "toggle",
             replayAllowed: true,
           },
         ],
         estimatedSeconds: 60,
-        targetItemId: "item_pay_attention",
-        promptVi: "Trong đoạn này, pay attention to dùng để làm gì?",
+        targetItemId: "item_member_of",
+        promptVi: "Trong đoạn này, a member of dùng để làm gì?",
         options: [
           {
-            id: "option_focus",
-            textVi: "Hướng sự tập trung vào các cụm từ",
+            id: "option_affiliation",
+            textVi: "Giới thiệu người nói thuộc một đội",
           },
-          { id: "option_ignore", textVi: "Bỏ qua các cụm từ" },
           {
-            id: "option_translate",
-            textVi: "Dịch mọi từ sang tiếng Việt",
+            id: "option_location",
+            textVi: "Mô tả nơi người nói đang đứng",
+          },
+          {
+            id: "option_duration",
+            textVi: "Nói người nói đã làm việc bao lâu",
           },
         ],
         evaluation: {
           kind: "single_choice",
-          correctOptionId: "option_focus",
+          correctOptionId: "option_affiliation",
         },
         feedback: {
           goalVi: "Nhận ra chức năng giao tiếp của một language chunk.",
           correctEvidenceVi:
-            "Đúng: cụm này hướng người nghe tập trung vào phrases.",
+            "Đúng: cụm này xác định Jeff thuộc Developer Relations team.",
           incorrectEvidenceVi:
-            "Câu thật đối lập phrases với isolated words, không nói bỏ qua hay dịch hết.",
+            "Câu thật nói về tư cách thành viên, không phải địa điểm hoặc thời gian.",
           nextStepVi: "Đọc phần giải thích ngắn rồi thử nhớ lại cụm.",
         },
       },
@@ -165,29 +175,29 @@ export function createFixtureLearningBlueprint(): LessonBlueprintV2 {
         id: "activity_recall",
         phase: "retrieve",
         activityType: "chunk_recall",
-        outcomeIds: ["outcome_reuse_chunk"],
+        outcomeIds: ["outcome_reuse_affiliation"],
         instructionVi: "Không nhìn câu gốc, hãy nhớ lại cụm còn thiếu.",
         evidence: [
           {
-            sourceSegmentIds: [segB],
-            startMs: 20_000,
-            endMs: 39_500,
+            sourceSegmentIds: [segA],
+            startMs: 16_000,
+            endMs: 19_000,
             captionPolicy: "hidden_first",
             replayAllowed: true,
           },
         ],
         estimatedSeconds: 55,
-        targetItemId: "item_pay_attention",
-        promptVi: "Complete: On the second pass, ___ phrases.",
-        hintVi: "Cụm ba từ mang nghĩa chú ý đến",
+        targetItemId: "item_member_of",
+        promptVi: "Complete: I'm ___ the Developer Relations team.",
+        hintVi: "Cụm ba từ diễn tả tư cách thành viên",
         evaluation: {
           kind: "normalized_text_set",
-          accepted: ["pay attention to"],
+          accepted: ["a member of"],
         },
         reveal: {
-          answer: "pay attention to",
+          answer: "a member of",
           explanationVi:
-            "Cụm này thường đi với danh từ hoặc V-ing sau giới từ to.",
+            "Sau cụm này là tên nhóm, đội hoặc tổ chức mà người nói thuộc về.",
         },
         feedback: {
           goalVi: "Tự nhớ lại language chunk trước khi xem đáp án.",
@@ -195,30 +205,30 @@ export function createFixtureLearningBlueprint(): LessonBlueprintV2 {
           incorrectEvidenceVi:
             "Câu trả lời chưa khớp toàn bộ chunk ba từ trong đoạn nghe.",
           nextStepVi:
-            "Đối chiếu câu thật rồi dùng cụm trong tình huống mới.",
+            "Đối chiếu câu thật rồi dùng cụm trong một tình huống mới.",
         },
       },
       {
         id: "activity_transfer",
         phase: "transfer",
         activityType: "guided_transfer",
-        outcomeIds: ["outcome_reuse_chunk"],
-        instructionVi: "Viết một lời khuyên mới cho tình huống khác.",
+        outcomeIds: ["outcome_reuse_affiliation"],
+        instructionVi: "Giới thiệu vai trò của bạn trong một nhóm mới.",
         evidence: [],
         estimatedSeconds: 90,
-        targetItemIds: ["item_pay_attention"],
+        targetItemIds: ["item_member_of"],
         scenarioVi:
-          "Một người bạn thường bỏ sót ý chính khi xem video hướng dẫn nấu ăn.",
-        promptVi: "Viết một câu khuyên bạn ấy bằng pay attention to.",
+          "Bạn vừa tham gia một dự án và đang giới thiệu bản thân với cộng tác viên mới.",
+        promptVi:
+          "Viết một câu giới thiệu bạn là thành viên của nhóm bằng a member of.",
         evaluation: {
           kind: "self_check",
           criteriaVi: [
-            "Có dùng nguyên cụm pay attention to",
-            "Sau to là điều cụ thể cần chú ý",
-            "Câu phù hợp với tình huống mới",
+            "Có dùng nguyên cụm a member of",
+            "Sau of là tên một nhóm hoặc tổ chức cụ thể",
+            "Câu phù hợp với tình huống giới thiệu bản thân",
           ],
-          exemplarAfterAttempt:
-            "Pay attention to the order of the steps before you start cooking.",
+          exemplarAfterAttempt: "I'm a member of the product design team.",
         },
         feedback: {
           goalVi: "Vận dụng chunk vào một context mới.",
@@ -229,7 +239,7 @@ export function createFixtureLearningBlueprint(): LessonBlueprintV2 {
         id: "activity_exit",
         phase: "reflect",
         activityType: "exit_ticket",
-        outcomeIds: ["outcome_main_idea", "outcome_reuse_chunk"],
+        outcomeIds: ["outcome_main_topic", "outcome_reuse_affiliation"],
         instructionVi: "Ghi lại điều bạn còn muốn luyện thêm.",
         evidence: [],
         estimatedSeconds: 30,
