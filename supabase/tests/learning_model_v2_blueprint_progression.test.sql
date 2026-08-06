@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(4);
+select plan(5);
 
 select is(
   public.learning_v2_blueprint_progression_valid(
@@ -42,6 +42,14 @@ select is(
   ),
   false,
   'learning phases cannot move backwards'
+);
+
+select is(
+  public.learning_v2_blueprint_progression_valid(
+    '{"activities":[{"id":"activity_gist"}]}'::jsonb
+  ),
+  false,
+  'an activity without a phase is rejected'
 );
 
 select is(
