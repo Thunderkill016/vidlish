@@ -30,7 +30,7 @@ export const learningLabSessionResponseSchema = z
 
 export const learningLabAttemptRequestSchema = z
   .object({
-    sessionId: z.string().uuid(),
+    sessionId: z.string().uuid().optional(),
     activityId: z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/),
     idempotencyKey: z.string().uuid(),
     response: activityResponseSchema,
@@ -42,9 +42,9 @@ export const learningLabAttemptResponseSchema = z
     activityId: z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/),
     idempotencyKey: z.string().uuid(),
     evaluation: activityEvaluationSchema,
-    persistedAttempt: privacySafeActivityAttemptSchema,
-    session: lessonSessionSchema,
-    created: z.boolean(),
+    persistedAttempt: privacySafeActivityAttemptSchema.optional(),
+    session: lessonSessionSchema.optional(),
+    created: z.boolean().optional(),
     hydratedEvidence: z.array(sourceEvidenceSchema).max(16),
     selfCheckCriteriaVi: z.array(z.string().min(5).max(300)).max(4).optional(),
     postAttemptSupport: z
