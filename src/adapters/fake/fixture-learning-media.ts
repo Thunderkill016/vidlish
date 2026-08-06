@@ -22,13 +22,13 @@ export function createFixtureLearningMedia(): VerifiedLearningMedia {
     segments: [
       {
         segmentId: segA,
-        startMs: 10_349,
-        endMs: 24_000,
+        startMs: 16_000,
+        endMs: 19_000,
       },
       {
         segmentId: segB,
-        startMs: 24_000,
-        endMs: 48_000,
+        startMs: 21_000,
+        endMs: 24_000,
       },
     ],
   });
