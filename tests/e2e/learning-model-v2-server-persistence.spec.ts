@@ -7,6 +7,9 @@ test.skip(
   "This specification is reserved for the isolated Supabase-backed CI job.",
 );
 
+const PRIVATE_TRANSFER_TEXT = "I'm a member of the release team PRIVATE-7f83.";
+const PRIVATE_REFLECTION_TEXT = "PRIVATE-REFLECTION-20260807-7f83";
+
 async function login(page: Page) {
   await page.goto("/sign-in");
   await page
@@ -92,7 +95,7 @@ test("Golden Session UI persists retry transfer completion and privacy-safe evid
     .getByLabel(
       "Viết một câu giới thiệu bạn là thành viên của nhóm bằng a member of.",
     )
-    .fill("I'm a member of the release team.");
+    .fill(PRIVATE_TRANSFER_TEXT);
   await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
   const criteria = page.locator('input[type="checkbox"]');
   await criteria.nth(0).check();
@@ -108,7 +111,7 @@ test("Golden Session UI persists retry transfer completion and privacy-safe evid
     .getByLabel(
       "Không nhìn câu mẫu: bạn nghe được cách nói nào để giới thiệu người nói thuộc một nhóm?",
     )
-    .fill("a member of");
+    .fill(PRIVATE_REFLECTION_TEXT);
   await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
   await page.getByRole("button", { name: "Hoàn tất phiên" }).click();
 
@@ -121,8 +124,8 @@ test("Golden Session UI persists retry transfer completion and privacy-safe evid
   const localState = await page.evaluate(() =>
     Object.values(localStorage).join("\n"),
   );
-  expect(localState).not.toContain("I'm a member of the release team.");
-  expect(localState).not.toContain("a member of\"");
+  expect(localState).not.toContain(PRIVATE_TRANSFER_TEXT);
+  expect(localState).not.toContain(PRIVATE_REFLECTION_TEXT);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const serviceKey = process.env.SUPABASE_SECRET_KEY;
