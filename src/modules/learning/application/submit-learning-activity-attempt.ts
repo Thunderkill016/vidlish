@@ -10,6 +10,31 @@ export class LearningSessionProgressError extends Error {
   readonly name = "LearningSessionProgressError";
 }
 
+function canAdvanceAfterAttempt(input: {
+  activity: LessonBlueprintV2["activities"][number];
+  response: ActivityResponse;
+  verdict: "correct" | "incorrect" | "self_check" | "unscored";
+}): boolean {
+  if (input.verdict === "correct" || input.verdict === "unscored") {
+    return true;
+  }
+  if (
+    input.verdict === "self_check" &&
+    input.activity.activityType === "guided_transfer" &&
+    input.response.kind === "self_check"
+  ) {
+    const requiredCriteria = input.activity.evaluation.criteriaVi.length;
+    return (
+      requiredCriteria > 0 &&
+      new Set(input.response.checkedCriteria).size === requiredCriteria &&
+      input.response.checkedCriteria.every(
+        (criterion) => criterion >= 0 && criterion < requiredCriteria,
+      )
+    );
+  }
+  return false;
+}
+
 export class SubmitLearningActivityAttempt {
   constructor(private readonly repository: LearningSessionRepository) {}
 
@@ -28,6 +53,11 @@ export class SubmitLearningActivityAttempt {
     if (!session) {
       throw new LearningSessionProgressError("Learning session was not found.");
     }
+    if (session.currentActivityId !== input.activityId) {
+      throw new LearningSessionProgressError(
+        "Activity is not current for this learning session.",
+      );
+    }
 
     const activityIndex = input.blueprint.activities.findIndex(
       (activity) => activity.id === input.activityId,
@@ -42,7 +72,12 @@ export class SubmitLearningActivityAttempt {
     const evaluation = evaluateLearningActivity(activity, input.response);
     const responseEvidence = createPrivacySafeActivityResponse(input.response);
     const nextActivity = input.blueprint.activities[activityIndex + 1];
-    const complete = !nextActivity;
+    const advance = canAdvanceAfterAttempt({
+      activity,
+      response: input.response,
+      verdict: evaluation.verdict,
+    });
+    const complete = advance && !nextActivity;
 
     // The repository resolves an owned idempotency key before checking the
     // current activity. A network retry may arrive after the first request has
@@ -54,8 +89,8 @@ export class SubmitLearningActivityAttempt {
       idempotencyKey: input.idempotencyKey,
       responseEvidence,
       evaluation,
-      nextPhase: nextActivity?.phase ?? "completed",
-      nextActivityId: nextActivity?.id ?? activity.id,
+      nextPhase: advance ? (nextActivity?.phase ?? "completed") : activity.phase,
+      nextActivityId: advance ? (nextActivity?.id ?? activity.id) : activity.id,
       complete,
     });
   }
