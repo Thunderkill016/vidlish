@@ -4,7 +4,7 @@ import { createFixtureLearningBlueprint } from "@/adapters/fake/fixture-learning
 import { createLearnerBlueprintView } from "@/modules/learning/application/create-learner-blueprint-view";
 
 describe("createLearnerBlueprintView", () => {
-  it("removes every authoritative answer and reveal field", () => {
+  it("removes every authoritative answer, reveal and target-explanation field", () => {
     const view = createLearnerBlueprintView(createFixtureLearningBlueprint());
     const serialized = JSON.stringify(view);
 
@@ -15,6 +15,12 @@ describe("createLearnerBlueprintView", () => {
     expect(serialized).not.toContain("criteriaVi");
     expect(serialized).not.toContain('"reveal"');
     expect(serialized).not.toContain('"feedback"');
+    expect(serialized).not.toContain("contextualMeaningVi");
+    expect(serialized).not.toContain("communicativeFunctionVi");
+    expect(serialized).not.toContain("pronunciationNoteVi");
+    expect(view.targetItems).toEqual([
+      { id: "item_member_of", itemKey: "a-member-of" },
+    ]);
   });
 
   it("keeps learner-facing prompts, options and grounded ranges", () => {
