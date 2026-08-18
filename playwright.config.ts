@@ -7,7 +7,12 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Always one worker. The whole suite drives a single dev server whose
+  // in-memory repositories are one module-global, shared by every spec and one
+  // beta user. Parallel workers race over that shared state, so a local run
+  // reported failures CI never saw. Serial is also not slower here: the
+  // journeys are seconds each, and the retries a race provokes cost more.
+  workers: 1,
   reporter: process.env.CI ? [["html", { open: "never" }], ["list"]] : "list",
   use: {
     baseURL: `http://127.0.0.1:${port}`,
@@ -43,6 +48,12 @@ export default defineConfig({
       GENERATION_MAX_ACTIVE_JOBS: "20",
       GENERATION_MAX_JOBS_PER_MINUTE: "60",
       GENERATION_MAX_JOBS_PER_DAY: "1000",
+      // Pinned to fixtures like CI. Without these two, a developer with a real
+      // `.env.local` runs the journeys against Gemini and Supadata over the
+      // network: the create flow stalls and unrelated specs fail for a reason
+      // that has nothing to do with their change.
+      LESSON_PROVIDER: "fixture",
+      TRANSCRIPT_NATIVE_ADAPTER: "fixture",
       NEXT_PUBLIC_AUTH_RESEND_COOLDOWN_SECONDS: "1",
       NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test-publishable-key",

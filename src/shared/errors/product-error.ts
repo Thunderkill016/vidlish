@@ -22,6 +22,8 @@ export const productErrorCodeSchema = z.enum([
   "JOB_NOT_FOUND",
   "JOB_CREATE_FAILED",
   "JOB_STATUS_FAILED",
+  "LESSON_NOT_FOUND",
+  "STUDY_PROGRESS_FAILED",
 ]);
 
 export type ProductErrorCode = z.infer<typeof productErrorCodeSchema>;
@@ -211,6 +213,25 @@ export const generationErrors = {
     new ProductError(
       "JOB_STATUS_FAILED",
       "Vidlish chưa thể tải tiến trình lúc này. Hãy thử lại.",
+      true,
+      "retry",
+    ),
+} as const;
+
+export const studyErrors = {
+  lessonNotFound: () =>
+    new ProductError(
+      "LESSON_NOT_FOUND",
+      "Không tìm thấy bài học này.",
+      false,
+      "create_new_job",
+    ),
+  // Progress is never lost by a failed save: the browser keeps the answers it
+  // is showing and retries on the next change.
+  saveFailed: () =>
+    new ProductError(
+      "STUDY_PROGRESS_FAILED",
+      "Vidlish chưa lưu được tiến độ học. Kết quả trên màn hình vẫn được giữ, hãy thử lại.",
       true,
       "retry",
     ),
