@@ -97,11 +97,16 @@ insert into public.lesson_jobs (
   'analyzing_video', 'analyzing_video', 'sent'
 ),
 (
+  -- Terminal on purpose. This job shares owner, video, CEFR and pipeline
+  -- version with job 4444, and `lesson_jobs_one_active_generation` allows only
+  -- one *active* generation per that tuple. A job that never published a lesson
+  -- is a failed one in production too, so this is the honest fixture rather
+  -- than a second active job the product would refuse to create.
   '66666666-6666-4666-8666-666666666666',
   '11111111-1111-4111-8111-111111111111',
   '33333333-3333-4333-8333-333333333333',
   'B1', 'fixture:v1', 'generation-pipeline:v1',
-  'analyzing_video', 'analyzing_video', 'sent'
+  'failed', 'failed', 'sent'
 );
 
 insert into public.transcripts (
