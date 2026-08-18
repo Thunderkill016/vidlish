@@ -236,9 +236,32 @@ không giảm token trong phép đo này.
   ẩn video, quiz chấm ngay, cloze gõ đáp án, flashcard, panel luyện nghe, thanh tiến độ;
 - thư viện hiển thị phần trăm đã học và trạng thái hoàn thành.
 
-Chưa chạy được tại chỗ trong vòng lặp này: `supabase test db` (môi trường phát triển không
-có Docker daemon). `supabase/tests/lesson_progress.test.sql` được viết đầy đủ và CI job
-Supabase là nơi kiểm chứng đầu tiên; ai chạy được local nên chạy trước khi tin migration.
+### Ba lỗi thật mà chỉ `supabase test db` bắt được (PR #54)
+
+Migration `lesson_progress` từng qua typecheck, lint, 222 unit test, production build và
+cả hai bộ Chromium journey mà vẫn hỏng. Lần đầu chạy được pgTAP trên CI, nó lộ ra ba lỗi:
+
+1. **Fixture dựng trạng thái sản phẩm không cho phép.** Hai job cùng
+   `(owner, video, cefr_level, pipeline_version)` cùng ở trạng thái hoạt động, vi phạm
+   `lesson_jobs_one_active_generation`. Test thoát sớm sau 8/20 assertion.
+2. **`save_lesson_progress` không chạy được một lần nào.**
+   `ERROR: column reference "lesson_id" is ambiguous`. Hàm khai báo
+   `returns table (lesson_id uuid, ...)`, nên `lesson_id` vừa là cột vừa là biến output, và
+   PL/pgSQL phân giải cả inference target của `on conflict (lesson_id)` theo biến. Cách
+   chữa: đặt tên constraint rồi `on conflict on constraint`. **Đừng đặt tên tham số output
+   của `returns table` trùng tên cột mà upsert phải suy luận.**
+3. **Guard phiên bản fail open.** `check (state ->> 'version' = 'study-progress:v1')` không
+   chặn payload thiếu khoá `version`: `NULL = '...'` là NULL và CHECK coi NULL là thoả mãn.
+   Phải dùng `is not distinct from`. Đã rà toàn bộ migration, không còn chỗ nào cùng dạng.
+
+Vì sao mọi gate khác xanh: unit test dùng repository in-memory nên không chạm SQL, còn
+`tests/integration/sql-contract.test.ts` chỉ so regex trên **văn bản** file migration — nó
+xanh mà không cần một dòng SQL nào được thực thi. Với thay đổi database, chỉ
+`supabase test db` mới là bằng chứng.
+
+Môi trường phát triển hiện tại không có Docker daemon lẫn Postgres cục bộ, nên không chạy
+được `supabase test db` tại chỗ; CI là nơi kiểm chứng. Không áp migration lên production
+trước khi job `database` xanh.
 
 ## 7. Việc hiện tại và thứ tự tiếp theo
 
