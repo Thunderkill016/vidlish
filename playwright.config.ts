@@ -7,7 +7,12 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 1 : 0,
-  workers: process.env.CI ? 1 : undefined,
+  // Always one worker. The whole suite drives a single dev server whose
+  // in-memory repositories are one module-global, shared by every spec and one
+  // beta user. Parallel workers race over that shared state, so a local run
+  // reported failures CI never saw. Serial is also not slower here: the
+  // journeys are seconds each, and the retries a race provokes cost more.
+  workers: 1,
   reporter: process.env.CI ? [["html", { open: "never" }], ["list"]] : "list",
   use: {
     baseURL: `http://127.0.0.1:${port}`,

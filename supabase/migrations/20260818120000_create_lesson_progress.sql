@@ -21,8 +21,12 @@ create table public.lesson_progress (
   constraint lesson_progress_state_object check (jsonb_typeof(state) = 'object'),
   -- The application validates the full shape. The database refuses a payload
   -- that does not even claim the schema this column is read as.
+  -- `is not distinct from`, not `=`. A payload with no `version` key makes
+  -- `state ->> 'version'` NULL, and `NULL = '...'` is NULL, which a CHECK
+  -- constraint accepts. Written with `=` this guard failed open on exactly the
+  -- payload it exists to refuse.
   constraint lesson_progress_state_version
-    check (state ->> 'version' = 'study-progress:v1'),
+    check ((state ->> 'version') is not distinct from 'study-progress:v1'),
   -- One progress row per lesson: reopening a lesson continues where the
   -- learner stopped instead of starting a parallel record.
   --
