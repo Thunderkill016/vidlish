@@ -43,6 +43,12 @@ export default defineConfig({
       GENERATION_MAX_ACTIVE_JOBS: "20",
       GENERATION_MAX_JOBS_PER_MINUTE: "60",
       GENERATION_MAX_JOBS_PER_DAY: "1000",
+      // Pinned to fixtures like CI. Without these two, a developer with a real
+      // `.env.local` runs the journeys against Gemini and Supadata over the
+      // network: the create flow stalls and unrelated specs fail for a reason
+      // that has nothing to do with their change.
+      LESSON_PROVIDER: "fixture",
+      TRANSCRIPT_NATIVE_ADAPTER: "fixture",
       NEXT_PUBLIC_AUTH_RESEND_COOLDOWN_SECONDS: "1",
       NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
       NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test-publishable-key",

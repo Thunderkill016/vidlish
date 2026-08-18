@@ -25,7 +25,12 @@ create table public.lesson_progress (
     check (state ->> 'version' = 'study-progress:v1'),
   -- One progress row per lesson: reopening a lesson continues where the
   -- learner stopped instead of starting a parallel record.
-  unique (lesson_id)
+  --
+  -- Named on purpose. The upsert below targets this constraint by name because
+  -- `on conflict (lesson_id)` is ambiguous inside `save_lesson_progress`:
+  -- `lesson_id` is also one of its RETURNS TABLE output parameters, and
+  -- PL/pgSQL resolves the inference target against those variables too.
+  constraint lesson_progress_one_per_lesson unique (lesson_id)
 );
 
 create index lesson_progress_owner_updated_at
@@ -80,7 +85,7 @@ begin
     p_owner_user_id, v_lesson_id, p_job_id, p_state,
     case when p_completed then now() else null end
   )
-  on conflict (lesson_id) do update
+  on conflict on constraint lesson_progress_one_per_lesson do update
   set state = excluded.state,
       -- Finishing a lesson keeps the moment it was first finished; unfinishing
       -- it clears the mark rather than back-dating a new one.
