@@ -122,15 +122,14 @@ và kiểm chứng `supabase test db` + acceptance production cho migration mớ
 | P2 | Gemini URL transcript fallback | Chờ M0/M1 |
 | P2 | Quota/circuit breaker/cancellation hoàn chỉnh | Backlog |
 | P2 | Telemetry retention + environment isolation | Backlog |
-| P1 | Chạy `supabase test db` cho `lesson_progress` (môi trường vừa rồi không có Docker) | Ready |
+| P1 | Chạy `supabase test db` cho `lesson_progress` | **Done trong PR #54; bắt được 3 lỗi thật** |
+| P1 | Xác minh 6 migration chỉ tạo function có thật trong production hay không | Ready |
 | P3 | Retrieval/transfer giữa các bài và delete lifecycle | Backlog |
 
 ## 6. Công việc hiện tại
 
 ### Đang làm
 
-- Đưa Study Mode (M3 phần activities/completion) vào nhánh
-  `claude/research-develop-ta-project-ywd9ua`.
 - Loại bỏ PR cũ khiến agent hiểu sai kiến trúc hiện tại.
 
 ### Đã hoàn thành trong vòng production stabilization
@@ -142,12 +141,30 @@ và kiểm chứng `supabase test db` + acceptance production cho migration mớ
 - PR #41: structured observability và runbook.
 - PR #42: pagination đầy đủ qua Supabase Data API.
 - Một production acceptance pass grounding/persistence hoàn chỉnh.
-- Study Mode: `lesson_progress` + RPC, `PUT /api/lessons/[jobId]/progress`, lesson
-  workspace tương tác, tiến độ trên thư viện.
+- PR #54: Study Mode — `lesson_progress` + RPC, `PUT /api/lessons/[jobId]/progress`,
+  lesson workspace tương tác, tiến độ trên thư viện. Đã merge vào `main` (`82fe3fe`),
+  migration `20260818120000` đã áp lên Supabase production và deploy production READY.
+- Lịch sử migration production đã được đồng bộ với repo. Trước đó hai bên hoàn toàn lệch
+  nhau (11 phiên bản local không có ở remote, 10 phiên bản remote không có file), nên
+  `supabase db push` từ chối chạy. Nay 12/12 khớp, lần sau chỉ cần `db push`.
 
 ### Bị chặn
 
-- Hai acceptance production còn lại của M0.
+- Hai acceptance production còn lại của M0. Cần một phiên đăng nhập beta thật trên
+  production: `AUTH_ADAPTER=supabase` nên OTP về email chủ tài khoản, agent không tự
+  đăng nhập được. Quyền tiêu quota đã có, thứ còn thiếu là phiên đăng nhập.
+
+### Bài học từ PR #54 — gate nào mới là bằng chứng
+
+Study Mode qua typecheck, lint, 222 unit test, production build và cả hai bộ Chromium
+journey mà migration vẫn hỏng. Lần đầu `supabase test db` chạy được trên CI, nó bắt ba lỗi:
+fixture dựng trạng thái sản phẩm không cho phép; `on conflict (lesson_id)` nhập nhằng với
+tham số output của `returns table` khiến **mọi** lần gọi `save_lesson_progress` đều hỏng;
+và `check (state ->> 'version' = ...)` fail open khi thiếu khoá.
+
+Lý do các gate khác vô hiệu: unit test dùng repository in-memory nên không chạm SQL, còn
+`sql-contract.test.ts` chỉ so regex trên **văn bản** file migration. Với thay đổi database,
+chỉ `supabase test db` mới đáng tin.
 
 ## 7. Definition of Done
 
