@@ -18,7 +18,7 @@ YouTube metadata
 → Gemini lesson generation
 → server-side citation grounding
 → atomic publish
-→ lesson viewer + library
+→ study workspace + library
 ```
 
 Các phần đã hoạt động production:
@@ -31,6 +31,7 @@ Các phần đã hoạt động production:
 - Gemini Lesson Engine;
 - citation text/timestamp hydrate từ Supabase;
 - lesson viewer, library và active-job recovery;
+- study workspace: nghe từng câu trong trang, làm bài tập có chấm, flashcard, lưu tiến độ;
 - structured generation telemetry;
 - watchdog pg_cron mỗi 2 phút, dọn job active quá 5 phút.
 
@@ -41,6 +42,24 @@ PR #42 đã thêm pagination đầy đủ cho transcript và permitted-segment r
 
 - [`HANDOVER.md`](./HANDOVER.md) — invariant, bẫy production và kiến thức đắt tiền;
 - [`continuous-development-plan.md`](./_bmad-output/planning-artifacts/continuous-development-plan.md) — backlog và việc hiện tại.
+
+## Học như thế nào
+
+Một bài học là chỗ để luyện, không phải trang để đọc:
+
+- **Video nhúng** đứng cạnh nội dung; mọi timestamp phát đúng câu đó rồi tự dừng, có tốc
+  độ 0.5x/0.75x/1x và nút ẩn video để nghe trước khi nhìn.
+- **Từ vựng** có hai chế độ: danh sách kèm câu gốc, và flashcard hiện nghĩa sau khi tự nhớ.
+- **Kiểm tra hiểu nội dung** chấm ngay khi chọn đáp án, mỗi câu trả lời một lần, kèm giải
+  thích và câu gốc trong video.
+- **Điền từ** yêu cầu gõ đáp án. Tự làm đúng và xem đáp án được ghi lại tách biệt.
+- **Luyện nghe** phát từng câu của toàn bộ lời thoại tiếng Anh đủ điều kiện, có chế độ ẩn
+  chữ để nghe trước rồi mới đối chiếu.
+- **Tiến độ** tự lưu theo từng thao tác; thư viện hiển thị phần trăm đã học và bài đã hoàn
+  thành. Tải lại trang không mất kết quả.
+
+Tiến độ học nằm ở bảng riêng `lesson_progress`. Nó là dữ liệu của người học và không bao
+giờ được ghi vào bài học đã publish.
 
 ## Lời hứa dữ liệu
 

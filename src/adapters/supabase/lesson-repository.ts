@@ -155,6 +155,8 @@ export class SupabaseLessonRepository implements LessonRepository {
           draft: z.object({
             titleVi: z.string(),
             vocabulary: z.array(z.unknown()),
+            comprehensionQuestions: z.array(z.unknown()),
+            clozeItems: z.array(z.unknown()),
           }),
           videos: z.union([
             z.object({ youtube_video_id: z.string(), title: z.string(), channel_name: z.string() }),
@@ -178,6 +180,8 @@ export class SupabaseLessonRepository implements LessonRepository {
           cefrLevel: row.cefr_level,
           titleVi: row.draft.titleVi,
           vocabularyCount: row.draft.vocabulary.length,
+          activityCount:
+            row.draft.comprehensionQuestions.length + row.draft.clozeItems.length,
           createdAt: row.created_at,
         };
       });

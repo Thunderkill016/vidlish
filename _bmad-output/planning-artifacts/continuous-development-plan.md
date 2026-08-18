@@ -1,6 +1,6 @@
 # Kế hoạch phát triển sống — Vidlish
 
-Cập nhật: **2026-08-06, sau PR #42**. Đọc `HANDOVER.md` trước file này.
+Cập nhật: **2026-08-18, sau lớp Study Mode**. Đọc `HANDOVER.md` trước file này.
 
 Đây là **nguồn vận hành hiện tại** của dự án. `project-context.md` và
 `_bmad-output/implementation-artifacts/sprint-status.yaml` là tracker BMAD, nhưng phải
@@ -14,7 +14,8 @@ dán link YouTube công khai có đủ lời nói tiếng Anh gốc
 → xác minh phần tiếng Anh đủ điều kiện
 → Gemini soạn bài từ đúng các segment được phép
 → server hydrate citation/timestamp từ database
-→ lưu, mở lại và học
+→ học ngay trong trang: nghe từng câu, làm bài tập, đánh dấu từ đã thuộc
+→ tiến độ được lưu, mở lại đúng chỗ đang dở
 ```
 
 Invariant: **mọi citation phải là lời thoại thật của video**. Model không được trả text
@@ -100,6 +101,13 @@ trên gói Free.
 Activities/feedback, completion, retrieval/transfer và delete lifecycle. Không thêm tính
 năng ngoài MVP trước các phần này.
 
+**Đã làm:** activities có chấm điểm (trắc nghiệm, điền từ), flashcard từ vựng, panel luyện
+nghe theo từng câu trên allowlist, player nhúng phát đúng đoạn với tốc độ chậm, tiến độ
+được lưu qua `lesson_progress` và hiển thị lại ở thư viện, đánh dấu hoàn thành.
+
+**Còn lại:** retrieval/transfer (ôn lại giữa các bài, spaced repetition), delete lifecycle,
+và kiểm chứng `supabase test db` + acceptance production cho migration mới.
+
 ## 5. Backlog ưu tiên
 
 | Ưu tiên | Việc | Trạng thái |
@@ -114,13 +122,15 @@ năng ngoài MVP trước các phần này.
 | P2 | Gemini URL transcript fallback | Chờ M0/M1 |
 | P2 | Quota/circuit breaker/cancellation hoàn chỉnh | Backlog |
 | P2 | Telemetry retention + environment isolation | Backlog |
-| P3 | Activities, completion/retrieval, delete lifecycle | Backlog |
+| P1 | Chạy `supabase test db` cho `lesson_progress` (môi trường vừa rồi không có Docker) | Ready |
+| P3 | Retrieval/transfer giữa các bài và delete lifecycle | Backlog |
 
 ## 6. Công việc hiện tại
 
 ### Đang làm
 
-- Đồng bộ toàn bộ nguồn ngữ cảnh sau PR #42.
+- Đưa Study Mode (M3 phần activities/completion) vào nhánh
+  `claude/research-develop-ta-project-ywd9ua`.
 - Loại bỏ PR cũ khiến agent hiểu sai kiến trúc hiện tại.
 
 ### Đã hoàn thành trong vòng production stabilization
@@ -132,6 +142,8 @@ năng ngoài MVP trước các phần này.
 - PR #41: structured observability và runbook.
 - PR #42: pagination đầy đủ qua Supabase Data API.
 - Một production acceptance pass grounding/persistence hoàn chỉnh.
+- Study Mode: `lesson_progress` + RPC, `PUT /api/lessons/[jobId]/progress`, lesson
+  workspace tương tác, tiến độ trên thư viện.
 
 ### Bị chặn
 
@@ -190,6 +202,14 @@ Với production/provider:
 3. Điều tra flaky unavailable-video journey từ CI/workflow evidence; không thêm retry mù.
 4. Rà soát Dependabot PR #23–#27 theo compatibility và CI.
 5. Chỉ khi có quyền riêng mới chạy hai acceptance production còn lại.
+
+## 10b. Ranh giới của Study Mode
+
+- Tiến độ học không bao giờ được ghi vào `lessons`; nó là dữ liệu người học, không phải
+  output của model.
+- Panel luyện nghe chỉ đọc `listPermittedSegments`, không đọc transcript thô.
+- Không gộp "xem đáp án" với "tự làm đúng" để phần trăm đẹp hơn.
+- Không thêm gamification (streak, huy hiệu, bảng xếp hạng) — vẫn nằm ngoài MVP.
 
 ## 11. Việc không nên làm lại
 

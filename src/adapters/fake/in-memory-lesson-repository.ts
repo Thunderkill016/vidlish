@@ -99,6 +99,9 @@ export class InMemoryLessonRepository implements LessonRepository {
         cefrLevel: lesson.cefrLevel,
         titleVi: lesson.draft.titleVi,
         vocabularyCount: lesson.draft.vocabulary.length,
+        activityCount:
+          lesson.draft.comprehensionQuestions.length +
+          lesson.draft.clozeItems.length,
         createdAt: lesson.createdAt,
       });
     }

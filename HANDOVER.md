@@ -1,6 +1,6 @@
 # Bàn giao Vidlish — đọc file này trước khi làm bất cứ điều gì
 
-Cập nhật: **2026-08-06**, sau PR #42.
+Cập nhật: **2026-08-18**, sau lớp Study Mode (M3, phần activities/completion).
 
 Tài liệu này giữ những kiến thức đắt tiền và trạng thái thực tế mà đọc code đơn thuần
 không đủ để biết. Thứ tự nguồn sự thật khi tiếp quản:
@@ -35,6 +35,29 @@ Cơ chế bảo vệ:
 
 Khi sửa gần Lesson Engine, tuyệt đối không thêm trường để model tự viết câu trích dẫn.
 
+## 2b. Lời hứa học tập và ranh giới của Study Mode
+
+Bài học không còn là một trang để đọc. Người học nghe từng câu ngay trong trang, trả lời
+bài tập và được chấm, đánh dấu từ đã thuộc, và tiến độ được lưu lại.
+
+Ranh giới bắt buộc:
+
+- **Study progress là dữ liệu của người học, không phải output của model.** Nó nằm ở bảng
+  riêng `lesson_progress`, không bao giờ ghi vào `lessons.draft` hay `lessons.citations`.
+- Không có đường nào từ tiến độ học quay ngược lại grounding gate. Sửa gần Study Mode
+  không được đụng vào `hydrate-lesson-citations` hay `lessonDraftSchema`.
+- Panel "Luyện nghe" chỉ hiển thị `listPermittedSegments` — đúng allowlist đã đưa cho
+  Lesson Engine, không phải transcript thô.
+- Câu trả lời được đánh địa chỉ bằng vị trí trong mảng draft. Điều này chỉ an toàn vì một
+  lesson là bất biến (`unique (job_id, pipeline_version)`). Nếu sau này lesson được phép
+  soạn lại tại chỗ, phải đổi cách đánh địa chỉ trước.
+- `save_lesson_progress` phân giải chủ sở hữu **từ lesson**, không tin `job_id` client gửi —
+  cùng nguyên tắc với `publish_lesson`.
+- Điểm số được tính từ draft ở phía đọc, không lưu số điểm; một payload trỏ quá cuối mảng
+  bị bỏ qua chứ không được tính.
+- Xem đáp án (`revealed`) và tự làm đúng (`solved`) là hai trường khác nhau. Không gộp
+  chúng để làm đẹp phần trăm.
+
 ## 3. Kiến trúc và production hiện tại
 
 Kiến trúc hexagonal:
@@ -53,6 +76,7 @@ video
 → transcripts + transcript_segments
 → language_eligibility_reports + language_eligible_segments
 → lessons
+→ lesson_progress
 ```
 
 Production hiện dùng:
@@ -161,7 +185,14 @@ Một workflow kết thúc không được để job ở trạng thái active nh
 Supabase serialize `timestamptz` dạng `+00:00`, không chỉ dạng `Z`. Contract datetime
 đọc dữ liệu Supabase phải chấp nhận offset (`z.string().datetime({ offset: true })`).
 
-### 5.7 Test và build có thể xanh sai lý do
+### 5.7 Nhúng player YouTube phải tự dừng đúng chỗ
+
+`LessonPlayer` điều khiển iframe bằng `postMessage` với `enablejsapi=1`, không tải script
+ngoài. Điểm dừng cuối segment là một timer đặt ngay lúc phát, không phải vòng lặp đọc
+`currentTime`: một message chậm không được để video chạy quá câu người học muốn nghe.
+Timer luôn được clear trước lần phát kế tiếp và khi component unmount.
+
+### 5.8 Test và build có thể xanh sai lý do
 
 - Fixtures từng cho 156 unit và 28 e2e xanh trong khi provider thật không tạo được bài.
 - Thay đổi provider phải chạy `tests/integration/full-real-path.test.ts` với key thật khi được phép.
@@ -196,6 +227,18 @@ Transcript fallback ưu tiên sau M0/M1:
 
 Gemini URL với `fps: 0.2` đã đo khoảng 38 token/giây video; `mediaResolution: LOW`
 không giảm token trong phép đo này.
+
+## 6b. Study Mode: đã làm gì trong vòng lặp này
+
+- `lesson_progress` + `save_lesson_progress` (RLS, service_role only, một row mỗi lesson);
+- `PUT /api/lessons/[jobId]/progress` (same-origin, giới hạn 8 KiB, validate contract);
+- lesson viewer đổi thành workspace: player nhúng, phát đúng segment, tốc độ 0.5/0.75/1x,
+  ẩn video, quiz chấm ngay, cloze gõ đáp án, flashcard, panel luyện nghe, thanh tiến độ;
+- thư viện hiển thị phần trăm đã học và trạng thái hoàn thành.
+
+Chưa chạy được tại chỗ trong vòng lặp này: `supabase test db` (môi trường phát triển không
+có Docker daemon). `supabase/tests/lesson_progress.test.sql` được viết đầy đủ và CI job
+Supabase là nơi kiểm chứng đầu tiên; ai chạy được local nên chạy trước khi tin migration.
 
 ## 7. Việc hiện tại và thứ tự tiếp theo
 
