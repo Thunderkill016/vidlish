@@ -62,9 +62,9 @@ export class RecordLearningSupportEvidence {
     }
 
     if (input.eventKind === "playback") {
-      if (!activityPolicy.support?.steps.includes("replay")) {
+      if (activity.evidence.length === 0) {
         throw new LearningSupportEvidenceError(
-          "Playback evidence is not enabled for this activity.",
+          "Playback evidence requires a bounded source range.",
         );
       }
       return this.repository.recordSupportEvent({
