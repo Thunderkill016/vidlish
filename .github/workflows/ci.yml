@@ -232,8 +232,20 @@ jobs:
           version: 2.111.0
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
+      # Cùng lượt tải với job e2e, nên cùng cache. Thiếu chỗ này thì job durable
+      # vẫn tải lại mỗi lần và vẫn phơi mình trước lượt tải ngoài hay hỏng.
+      - name: Restore Chromium headless shell
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-shell-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install Chromium headless shell
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps --only-shell chromium
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
       - name: Start clean isolated Supabase and run pgTAP
         run: |
           supabase start
