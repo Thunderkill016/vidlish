@@ -87,6 +87,7 @@ const attemptRowSchema = z
 const supportEventRpcRowSchema = z
   .object({
     event_id: z.string().uuid(),
+    idempotency_key: z.string().uuid(),
     event_kind: z.enum(["playback", "support_opened"]),
     support_step: persistedLearningSupportStepSchema.nullable(),
     playback_ordinal: z.coerce.number().int().positive().nullable(),
@@ -238,7 +239,7 @@ export class SupabaseLearningSessionRepository
       id: row.event_id,
       sessionId: input.sessionId,
       activityId: input.activityId,
-      idempotencyKey: input.idempotencyKey,
+      idempotencyKey: row.idempotency_key,
       eventKind: row.event_kind,
       supportStep: row.support_step,
       playbackOrdinal: row.playback_ordinal,
