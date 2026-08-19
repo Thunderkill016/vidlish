@@ -11,7 +11,12 @@ create table public.lesson_versions (
   created_at timestamptz not null default now(),
   constraint lesson_versions_schema_v2 check (schema_version = 'lesson:v2'),
   constraint lesson_versions_blueprint_object check (jsonb_typeof(blueprint) = 'object'),
-  constraint lesson_versions_blueprint_version check (blueprint ->> 'schemaVersion' = 'lesson:v2'),
+  -- `is not distinct from`, not `=`. A blueprint with no `schemaVersion` key
+  -- makes the extraction NULL, and `NULL = '...'` is NULL, which a CHECK
+  -- constraint accepts — the guard would fail open on exactly the payload it
+  -- exists to refuse.
+  constraint lesson_versions_blueprint_version
+    check ((blueprint ->> 'schemaVersion') is not distinct from 'lesson:v2'),
   unique (lesson_id, schema_version)
 );
 

@@ -9,7 +9,11 @@
 alter table public.activity_attempts
   add constraint activity_attempts_response_privacy_safe check (
     not (response ? 'text')
-    and response ->> 'kind' in ('choice', 'text', 'self_check', 'reflection')
+    -- coalesce, not a bare `in`. Without the key, `NULL in (...)` is NULL and
+    -- the whole conjunction degrades to NULL, which CHECK accepts: a response
+    -- carrying no `kind` at all would slip past this safety boundary.
+    and coalesce(response ->> 'kind', '')
+      in ('choice', 'text', 'self_check', 'reflection')
     and case response ->> 'kind'
       when 'choice' then
         response ?& array['kind', 'optionId']
