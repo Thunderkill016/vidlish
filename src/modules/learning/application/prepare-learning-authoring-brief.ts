@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { estimateLexicalCoverage, tokenizeEnglish } from "./lexical-coverage";
+import { isDue, recordReview, type ReviewState } from "./review-scheduler";
 import { segmentIntoTopicUnits } from "./topic-segmentation";
 
 import {
@@ -102,6 +103,8 @@ export type PrepareLearningAuthoringBriefInput = {
   eligibility: LanguageEligibilityReport;
   learnerSnapshot: LearnerContextSnapshot;
   diagnosisProposal: ConstrainedDiagnosisProposal;
+  /** Injectable so a test can place the learner at a chosen point in time. */
+  now?: Date;
 };
 
 export type PreparedLearningAuthoringBrief = {
@@ -253,6 +256,32 @@ function latestReviewOutcome(
         Date.parse(right.occurredAt) - Date.parse(left.occurredAt),
     )[0];
   return latest?.outcome ?? null;
+}
+
+/**
+ * Replays an item's recorded outcomes through the scheduler to find when it
+ * next falls due.
+ *
+ * The snapshot stores the review log rather than a schedule, so the schedule is
+ * derived here. Returns null for an item the learner has never been asked to
+ * recall.
+ */
+function reviewStateFor(
+  snapshot: LearnerContextSnapshot,
+  itemKey: string,
+): ReviewState | null {
+  const history = snapshot.recentReviewOutcomes
+    .filter((review) => review.itemKey === itemKey)
+    .sort(
+      (left, right) =>
+        Date.parse(left.occurredAt) - Date.parse(right.occurredAt),
+    );
+
+  let state: ReviewState | null = null;
+  for (const review of history) {
+    state = recordReview(state, review.outcome, new Date(review.occurredAt));
+  }
+  return state;
 }
 
 function learnerGapScore(
@@ -488,6 +517,7 @@ export function gateLearningCandidates(
   context: LearningGenerationContext,
   profile: VideoLearningProfileV2,
   rawProposal: ConstrainedDiagnosisProposal,
+  now: Date = new Date(),
 ): LearningCandidateSelection {
   const proposal = constrainedDiagnosisProposalSchema.parse(rawProposal);
   if (proposal.abstainReason !== null) {
@@ -559,10 +589,16 @@ export function gateLearningCandidates(
         reject(rejections, candidate.id, "SOURCE_FORM_NOT_FOUND");
         continue;
       }
+      // The rejection is named NOT_DUE, so ask whether it is due. The previous
+      // test — last outcome was "good" — has no clock in it, so an item recalled
+      // once six months ago stayed permanently ineligible and the learner never
+      // met it again. Forgetting is what makes it teachable again.
+      const reviewState = reviewStateFor(context.learnerSnapshot, candidate.key);
       if (
         context.learnerSnapshot.knownItemKeys.includes(candidate.key) &&
         !context.learnerSnapshot.weakItemKeys.includes(candidate.key) &&
-        latestReviewOutcome(context.learnerSnapshot, candidate.key) === "good"
+        reviewState !== null &&
+        !isDue(reviewState, now)
       ) {
         reject(rejections, candidate.id, "KNOWN_ITEM_NOT_DUE");
         continue;
@@ -773,6 +809,7 @@ export function prepareLearningAuthoringBrief(
     context,
     videoProfile,
     input.diagnosisProposal,
+    input.now ?? new Date(),
   );
   const authoringBrief = buildLearningAuthoringBrief(
     context,

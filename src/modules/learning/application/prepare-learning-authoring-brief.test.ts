@@ -120,7 +120,25 @@ function createLearnerSnapshot(): LearnerContextSnapshot {
     supportPreference: "balanced",
     knownItemKeys: ["player"],
     weakItemKeys: ["a-member-of"],
+    // Four spaced recalls, not one. A single correct answer on a brand-new item
+    // means "come back in ten minutes", not "known" — a genuinely known item is
+    // one the learner has held onto across widening gaps.
     recentReviewOutcomes: [
+      {
+        itemKey: "player",
+        outcome: "good",
+        occurredAt: "2026-06-01T09:00:00+00:00",
+      },
+      {
+        itemKey: "player",
+        outcome: "good",
+        occurredAt: "2026-06-02T09:00:00+00:00",
+      },
+      {
+        itemKey: "player",
+        outcome: "good",
+        occurredAt: "2026-06-20T09:00:00+00:00",
+      },
       {
         itemKey: "player",
         outcome: "good",
@@ -306,6 +324,9 @@ function createInput() {
     eligibility: createEligibility(),
     learnerSnapshot: createLearnerSnapshot(),
     diagnosisProposal: createProposal(),
+    // Pinned one day after the fixture's only review. Without a fixed clock
+    // these assertions would quietly change meaning as the calendar moves.
+    now: new Date("2026-08-07T09:00:00+00:00"),
   };
 }
 
@@ -479,6 +500,21 @@ describe("prepareLearningAuthoringBrief", () => {
     expect(profile.candidateWindows.length).toBeGreaterThan(20);
     expect(profile.topicShiftCount).toBeGreaterThan(0);
     expect(profile.topicShiftCount).toBeLessThan(10);
+  });
+
+  it("teaches a known item again once its review falls due", () => {
+    // The fixture recalled "player" correctly on 2026-08-06 and that alone kept
+    // it out of every lesson. A year later the learner has almost certainly
+    // forgotten it, and being able to meet it again is the point of scheduling.
+    const prepared = prepareLearningAuthoringBrief({
+      ...createInput(),
+      now: new Date("2027-08-07T09:00:00+00:00"),
+    });
+
+    expect(prepared.selection.rejections).not.toContainEqual({
+      candidateId: "candidate_player",
+      reason: "KNOWN_ITEM_NOT_DUE",
+    });
   });
 
   it("stops before authoring when constrained diagnosis abstains", () => {
