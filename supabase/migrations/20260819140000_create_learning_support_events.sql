@@ -66,6 +66,7 @@ create or replace function public.record_lesson_v2_support_event(
 )
 returns table (
   event_id uuid,
+  idempotency_key uuid,
   event_kind text,
   support_step text,
   playback_ordinal integer,
@@ -100,6 +101,7 @@ begin
 
     return query select
       v_existing.id,
+      v_existing.idempotency_key,
       v_existing.event_kind,
       v_existing.support_step,
       v_existing.playback_ordinal,
@@ -148,6 +150,7 @@ begin
     if v_existing.id is not null then
       return query select
         v_existing.id,
+        v_existing.idempotency_key,
         v_existing.event_kind,
         v_existing.support_step,
         v_existing.playback_ordinal,
@@ -214,6 +217,7 @@ begin
 
   return query select
     v_event.id,
+    v_event.idempotency_key,
     v_event.event_kind,
     v_event.support_step,
     v_event.playback_ordinal,
