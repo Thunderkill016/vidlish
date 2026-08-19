@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
+import { classifyLearningReviewQueue } from "@/modules/learning/application/classify-learning-review-queue";
 import { studyCompletionPercent } from "@/modules/study/application/score-study-progress";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
@@ -62,18 +63,11 @@ export default async function DashboardPage() {
   const completedCount = progressSummaries.filter(
     (summary) => summary.completedAt,
   ).length;
-  const supportedReviews = scheduledReviews.filter(
-    (item) => resolveFixtureLearningReviewPlan(item.itemKey) !== null,
-  );
-  const now = Date.now();
-  const dueReviews = supportedReviews.filter(
-    (item) =>
-      item.nextReviewAt !== null && new Date(item.nextReviewAt).getTime() <= now,
-  );
-  const upcomingReview = supportedReviews.find(
-    (item) =>
-      item.nextReviewAt !== null && new Date(item.nextReviewAt).getTime() > now,
-  );
+  const { due: dueReviews, upcoming: upcomingReview } =
+    classifyLearningReviewQueue(
+      scheduledReviews,
+      (itemKey) => resolveFixtureLearningReviewPlan(itemKey) !== null,
+    );
 
   return (
     <div className="space-y-8">
