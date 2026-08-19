@@ -103,10 +103,16 @@ export const learningReviewTransferTaskSchema = z
   })
   .strict();
 
+export const learningReviewTaskSchema = z.discriminatedUnion("step", [
+  learningReviewRecallTaskSchema,
+  learningReviewTransferTaskSchema,
+]);
+export type LearningReviewTask = z.infer<typeof learningReviewTaskSchema>;
+
 export const learningReviewStartResponseSchema = z
   .object({
     session: learnerReviewSessionSchema,
-    task: learningReviewRecallTaskSchema,
+    task: learningReviewTaskSchema,
   })
   .strict();
 
