@@ -38,11 +38,13 @@ Integrated and reachable from a route or workflow:
 
 ### The blocker that outranks everything below
 
-**Nothing creates a `lesson_versions` row outside CI.** No adapter writes the
-table and no migration defines an RPC that inserts into it; the only source is
-`supabase/fixtures/learning_model_v2_durable.sql`, which the `durable_learning`
-job loads. Production lesson generation still runs the v1 path
-(`src/workflows/generate-lesson.steps.ts` → `lesson:v1` draft).
+**No production path produces a v2 blueprint yet.** The database half exists:
+`publish_lesson_version` creates the row, owner-scoped and publish-once. What is
+missing is the half above it — nothing authors a `lesson:v2` blueprint to hand
+that function. Production lesson generation still runs the v1 path
+(`src/workflows/generate-lesson.steps.ts` → `lesson:v1` draft), and outside CI
+the only `lesson_versions` rows come from
+`supabase/fixtures/learning_model_v2_durable.sql`.
 
 So the entire v2 stack — sessions, attempts, support evidence, delayed review,
 FSRS scheduling — is reachable in code and unreachable for a real learner,
@@ -54,14 +56,16 @@ The v2 authoring pipeline that would produce those rows
 caller at all. `tests/integration/module-reachability.test.ts` holds the current
 list of unwired modules and fails if that list stops matching the import graph.
 
-Until a production path creates `lesson_versions`, do not describe any v2
+Until something authors a blueprint in production, do not describe any v2
 learning behaviour as shipped, and do not read a passing durable journey as
 evidence that a learner can reach it.
 
 ### Hard-gate sequence
 
-0. production authoring path that creates `lesson_versions` — **blocked, nothing
-   started**;
+0. production authoring path that creates `lesson_versions` — **in progress**:
+   `publish_lesson_version` (database half) done; the authoring half that
+   produces a `lesson:v2` blueprint is not started, and
+   `prepare-learning-authoring-brief.ts` still has no caller;
 1. first-session durable flow — done;
 2. CI failures fixed from real logs — done;
 3. support/replay server evidence — done;
