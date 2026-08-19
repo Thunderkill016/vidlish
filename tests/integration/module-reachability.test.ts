@@ -43,6 +43,8 @@ const NOT_YET_WIRED: Record<string, string> = {
     "level, so wiring it means choosing defaults for goals, time budget and " +
     "support preference — a product decision, and gate 5 is where those get " +
     "collected.",
+  "src/modules/learning/application/review-authoring-draft.ts":
+    "Reached only through the authoring chain above.",
   "src/modules/learning/application/hydrate-learning-blueprint.ts":
     "Reached only through the authoring chain above.",
   "src/modules/learning/application/topic-segmentation.ts":

@@ -2,6 +2,7 @@ import {
   hydrateLearningBlueprint,
   LearningBlueprintHydrationError,
 } from "./hydrate-learning-blueprint";
+import { reviewAuthoringDraft } from "./review-authoring-draft";
 import {
   assembleLearningGenerationContext,
   diagnoseLearningVideo,
@@ -44,6 +45,8 @@ export type AuthorLearningLessonInput = {
 export type AuthorLearningLessonResult = {
   readonly lessonVersionId: string;
   readonly created: boolean;
+  /** What the quality pass had to fix in the model's draft. */
+  readonly repairs: readonly string[];
   readonly modelId: string;
   readonly inputTokens: number;
   readonly outputTokens: number;
@@ -95,9 +98,13 @@ export class AuthorLearningLesson {
       permittedSegments: context.permittedSegments,
     });
 
+    // Between the model writing and a learner seeing it. Repairs what can be
+    // repaired, refuses what means the lesson does not teach.
+    const reviewed = reviewAuthoringDraft(authored.value);
+
     const blueprint = hydrateLearningBlueprint({
       brief: prepared.authoringBrief,
-      draft: authored.value,
+      draft: reviewed.draft,
       profile: prepared.videoProfile,
       learnerSnapshot: input.learnerSnapshot,
       transcript: input.transcript,
@@ -117,6 +124,7 @@ export class AuthorLearningLesson {
     return {
       lessonVersionId: published.lessonVersionId,
       created: published.created,
+      repairs: reviewed.repairs,
       modelId: authored.modelId,
       // Both calls are billed, so both are reported. Counting only the authoring
       // call would understate the cost of a lesson by the larger half.
