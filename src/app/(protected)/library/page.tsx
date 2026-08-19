@@ -83,7 +83,7 @@ export default async function LibraryPage() {
       {lessons.length === 0 && activeJobs.length === 0 ? (
         <Card className="space-y-4 bg-[var(--primary-wash)]">
           <div>
-            <p className="text-sm font-semibold text-[var(--primary)]">Kho học đang trống</p>
+            <p className="text-sm font-semibold text-[var(--primary)]">Chưa có bài học nào</p>
             <h2 className="mt-1 text-xl font-bold">Tạo lesson đầu tiên từ một video bạn thật sự quan tâm</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">
               Các bài đã xuất bản và tiến độ Study Mode sẽ xuất hiện tại đây.
@@ -114,6 +114,11 @@ export default async function LibraryPage() {
                     progress,
                   )
                 : 0;
+              const status = progress?.completedAt
+                ? "Đã hoàn thành"
+                : percent > 0
+                  ? `Đang học ${percent}%`
+                  : "Chưa bắt đầu";
 
               return (
                 <li key={lesson.id}>
@@ -135,14 +140,8 @@ export default async function LibraryPage() {
                       </div>
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-3 text-xs font-semibold text-[var(--muted-foreground)]">
-                          <span>
-                            {progress?.completedAt
-                              ? "Đã hoàn thành"
-                              : percent > 0
-                                ? "Đang học"
-                                : "Chưa bắt đầu"}
-                          </span>
-                          <span>{percent}%</span>
+                          <span>{status}</span>
+                          {percent > 0 && !progress?.completedAt ? null : <span>{percent}%</span>}
                         </div>
                         <div
                           className="h-1.5 overflow-hidden rounded-full bg-[var(--muted)]"
