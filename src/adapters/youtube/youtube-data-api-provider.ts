@@ -17,8 +17,13 @@ const endpoint = "https://www.googleapis.com/youtube/v3/videos";
 // does reduce response bytes and narrows the external contract to exactly what
 // Vidlish validates and persists. Keeping this allowlist next to the adapter
 // also makes accidental collection of descriptions/tags less likely.
+// Joined with no separator, so every element carries its own punctuation. The
+// first one was missing its comma, which glued the parameter into
+// `etagitems(...)` — YouTube answered 400 "Invalid field selection etagitems",
+// the adapter read a non-429/5xx status as permanent, and every single video
+// validation failed with "cấu hình dịch vụ". One character, whole product down.
 const RESPONSE_FIELDS = [
-  "etag",
+  "etag,",
   "items(id,etag,",
   "snippet(title,channelTitle,defaultLanguage,defaultAudioLanguage,thumbnails),",
   "contentDetails(duration,caption,regionRestriction),",
