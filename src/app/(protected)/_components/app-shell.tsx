@@ -73,28 +73,21 @@ function pathMatches(pathname: string, prefixes: readonly string[]) {
   return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
-function AccountMenu({ email, compact = false }: { email: string; compact?: boolean }) {
+function AccountMenu({ email }: { email: string }) {
   return (
     <details className="relative">
-      <summary
-        className={`flex cursor-pointer list-none items-center rounded-xl font-semibold hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
-          compact ? "min-h-10 px-3 text-sm" : "min-h-11 w-full gap-3 px-3 text-sm"
-        }`}
-      >
-        {!compact ? (
-          <span className="grid size-8 shrink-0 place-items-center rounded-full bg-[var(--primary-wash)] text-xs font-bold text-[var(--primary)]">
-            {email.slice(0, 1).toUpperCase()}
+      <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-xl px-3 text-sm font-semibold hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] lg:min-h-11 lg:w-full lg:gap-3">
+        <span className="hidden size-8 shrink-0 place-items-center rounded-full bg-[var(--primary-wash)] text-xs font-bold text-[var(--primary)] lg:grid">
+          {email.slice(0, 1).toUpperCase()}
+        </span>
+        <span className="min-w-0 lg:flex lg:flex-1 lg:flex-col lg:text-left">
+          <span>Tài khoản</span>
+          <span className="hidden truncate text-[11px] font-normal text-[var(--muted-foreground)] lg:block">
+            {email}
           </span>
-        ) : null}
-        <span className={compact ? "" : "min-w-0 flex-1 truncate text-left"}>
-          {compact ? "Tài khoản" : email}
         </span>
       </summary>
-      <div
-        className={`absolute z-50 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-card)] ${
-          compact ? "right-0 top-full mt-2" : "bottom-0 left-full ml-2"
-        }`}
-      >
+      <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-card)] lg:bottom-0 lg:left-full lg:right-auto lg:top-auto lg:mb-0 lg:ml-2 lg:mt-0">
         <p className="mb-3 truncate text-xs text-[var(--muted-foreground)]" title={email}>
           {email}
         </p>
@@ -115,7 +108,7 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
   const pathname = usePathname();
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
+    <div className="min-h-screen min-w-0 bg-[var(--background)]">
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-64 border-r border-[var(--border)] bg-[var(--card)] lg:flex lg:flex-col">
         <div className="flex h-20 items-center px-6">
           <Link
@@ -125,7 +118,7 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
             Vidlish
           </Link>
         </div>
-        <nav aria-label="Điều hướng chính" className="flex-1 space-y-1 px-3 py-2">
+        <nav aria-label="Điều hướng chính" className="flex-1 space-y-1 px-3 pb-20 pt-2">
           {NAV_ITEMS.map((item) => {
             const active = pathMatches(pathname, item.match);
             return (
@@ -145,25 +138,23 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
             );
           })}
         </nav>
-        <div className="border-t border-[var(--border)] p-3">
-          <AccountMenu email={email} />
-        </div>
       </aside>
 
-      <div className="min-h-screen lg:pl-64">
-        <header className="sticky top-0 z-20 flex min-h-16 items-center border-b border-[var(--border)] bg-[var(--card)] px-4 sm:px-6 lg:hidden">
+      <div className="fixed right-4 top-3 z-50 lg:bottom-3 lg:left-3 lg:right-auto lg:top-auto lg:w-[232px]">
+        <AccountMenu email={email} />
+      </div>
+
+      <div className="min-h-screen min-w-0 lg:pl-64">
+        <header className="sticky top-0 z-20 flex min-h-16 items-center border-b border-[var(--border)] bg-[var(--card)] px-4 pr-32 sm:px-6 sm:pr-36 lg:hidden">
           <Link
             href="/dashboard"
             className="rounded-lg text-lg font-bold text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             Vidlish
           </Link>
-          <div className="ml-auto">
-            <AccountMenu email={email} compact />
-          </div>
         </header>
 
-        <main className="mx-auto max-w-7xl px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8 lg:pb-12">
+        <main className="mx-auto min-w-0 max-w-7xl overflow-x-clip px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8 lg:pb-12">
           {children}
         </main>
       </div>
@@ -179,12 +170,12 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
-              className={`flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl px-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
+              className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl px-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
                 active ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"
               }`}
             >
               <NavGlyph name={item.glyph} />
-              <span>{item.label}</span>
+              <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );
         })}
