@@ -87,6 +87,9 @@ export class SubmitLearningActivityAttempt {
       nextPhase: advance ? (nextActivity?.phase ?? "completed") : activity.phase,
       nextActivityId: advance ? (nextActivity?.id ?? activity.id) : activity.id,
       complete,
+      reviewItemKeys: complete
+        ? [...new Set(input.blueprint.targetItems.map((item) => item.itemKey))]
+        : [],
     });
   }
 }

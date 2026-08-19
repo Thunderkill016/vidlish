@@ -91,6 +91,9 @@ insert into public.lesson_versions (
   '{
     "schemaVersion":"lesson:v2",
     "fixtureId":"golden-session-v1",
+    "targetItems":[
+      {"id":"item_member_of","itemKey":"a-member-of"}
+    ],
     "activities":[
       {"id":"activity_gist","phase":"gist"},
       {"id":"activity_meaning","phase":"practice"},
