@@ -31,7 +31,7 @@ function validBody() {
 }
 
 describe("YouTubeDataApiProvider", () => {
-  it("calls videos.list with exact parts and maps a valid response", async () => {
+  it("calls videos.list with exact parts, narrowed fields and maps a valid response", async () => {
     const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
       const url = new URL(String(input));
       expect(url.origin + url.pathname).toBe(
@@ -39,6 +39,9 @@ describe("YouTubeDataApiProvider", () => {
       );
       expect(url.searchParams.get("id")).toBe(videoId);
       expect(url.searchParams.get("part")).toBe("snippet,contentDetails,status");
+      expect(url.searchParams.get("fields")).toContain("defaultAudioLanguage");
+      expect(url.searchParams.get("fields")).toContain("regionRestriction");
+      expect(url.searchParams.get("fields")).not.toContain("description");
       expect(url.searchParams.get("key")).toBe("secret-test-key");
       return new Response(JSON.stringify(validBody()), { status: 200 });
     });
