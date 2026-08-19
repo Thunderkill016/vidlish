@@ -38,6 +38,10 @@ const NOT_YET_WIRED: Record<string, string> = {
     "Learning Model v2 authoring. Lesson generation still runs the v1 path in " +
     "src/workflows/generate-lesson.steps.ts; AGENTS.md puts the v2 rollout " +
     "behind gates 4-9.",
+  "src/modules/learning/application/hydrate-learning-blueprint.ts":
+    "Gate 0, authoring half. Turns a model draft into a lesson:v2 blueprint and " +
+    "enforces grounding. Waiting on the provider that produces the draft; " +
+    "nothing can call it until that exists.",
   "src/modules/learning/application/topic-segmentation.ts":
     "Reached only through the v2 authoring brief above.",
   "src/modules/learning/application/lexical-coverage.ts":
