@@ -7,20 +7,75 @@ import type {
 } from "@/modules/lesson/ports/lesson-generation-provider";
 import { lessonDraftSchema } from "@/shared/contracts/lesson";
 
+type GroundedText = Readonly<{
+  text: string;
+  segmentId: string;
+}>;
+
+function sourceWords(input: LessonGenerationInput): GroundedText[] {
+  const seen = new Set<string>();
+  const words: GroundedText[] = [];
+
+  for (const segment of input.permittedSegments) {
+    const matches = segment.text.match(/[A-Za-z]+(?:['’][A-Za-z]+)?/g) ?? [];
+    for (const word of matches) {
+      const key = word.normalize("NFKC").toLowerCase().replace(/’/g, "'");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      words.push({ text: word, segmentId: segment.id });
+    }
+  }
+
+  return words;
+}
+
+function sourcePhrases(input: LessonGenerationInput): GroundedText[] {
+  const seen = new Set<string>();
+  const phrases: GroundedText[] = [];
+
+  for (const segment of input.permittedSegments) {
+    const words = segment.text.match(/[A-Za-z]+(?:['’][A-Za-z]+)?/g) ?? [];
+    for (let index = 0; index + 1 < words.length; index += 1) {
+      const phrase = `${words[index]} ${words[index + 1]}`;
+      const key = phrase.normalize("NFKC").toLowerCase().replace(/’/g, "'");
+      if (seen.has(key)) continue;
+      seen.add(key);
+      phrases.push({ text: phrase, segmentId: segment.id });
+    }
+  }
+
+  return phrases;
+}
+
 /**
- * Deterministic stand-in for the model. It cites only segments it was actually
- * given, so it exercises the grounding gate honestly rather than bypassing it.
+ * Deterministic stand-in for the model. It derives every teachable item from
+ * the permitted transcript so fixture-backed journeys exercise the same
+ * grounding and quality gates as a real provider instead of bypassing them.
  */
 export class FixtureLessonProvider implements LessonGenerationProvider {
   async generate(
     input: LessonGenerationInput,
   ): Promise<LessonGenerationResult> {
     const first = input.permittedSegments[0];
-    const second = input.permittedSegments[1] ?? first;
     if (!first) throw new Error("Fixture lesson provider needs a segment.");
 
-    const blankSource = first.text.split(/\s+/);
-    const answer = blankSource[1] ?? blankSource[0] ?? "word";
+    const words = sourceWords(input);
+    const phrases = sourcePhrases(input);
+    if (words.length < 6 || phrases.length < 3) {
+      throw new Error(
+        "Fixture lesson provider needs enough permitted English text for six words and three phrases.",
+      );
+    }
+
+    const firstWords = first.text.match(/[A-Za-z]+(?:['’][A-Za-z]+)?/g) ?? [];
+    const answer = firstWords[1] ?? firstWords[0];
+    if (!answer) {
+      throw new Error("Fixture lesson provider needs a cloze answer.");
+    }
+
+    const questionSegments = input.permittedSegments.length
+      ? input.permittedSegments
+      : [first];
 
     return {
       draft: lessonDraftSchema.parse({
@@ -32,27 +87,28 @@ export class FixtureLessonProvider implements LessonGenerationProvider {
           "The speaker explains how to build an English study habit from real content.",
         estimatedLevel: input.cefrLevel,
         difficultyReasonsVi: ["Tốc độ nói vừa phải", "Từ vựng phổ thông"],
-        vocabulary: Array.from({ length: 6 }, (_, index) => ({
-          term: `term${index + 1}`,
-          partOfSpeech: "noun",
-          meaningVi: `nghĩa của từ ${index + 1}`,
-          definitionEn: `A fixture definition for term ${index + 1}.`,
-          exampleEn: `I used term${index + 1} in a new sentence.`,
-          sourceSegmentIds: [index % 2 === 0 ? first.id : second.id],
+        vocabulary: words.slice(0, 6).map((item, index) => ({
+          term: item.text,
+          partOfSpeech: "word",
+          meaningVi: `Từ nguồn số ${index + 1}`,
+          definitionEn: "A grounded fixture word selected from the source transcript.",
+          exampleEn: `I practiced using ${item.text} in a new sentence today.`,
+          sourceSegmentIds: [item.segmentId],
         })),
-        phrases: Array.from({ length: 3 }, (_, index) => ({
-          phrase: `phrase ${index + 1}`,
+        phrases: phrases.slice(0, 3).map((item, index) => ({
+          phrase: item.text,
           kind: "expression",
-          meaningVi: `nghĩa của cụm ${index + 1}`,
-          usageNoteVi: "Dùng trong hội thoại thân mật.",
-          sourceSegmentIds: [second.id],
+          meaningVi: `Cụm từ nguồn số ${index + 1}`,
+          usageNoteVi: "Fixture giữ cụm từ gắn với đúng đoạn transcript nguồn.",
+          sourceSegmentIds: [item.segmentId],
         })),
         grammarPoints: [
           {
-            titleVi: "Thì hiện tại đơn",
-            explanationVi: "Dùng để nói về thói quen và sự thật hiển nhiên.",
-            pattern: "S + V(s/es)",
-            exampleEn: "She reviews her notes every evening.",
+            titleVi: "Mẫu câu trong ngữ cảnh",
+            explanationVi:
+              "Fixture dùng một ví dụ mới để kiểm tra đường publish mà không chép nguyên câu nguồn.",
+            pattern: "S + V + context",
+            exampleEn: "She reviews a useful expression after every listening session.",
             sourceSegmentIds: [first.id],
           },
         ],
@@ -61,7 +117,7 @@ export class FixtureLessonProvider implements LessonGenerationProvider {
           options: ["Đáp án đúng", "Phương án B", "Phương án C", "Phương án D"],
           correctIndex: 0,
           explanationVi: "Người nói đề cập trực tiếp trong đoạn được trích.",
-          sourceSegmentIds: [index % 2 === 0 ? first.id : second.id],
+          sourceSegmentIds: [questionSegments[index % questionSegments.length].id],
         })),
         clozeItems: [
           {
