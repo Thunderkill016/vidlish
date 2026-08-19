@@ -23,6 +23,35 @@ export class SupabaseLessonVersionRepository
 {
   constructor(private readonly client: SupabaseClient) {}
 
+  async findForJob(input: { ownerUserId: string; jobId: string }) {
+    // Joined through `lessons` because a lesson version hangs off a v1 lesson,
+    // and the job is what the learner's URL carries.
+    const lesson = await this.client
+      .from("lessons")
+      .select("id")
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("job_id", input.jobId)
+      .maybeSingle();
+    if (lesson.error) throw lesson.error;
+    if (!lesson.data) return null;
+
+    const result = await this.client
+      .from("lesson_versions")
+      .select("id,blueprint")
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("lesson_id", (lesson.data as { id: string }).id)
+      .eq("schema_version", "lesson:v2")
+      .maybeSingle();
+    if (result.error) throw result.error;
+    if (!result.data) return null;
+
+    const row = result.data as { id: string; blueprint: unknown };
+    return {
+      lessonVersionId: row.id,
+      blueprint: lessonBlueprintV2Schema.parse(row.blueprint),
+    };
+  }
+
   async publish(input: PublishLessonVersionInput) {
     // Parsed here rather than trusted from the caller. The database refuses a
     // blueprint whose schemaVersion is wrong, but it cannot check the rest of
