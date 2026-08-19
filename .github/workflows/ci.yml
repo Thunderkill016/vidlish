@@ -148,7 +148,11 @@ jobs:
   e2e:
     name: Chromium product journeys
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Trần cũ là 20 phút và job bị huỷ đúng ở mốc đó với toàn bộ thời gian nằm
+    # trong bước tải Playwright — nên cache ở dưới không bao giờ được nạp, vì
+    # actions/cache chỉ lưu khi job chạy xong. Nới trần để một lượt tải kịp về
+    # một lần; sau đó cache trúng và bước này gần như biến mất.
+    timeout-minutes: 35
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
