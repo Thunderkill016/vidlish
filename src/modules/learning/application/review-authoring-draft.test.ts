@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { reviewAuthoringDraft } from "./review-authoring-draft";
+import {
+  AuthoringQualityError,
+  reviewAuthoringDraft,
+} from "./review-authoring-draft";
 
 import type {
   LearningActivityDraftV2,
@@ -18,6 +21,7 @@ function gist(
   id: string,
   options: readonly { id: string; textVi: string }[],
   correctOptionId: string,
+  captionPolicy: "hidden_first" | "toggle" | "shown" = "hidden_first",
 ): LearningActivityDraftV2 {
   return {
     id,
@@ -26,7 +30,7 @@ function gist(
     outcomeIds: ["outcome_main"],
     instructionVi: "Nghe một lượt rồi chọn ý chính.",
     evidenceWindowIds: ["window_aaaaaaaa_bbbbbbbb"],
-    captionPolicy: "hidden_first",
+    captionPolicy,
     estimatedSeconds: 60,
     promptVi: "Đoạn này nói về điều gì?",
     options: [...options],
@@ -57,22 +61,65 @@ function meaning(
   } as LearningActivityDraftV2;
 }
 
-const RECALL: LearningActivityDraftV2 = {
-  id: "activity_recall",
-  phase: "retrieve",
-  activityType: "chunk_recall",
+function recall(
+  candidateId = "candidate_member",
+  captionPolicy: "hidden_first" | "toggle" | "shown" = "toggle",
+): LearningActivityDraftV2 {
+  return {
+    id: "activity_recall",
+    phase: "retrieve",
+    activityType: "chunk_recall",
+    outcomeIds: ["outcome_main"],
+    instructionVi: "Nhớ lại cụm người nói đã dùng.",
+    evidenceWindowIds: ["window_aaaaaaaa_bbbbbbbb"],
+    captionPolicy,
+    estimatedSeconds: 90,
+    candidateId,
+    promptVi: "Viết lại cụm còn thiếu.",
+    hintVi: null,
+    accepted: ["a member of"],
+    revealAnswer: "a member of",
+    revealExplanationVi: "Đây là cụm nguyên văn trong đoạn.",
+    feedback: CHOICE_FEEDBACK,
+  } as LearningActivityDraftV2;
+}
+
+function transfer(
+  candidateId = "candidate_member",
+): LearningActivityDraftV2 {
+  return {
+    id: "activity_transfer",
+    phase: "transfer",
+    activityType: "guided_transfer",
+    outcomeIds: ["outcome_main"],
+    instructionVi: "Dùng lại cụm vừa nhớ trong một tình huống khác.",
+    estimatedSeconds: 120,
+    candidateIds: [candidateId],
+    scenarioVi: "Một đồng nghiệp mới hỏi vai trò của bạn trong một nhóm khác.",
+    promptVi: "Viết một câu trả lời tự nhiên dùng cụm vừa học.",
+    criteriaVi: [
+      "Dùng đúng cụm mục tiêu.",
+      "Câu phù hợp với tình huống mới.",
+    ],
+    feedback: {
+      goalVi: "Dùng lại ngôn ngữ ngoài câu nguồn.",
+      nextStepVi: "Đối chiếu tiêu chí rồi sửa câu nếu cần.",
+    },
+  } as LearningActivityDraftV2;
+}
+
+const EXIT: LearningActivityDraftV2 = {
+  id: "activity_exit",
+  phase: "reflect",
+  activityType: "exit_ticket",
   outcomeIds: ["outcome_main"],
-  instructionVi: "Nhớ lại cụm người nói đã dùng.",
-  evidenceWindowIds: ["window_aaaaaaaa_bbbbbbbb"],
-  captionPolicy: "toggle",
-  estimatedSeconds: 90,
-  candidateId: "candidate_member",
-  promptVi: "Viết lại cụm còn thiếu.",
-  hintVi: null,
-  accepted: ["a member of"],
-  revealAnswer: "a member of",
-  revealExplanationVi: "Đây là cụm nguyên văn trong đoạn.",
-  feedback: CHOICE_FEEDBACK,
+  instructionVi: "Nhìn lại buổi học.",
+  estimatedSeconds: 30,
+  promptVi: "Phần nào khó nhất?",
+  feedback: {
+    goalVi: "Nhận ra chỗ cần ôn lại.",
+    nextStepVi: "Mục này sẽ quay lại trong ôn tập.",
+  },
 } as LearningActivityDraftV2;
 
 function draft(
@@ -90,29 +137,116 @@ const A = { id: "option_a", textVi: "Giới thiệu bản thân" };
 const B = { id: "option_b", textVi: "Bán một sản phẩm" };
 const C = { id: "option_c", textVi: "Kể một chuyến đi" };
 
+function expectReason(
+  build: () => unknown,
+  reason: AuthoringQualityError["reason"],
+) {
+  try {
+    build();
+    throw new Error("Expected reviewAuthoringDraft to reject the draft.");
+  } catch (error) {
+    expect(error).toBeInstanceOf(AuthoringQualityError);
+    expect((error as AuthoringQualityError).reason).toBe(reason);
+  }
+}
+
 describe("reviewAuthoringDraft", () => {
-  it("passes a draft with nothing wrong with it", () => {
+  it("passes the minimum evidence-producing learning loop", () => {
     const reviewed = reviewAuthoringDraft(
-      draft([gist("activity_gist", [A, B], "option_a"), RECALL]),
+      draft([
+        gist("activity_gist", [A, B], "option_a"),
+        recall(),
+        transfer(),
+      ]),
     );
     expect(reviewed.repairs).toEqual(["NONE"]);
   });
 
-  it("refuses a draft that never asks the learner to produce language", () => {
-    // Recognition is not retrieval. A lesson made only of multiple choice looks
-    // finished and teaches the learner to recognise, nothing more.
-    expect(() =>
-      reviewAuthoringDraft(
-        draft([
-          gist("activity_gist", [A, B], "option_a"),
-          meaning("activity_meaning", [B, A], "option_b"),
-        ]),
-      ),
-    ).toThrow(/produce language/i);
+  it("requires the first activity to be an unaided gist listen", () => {
+    expectReason(
+      () =>
+        reviewAuthoringDraft(
+          draft([
+            gist("activity_gist", [A, B], "option_a", "shown"),
+            recall(),
+            transfer(),
+          ]),
+        ),
+      "NO_UNAIDED_GIST",
+    );
+  });
+
+  it("requires active form retrieval, not only recognition plus transfer", () => {
+    expectReason(
+      () =>
+        reviewAuthoringDraft(
+          draft([
+            gist("activity_gist", [A, B], "option_a"),
+            meaning("activity_meaning", [B, C], "option_b"),
+            transfer(),
+          ]),
+        ),
+      "NO_FORM_RETRIEVAL",
+    );
+  });
+
+  it("refuses recall that exposes captions before retrieval", () => {
+    expectReason(
+      () =>
+        reviewAuthoringDraft(
+          draft([
+            gist("activity_gist", [A, B], "option_a"),
+            recall("candidate_member", "shown"),
+            transfer(),
+          ]),
+        ),
+      "RETRIEVAL_ANSWER_EXPOSED",
+    );
+  });
+
+  it("requires changed-context transfer after retrieval", () => {
+    expectReason(
+      () =>
+        reviewAuthoringDraft(
+          draft([
+            gist("activity_gist", [A, B], "option_a"),
+            recall(),
+            EXIT,
+          ]),
+        ),
+      "NO_CHANGED_CONTEXT_TRANSFER",
+    );
+  });
+
+  it("requires transfer to reuse an item the learner retrieved", () => {
+    expectReason(
+      () =>
+        reviewAuthoringDraft(
+          draft([
+            gist("activity_gist", [A, B], "option_a"),
+            recall("candidate_member"),
+            transfer("candidate_other"),
+          ]),
+        ),
+      "NO_RETRIEVAL_TO_TRANSFER_BRIDGE",
+    );
+  });
+
+  it("requires retrieval of the shared target before changed-context transfer", () => {
+    expectReason(
+      () =>
+        reviewAuthoringDraft(
+          draft([
+            gist("activity_gist", [A, B], "option_a"),
+            transfer(),
+            recall(),
+          ]),
+        ),
+      "TRANSFER_BEFORE_RETRIEVAL",
+    );
   });
 
   it("refuses an activity that offers the same option twice", () => {
-    // Two identical options means two correct answers or one dead slot.
     expect(() =>
       reviewAuthoringDraft(
         draft([
@@ -121,48 +255,53 @@ describe("reviewAuthoringDraft", () => {
             [A, { id: "option_dup", textVi: "  giới thiệu bản thân  " }],
             "option_a",
           ),
-          RECALL,
+          recall(),
+          transfer(),
         ]),
       ),
     ).toThrow(/same option twice/i);
   });
 
   it("refuses when the correct option is the longest one every time", () => {
-    // A learner scores full marks by always picking the longest option, without
-    // understanding a word.
-    const long = { id: "option_long", textVi: "Một câu trả lời rất dài và chi tiết" };
+    const long = {
+      id: "option_long",
+      textVi: "Một câu trả lời rất dài và chi tiết",
+    };
     expect(() =>
       reviewAuthoringDraft(
         draft([
           gist("activity_gist", [B, long], "option_long"),
           meaning("activity_meaning", [C, long], "option_long"),
-          RECALL,
+          recall(),
+          transfer(),
         ]),
       ),
     ).toThrow(/longest one in every/i);
   });
 
   it("allows the correct option to be longest once", () => {
-    // One activity landing that way is chance, not a habit.
-    const long = { id: "option_long", textVi: "Một câu trả lời rất dài và chi tiết" };
+    const long = {
+      id: "option_long",
+      textVi: "Một câu trả lời rất dài và chi tiết",
+    };
     const reviewed = reviewAuthoringDraft(
       draft([
         gist("activity_gist", [B, long], "option_long"),
         meaning("activity_meaning", [A, C], "option_c"),
-        RECALL,
+        recall(),
+        transfer(),
       ]),
     );
     expect(reviewed.repairs).toBeDefined();
   });
 
   it("spreads the correct answer out when it always sits in the same slot", () => {
-    // Models put the right answer in the same position far more often than
-    // chance, and a learner who notices spends the lesson pattern-matching.
     const reviewed = reviewAuthoringDraft(
       draft([
         gist("activity_gist", [A, B], "option_a"),
         meaning("activity_meaning", [C, B], "option_c"),
-        RECALL,
+        recall(),
+        transfer(),
       ]),
     );
 
@@ -186,12 +325,12 @@ describe("reviewAuthoringDraft", () => {
   });
 
   it("keeps every option when it rebalances", () => {
-    // Rotating must not drop or invent an option.
     const reviewed = reviewAuthoringDraft(
       draft([
         gist("activity_gist", [A, B], "option_a"),
         meaning("activity_meaning", [C, B], "option_c"),
-        RECALL,
+        recall(),
+        transfer(),
       ]),
     );
     const meaningActivity = reviewed.draft.activities[1] as Extract<
@@ -204,25 +343,25 @@ describe("reviewAuthoringDraft", () => {
     ]);
   });
 
-  it("leaves a draft alone when positions already vary", () => {
+  it("leaves a draft alone when answer positions already vary", () => {
     const reviewed = reviewAuthoringDraft(
       draft([
         gist("activity_gist", [A, B], "option_a"),
         meaning("activity_meaning", [C, B], "option_b"),
-        RECALL,
+        recall(),
+        transfer(),
       ]),
     );
     expect(reviewed.repairs).toEqual(["NONE"]);
   });
 
   it("is deterministic — the same draft always yields the same lesson", () => {
-    // A random shuffle would make every regeneration a different lesson and
-    // none of this testable.
     const build = () =>
       draft([
         gist("activity_gist", [A, B], "option_a"),
         meaning("activity_meaning", [C, B], "option_c"),
-        RECALL,
+        recall(),
+        transfer(),
       ]);
     expect(reviewAuthoringDraft(build())).toEqual(reviewAuthoringDraft(build()));
   });
