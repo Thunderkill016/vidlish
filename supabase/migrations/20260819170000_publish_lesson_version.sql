@@ -23,6 +23,14 @@ declare
   v_existing public.lesson_versions%rowtype;
   v_inserted public.lesson_versions%rowtype;
 begin
+  -- Kiểm hình dạng blueprint *trước* luật publish-một-lần. Nếu để sau, một
+  -- payload rác gửi cho bài đã publish sẽ bị nuốt im lặng: hàm trả về bản cũ,
+  -- người gọi thấy thành công, và lỗi ở tầng trên không bao giờ lộ ra. Ràng
+  -- buộc bảng chỉ chạy lúc insert nên nó không che được ca này.
+  if (p_blueprint ->> 'schemaVersion') is distinct from 'lesson:v2' then
+    raise exception 'blueprint schema version must be lesson:v2';
+  end if;
+
   -- Người gọi sở hữu bài học đó hoặc không sở hữu gì. `security definer` bỏ qua
   -- RLS của bảng, nên nếu thiếu chốt này thì bất kỳ ai đăng nhập cũng gắn được
   -- blueprint vào bài học của người khác.

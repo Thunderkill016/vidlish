@@ -146,17 +146,17 @@ select throws_ok(
   'database từ chối gắn blueprint vào bài học của người khác'
 );
 
--- Blueprint thiếu khoá schemaVersion phải bị từ chối. `NULL = '...'` là NULL mà
--- CHECK chấp nhận, nên ràng buộc bảng dùng `is not distinct from`.
+-- Blueprint thiếu khoá schemaVersion phải bị từ chối — kể cả khi bài học này đã
+-- publish rồi. Đây chính là ca mà ràng buộc bảng không che được: luật
+-- publish-một-lần trả về sớm nên không có insert nào để CHECK chạy.
 select throws_ok(
   $$select * from public.publish_lesson_version(
     '11111111-1111-4111-8111-111111111111',
     '66666666-6666-4666-8666-666666666666',
     '{"activities":[{"id":"activity_gist","phase":"gist"}]}'::jsonb
   )$$,
-  '23514',
-  null,
-  'database từ chối blueprint không có schemaVersion'
+  'blueprint schema version must be lesson:v2',
+  'blueprint hỏng bị từ chối kể cả khi bài học đã publish'
 );
 
 select * from finish();

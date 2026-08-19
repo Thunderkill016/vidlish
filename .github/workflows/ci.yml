@@ -166,8 +166,24 @@ jobs:
           cache-dependency-path: pnpm-lock.yaml
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --prefer-offline
+      # Trình duyệt là thứ duy nhất trong CI chưa được cache, nên mỗi lần chạy
+      # đều tải lại. Bình thường job này hết 2 phút 42; một lần lượt tải ngoài
+      # chậm đã kéo nó lên 17 phút. Cache gỡ hẳn phụ thuộc đó.
+      # Khoá theo pnpm-lock.yaml để cache tự hỏng khi đổi phiên bản Playwright.
+      - name: Restore Chromium headless shell
+        id: playwright-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-shell-${{ hashFiles('pnpm-lock.yaml') }}
       - name: Install Chromium headless shell
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm exec playwright install --with-deps --only-shell chromium
+      # Thư viện hệ thống nằm ngoài ~/.cache nên cache không mang chúng theo;
+      # bước này cài lại phần apt mà không tải lại trình duyệt.
+      - name: Install Chromium system dependencies
+        if: steps.playwright-cache.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
       - name: Run product journeys
         run: pnpm test:e2e
       - name: Upload failure evidence
