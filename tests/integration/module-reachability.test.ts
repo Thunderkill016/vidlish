@@ -35,17 +35,20 @@ const SRC = "src";
  */
 const NOT_YET_WIRED: Record<string, string> = {
   "src/modules/learning/application/prepare-learning-authoring-brief.ts":
-    "Learning Model v2 authoring. Lesson generation still runs the v1 path in " +
-    "src/workflows/generate-lesson.steps.ts; AGENTS.md puts the v2 rollout " +
-    "behind gates 4-9.",
+    "Reached only through the authoring chain above.",
+  "src/modules/learning/application/author-learning-lesson.ts":
+    "Gate 0, authoring chain. Complete and tested end to end against the " +
+    "fixture provider. Not called from generate-lesson.steps.ts yet: the chain " +
+    "needs a full LearnerContextSnapshot and the job carries only a CEFR " +
+    "level, so wiring it means choosing defaults for goals, time budget and " +
+    "support preference — a product decision, and gate 5 is where those get " +
+    "collected.",
   "src/modules/learning/application/hydrate-learning-blueprint.ts":
-    "Gate 0, authoring half. Turns a model draft into a lesson:v2 blueprint and " +
-    "enforces grounding. Waiting on the provider that produces the draft; " +
-    "nothing can call it until that exists.",
+    "Reached only through the authoring chain above.",
   "src/modules/learning/application/topic-segmentation.ts":
-    "Reached only through the v2 authoring brief above.",
+    "Reached only through the authoring chain above.",
   "src/modules/learning/application/lexical-coverage.ts":
-    "Reached only through the v2 authoring brief above.",
+    "Reached only through the authoring chain above.",
 };
 
 function listSourceFiles(dir: string): string[] {
