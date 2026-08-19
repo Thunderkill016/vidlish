@@ -49,6 +49,14 @@ export const generationEventSchema = z
         "transcript_missing",
         "language_check_failed",
         "provider_failure",
+        // Provider failures split by kind. None of these carry learner or
+        // transcript text — they name the shape of the failure, which is what
+        // production needs to tell a rate limit from a rejected schema.
+        "provider_rate_limited",
+        "provider_truncated",
+        "provider_declined",
+        "provider_not_json",
+        "provider_schema_rejected",
         "unexpected_error",
       ])
       .optional(),
