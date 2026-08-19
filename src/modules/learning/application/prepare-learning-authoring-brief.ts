@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { estimateLexicalCoverage, tokenizeEnglish } from "./lexical-coverage";
 
 import {
   languageEligibilityReportSchema,
@@ -457,7 +458,10 @@ export function diagnoseLearningVideo(
     topicShiftCount: Math.max(0, candidateWindows.length - 1),
     register,
     audioChallenge,
-    lexicalCoverageEstimate: null,
+    lexicalCoverageEstimate: estimateLexicalCoverage(
+      context.permittedSegments.flatMap((segment) => tokenizeEnglish(segment.text)),
+      context.learnerSnapshot.targetCefr,
+    ),
     backgroundKnowledgeDependency,
     candidateWindows,
   });

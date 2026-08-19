@@ -354,7 +354,11 @@ describe("prepareLearningAuthoringBrief", () => {
     expect(profile.register).toContain("technical");
     expect(profile.audioChallenge).not.toContain("accent");
     expect(profile.audioChallenge).not.toContain("noise");
-    expect(profile.lexicalCoverageEstimate).toBeNull();
+    // Was hardcoded to null while every other diagnostic was computed, so the
+    // pipeline could never tell a teachable video from an impossible one.
+    expect(profile.lexicalCoverageEstimate).not.toBeNull();
+    expect(profile.lexicalCoverageEstimate).toBeGreaterThan(0);
+    expect(profile.lexicalCoverageEstimate).toBeLessThanOrEqual(1);
   });
 
   it("grounds candidates, applies learner gap and respects the five-minute budget", () => {
