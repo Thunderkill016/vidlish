@@ -90,4 +90,82 @@ describe("InMemoryLanguageEligibilityRepository", () => {
       await generationRepository.findOwnedById(created.job.id, "owner-one"),
     ).toMatchObject({ status: "analyzing_video" });
   });
+
+  it("reads back the decision the authoring chain has to enforce", async () => {
+    // Until this existed the allowlist could only be written. Nothing
+    // downstream could ask which segments a lesson is allowed to quote, which
+    // is the whole basis of grounding.
+    const generationRepository = new InMemoryGenerationJobRepository();
+    const created = await generationRepository.createOrReuse({
+      ownerUserId: "owner-one",
+      cefrLevel: "B1",
+      pipelineVersion: GENERATION_PIPELINE_VERSION,
+      metadata: {
+        videoId: "dQw4w9WgXcQ",
+        title: "Fixture video",
+        channelName: "Fixture channel",
+        metadataVersion: "fixture:v1",
+        availability: "playable",
+      },
+    });
+    await generationRepository.updateStatus(
+      created.job.id,
+      "checking_language",
+      "checking_language",
+    );
+    const repository = new InMemoryLanguageEligibilityRepository(
+      generationRepository,
+    );
+    await repository.persistDecision({
+      ownerUserId: "owner-one",
+      jobId: created.job.id,
+      report: report("eligible"),
+    });
+
+    const found = await repository.findForJob({
+      ownerUserId: "owner-one",
+      jobId: created.job.id,
+    });
+    expect(found?.permittedSegmentIds).toEqual(
+      report("eligible").permittedSegmentIds,
+    );
+  });
+
+  it("returns nothing for another owner's job", async () => {
+    // The report names which speech may be quoted; handing it to the wrong
+    // owner leaks one learner's source material into another's lesson.
+    const generationRepository = new InMemoryGenerationJobRepository();
+    const created = await generationRepository.createOrReuse({
+      ownerUserId: "owner-one",
+      cefrLevel: "B1",
+      pipelineVersion: GENERATION_PIPELINE_VERSION,
+      metadata: {
+        videoId: "dQw4w9WgXcQ",
+        title: "Fixture video",
+        channelName: "Fixture channel",
+        metadataVersion: "fixture:v1",
+        availability: "playable",
+      },
+    });
+    await generationRepository.updateStatus(
+      created.job.id,
+      "checking_language",
+      "checking_language",
+    );
+    const repository = new InMemoryLanguageEligibilityRepository(
+      generationRepository,
+    );
+    await repository.persistDecision({
+      ownerUserId: "owner-one",
+      jobId: created.job.id,
+      report: report("eligible"),
+    });
+
+    expect(
+      await repository.findForJob({
+        ownerUserId: "owner-two",
+        jobId: created.job.id,
+      }),
+    ).toBeNull();
+  });
 });
