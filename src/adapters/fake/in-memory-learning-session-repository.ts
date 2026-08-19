@@ -31,8 +31,6 @@ import {
 } from "@/shared/contracts/privacy-safe-learning-evidence";
 
 const INITIAL_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
-const GOOD_REVIEW_DELAY_MS = 3 * 24 * 60 * 60 * 1000;
-const HARD_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
 
 function addMs(iso: string, delayMs: number): string {
   return new Date(new Date(iso).getTime() + delayMs).toISOString();
@@ -196,6 +194,7 @@ export class InMemoryLearningSessionRepository
         nextReviewAt: existing?.nextReviewAt
           ? earlierIso(existing.nextReviewAt, nextReviewAt)
           : nextReviewAt,
+        reviewState: existing?.reviewState ?? null,
         lastDelayedTransferAt: existing?.lastDelayedTransferAt ?? null,
       });
       this.reviewItems.set(mapKey, item);
@@ -274,6 +273,14 @@ export class InMemoryLearningSessionRepository
       this.supportEventIdsBySemanticKey.set(semanticKey, event.id);
     }
     return { event, created: true };
+  }
+
+  async findItemState(ownerUserId: string, itemKey: string) {
+    return (
+      [...this.reviewItems.values()].find(
+        (item) => item.ownerUserId === ownerUserId && item.itemKey === itemKey,
+      ) ?? null
+    );
   }
 
   async listScheduled(ownerUserId: string) {
@@ -443,8 +450,6 @@ export class InMemoryLearningSessionRepository
       input.step === "recall" &&
       input.evaluation.step === "recall" &&
       input.evaluation.verdict === "correct";
-    const delayMs =
-      input.outcome === "good" ? GOOD_REVIEW_DELAY_MS : HARD_REVIEW_DELAY_MS;
     const item = learningReviewItemStateSchema.parse({
       ...currentItem,
       attemptCount: currentItem.attemptCount + 1,
@@ -452,9 +457,15 @@ export class InMemoryLearningSessionRepository
         currentItem.successfulRetrievals + (successfulRecall ? 1 : 0),
       lastSeenAt: now,
       lastOutcome: input.complete ? input.outcome : currentItem.lastOutcome,
+      // The schedule arrives already computed. This fake used to hold its own
+      // copy of the three-day/one-day constants, which meant the tests agreed
+      // with themselves rather than with what the product actually schedules.
       nextReviewAt: input.complete
-        ? addMs(now, delayMs)
+        ? (input.nextReviewAt ?? currentItem.nextReviewAt)
         : currentItem.nextReviewAt,
+      reviewState: input.complete
+        ? (input.reviewState ?? currentItem.reviewState)
+        : currentItem.reviewState,
       lastDelayedTransferAt: input.complete
         ? now
         : currentItem.lastDelayedTransferAt,

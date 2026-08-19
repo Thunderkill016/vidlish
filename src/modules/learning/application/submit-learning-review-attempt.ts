@@ -4,8 +4,12 @@ import type { ActivityResponse } from "@/shared/contracts/lesson-v2";
 import type {
   LearningReviewAttemptEvaluation,
   LearningReviewOutcome,
+  PersistedReviewState,
 } from "@/shared/contracts/learning-review";
 import { createPrivacySafeActivityResponse } from "@/shared/contracts/privacy-safe-learning-evidence";
+
+import { recordReview, type ReviewState } from "./review-scheduler";
+import { REVIEW_STATE_VERSION } from "./schedule-item-review";
 
 export class LearningReviewProgressError extends Error {
   readonly name = "LearningReviewProgressError";
@@ -110,6 +114,27 @@ export class SubmitLearningReviewAttempt {
       }
     }
 
+    // The schedule used to be two constants in SQL: three days for a clean
+    // recall, one day otherwise, the same for every item and every learner,
+    // unchanged whether the item had been recalled ten times running or just
+    // forgotten. FSRS reads the item's own history instead, which is the whole
+    // reason an item earns longer gaps as it sticks.
+    let nextReviewAt: string | null = null;
+    let reviewState: PersistedReviewState | null = null;
+    if (complete && outcome !== null) {
+      const prior = await this.repository.findItemState(
+        input.ownerUserId,
+        session.itemKey,
+      );
+      const next = recordReview(
+        (prior?.reviewState as ReviewState | null) ?? null,
+        outcome,
+        new Date(),
+      );
+      nextReviewAt = next.due;
+      reviewState = { ...next, version: REVIEW_STATE_VERSION };
+    }
+
     return this.repository.recordReviewAttempt({
       ownerUserId: input.ownerUserId,
       reviewSessionId: session.id,
@@ -120,6 +145,8 @@ export class SubmitLearningReviewAttempt {
       advance,
       complete,
       outcome,
+      nextReviewAt,
+      reviewState,
     });
   }
 }

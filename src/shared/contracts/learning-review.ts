@@ -13,6 +13,30 @@ export type LearningReviewStep = z.infer<typeof learningReviewStepSchema>;
 export const learningReviewOutcomeSchema = z.enum(["again", "hard", "good"]);
 export type LearningReviewOutcome = z.infer<typeof learningReviewOutcomeSchema>;
 
+/**
+ * The scheduler's state for one item, as persisted.
+ *
+ * It lives in the contracts layer because the database checks the version tag
+ * and a later migration has nothing else to read these rows by. Serialisable on
+ * purpose: no scheduler types cross this boundary.
+ */
+export const persistedReviewStateSchema = z
+  .object({
+    version: z.literal("review-state:v1"),
+    due: offsetDateTimeSchema,
+    stability: z.number(),
+    difficulty: z.number(),
+    elapsedDays: z.number(),
+    scheduledDays: z.number(),
+    reps: z.number().int().nonnegative(),
+    lapses: z.number().int().nonnegative(),
+    learningSteps: z.number().int().nonnegative(),
+    state: z.number().int().nonnegative(),
+    lastReview: offsetDateTimeSchema.nullable(),
+  })
+  .strict();
+export type PersistedReviewState = z.infer<typeof persistedReviewStateSchema>;
+
 export const learningReviewItemStateSchema = z
   .object({
     ownerUserId: z.string().uuid(),
@@ -25,6 +49,7 @@ export const learningReviewItemStateSchema = z
     lastSeenAt: offsetDateTimeSchema,
     nextReviewAt: offsetDateTimeSchema.nullable(),
     lastDelayedTransferAt: offsetDateTimeSchema.nullable(),
+    reviewState: persistedReviewStateSchema.nullable(),
   })
   .strict();
 export type LearningReviewItemState = z.infer<typeof learningReviewItemStateSchema>;
