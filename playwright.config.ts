@@ -46,12 +46,15 @@ export default defineConfig({
         process.env.YOUTUBE_METADATA_TIMEOUT_MS ?? "1000",
       // Both projects drive one dev server faster than a human. Throttling is
       // covered separately, so normal browser journeys use a raised ceiling.
-      GENERATION_MAX_ACTIVE_JOBS:
-        process.env.GENERATION_MAX_ACTIVE_JOBS ?? "20",
-      GENERATION_MAX_JOBS_PER_MINUTE:
-        process.env.GENERATION_MAX_JOBS_PER_MINUTE ?? "60",
-      GENERATION_MAX_JOBS_PER_DAY:
-        process.env.GENERATION_MAX_JOBS_PER_DAY ?? "1000",
+      // Deliberately NOT read from process.env. CI sets the product defaults
+      // (3 jobs/minute) at workflow level, and these three exist precisely to
+      // override them: the suite drives one dev server as one beta user, far
+      // faster than a human, so on 3/minute the job-creating journeys throttle
+      // themselves with "Bạn thao tác quá nhanh" and fail on /create. Throttling
+      // is covered by generation-policy.test.ts, so no assertion is lost here.
+      GENERATION_MAX_ACTIVE_JOBS: "20",
+      GENERATION_MAX_JOBS_PER_MINUTE: "60",
+      GENERATION_MAX_JOBS_PER_DAY: "1000",
       // Pinned to fixtures like CI. Without these two, a developer with a real
       // `.env.local` runs the journeys against Gemini and Supadata over the
       // network: the create flow stalls and unrelated specs fail for a reason
