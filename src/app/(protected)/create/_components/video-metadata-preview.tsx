@@ -22,24 +22,24 @@ export function VideoMetadataPreview({
   const duration = formatDuration(metadata.durationMs);
 
   return (
-    <Card className="overflow-hidden p-0" data-testid="video-metadata-preview">
-      <div className="grid gap-0 sm:grid-cols-[220px_1fr]">
+    <Card className="min-w-0 overflow-hidden p-0" data-testid="video-metadata-preview">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-0 sm:grid-cols-[220px_minmax(0,1fr)]">
         {metadata.thumbnailUrl ? (
-          <div className="relative aspect-video bg-[var(--muted)] sm:aspect-auto sm:min-h-32">
+          <div className="relative min-w-0 overflow-hidden aspect-video bg-[var(--muted)] sm:aspect-auto sm:min-h-32">
             <Image
               src={metadata.thumbnailUrl}
               alt=""
               fill
               sizes="(max-width: 640px) 100vw, 220px"
-              className="object-cover"
+              className="pointer-events-none object-cover"
               priority={false}
             />
           </div>
         ) : null}
-        <div className="space-y-2 p-5">
+        <div className="min-w-0 space-y-2 p-5">
           <p className="text-sm font-semibold text-[var(--accent)]">Video có thể tiếp tục</p>
-          <h2 className="text-lg font-bold leading-snug">{metadata.title}</h2>
-          <p className="text-sm text-[var(--muted-foreground)]">
+          <h2 className="break-words text-lg font-bold leading-snug">{metadata.title}</h2>
+          <p className="break-words text-sm text-[var(--muted-foreground)]">
             {metadata.channelName}
             {duration ? ` · ${duration}` : ""}
           </p>

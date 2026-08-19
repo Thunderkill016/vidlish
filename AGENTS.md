@@ -1,66 +1,156 @@
 # AGENTS.md
 
-## Vai trò của Codex
+## Mission
 
-Vidlish dùng BMAD Method 6.10.0 theo Full BMad greenfield track. `project-context.md` là nguồn bối cảnh bắt buộc; planning authorities nằm trong `_bmad-output/planning-artifacts/`, sprint/story tracking nằm trong `_bmad-output/implementation-artifacts/`.
+Build Vidlish as a grounded English-learning product for Vietnamese adults A2–B2 who already watch English YouTube but rely on subtitles or passive understanding.
 
-## Trạng thái hiện tại
+The product promise is not “AI generates a lesson.” The durable value is:
 
-- PRD, UX, Architecture, Epics/Stories: final.
-- Implementation Readiness: READY/PASS.
-- Sprint Planning: complete.
-- Epic 1: in progress.
-- Story hiện tại: `1-1-truy-cap-private-beta-va-dang-nhap-an-toan`.
-- Product code chỉ được thay đổi theo story artifact hiện tại và chuỗi create/validate/dev/review.
+`user-owned interest + grounded learning activity + personal capability evidence + varied delayed review + progressively less support`
 
-## Invariant nguồn tiếng Anh
+## Authority order
 
-Vidlish chỉ tạo bài học từ lời nói tiếng Anh thực sự tồn tại trong video nguồn.
+Before changing product behavior, read these in order:
 
-```text
-Có đủ lời nói tiếng Anh gốc và đáng tin cậy → tiếp tục Lesson Engine.
-Không đủ tiếng Anh → VIDEO_LANGUAGE_UNSUPPORTED → chọn video khác.
+1. `docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`
+2. `docs/product/learning-model-v2/golden-session-validation.md`
+3. current PR/issue acceptance criteria
+4. code + tests on the branch being changed
+5. older BMAD artifacts only when they do not conflict with the product documents above
+
+Do not treat old sprint/story metadata as current authority.
+
+## Current program state
+
+The active integration branch is `design/learning-model-v2`.
+
+Verified integrated baseline after PRs #57, #58 and #59:
+
+- learner-first product shell;
+- source-first Study Mode workspace;
+- durable lesson sessions and privacy-safe attempts;
+- server-confirmed support/replay evidence;
+- Supabase RLS/RPC + pgTAP;
+- Chromium product journeys + durable Supabase Golden Session.
+
+Current hard-gate sequence:
+
+1. first-session durable flow — done;
+2. CI failures fixed from real logs — done;
+3. support/replay server evidence — done;
+4. second-session varied/delayed review — active;
+5. analytics + moderated usability with 5 target users;
+6. 20–50 learner cohort + predeclared go/no-go thresholds;
+7. benchmark at most 3 temporary authoring models, select one production provider/model by cost per accepted lesson;
+8. paid/retention/legal/operations validation;
+9. only then consider merge to `main` and rollout.
+
+Do not skip gates because CI is green.
+
+## Non-negotiable learning invariants
+
+- Source quotes must be exact spoken English from canonical permitted transcript segments.
+- Model/provider output may return IDs/labels; server hydrates exact quote/timestamps and rejects evidence outside the allowlist.
+- No answer/reveal before the configured attempt boundary.
+- Reading a correction is not completion; retry is required where policy says so.
+- Transfer must change context/input rather than repeat the source sentence.
+- Completion != mastery.
+- Scheduler state decides when an item returns; it does not prove independent capability.
+- Delayed transfer must be stored/claimed separately from immediate transfer.
+- Persist only bounded privacy-safe evidence; no raw learner audio or unrestricted open text by default.
+- Provenance/source evidence uses semantic evidence styling; do not use it decoratively.
+- Solved and revealed are different states.
+
+## Product scope guardrails
+
+In MVP:
+
+- English-language YouTube source;
+- Vietnamese learner guidance;
+- 5–12 minute sessions;
+- bounded source windows;
+- listening → progressive support → notice → retrieval → changed-context use → delayed review;
+- desktop + mobile web.
+
+Do not expand to multilingual source modes, arbitrary uploads, classroom, public marketplace, realtime AI conversation, pronunciation scoring, several payment gateways, or multi-provider production routing unless the current product authority explicitly changes.
+
+## Production/provider safety
+
+- Ordinary local/CI work uses fixtures, fakes, and local Supabase.
+- Do not call production Supabase, Gemini, Supadata, or another paid provider unless the task explicitly authorizes that run.
+- Never expose service keys in client code, logs, screenshots, prompts, tests, or repository files.
+- Production uses one enabled provider/model/key at a time. Development agents and temporary offline benchmarks do not change this rule.
+
+## Architecture
+
+Keep dependency direction:
+
+`app/route handlers → application → ports ← adapters`
+
+Key areas:
+
+- `src/shared/contracts/`: runtime/domain contracts and privacy-safe schemas;
+- `src/modules/learning/application/`: authoritative learning behavior;
+- `src/modules/learning/ports/`: repository/provider interfaces;
+- `src/adapters/fake/`: deterministic tests/dev;
+- `src/adapters/supabase/`: production persistence adapter;
+- `src/platform/`: wiring/config;
+- `supabase/migrations/`: additive DB invariants/RPC/RLS;
+- `supabase/tests/`: pgTAP authority checks;
+- `tests/e2e/`: user-level browser evidence.
+
+Do not let UI-local state become authority for durable learning evidence.
+
+## Required verification
+
+For application/UI-only changes, run the smallest relevant tests first, then the full gate before merge.
+
+Canonical commands:
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+supabase test db
+pnpm test:e2e
 ```
 
-Bắt buộc:
+Database changes are not complete until pgTAP passes. Learning-flow changes are not complete until Chromium journeys pass. Persistence changes are not complete until the durable Supabase journey proves the expected rows and privacy boundary.
 
-- Detect language sau transcript normalization và trước Lesson Engine.
-- Mixed-language chỉ dùng khi phần tiếng Anh tự nó đủ cho một Core Lesson hợp lệ.
-- Non-English segments không làm source quote, listening, grammar hoặc scored evidence.
-- Không dịch video không phải tiếng Anh, không tạo dub/TTS thay audio gốc, không trình bày generated English như source speech.
+Never weaken tests, add forced browser clicks, or loosen security constraints just to make CI green. Diagnose from the failing job/log and fix the product behavior or test contract deliberately.
 
-Story 1.1 chưa triển khai pipeline này nhưng không được tạo cấu trúc làm yếu invariant.
+## Agent execution protocol
 
-## Quy tắc implementation
+Use agents for bounded vertical slices, not vague “improve everything” prompts.
 
-1. Đọc `project-context.md` và story artifact trước khi sửa code.
-2. Dependency hướng vào trong: App/route handlers → application → ports; adapter Supabase/Next.js ở ngoài domain.
-3. Chỉ config modules đọc `process.env`; service/secret key không vào client bundle.
-4. Mọi owner-scoped table/bucket sau này phải có server ownership check và RLS.
-5. Không gọi provider thật trong CI; dùng fixtures/fakes/local services.
-6. Không log API key, OTP, auth token, cookie, email thô, transcript hoặc prompt chứa transcript.
-7. Không mở rộng MVP sang payment, AI chat, gamification, classroom, public sharing hoặc mobile native.
-8. Không tạo trước Job, Transcript, Lesson hoặc Activity entities khi story chưa sở hữu chúng.
-9. Chỉ đánh dấu task/story hoàn tất khi tests và acceptance criteria thực sự đạt.
-10. Giao tiếp product-owner bằng tiếng Việt; code/identifier kỹ thuật dùng tiếng Anh.
+For every implementation task:
 
-## Chuỗi workflow
+1. state the acceptance boundary and invariants;
+2. inspect current code/tests before editing;
+3. choose the smallest vertical slice that can be verified end-to-end;
+4. keep unrelated refactors out;
+5. add/adjust tests with the implementation;
+6. run focused tests, then full required gates;
+7. inspect the diff for privacy, grounding, ownership and misleading capability claims;
+8. open a draft PR until all required CI jobs are green.
 
-```text
-create-story
-→ validate-create-story
-→ dev-story
-→ code-review
-→ story done
-→ create story kế tiếp
-```
+Parallel agents should work on separate branches/worktrees and non-overlapping scopes. One agent may implement while another reviews threat/privacy/test gaps. Do not have several agents edit the same files concurrently without an explicit integration plan.
 
-## Nguồn chuẩn
+## AI tool roles
 
-- `project-context.md`
-- `_bmad-output/planning-artifacts/epics.md`
-- `_bmad-output/planning-artifacts/architecture/architecture-vidlish-2026-08-03/ARCHITECTURE-SPINE.md`
-- `_bmad-output/planning-artifacts/architecture/architecture-vidlish-2026-08-03/LANGUAGE-ELIGIBILITY-AMENDMENT.md`
-- `_bmad-output/planning-artifacts/architecture/architecture-vidlish-2026-08-03/IMPLEMENTATION-DECISIONS.md`
-- `_bmad-output/implementation-artifacts/sprint-status.yaml`
-- Story artifact hiện tại.
+This repository is intentionally compatible with multiple development agents while keeping one source of truth.
+
+- Primary implement/refactor/CI agent: use the strongest available coding agent with full repo + terminal context.
+- Independent reviewer: use a different frontier coding model/agent for adversarial review of correctness, privacy, RLS, race conditions and test gaps.
+- Large-context/research agent: use for docs/API changes and cross-checking current external platform behavior; verify against primary sources.
+- GitHub coding/review agents: consume `AGENTS.md`, repository instructions and path-specific instructions.
+
+Do not paste separate contradictory project rules into each agent. Update this file or the product authority documents instead.
+
+## Communication
+
+- Product-owner communication: Vietnamese.
+- Code, identifiers, commit messages and technical contracts: English unless existing files dictate otherwise.
+- Report what is verified versus inferred.
+- Never claim a feature is production-ready, retained, mastered, paid-validated, legal-cleared, or CI-green without corresponding evidence.

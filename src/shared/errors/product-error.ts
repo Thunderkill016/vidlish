@@ -24,6 +24,8 @@ export const productErrorCodeSchema = z.enum([
   "JOB_STATUS_FAILED",
   "LESSON_NOT_FOUND",
   "STUDY_PROGRESS_FAILED",
+  "REVIEW_NOT_DUE",
+  "REVIEW_PROGRESS_FAILED",
 ]);
 
 export type ProductErrorCode = z.infer<typeof productErrorCodeSchema>;
@@ -232,6 +234,22 @@ export const studyErrors = {
     new ProductError(
       "STUDY_PROGRESS_FAILED",
       "Vidlish chưa lưu được tiến độ học. Kết quả trên màn hình vẫn được giữ, hãy thử lại.",
+      true,
+      "retry",
+    ),
+} as const;
+
+export const reviewErrors = {
+  notDue: () =>
+    new ProductError(
+      "REVIEW_NOT_DUE",
+      "Chưa có mục ôn tập nào đến hạn.",
+      false,
+    ),
+  progressFailed: () =>
+    new ProductError(
+      "REVIEW_PROGRESS_FAILED",
+      "Vidlish chưa xử lý được phiên ôn tập. Hãy thử lại.",
       true,
       "retry",
     ),

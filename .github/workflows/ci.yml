@@ -25,7 +25,7 @@ env:
   SUPABASE_SECRET_KEY: test-secret-key
   AUTH_ADAPTER: fake
   AUTH_FAKE_CODE: "123456"
-  TEST_BETA_EMAILS: invited@example.com
+  TEST_BETA_EMAILS: invited@example.com,fresh@example.com,learning-preview@example.com
   VIDEO_METADATA_ADAPTER: fixture
   YOUTUBE_VIEWER_REGION: VN
   YOUTUBE_METADATA_TIMEOUT_MS: "1000"
@@ -39,6 +39,7 @@ env:
   TRANSCRIPT_REPOSITORY: fake
   SUPADATA_NATIVE_TIMEOUT_MS: "1000"
   LESSON_PROVIDER: fixture
+  LEARNING_SESSION_REPOSITORY: fake
 
 jobs:
   static:
@@ -137,8 +138,10 @@ jobs:
           version: 2.111.0
       - name: Show Supabase CLI version
         run: supabase --version
-      - name: Start local database and apply migrations
-        run: supabase db start
+      - name: Rebuild local database from migrations and baseline seed
+        run: |
+          supabase db start
+          supabase db reset --local --yes
       - name: Run pgTAP tests
         run: supabase test db
 
@@ -178,6 +181,99 @@ jobs:
           if-no-files-found: ignore
           retention-days: 5
 
+  durable_learning:
+    name: Supabase-backed learning journey
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    env:
+      AUTH_ADAPTER: fake
+      AUTH_FAKE_CODE: "123456"
+      TEST_BETA_EMAILS: learning-preview@example.com
+      LEARNING_SESSION_REPOSITORY: supabase
+      LEARNING_LAB_V2_LESSON_VERSION_ID: 77777777-7777-4777-8777-777777777777
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with:
+          version: 10.15.0
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+      - name: Set up Supabase CLI
+        uses: supabase/setup-cli@46f7f98c7f948ad727d22c1e67fab04c223a0520 # v3
+        with:
+          version: 2.111.0
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --prefer-offline
+      - name: Install Chromium headless shell
+        run: pnpm exec playwright install --with-deps --only-shell chromium
+      - name: Start clean isolated Supabase and run pgTAP
+        run: |
+          supabase start
+          supabase db reset --local --yes --no-seed
+          supabase test db
+      - name: Load dedicated durable Golden Session fixture
+        run: |
+          if ! command -v psql >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y postgresql-client
+          fi
+          supabase status -o env > /tmp/supabase-status.env
+          set -a
+          source /tmp/supabase-status.env
+          set +a
+          test -n "${DB_URL:-}"
+          echo "::add-mask::$DB_URL"
+          psql "$DB_URL" \
+            --set ON_ERROR_STOP=1 \
+            --file supabase/fixtures/learning_model_v2_durable.sql
+      - name: Export local Supabase API credentials
+        run: |
+          supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            --override-name auth.service_role_key=SUPABASE_SECRET_KEY \
+            > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          for name in \
+            NEXT_PUBLIC_SUPABASE_URL \
+            NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY \
+            SUPABASE_SECRET_KEY; do
+            value="${!name}"
+            test -n "$value"
+            echo "::add-mask::$value"
+            printf '%s=%s\n' "$name" "$value" >> "$GITHUB_ENV"
+          done
+      - name: Run durable Golden Session journey
+        run: >-
+          pnpm exec playwright test
+          tests/e2e/learning-model-v2-server-persistence.spec.ts
+          --project=chromium
+          --workers=1
+          --retries=0
+      - name: Upload durable failure evidence
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: durable-learning-failure-${{ github.run_id }}
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+          retention-days: 5
+      - name: Stop isolated local Supabase
+        if: always()
+        run: supabase stop --no-backup
+
   gate:
     name: CI gate
     if: always()
@@ -187,6 +283,7 @@ jobs:
       - build
       - database
       - e2e
+      - durable_learning
     runs-on: ubuntu-24.04
     timeout-minutes: 2
     env:
@@ -195,6 +292,7 @@ jobs:
       BUILD_RESULT: ${{ needs.build.result }}
       DATABASE_RESULT: ${{ needs.database.result }}
       E2E_RESULT: ${{ needs.e2e.result }}
+      DURABLE_LEARNING_RESULT: ${{ needs.durable_learning.result }}
     steps:
       - name: Publish CI summary
         run: |
@@ -208,6 +306,7 @@ jobs:
             echo "| Production build | $BUILD_RESULT |"
             echo "| Supabase migration and RLS | $DATABASE_RESULT |"
             echo "| Chromium journeys | $E2E_RESULT |"
+            echo "| Supabase-backed learning journey | $DURABLE_LEARNING_RESULT |"
           } >> "$GITHUB_STEP_SUMMARY"
 
           for result in \
@@ -215,7 +314,8 @@ jobs:
             "$UNIT_RESULT" \
             "$BUILD_RESULT" \
             "$DATABASE_RESULT" \
-            "$E2E_RESULT"; do
+            "$E2E_RESULT" \
+            "$DURABLE_LEARNING_RESULT"; do
             if [[ "$result" != "success" ]]; then
               echo "One or more required CI jobs did not succeed."
               exit 1

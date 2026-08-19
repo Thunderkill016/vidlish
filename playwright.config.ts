@@ -1,6 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = 3100;
+const configuredBetaEmails =
+  process.env.TEST_BETA_EMAILS ??
+  "invited@example.com,fresh@example.com,learning-preview@example.com";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -30,21 +33,25 @@ export default defineConfig({
     timeout: 120_000,
     env: {
       ...process.env,
-      AUTH_ADAPTER: "fake",
-      AUTH_FAKE_CODE: "123456",
-      // Two learners, so a test that needs an empty shelf does not depend on
-      // whether another project already created a lesson — the in-memory
-      // repository is one module-global shared by the whole dev server.
-      TEST_BETA_EMAILS: "invited@example.com,fresh@example.com",
-      VIDEO_METADATA_ADAPTER: "fixture",
-      YOUTUBE_VIEWER_REGION: "VN",
-      YOUTUBE_METADATA_TIMEOUT_MS: "1000",
-      // Both projects drive one dev server as one beta user, faster than a
-      // human ever would. On the product defaults (3 jobs/minute) the suite
-      // throttles itself and the second project's job-creating tests fail with
-      // "Bạn thao tác quá nhanh" — a self-inflicted failure, not a regression.
-      // Throttling itself is covered by generation-policy.test.ts, so no e2e
-      // assertion is lost by lifting the ceiling here.
+      AUTH_ADAPTER: process.env.AUTH_ADAPTER ?? "fake",
+      AUTH_FAKE_CODE: process.env.AUTH_FAKE_CODE ?? "123456",
+      // Keep ordinary E2E isolated in memory, while allowing the dedicated
+      // durable job to opt into the real local Supabase repository.
+      LEARNING_SESSION_REPOSITORY:
+        process.env.LEARNING_SESSION_REPOSITORY ?? "fake",
+      TEST_BETA_EMAILS: configuredBetaEmails,
+      VIDEO_METADATA_ADAPTER: process.env.VIDEO_METADATA_ADAPTER ?? "fixture",
+      YOUTUBE_VIEWER_REGION: process.env.YOUTUBE_VIEWER_REGION ?? "VN",
+      YOUTUBE_METADATA_TIMEOUT_MS:
+        process.env.YOUTUBE_METADATA_TIMEOUT_MS ?? "1000",
+      // Both projects drive one dev server faster than a human. Throttling is
+      // covered separately, so normal browser journeys use a raised ceiling.
+      // Deliberately NOT read from process.env. CI sets the product defaults
+      // (3 jobs/minute) at workflow level, and these three exist precisely to
+      // override them: the suite drives one dev server as one beta user, far
+      // faster than a human, so on 3/minute the job-creating journeys throttle
+      // themselves with "Bạn thao tác quá nhanh" and fail on /create. Throttling
+      // is covered by generation-policy.test.ts, so no assertion is lost here.
       GENERATION_MAX_ACTIVE_JOBS: "20",
       GENERATION_MAX_JOBS_PER_MINUTE: "60",
       GENERATION_MAX_JOBS_PER_DAY: "1000",
@@ -52,12 +59,18 @@ export default defineConfig({
       // `.env.local` runs the journeys against Gemini and Supadata over the
       // network: the create flow stalls and unrelated specs fail for a reason
       // that has nothing to do with their change.
-      LESSON_PROVIDER: "fixture",
-      TRANSCRIPT_NATIVE_ADAPTER: "fixture",
-      NEXT_PUBLIC_AUTH_RESEND_COOLDOWN_SECONDS: "1",
-      NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
-      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "test-publishable-key",
-      SUPABASE_SECRET_KEY: "test-secret-key",
+      LESSON_PROVIDER: process.env.LESSON_PROVIDER ?? "fixture",
+      TRANSCRIPT_NATIVE_ADAPTER:
+        process.env.TRANSCRIPT_NATIVE_ADAPTER ?? "fixture",
+      NEXT_PUBLIC_AUTH_RESEND_COOLDOWN_SECONDS:
+        process.env.NEXT_PUBLIC_AUTH_RESEND_COOLDOWN_SECONDS ?? "1",
+      NEXT_PUBLIC_SUPABASE_URL:
+        process.env.NEXT_PUBLIC_SUPABASE_URL ?? "http://127.0.0.1:54321",
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY:
+        process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ??
+        "test-publishable-key",
+      SUPABASE_SECRET_KEY:
+        process.env.SUPABASE_SECRET_KEY ?? "test-secret-key",
     },
   },
 });
