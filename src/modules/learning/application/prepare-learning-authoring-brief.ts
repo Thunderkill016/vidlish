@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { estimateLexicalCoverage, tokenizeEnglish } from "./lexical-coverage";
+import { segmentIntoTopicUnits } from "./topic-segmentation";
 
 import {
   languageEligibilityReportSchema,
@@ -449,13 +450,21 @@ export function diagnoseLearningVideo(
     context.permittedSegments,
     confidenceFromReport(context.eligibility),
   );
+  // Windows are breath groups — they flush on a 3.5s pause, 30 seconds, or 90
+  // words — so counting them counts breaths, not topics: an hour of video would
+  // report roughly 120 "topic shifts" and this number goes straight into the
+  // brief the model reads. Topic units measure the thing the field is named
+  // after, by looking at where the vocabulary actually turns over.
+  const topicUnits = segmentIntoTopicUnits(context.permittedSegments, {
+    cefrLevel: context.learnerSnapshot.targetCefr,
+  });
 
   return videoLearningProfileV2Schema.parse({
     diagnosisVersion: LEARNING_DIAGNOSIS_VERSION,
     durationMs: context.transcript.durationMs,
     speechDensity,
     estimatedSpeechRateWpm,
-    topicShiftCount: Math.max(0, candidateWindows.length - 1),
+    topicShiftCount: Math.max(0, topicUnits.length - 1),
     register,
     audioChallenge,
     lexicalCoverageEstimate: estimateLexicalCoverage(

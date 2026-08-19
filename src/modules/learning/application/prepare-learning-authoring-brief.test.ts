@@ -309,6 +309,54 @@ function createInput() {
   };
 }
 
+/**
+ * A 20-minute transcript that changes subject once, halfway through. Long
+ * enough that breath-group counting and topic counting give visibly different
+ * answers, which is the whole point of the field.
+ */
+function createLongTranscript(): CanonicalTranscript {
+  const line = (index: number, text: string) => ({
+    id: `seg_${String(index).padStart(32, "0")}`,
+    position: index,
+    startMs: index * 10_000,
+    endMs: index * 10_000 + 10_000,
+    text,
+    confidence: 0.99,
+    detectedLanguage: "en" as const,
+  });
+  const segments = [
+    ...Array.from({ length: 60 }, (_, index) =>
+      line(index, "we sear the salmon and reduce the butter sauce in the pan"),
+    ),
+    ...Array.from({ length: 60 }, (_, index) =>
+      line(
+        index + 60,
+        "the telescope resolves distant galaxies beyond the nebula cluster",
+      ),
+    ),
+  ];
+  return { ...createTranscript(), durationMs: 1_200_000, segments };
+}
+
+function createLongEligibility(
+  transcript: CanonicalTranscript,
+): LanguageEligibilityReport {
+  const ids = transcript.segments.map((segment) => segment.id);
+  return {
+    ...createEligibility(),
+    englishSegmentIds: ids,
+    permittedSegmentIds: ids,
+    excludedSegmentIds: [],
+    windowEvidence: [
+      {
+        ...createEligibility().windowEvidence[0]!,
+        segmentIds: ids,
+        endMs: 1_200_000,
+      },
+    ],
+  };
+}
+
 describe("prepareLearningAuthoringBrief", () => {
   it("assembles only canonical permitted English segments", () => {
     const input = createInput();
@@ -349,7 +397,10 @@ describe("prepareLearningAuthoringBrief", () => {
       "window_cccccccc_cccccccc",
       "window_dddddddd_dddddddd",
     ]);
-    expect(profile.topicShiftCount).toBe(2);
+    // Zero, not two. The fixture is a single 60-second stretch on one subject;
+    // the three windows are breath groups, and counting those as topic shifts
+    // told the model an unbroken minute changed subject twice.
+    expect(profile.topicShiftCount).toBe(0);
     expect(profile.speechDensity).toBe("medium");
     expect(profile.register).toContain("technical");
     expect(profile.audioChallenge).not.toContain("accent");
@@ -412,6 +463,22 @@ describe("prepareLearningAuthoringBrief", () => {
     expect(prepared.authoringBrief.forbiddenFields).toContain(
       "segment_id_outside_allowlist",
     );
+  });
+
+  it("counts real topic shifts in a long video, not breath groups", () => {
+    // Twenty minutes on two subjects. Breath groups would have reported this as
+    // roughly forty topic shifts; the answer a learner would give is "one".
+    const long = createLongTranscript();
+    const context = assembleLearningGenerationContext({
+      ...createInput(),
+      transcript: long,
+      eligibility: createLongEligibility(long),
+    });
+    const profile = diagnoseLearningVideo(context);
+
+    expect(profile.candidateWindows.length).toBeGreaterThan(20);
+    expect(profile.topicShiftCount).toBeGreaterThan(0);
+    expect(profile.topicShiftCount).toBeLessThan(10);
   });
 
   it("stops before authoring when constrained diagnosis abstains", () => {
