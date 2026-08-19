@@ -4,6 +4,13 @@ import { FatalError, RetryableError } from "workflow";
 
 import { AcquireNativeCaption } from "@/modules/transcript/application/acquire-native-caption";
 import { LessonGenerationFailure } from "@/modules/lesson/ports/lesson-generation-provider";
+import { createLanguageEligibilityRepository } from "@/platform/language/create-language-runtime";
+import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
+import {
+  createAuthorLearningLesson,
+  learningAuthoringEnabled,
+} from "@/platform/learning/create-learning-authoring-runtime";
+import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
 import { getServerConfig } from "@/platform/config/server";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createOriginalEnglishGate } from "@/platform/language/create-language-runtime";
@@ -390,3 +397,133 @@ export async function loadFinalGenerationStateStep(
 }
 
 loadFinalGenerationStateStep.maxRetries = 3;
+
+/**
+ * Publishes the v2 lesson a learner actually studies.
+ *
+ * Additive on purpose. The v1 lesson is already saved by the time this runs, so
+ * a failure here must leave the learner with the lesson they already have
+ * rather than turning a working job into a failed one. Every exit is a skip.
+ *
+ * Off by default. Turning it on is a deliberate act — it publishes content
+ * someone will study.
+ */
+export async function authorLearningLessonStep(
+  jobRef: GenerationWorkflowJobRef,
+) {
+  "use step";
+
+  if (!learningAuthoringEnabled()) {
+    return { kind: "skipped", reason: "disabled" } as const;
+  }
+
+  const { generationRepository, transcriptRuntime } = createStepRuntime();
+  const job = await generationRepository.findOwnedById(
+    jobRef.jobId,
+    jobRef.ownerUserId,
+  );
+  if (!job) return { kind: "skipped", reason: "job_missing" } as const;
+
+  const transcript = await transcriptRuntime.repository.findCanonicalForJob(
+    job.ownerUserId,
+    job.id,
+  );
+  if (!transcript) {
+    return { kind: "skipped", reason: "transcript_missing" } as const;
+  }
+
+  const eligibility = await createLanguageEligibilityRepository(
+    generationRepository,
+  ).findForJob({ ownerUserId: job.ownerUserId, jobId: job.id });
+  if (!eligibility || eligibility.status !== "eligible") {
+    return { kind: "skipped", reason: "not_eligible" } as const;
+  }
+
+  const lesson = await createLessonRepository(
+    generationRepository,
+    transcriptRuntime.repository,
+  ).findOwnedByJobId(job.id, job.ownerUserId);
+  if (!lesson) return { kind: "skipped", reason: "lesson_missing" } as const;
+
+  emitGenerationEvent({
+    level: "info",
+    jobId: jobRef.jobId,
+    stage: "learning_authoring",
+    action: "started",
+    provider: "workflow",
+  });
+  const startedAt = Date.now();
+
+  try {
+    const result = await createAuthorLearningLesson().execute({
+      jobId: job.id,
+      lessonId: lesson.id,
+      ownerUserId: job.ownerUserId,
+      videoTitle: job.videoTitle,
+      channelName: job.channelName,
+      transcript,
+      eligibility,
+      learnerSnapshot: defaultLearnerSnapshot(job.cefrLevel),
+      blueprintId: crypto.randomUUID(),
+      now: new Date(),
+    });
+
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "learning_authoring",
+      action: "succeeded",
+      provider: "workflow",
+      outcome: result.created ? "published" : "already_published",
+      elapsedMs: Date.now() - startedAt,
+    });
+    return { kind: "published", created: result.created } as const;
+  } catch (error) {
+    // Logged, not rethrown. The learner keeps the v1 lesson; losing the v2 one
+    // is a degraded result, not a failed job.
+    emitGenerationEvent({
+      level: "warning",
+      jobId: jobRef.jobId,
+      stage: "learning_authoring",
+      action: "failed",
+      provider: "workflow",
+      // The reason vocabulary is a closed enum on purpose: it keeps arbitrary
+      // text — which can carry learner data — out of the event stream. Detail
+      // for debugging comes from VIDLISH_DEBUG_AUTHORING instead.
+      reason: "provider_failure",
+      elapsedMs: Date.now() - startedAt,
+    });
+    return { kind: "skipped", reason: "authoring_failed" } as const;
+  }
+}
+
+/**
+ * The learner profile the chain needs, from the only thing a job carries.
+ *
+ * A job knows a CEFR level and nothing else. These four values shape how long a
+ * session is and how much support it opens with, so they are written here in
+ * one place with their reasoning rather than scattered as literals.
+ *
+ * Replace this with real onboarding when there is any — gate 5.
+ */
+function defaultLearnerSnapshot(
+  cefrLevel: LearnerContextSnapshot["targetCefr"],
+): LearnerContextSnapshot {
+  return {
+    targetCefr: cefrLevel,
+    // Communication across skills. Pronunciation is deliberately absent: the
+    // product cannot measure it, and claiming it as a goal would shape lessons
+    // around something no activity here assesses.
+    goals: ["listening", "conversation", "comprehension", "vocabulary"],
+    // Ten minutes sits mid-range of the 5–12 the product documents, and buys
+    // two source windows with three language items.
+    timeBudgetMinutes: 10,
+    // Neutral by choice. The lexical coverage estimate already raises support
+    // when a stretch of video is beyond the learner, and pinning "more support"
+    // here would override that measurement with a guess.
+    supportPreference: "balanced",
+    knownItemKeys: [],
+    weakItemKeys: [],
+    recentReviewOutcomes: [],
+  };
+}

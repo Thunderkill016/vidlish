@@ -5,6 +5,7 @@ const steps = vi.hoisted(() => ({
   acquireNativeCaptionStep: vi.fn(),
   checkOriginalEnglishStep: vi.fn(),
   generateLessonStep: vi.fn(),
+  authorLearningLessonStep: vi.fn(),
   resolveLanguageFailureStep: vi.fn(),
   resolveLessonFailureStep: vi.fn(),
   loadFinalGenerationStateStep: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock("./generate-lesson.steps", () => ({
   acquireNativeCaptionStep: steps.acquireNativeCaptionStep,
   checkOriginalEnglishStep: steps.checkOriginalEnglishStep,
   generateLessonStep: steps.generateLessonStep,
+  authorLearningLessonStep: steps.authorLearningLessonStep,
   resolveLanguageFailureStep: steps.resolveLanguageFailureStep,
   resolveLessonFailureStep: steps.resolveLessonFailureStep,
   loadFinalGenerationStateStep: steps.loadFinalGenerationStateStep,
@@ -46,6 +48,7 @@ describe("generateLessonWorkflow", () => {
     steps.acquireNativeCaptionStep.mockResolvedValue({ kind: "persisted" });
     steps.checkOriginalEnglishStep.mockResolvedValue({ status: "eligible" });
     steps.generateLessonStep.mockResolvedValue({ kind: "published" });
+    steps.authorLearningLessonStep.mockResolvedValue({ kind: "skipped" });
     steps.resolveLanguageFailureStep.mockResolvedValue({ kind: "terminated" });
     steps.resolveLessonFailureStep.mockResolvedValue({ kind: "terminated" });
     steps.loadFinalGenerationStateStep.mockResolvedValue("completed");
@@ -61,6 +64,22 @@ describe("generateLessonWorkflow", () => {
     expect(steps.resolveLanguageFailureStep).not.toHaveBeenCalled();
     expect(steps.resolveLessonFailureStep).not.toHaveBeenCalled();
     expect(steps.resolveTranscriptTerminalStateStep).not.toHaveBeenCalled();
+  });
+
+  it("authors the v2 lesson after the v1 lesson is saved", async () => {
+    await generateLessonWorkflow(event);
+    expect(steps.authorLearningLessonStep).toHaveBeenCalledWith(jobRef);
+  });
+
+  it("keeps the job completed when v2 authoring fails", async () => {
+    // The learner already has a lesson by this point. Losing the richer one is
+    // a degraded result; turning their finished job into a failure is not.
+    steps.authorLearningLessonStep.mockRejectedValue(new Error("provider down"));
+
+    const result = await generateLessonWorkflow(event);
+
+    expect(result.status).toBe("completed");
+    expect(steps.resolveLessonFailureStep).not.toHaveBeenCalled();
   });
 
   it("terminalizes a short transcript that has too little learning evidence", async () => {

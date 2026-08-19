@@ -58,11 +58,12 @@ const serverConfigSchema = z
       .max(30000)
       .default(8000),
     LESSON_PROVIDER: z.enum(["gemini", "fixture"]).default("fixture"),
-    // Defaults to fixture even in production: turning the v2 authoring chain on
-    // is a deliberate act, not something a deploy should do by itself.
+    // Defaults to off. The v2 chain publishes content a learner studies, so
+    // turning it on is a deliberate act, not something a deploy does by itself.
+    // "fixture" exists for dev and CI and must never be how production authors.
     LEARNING_AUTHORING_PROVIDER: z
-      .enum(["gemini", "fixture"])
-      .default("fixture"),
+      .enum(["off", "gemini", "fixture"])
+      .default("off"),
     // Overridable so a newer Gemini model can be adopted without a code change.
     LESSON_MODEL_ID: z.string().min(1).default("gemini-3.5-flash-lite"),
     GEMINI_API_KEY: z.string().min(1).optional(),

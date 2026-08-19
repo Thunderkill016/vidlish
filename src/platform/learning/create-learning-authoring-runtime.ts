@@ -27,9 +27,16 @@ function fakeRepository(): InMemoryLessonVersionRepository {
   return authoringGlobal.__vidlishFakeLessonVersionRepository;
 }
 
+export function learningAuthoringEnabled(): boolean {
+  return getServerConfig().LEARNING_AUTHORING_PROVIDER !== "off";
+}
+
 export function createLearningAuthoringProvider(): LearningAuthoringProvider {
   const config = getServerConfig();
 
+  if (config.LEARNING_AUTHORING_PROVIDER === "off") {
+    throw new Error("Learning authoring is disabled.");
+  }
   if (config.LEARNING_AUTHORING_PROVIDER === "fixture") {
     return new FixtureLearningAuthoringProvider();
   }

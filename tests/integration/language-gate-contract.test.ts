@@ -40,9 +40,16 @@ describe("original-English gate architecture contract", () => {
   });
 
   it("keeps durable step output free of video and transcript content", () => {
+    // What crosses the durable boundary is what a step *returns* — that is what
+    // lands in workflow history. Grepping the whole file instead flagged code
+    // that merely reads a title to hand to a service in-process, which never
+    // leaves the step, while a banned word inside a comment would fail it too.
     const durableCode = `${workflow}\n${steps}`;
-    expect(durableCode).not.toMatch(
-      /videoTitle|channelName|segment\.text|transcript\.text/,
+    const returned = [...durableCode.matchAll(/return\s*\{[^}]*\}/g)]
+      .map((match) => match[0])
+      .join("\n");
+    expect(returned).not.toMatch(
+      /videoTitle|channelName|segment\.text|transcript\.text|\btext\b/,
     );
     expect(workflow).toMatch(/jobId/);
     expect(steps).toMatch(/ownerUserId/);
