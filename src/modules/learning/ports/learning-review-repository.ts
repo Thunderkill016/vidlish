@@ -1,5 +1,6 @@
 import type {
   LearningReviewAttemptEvaluation,
+  PersistedReviewState,
   LearningReviewItemState,
   LearningReviewOutcome,
   LearningReviewSession,
@@ -23,10 +24,26 @@ export type RecordLearningReviewAttemptInput = {
   advance: boolean;
   complete: boolean;
   outcome: LearningReviewOutcome | null;
+  /**
+   * When the item next falls due, computed by the scheduler rather than by the
+   * database. Null unless this attempt completes the review.
+   */
+  nextReviewAt: string | null;
+  reviewState: PersistedReviewState | null;
 };
 
 export interface LearningReviewRepository {
   listScheduled(ownerUserId: string): Promise<LearningReviewItemState[]>;
+
+  /**
+   * The item's current state, including the schedule so far. Needed before
+   * grading: without it every review would restart the item from scratch and no
+   * item would ever earn a long interval.
+   */
+  findItemState(
+    ownerUserId: string,
+    itemKey: string,
+  ): Promise<LearningReviewItemState | null>;
 
   startDue(
     input: StartLearningReviewInput,

@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
+import { recordReview } from "@/modules/learning/application/review-scheduler";
+import { REVIEW_STATE_VERSION } from "@/modules/learning/application/schedule-item-review";
 import { SubmitLearningReviewAttempt } from "@/modules/learning/application/submit-learning-review-attempt";
 import type {
   LearningReviewRepository,
@@ -44,12 +46,14 @@ function itemState(): LearningReviewItemState {
     lastSeenAt: NOW,
     nextReviewAt: "2026-08-18T08:00:00.000Z",
     lastDelayedTransferAt: null,
+    reviewState: null,
   };
 }
 
 function repositoryFor(input: {
   step: "recall" | "transfer";
   recallAttempts?: number;
+  priorReviewState?: LearningReviewItemState["reviewState"];
 }) {
   const session = reviewSession(input.step);
   const recordReviewAttempt = vi.fn(
@@ -71,6 +75,10 @@ function repositoryFor(input: {
   );
   const repository: LearningReviewRepository = {
     listScheduled: vi.fn(async () => [itemState()]),
+    findItemState: vi.fn(async () => ({
+      ...itemState(),
+      reviewState: input.priorReviewState ?? null,
+    })),
     startDue: vi.fn(async () => ({ session, created: true })),
     findOwnedReviewSession: vi.fn(async () => session),
     countReviewAttempts: vi.fn(async () => input.recallAttempts ?? 0),
@@ -156,5 +164,67 @@ describe("SubmitLearningReviewAttempt", () => {
     expect(JSON.stringify(recordReviewAttempt.mock.calls[0]?.[0])).not.toContain(
       "PRIVATE changed-context sentence",
     );
+  });
+
+  it("schedules the next review from the item's own history", async () => {
+    // The old schedule was two constants in SQL — three days for a clean
+    // recall, one otherwise — identical for a word met today and one recalled
+    // correctly for months. An item that has been held onto has to earn a
+    // longer gap than three days, or the scheduler is decoration.
+    let seasoned = recordReview(null, "good", new Date("2026-01-01T09:00:00Z"));
+    for (const day of ["2026-01-02", "2026-01-10", "2026-02-01", "2026-04-01"]) {
+      seasoned = recordReview(seasoned, "good", new Date(`${day}T09:00:00Z`));
+    }
+
+    const { repository, recordReviewAttempt } = repositoryFor({
+      step: "transfer",
+      recallAttempts: 1,
+      priorReviewState: { ...seasoned, version: REVIEW_STATE_VERSION },
+    });
+
+    await new SubmitLearningReviewAttempt(
+      repository,
+      resolveFixtureLearningReviewPlan,
+    ).execute({
+      ownerUserId: OWNER_ID,
+      reviewSessionId: SESSION_ID,
+      step: "transfer",
+      idempotencyKey: "77777777-7777-4777-8777-777777777777",
+      response: {
+        kind: "self_check",
+        text: "a sentence of my own",
+        checkedCriteria: [0, 1, 2],
+      },
+    });
+
+    const call = recordReviewAttempt.mock.calls[0]?.[0];
+    expect(call?.outcome).toBe("good");
+    expect(call?.reviewState?.version).toBe(REVIEW_STATE_VERSION);
+    expect(call?.reviewState?.reps).toBe(seasoned.reps + 1);
+
+    const THREE_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
+    const gapMs = Date.parse(call!.nextReviewAt!) - Date.now();
+    expect(gapMs).toBeGreaterThan(THREE_DAYS_MS);
+    expect(call?.nextReviewAt).toBe(call?.reviewState?.due);
+  });
+
+  it("leaves the schedule alone when the review is not finished", async () => {
+    // A mid-review attempt must not move the due date; only completing does.
+    const { repository, recordReviewAttempt } = repositoryFor({ step: "recall" });
+
+    await new SubmitLearningReviewAttempt(
+      repository,
+      resolveFixtureLearningReviewPlan,
+    ).execute({
+      ownerUserId: OWNER_ID,
+      reviewSessionId: SESSION_ID,
+      step: "recall",
+      idempotencyKey: "88888888-8888-4888-8888-888888888888",
+      response: { kind: "text", text: "wrong" },
+    });
+
+    const call = recordReviewAttempt.mock.calls[0]?.[0];
+    expect(call?.nextReviewAt).toBeNull();
+    expect(call?.reviewState).toBeNull();
   });
 });

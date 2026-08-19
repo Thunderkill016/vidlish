@@ -18,6 +18,7 @@ import {
   learningReviewAttemptEvaluationSchema,
   learningReviewItemStateSchema,
   learningReviewOutcomeSchema,
+  persistedReviewStateSchema,
   learningReviewSessionSchema,
   learningReviewStepSchema,
   privacySafeLearningReviewAttemptSchema,
@@ -123,6 +124,7 @@ const reviewItemRowSchema = z
     last_seen_at: z.string(),
     next_review_at: z.string().nullable(),
     last_delayed_transfer_at: z.string().nullable(),
+    review_state: persistedReviewStateSchema.nullable(),
   })
   .strict();
 
@@ -212,6 +214,7 @@ function mapReviewItem(
     lastSeenAt: row.last_seen_at,
     nextReviewAt: row.next_review_at,
     lastDelayedTransferAt: row.last_delayed_transfer_at,
+    reviewState: row.review_state,
   });
 }
 
@@ -372,7 +375,7 @@ export class SupabaseLearningSessionRepository
     const result = await this.client
       .from("learning_item_states")
       .select(
-        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at",
+        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,review_state",
       )
       .eq("owner_user_id", ownerUserId)
       .not("next_review_at", "is", null)
@@ -381,6 +384,20 @@ export class SupabaseLearningSessionRepository
     return (result.data ?? []).map((row) =>
       mapReviewItem(reviewItemRowSchema.parse(row)),
     );
+  }
+
+  async findItemState(ownerUserId: string, itemKey: string) {
+    const result = await this.client
+      .from("learning_item_states")
+      .select(
+        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,review_state",
+      )
+      .eq("owner_user_id", ownerUserId)
+      .eq("item_key", itemKey)
+      .maybeSingle();
+    if (result.error) throw result.error;
+    if (!result.data) return null;
+    return mapReviewItem(reviewItemRowSchema.parse(result.data));
   }
 
   async startDue(input: StartLearningReviewInput) {
@@ -435,7 +452,7 @@ export class SupabaseLearningSessionRepository
     const result = await this.client
       .from("learning_item_states")
       .select(
-        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at",
+        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,review_state",
       )
       .eq("owner_user_id", ownerUserId)
       .eq("item_key", itemKey)
@@ -455,6 +472,8 @@ export class SupabaseLearningSessionRepository
       p_advance: input.advance,
       p_complete: input.complete,
       p_outcome: input.outcome,
+      p_next_review_at: input.nextReviewAt,
+      p_review_state: input.reviewState,
     });
     if (rpc.error) throw rpc.error;
 

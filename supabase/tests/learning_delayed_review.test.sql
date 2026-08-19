@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(46);
+select plan(47);
 
 -- ---------------------------------------------------------------------------
 -- Shape, RLS and browser privileges
@@ -37,7 +37,7 @@ select is(
 select is(
   has_function_privilege(
     'authenticated',
-    'public.record_learning_review_attempt(uuid,uuid,text,uuid,jsonb,jsonb,boolean,boolean,text)',
+    'public.record_learning_review_attempt(uuid,uuid,text,uuid,jsonb,jsonb,boolean,boolean,text,timestamptz,jsonb)',
     'execute'
   ),
   false,
@@ -334,7 +334,11 @@ select * from public.record_learning_review_attempt(
   '{"step":"transfer","verdict":"self_check","checkedCriteria":[0,1,2],"requiredCriteria":3,"confirmed":true}'::jsonb,
   false,
   true,
-  'hard'
+  'hard',
+  -- Lịch giờ do FSRS ở tầng ứng dụng tính rồi truyền xuống, không còn là hằng
+  -- số trong SQL. Test truyền một ngày cụ thể đúng như ứng dụng sẽ làm.
+  now() + interval '11 days',
+  '{"version":"review-state:v1"}'::jsonb
 );
 
 select is((select created from completed_transfer), true, 'confirmed delayed transfer creates an attempt');
@@ -350,8 +354,14 @@ select is(
   'completed changed-context review records delayed transfer separately'
 );
 select ok(
-  (select next_review_at > now() from public.learning_item_states where item_key = 'a-member-of'),
-  'scheduler assigns the next review after delayed evidence'
+  (select next_review_at > now() + interval '10 days'
+   from public.learning_item_states where item_key = 'a-member-of'),
+  'database stores the schedule it was given instead of a fixed interval'
+);
+select is(
+  (select review_state ->> 'version' from public.learning_item_states where item_key = 'a-member-of'),
+  'review-state:v1',
+  'scheduler state is persisted alongside the due date'
 );
 select is(
   (select count(*)::integer from public.learning_review_attempts),
@@ -369,7 +379,11 @@ select * from public.record_learning_review_attempt(
   '{"step":"transfer","verdict":"self_check","checkedCriteria":[0,1,2],"requiredCriteria":3,"confirmed":true}'::jsonb,
   false,
   true,
-  'hard'
+  'hard',
+  -- Lịch giờ do FSRS ở tầng ứng dụng tính rồi truyền xuống, không còn là hằng
+  -- số trong SQL. Test truyền một ngày cụ thể đúng như ứng dụng sẽ làm.
+  now() + interval '11 days',
+  '{"version":"review-state:v1"}'::jsonb
 );
 
 select is((select created from retried_transfer), false, 'completed transfer network retry is idempotent');

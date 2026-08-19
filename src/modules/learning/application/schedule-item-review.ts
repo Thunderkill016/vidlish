@@ -5,6 +5,7 @@ import {
 } from "./review-scheduler";
 
 import type { ActivityEvaluation } from "@/shared/contracts/lesson-v2";
+import type { PersistedReviewState } from "@/shared/contracts/learning-review";
 
 /**
  * Turns the result of an activity into the item's next review.
@@ -16,10 +17,6 @@ import type { ActivityEvaluation } from "@/shared/contracts/lesson-v2";
 
 /** The version tag persisted alongside the state, checked by the database. */
 export const REVIEW_STATE_VERSION = "review-state:v1";
-
-export type PersistedReviewState = ReviewState & {
-  readonly version: typeof REVIEW_STATE_VERSION;
-};
 
 export type ItemReviewUpdate = {
   readonly itemKey: string;
