@@ -3,8 +3,8 @@ import type {
   LearningPhase,
   LessonSession,
 } from "@/shared/contracts/lesson-v2";
-import type { SupportStep } from "@/shared/contracts/learning-policy-v2";
 import type {
+  PersistedLearningSupportStep,
   PrivacySafeActivityAttempt,
   PrivacySafeActivityResponse,
   PrivacySafeLearningSupportEvent,
@@ -41,7 +41,7 @@ export type RecordLearningSupportEventInput = {
     }
   | {
       eventKind: "support_opened";
-      supportStep: Exclude<SupportStep, "replay">;
+      supportStep: PersistedLearningSupportStep;
     }
 );
 
