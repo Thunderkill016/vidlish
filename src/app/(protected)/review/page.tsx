@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
+import { classifyLearningReviewQueue } from "@/modules/learning/application/classify-learning-review-queue";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
 import { Card } from "@/shared/ui/card";
@@ -38,17 +39,9 @@ export default async function ReviewPage() {
   const scheduled = await createLearningReviewRepository().listScheduled(
     access.userId,
   );
-  const supported = scheduled.filter(
-    (item) => resolveFixtureLearningReviewPlan(item.itemKey) !== null,
-  );
-  const now = Date.now();
-  const due = supported.filter(
-    (item) =>
-      item.nextReviewAt !== null && new Date(item.nextReviewAt).getTime() <= now,
-  );
-  const upcoming = supported.find(
-    (item) =>
-      item.nextReviewAt !== null && new Date(item.nextReviewAt).getTime() > now,
+  const { due, upcoming } = classifyLearningReviewQueue(
+    scheduled,
+    (itemKey) => resolveFixtureLearningReviewPlan(itemKey) !== null,
   );
 
   return (
