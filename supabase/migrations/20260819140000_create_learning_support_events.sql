@@ -24,7 +24,12 @@ create table public.learning_support_events (
       )
     ),
   constraint learning_support_events_shape check (
-    (event_kind = 'playback' and support_step is null and playback_ordinal > 0)
+    (
+      event_kind = 'playback'
+      and support_step is null
+      and playback_ordinal is not null
+      and playback_ordinal > 0
+    )
     or
     (event_kind = 'support_opened' and support_step is not null and playback_ordinal is null)
   ),
