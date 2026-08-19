@@ -74,8 +74,15 @@ export function ClozePractice({
             </p>
 
             {settled ? (
+              // Solving it and revealing it are different learner outcomes, so
+              // they read differently at a glance. The wording still carries the
+              // state on its own — colour is never the only signal.
               <p
-                className="text-sm font-semibold"
+                className={
+                  attempt?.solved
+                    ? "rounded-[var(--radius-sm)] bg-[var(--solved-wash)] px-3 py-2 text-sm font-semibold text-[var(--solved)]"
+                    : "rounded-[var(--radius-sm)] bg-[var(--revealed-wash)] px-3 py-2 text-sm font-semibold text-[var(--revealed)]"
+                }
                 data-testid={`cloze-result-${index}`}
               >
                 {attempt?.solved

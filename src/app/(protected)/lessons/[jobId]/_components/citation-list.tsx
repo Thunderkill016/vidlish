@@ -29,19 +29,23 @@ export function CitationList({
   if (cited.length === 0) return null;
 
   return (
-    <ul className="space-y-1 border-l-2 border-[var(--border)] pl-3">
+    // Amber is reserved for provenance across the whole product: seeing it means
+    // this text came from the video and can be checked against it. The grounding
+    // invariant is the thing Vidlish promises, so it gets a visual identity
+    // rather than reading as incidental metadata.
+    <ul className="space-y-1 rounded-r-[var(--radius-sm)] border-l-[3px] border-[var(--evidence-border)] bg-[var(--evidence-wash)] py-2 pl-3 pr-2">
       {cited.map((citation) => (
         <li key={citation.segmentId} className="text-sm">
           <button
             type="button"
             onClick={() => onPlay(citation.startMs, citation.endMs)}
             aria-label={`Nghe câu tại ${formatTimestamp(citation.startMs)}`}
-            className="mr-1 inline-flex min-h-8 items-center gap-1 rounded-lg border border-[var(--border)] px-2 font-mono text-xs font-semibold text-[var(--accent)] hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+            className="mr-1 inline-flex min-h-8 items-center gap-1 rounded-lg border border-[var(--evidence-border)] bg-[var(--card)] px-2 font-mono text-xs font-semibold text-[var(--evidence)] hover:bg-[var(--muted)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
             <span aria-hidden="true">▶</span>
             {formatTimestamp(citation.startMs)}
           </button>
-          <span className="text-[var(--muted-foreground)]">
+          <span className="text-[var(--foreground)]">
             &ldquo;{citation.text}&rdquo;
           </span>{" "}
           <a
