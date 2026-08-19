@@ -86,10 +86,10 @@ declare
 begin
   -- Network retries may arrive after a later attempt has advanced the session.
   -- Resolve an owned idempotency key before checking the current activity.
-  select * into v_existing
-  from public.learning_support_events
-  where owner_user_id = p_owner_user_id
-    and idempotency_key = p_idempotency_key;
+  select events.* into v_existing
+  from public.learning_support_events events
+  where events.owner_user_id = p_owner_user_id
+    and events.idempotency_key = p_idempotency_key;
 
   if v_existing.id is not null then
     if v_existing.session_id <> p_session_id
@@ -127,9 +127,10 @@ begin
 
   -- This row lock serializes playback ordinals and same-step support opens for
   -- one session. It also proves ownership before semantic dedup is returned.
-  select * into v_session
-  from public.lesson_sessions
-  where id = p_session_id and owner_user_id = p_owner_user_id
+  select sessions.* into v_session
+  from public.lesson_sessions sessions
+  where sessions.id = p_session_id
+    and sessions.owner_user_id = p_owner_user_id
   for update;
 
   if v_session.id is null then
@@ -139,13 +140,13 @@ begin
   if p_event_kind = 'support_opened' then
     -- Opening a support level is a state fact, not a counter. Re-check after
     -- the session lock so concurrent requests with different keys converge.
-    select * into v_existing
-    from public.learning_support_events
-    where owner_user_id = p_owner_user_id
-      and session_id = p_session_id
-      and activity_id = p_activity_id
-      and event_kind = 'support_opened'
-      and support_step = p_support_step;
+    select events.* into v_existing
+    from public.learning_support_events events
+    where events.owner_user_id = p_owner_user_id
+      and events.session_id = p_session_id
+      and events.activity_id = p_activity_id
+      and events.event_kind = 'support_opened'
+      and events.support_step = p_support_step;
 
     if v_existing.id is not null then
       return query select
@@ -210,10 +211,10 @@ begin
   )
   returning * into v_event;
 
-  update public.lesson_sessions
+  update public.lesson_sessions sessions
   set updated_at = now(),
-      started_at = coalesce(started_at, now())
-  where id = p_session_id;
+      started_at = coalesce(sessions.started_at, now())
+  where sessions.id = p_session_id;
 
   return query select
     v_event.id,
