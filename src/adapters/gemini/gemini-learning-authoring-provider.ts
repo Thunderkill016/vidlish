@@ -28,19 +28,14 @@ import { resolveSegmentLabels, stripCodeFence } from "./gemini-lesson-provider";
  * and candidates the deterministic gate already approved. Everything a learner
  * hears is looked up from the canonical transcript afterwards.
  */
-
 export const LEARNING_DIAGNOSIS_PROMPT_VERSION =
   "learning-diagnosis-prompt:v1" as const;
 export const LEARNING_AUTHORING_PROMPT_VERSION =
-  "learning-authoring-prompt:v1" as const;
+  "learning-authoring-prompt:v2" as const;
 
 const MAX_OUTPUT_TOKENS = 24_000;
 
-/**
- * Gemini rejects a response schema carrying these — it answers "too many states
- * for serving" rather than failing on the offending keyword, so the cause is
- * invisible unless you already know. Measured against a live key.
- */
+/** Gemini's response-schema dialect rejects these constraints. */
 const UNSUPPORTED_SCHEMA_KEYWORDS = new Set([
   "$schema",
   "pattern",
@@ -51,14 +46,8 @@ const UNSUPPORTED_SCHEMA_KEYWORDS = new Set([
 ]);
 
 /**
- * Gemini ignores `const` outright.
- *
- * Measured, not assumed: with `const` in the schema the model filled version
- * literals with its own strings and invented discriminator values —
- * `multiple_choice`, `gist_listening` — that no branch of the union accepts. It
- * does honour `enum`, so a one-value `enum` says the same thing in a dialect it
- * reads. Without this the discriminated unions in these contracts cannot be
- * expressed to the model at all.
+ * Gemini does not reliably enforce `const`; a one-value enum expresses the same
+ * discriminator/version constraint in the response-schema dialect it accepts.
  */
 function stripUnsupportedConstraints(node: unknown): unknown {
   if (Array.isArray(node)) return node.map(stripUnsupportedConstraints);
@@ -113,13 +102,21 @@ const AUTHORING_SYSTEM_INSTRUCTION = `Bạn soạn một buổi học tiếng An
 
 Brief đã quyết định dạy CÁI GÌ. Việc của bạn là quyết định dạy NHƯ THẾ NÀO.
 
+Mục tiêu của buổi học không phải là tạo nhiều câu hỏi. Mục tiêu là tạo chuỗi bằng chứng: người học nghe được ý chính khi chưa nhìn chữ, tự nhớ lại ngôn ngữ mục tiêu, rồi dùng chính ngôn ngữ đó trong một tình huống khác.
+
 Nguyên tắc bắt buộc:
 - Chỉ dùng windowId và candidateId có trong brief. Không tạo id mới.
 - Không viết câu trích dẫn hay mốc thời gian. Máy chủ sẽ tự ghép chúng từ transcript gốc.
-- Buổi học phải đi theo thứ tự pha: nghe lấy ý chính trước, rồi mới tới chú ý ngôn ngữ, rồi nhớ lại, rồi dùng lại trong tình huống khác.
-- Phải có ít nhất một hoạt động bắt người học TỰ TẠO RA ngôn ngữ (chunk_recall hoặc guided_transfer). Bài toàn trắc nghiệm chỉ dạy được mức nhận ra.
+- Hoạt động ĐẦU TIÊN phải là gist_choice với captionPolicy = hidden_first. Không cho người học đọc đáp án trước lượt nghe đầu.
+- Phải có ít nhất một chunk_recall. chunk_recall không được dùng captionPolicy = shown; phụ đề là scaffold có thể mở sau, không phải dữ liệu mặc định của lượt nhớ lại.
+- Phải có ít nhất một guided_transfer SAU chunk_recall.
+- Ít nhất một candidateId của guided_transfer phải chính là candidateId đã xuất hiện trong một chunk_recall đứng trước nó. Người học phải nhớ lại mục tiêu trước rồi mới dùng nó trong ngữ cảnh mới.
+- Giữ tiến trình: nghe lấy ý chính → hiểu/chú ý cách dùng khi cần → tự nhớ lại → dùng trong tình huống mới → phản tư nếu có thời gian.
+- Hỗ trợ như replay, hint, caption, nghĩa tiếng Việt là scaffold. Đừng biến scaffold thành nội dung luôn hiện sẵn.
 - Phương án nhiễu phải hợp lý và không được dài ngắn lệch hẳn so với đáp án đúng. Đừng để đáp án đúng luôn nằm cùng một vị trí.
-- Toàn bộ chữ hiển thị cho người học viết bằng tiếng Việt, trừ chính cụm tiếng Anh đang dạy.`;
+- Toàn bộ chữ hiển thị cho người học viết bằng tiếng Việt, trừ chính cụm tiếng Anh đang dạy.
+
+Một bộ quality gate xác định sẽ từ chối bài vi phạm chuỗi trên. Đừng cố lách gate bằng cách thêm hoạt động hình thức; mỗi hoạt động phải tạo ra bằng chứng học tập có ý nghĩa.`;
 
 function segmentLabel(index: number): string {
   return `S${index + 1}`;
@@ -163,16 +160,13 @@ export class GeminiLearningAuthoringProvider
           responseMimeType: "application/json",
           responseJsonSchema: schema,
           maxOutputTokens: MAX_OUTPUT_TOKENS,
-          // HIGH, not the default. At MINIMAL the model produces lessons that
-          // look complete and teach nothing — measured, not assumed.
+          // HIGH is intentional: shallow generations were observed to produce
+          // structurally complete but pedagogically weak lesson drafts.
           thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH },
         },
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";
-      // A rejected request shape and a transport blip look identical without
-      // this split, and retrying a malformed request forever is worse than
-      // failing once.
       const permanent = /\b(400|401|403|404)\b/.test(message);
       throw new LearningAuthoringFailure(
         `Learning ${stage} request failed: ${message}`,
@@ -213,9 +207,6 @@ export class GeminiLearningAuthoringProvider
       );
     }
 
-    // A schema rejection tells you a shape was wrong and not what arrived, and
-    // the payload is gone by then. Opt-in so a failing provider can be debugged
-    // without re-running the whole chain blind.
     if (process.env.VIDLISH_DEBUG_AUTHORING) {
       console.log(`[${stage}] raw:`, JSON.stringify(parsed, null, 2).slice(0, 4000));
     }
@@ -229,11 +220,6 @@ export class GeminiLearningAuthoringProvider
   }
 
   async diagnose(input: DiagnoseLearningVideoInput) {
-    // Each window listed with the segment labels it actually contains.
-    // Without this the model sees window ids and a separately labelled
-    // transcript with nothing joining them, so it cites segments that belong to
-    // a different window — measured as the single largest cause of candidates
-    // being thrown out by the deterministic gate.
     const labelBySegmentId = new Map(
       input.permittedSegments.map(
         (segment, index) => [segment.id, segmentLabel(index)] as const,
@@ -273,14 +259,9 @@ export class GeminiLearningAuthoringProvider
       prompt,
     );
 
-    // Labels become real segment IDs here, before anything is validated. The
-    // model never sees or writes a canonical ID.
+    // Model-facing labels become canonical server-owned segment IDs before
+    // validation or persistence.
     resolveSegmentLabels(result.parsed, input.permittedSegments);
-
-    // Stamped here, not asked of the model. The version identifies *our*
-    // contract, so letting the model fill it in means a mislabelled payload can
-    // only ever be caught by luck — and Gemini does not honour a `const` in the
-    // response schema, so it will not be filled correctly anyway.
     stampVersion(result.parsed, "proposalVersion", "learning-diagnosis-proposal:v2");
     normalizeEntityIds(result.parsed);
     deriveNormalizedForms(result.parsed);
@@ -363,19 +344,7 @@ export class GeminiLearningAuthoringProvider
   }
 }
 
-/**
- * Rewrites the ids the model invented into the shape the contract requires.
- *
- * `pattern` has to be stripped from the response schema or Gemini refuses the
- * request, so the model never sees the id format and reliably gets it wrong.
- * These ids are arbitrary labels it made up — their exact spelling carries no
- * meaning, only their consistency does. Slugifying deterministically keeps
- * cross-references intact because the same input always yields the same output.
- *
- * `windowId` and `sourceSegmentIds` are deliberately untouched: those point at
- * our things, and silently reshaping them would turn a wrong reference into a
- * plausible-looking one.
- */
+/** Fields whose values are arbitrary model-created labels, not canonical IDs. */
 const ID_FIELDS = new Set(["id", "candidateId", "correctOptionId"]);
 const ID_LIST_FIELDS = new Set(["outcomeIds", "candidateIds"]);
 
@@ -412,14 +381,7 @@ function normalizeEntityIds(node: unknown): void {
   }
 }
 
-/**
- * Derives `normalizedForm` from `surfaceForm` instead of trusting the model's.
- *
- * The gate rejects a candidate whose two forms disagree, and the model gets it
- * wrong often enough to be a leading cause of rejection. But this is a derived
- * field, not a judgement — asking a model for it invites a mismatch that means
- * nothing about whether the phrase is teachable.
- */
+/** Derived field: never ask the model to independently restate surfaceForm. */
 function deriveNormalizedForms(node: unknown): void {
   if (Array.isArray(node)) {
     node.forEach(deriveNormalizedForms);
