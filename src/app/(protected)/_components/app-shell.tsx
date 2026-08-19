@@ -90,7 +90,11 @@ function AccountMenu({ email, compact = false }: { email: string; compact?: bool
           {compact ? "Tài khoản" : email}
         </span>
       </summary>
-      <div className="absolute bottom-full left-0 z-50 mb-2 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-card)] lg:bottom-0 lg:left-full lg:mb-0 lg:ml-2">
+      <div
+        className={`absolute z-50 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-card)] ${
+          compact ? "right-0 top-full mt-2" : "bottom-0 left-full ml-2"
+        }`}
+      >
         <p className="mb-3 truncate text-xs text-[var(--muted-foreground)]" title={email}>
           {email}
         </p>
