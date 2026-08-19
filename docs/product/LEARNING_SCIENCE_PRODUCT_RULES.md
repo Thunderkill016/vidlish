@@ -34,7 +34,7 @@ Product consequence: do not optimize for number of quiz questions. Require an ac
 
 References:
 - Nakata (2017), *Studies in Second Language Acquisition*, DOI `10.1017/S0272263116000280`.
-- Barcroft et al. review (2020), *Studies in Second Language Acquisition*, DOI `10.1017/S0272263119000500`.
+- Rice & Tokowicz (2020), *Studies in Second Language Acquisition*, DOI `10.1017/S0272263119000500`.
 
 ### Transfer must change the context
 
@@ -50,7 +50,7 @@ Meta-analytic and longitudinal L2 vocabulary research supports spacing encounter
 
 Product consequence: session completion must never be displayed or persisted as mastery. Review scheduling and later performance are separate evidence.
 
-Reference: *How effective is second language incidental vocabulary learning? A meta-analysis*, *Language Teaching* (Cambridge University Press), especially its synthesis of spaced versus massed encounters.
+Reference: Webb, Uchihara & Yanagisawa (2023), *How effective is second language incidental vocabulary learning? A meta-analysis*, *Language Teaching*, DOI `10.1017/S0261444822000507`.
 
 ### AI proposes; deterministic systems decide
 
