@@ -15,8 +15,8 @@ import {
   lessonSessionSchema,
   type LessonSession,
 } from "@/shared/contracts/lesson-v2";
-import { supportStepSchema } from "@/shared/contracts/learning-policy-v2";
 import {
+  persistedLearningSupportStepSchema,
   privacySafeActivityAttemptSchema,
   privacySafeActivityResponseSchema,
   privacySafeLearningSupportEventSchema,
@@ -88,7 +88,7 @@ const supportEventRpcRowSchema = z
   .object({
     event_id: z.string().uuid(),
     event_kind: z.enum(["playback", "support_opened"]),
-    support_step: supportStepSchema.nullable(),
+    support_step: persistedLearningSupportStepSchema.nullable(),
     playback_ordinal: z.coerce.number().int().positive().nullable(),
     occurred_at: z.string(),
     created: z.boolean(),
