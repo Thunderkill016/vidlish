@@ -22,28 +22,61 @@ Do not treat old sprint/story metadata as current authority.
 
 ## Current program state
 
-The active integration branch is `design/learning-model-v2`.
+Learning Model v2 is merged into `main` (PR #44, 19/08/2026). There is no
+separate integration branch any more; `design/learning-model-v2` is history.
+Work from `main`.
 
-Verified integrated baseline after PRs #57, #58 and #59:
+Integrated and reachable from a route or workflow:
 
 - learner-first product shell;
 - source-first Study Mode workspace;
 - durable lesson sessions and privacy-safe attempts;
 - server-confirmed support/replay evidence;
+- delayed review sessions, scheduled by FSRS in the application layer;
 - Supabase RLS/RPC + pgTAP;
 - Chromium product journeys + durable Supabase Golden Session.
 
-Current hard-gate sequence:
+### The blocker that outranks everything below
 
+**Nothing creates a `lesson_versions` row outside CI.** No adapter writes the
+table and no migration defines an RPC that inserts into it; the only source is
+`supabase/fixtures/learning_model_v2_durable.sql`, which the `durable_learning`
+job loads. Production lesson generation still runs the v1 path
+(`src/workflows/generate-lesson.steps.ts` → `lesson:v1` draft).
+
+So the entire v2 stack — sessions, attempts, support evidence, delayed review,
+FSRS scheduling — is reachable in code and unreachable for a real learner,
+because a real learner can never own the content it operates on. Green CI does
+not contradict this: the durable journey seeds the fixture first.
+
+The v2 authoring pipeline that would produce those rows
+(`src/modules/learning/application/prepare-learning-authoring-brief.ts`) has no
+caller at all. `tests/integration/module-reachability.test.ts` holds the current
+list of unwired modules and fails if that list stops matching the import graph.
+
+Until a production path creates `lesson_versions`, do not describe any v2
+learning behaviour as shipped, and do not read a passing durable journey as
+evidence that a learner can reach it.
+
+### Hard-gate sequence
+
+0. production authoring path that creates `lesson_versions` — **blocked, nothing
+   started**;
 1. first-session durable flow — done;
 2. CI failures fixed from real logs — done;
 3. support/replay server evidence — done;
-4. second-session varied/delayed review — active;
+4. second-session varied/delayed review — done in code, unreachable per gate 0;
 5. analytics + moderated usability with 5 target users;
 6. 20–50 learner cohort + predeclared go/no-go thresholds;
-7. benchmark at most 3 temporary authoring models, select one production provider/model by cost per accepted lesson;
+7. benchmark at most 3 temporary authoring models, select one production
+   provider/model by cost per accepted lesson;
 8. paid/retention/legal/operations validation;
-9. only then consider merge to `main` and rollout.
+9. rollout.
+
+Gate 9 used to read "only then consider merge to `main`". That gate was passed
+by merging v2 to `main` before the gates above it, so the sequence now describes
+rollout rather than merge. Do not treat the merge as evidence the gates were
+met.
 
 Do not skip gates because CI is green.
 

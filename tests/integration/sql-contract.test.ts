@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -217,5 +217,52 @@ describe("study progress migration contract", () => {
     expect(studyProgressMigration).not.toMatch(
       /(insert into|update) public\.lessons\b/i,
     );
+  });
+});
+
+describe("learning model v2 content provenance", () => {
+  /**
+   * Guards the claim in AGENTS.md that no production path creates a v2 lesson.
+   *
+   * The whole v2 stack — sessions, attempts, support evidence, delayed review,
+   * FSRS scheduling — operates on `lesson_versions` rows. Nothing outside CI
+   * creates one, so none of it is reachable for a real learner even though the
+   * durable journey passes: that journey seeds the fixture first.
+   *
+   * This test fails the moment someone adds a writer. That failure is good
+   * news — it means gate 0 is being closed — and the fix is to update the
+   * program state in AGENTS.md rather than to loosen the assertion.
+   */
+  const migrationSql = readdirSync(join(process.cwd(), "supabase/migrations"))
+    .filter((file) => file.endsWith(".sql"))
+    .map((file) =>
+      readFileSync(join(process.cwd(), "supabase/migrations", file), "utf8"),
+    )
+    .join("\n");
+
+  const WRITE_PATTERN =
+    /(?:insert\s+into|update|copy)\s+(?:public\.)?lesson_versions\b/i;
+
+  it("has no migration that writes a lesson version", () => {
+    expect(WRITE_PATTERN.test(migrationSql)).toBe(false);
+  });
+
+  it("proves the pattern would catch a writer", () => {
+    // Without this, a typo in the regex would make the assertion above pass
+    // forever and quietly retire the guard.
+    expect(WRITE_PATTERN.test("insert into public.lesson_versions (id)")).toBe(
+      true,
+    );
+    expect(WRITE_PATTERN.test("update lesson_versions set blueprint = '{}'")).toBe(
+      true,
+    );
+  });
+
+  it("keeps the fixture as the only source, and says so", () => {
+    const fixture = readFileSync(
+      join(process.cwd(), "supabase/fixtures/learning_model_v2_durable.sql"),
+      "utf8",
+    );
+    expect(WRITE_PATTERN.test(fixture)).toBe(true);
   });
 });
