@@ -165,6 +165,17 @@ describe.skipIf(!ready)("v2 authoring against the real model", () => {
             activities: blueprint.activities.map(
               (activity) => `${activity.phase}/${activity.activityType}`,
             ),
+            detail: blueprint.activities.map((a) => {
+              const x = a as unknown as Record<string, unknown>;
+              return {
+                type: x.activityType,
+                prompt: x.promptVi,
+                options: (x.options as { textVi: string }[] | undefined)?.map(
+                  (o) => o.textVi,
+                ),
+                scenario: x.scenarioVi,
+              };
+            }),
           },
           null,
           2,
