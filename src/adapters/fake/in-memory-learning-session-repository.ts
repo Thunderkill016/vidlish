@@ -33,7 +33,6 @@ import {
 const INITIAL_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
 const GOOD_REVIEW_DELAY_MS = 3 * 24 * 60 * 60 * 1000;
 const HARD_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
-const AGAIN_REVIEW_DELAY_MS = 4 * 60 * 60 * 1000;
 
 function addMs(iso: string, delayMs: number): string {
   return new Date(new Date(iso).getTime() + delayMs).toISOString();
@@ -381,11 +380,11 @@ export class InMemoryLearningSessionRepository
     if (session.currentStep !== input.step) {
       throw new Error("Review step is not current for this session.");
     }
-    if (input.evaluation.step !== input.step) {
-      throw new Error("Review evaluation does not match the current step.");
-    }
 
     if (input.step === "recall") {
+      if (input.evaluation.step !== "recall") {
+        throw new Error("Review evaluation does not match delayed recall.");
+      }
       const shouldAdvance = input.evaluation.verdict === "correct";
       if (
         input.advance !== shouldAdvance ||
@@ -395,14 +394,24 @@ export class InMemoryLearningSessionRepository
         throw new Error("Invalid delayed recall progression.");
       }
     } else {
+      if (input.evaluation.step !== "transfer") {
+        throw new Error("Review evaluation does not match delayed transfer.");
+      }
       if (input.advance) {
         throw new Error("Transfer does not use the recall advance flag.");
       }
       if (input.complete !== input.evaluation.confirmed) {
         throw new Error("Transfer completion must match confirmed criteria.");
       }
-      if (input.complete !== (input.outcome !== null)) {
-        throw new Error("Completed delayed transfer requires a review outcome.");
+      if (
+        input.complete &&
+        input.outcome !== "good" &&
+        input.outcome !== "hard"
+      ) {
+        throw new Error("Completed delayed transfer requires hard or good.");
+      }
+      if (!input.complete && input.outcome !== null) {
+        throw new Error("Incomplete delayed transfer cannot set an outcome.");
       }
     }
 
@@ -431,13 +440,11 @@ export class InMemoryLearningSessionRepository
     });
 
     const successfulRecall =
-      input.step === "recall" && input.evaluation.verdict === "correct";
+      input.step === "recall" &&
+      input.evaluation.step === "recall" &&
+      input.evaluation.verdict === "correct";
     const delayMs =
-      input.outcome === "good"
-        ? GOOD_REVIEW_DELAY_MS
-        : input.outcome === "hard"
-          ? HARD_REVIEW_DELAY_MS
-          : AGAIN_REVIEW_DELAY_MS;
+      input.outcome === "good" ? GOOD_REVIEW_DELAY_MS : HARD_REVIEW_DELAY_MS;
     const item = learningReviewItemStateSchema.parse({
       ...currentItem,
       attemptCount: currentItem.attemptCount + 1,
