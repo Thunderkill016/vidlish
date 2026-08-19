@@ -73,9 +73,6 @@ export class FixtureLearningAuthoringProvider
       : null;
 
     if (!sourceSegmentId || !chunk) {
-      // Abstaining is a real outcome, not a failure: some videos have nothing
-      // teachable in them, and pretending otherwise is how a lesson gets built
-      // out of nothing.
       return {
         value: {
           proposalVersion: "learning-diagnosis-proposal:v2",
@@ -214,6 +211,28 @@ export class FixtureLearningAuthoringProvider
               correctEvidenceVi: "Đúng cụm xuất hiện trong nguồn.",
               incorrectEvidenceVi: "Chưa khớp cụm người nói đã dùng.",
               nextStepVi: "Nghe lại đoạn rồi thử viết lại lần nữa.",
+            },
+          },
+          {
+            id: "activity_transfer",
+            phase: "transfer",
+            activityType: "guided_transfer",
+            outcomeIds: [input.brief.outcomes[0]!.id],
+            instructionVi:
+              "Dùng lại cụm vừa nhớ trong một tình huống khác với video.",
+            estimatedSeconds: 120,
+            candidateIds: [item.id],
+            scenarioVi:
+              "Một đồng nghiệp mới hỏi bạn đang tham gia nhóm nào trong một dự án khác.",
+            promptVi:
+              "Viết một câu trả lời tự nhiên có dùng cụm vừa học, nhưng không chép lại câu nguồn.",
+            criteriaVi: [
+              "Dùng đúng cụm mục tiêu trong câu.",
+              "Câu trả lời phù hợp với tình huống mới.",
+            ],
+            feedback: {
+              goalVi: "Dùng được cụm ngoài đúng câu đã nghe trong video.",
+              nextStepVi: "Đối chiếu tiêu chí rồi sửa cả câu nếu còn gượng.",
             },
           },
           {
