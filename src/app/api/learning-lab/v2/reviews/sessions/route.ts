@@ -1,11 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
+import { toLearnerReviewSession } from "@/modules/learning/application/learning-review-view";
 import {
   LearningReviewUnavailableError,
   StartDueLearningReview,
 } from "@/modules/learning/application/start-due-learning-review";
-import { toLearnerReviewSession } from "@/modules/learning/application/learning-review-view";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
 import { learningReviewStartResponseSchema } from "@/shared/contracts/learning-review";
@@ -24,12 +24,27 @@ export async function POST(request: NextRequest) {
       resolveFixtureLearningReviewPlan,
     ).execute({ ownerUserId: access.userId });
 
+    if (result.session.currentStep === "completed") {
+      throw new LearningReviewUnavailableError(
+        "The active delayed review session is already completed.",
+      );
+    }
+
+    const task =
+      result.session.currentStep === "recall"
+        ? {
+            step: "recall" as const,
+            promptVi: result.plan.recall.promptVi,
+          }
+        : {
+            step: "transfer" as const,
+            scenarioVi: result.plan.transfer.scenarioVi,
+            promptVi: result.plan.transfer.promptVi,
+          };
+
     const payload = learningReviewStartResponseSchema.parse({
       session: toLearnerReviewSession(result.session),
-      task: {
-        step: "recall",
-        promptVi: result.plan.recall.promptVi,
-      },
+      task,
     });
 
     return NextResponse.json(payload, {
