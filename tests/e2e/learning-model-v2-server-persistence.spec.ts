@@ -65,10 +65,19 @@ test("Golden Session UI persists retry transfer completion and privacy-safe evid
     .click();
   await expect(page.getByText("Bước 1/5 · Nắm ý chính")).toBeVisible();
 
+  await page.getByRole("button", { name: "Phát đoạn" }).click();
+  await page.getByRole("button", { name: "Phát đoạn" }).click();
+  await expect(page.getByText("Bạn đã chủ động nghe lại đoạn nguồn.")).toBeVisible();
+  await page.getByRole("button", { name: "Mở gợi ý ngữ cảnh" }).click();
+
   await page.getByLabel("Cách chọn phần cứng quay video").check();
   await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
   await expect(page.getByText("Chưa đúng", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
+
+  await page.getByRole("button", { name: "Mở gợi ý từ khóa" }).click();
+  await page.getByRole("button", { name: "Mở phụ đề tiếng anh" }).click();
+  await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
 
   await page.getByRole("button", { name: "Thử lại" }).click();
   await page
@@ -107,6 +116,8 @@ test("Golden Session UI persists retry transfer completion and privacy-safe evid
   ).toBeVisible();
   await page.getByRole("button", { name: "Tiếp tục" }).click();
 
+  await expect(page.getByText("Bước 5/5 · Kết thúc")).toBeVisible();
+  await page.getByRole("button", { name: "Phát đoạn" }).click();
   await page
     .getByLabel(
       "Không nhìn câu mẫu: bạn nghe được cách nói nào để giới thiệu người nói thuộc một nhóm?",
@@ -189,4 +200,45 @@ test("Golden Session UI persists retry transfer completion and privacy-safe evid
     kind: "self_check",
     checkedCriteria: [0, 1, 2],
   });
+
+  const { data: supportEvents, error: supportEventsError } = await admin
+    .from("learning_support_events")
+    .select("*")
+    .eq("session_id", sessionId);
+  expect(supportEventsError).toBeNull();
+  expect(supportEvents).toHaveLength(6);
+
+  const gistPlaybackOrdinals = (supportEvents ?? [])
+    .filter(
+      (event) =>
+        event.activity_id === "activity_gist" && event.event_kind === "playback",
+    )
+    .map((event) => event.playback_ordinal)
+    .sort((a, b) => Number(a) - Number(b));
+  expect(gistPlaybackOrdinals).toEqual([1, 2]);
+
+  const gistSupportSteps = (supportEvents ?? [])
+    .filter(
+      (event) =>
+        event.activity_id === "activity_gist" &&
+        event.event_kind === "support_opened",
+    )
+    .map((event) => event.support_step)
+    .sort();
+  expect(gistSupportSteps).toEqual(
+    ["context_hint", "english_caption", "keyword_hint"].sort(),
+  );
+
+  const exitPlayback = (supportEvents ?? []).filter(
+    (event) =>
+      event.activity_id === "activity_exit" && event.event_kind === "playback",
+  );
+  expect(exitPlayback).toHaveLength(1);
+  expect(exitPlayback[0]?.playback_ordinal).toBe(1);
+
+  for (const event of supportEvents ?? []) {
+    expect(event).not.toHaveProperty("text");
+    expect(event).not.toHaveProperty("caption");
+    expect(event).not.toHaveProperty("copy");
+  }
 });

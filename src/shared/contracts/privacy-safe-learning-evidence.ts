@@ -89,3 +89,75 @@ export const privacySafeActivityAttemptSchema = z
 export type PrivacySafeActivityAttempt = z.infer<
   typeof privacySafeActivityAttemptSchema
 >;
+
+/** Replay is represented by playbackOrdinal >= 2, never by support_opened. */
+export const persistedLearningSupportStepSchema = z.enum([
+  "context_hint",
+  "keyword_hint",
+  "english_caption",
+  "chunk_boundaries",
+  "vietnamese_meaning",
+  "slower_playback",
+]);
+export type PersistedLearningSupportStep = z.infer<
+  typeof persistedLearningSupportStepSchema
+>;
+
+/**
+ * Server-confirmed evidence that a learner used bounded runtime support.
+ *
+ * This deliberately stores no audio, captions, generated hint copy or learner
+ * free text. A playback is represented only by its server-assigned ordinal;
+ * the second playback is enough to prove a replay happened. A support event
+ * stores only the canonical support-step label from the runtime policy.
+ */
+export const privacySafeLearningSupportEventSchema = z
+  .object({
+    id: z.string().uuid(),
+    sessionId: z.string().uuid(),
+    activityId: entityIdSchema,
+    idempotencyKey: z.string().uuid(),
+    eventKind: z.enum(["playback", "support_opened"]),
+    supportStep: persistedLearningSupportStepSchema.nullable(),
+    playbackOrdinal: z.number().int().positive().nullable(),
+    occurredAt: z.string().datetime({ offset: true }),
+  })
+  .strict()
+  .superRefine((event, context) => {
+    if (event.eventKind === "playback") {
+      if (event.supportStep !== null) {
+        context.addIssue({
+          code: "custom",
+          path: ["supportStep"],
+          message: "Playback evidence cannot carry a support step.",
+        });
+      }
+      if (event.playbackOrdinal === null) {
+        context.addIssue({
+          code: "custom",
+          path: ["playbackOrdinal"],
+          message: "Playback evidence requires a server ordinal.",
+        });
+      }
+      return;
+    }
+
+    if (event.supportStep === null) {
+      context.addIssue({
+        code: "custom",
+        path: ["supportStep"],
+        message: "Support-opened evidence requires a support step.",
+      });
+    }
+    if (event.playbackOrdinal !== null) {
+      context.addIssue({
+        code: "custom",
+        path: ["playbackOrdinal"],
+        message: "Support-opened evidence cannot carry a playback ordinal.",
+      });
+    }
+  });
+
+export type PrivacySafeLearningSupportEvent = z.infer<
+  typeof privacySafeLearningSupportEventSchema
+>;

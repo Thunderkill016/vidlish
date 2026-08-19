@@ -7,7 +7,13 @@ import {
   sourceEvidenceSchema,
   targetLanguageItemSchema,
 } from "@/shared/contracts/lesson-v2";
-import { privacySafeActivityAttemptSchema } from "@/shared/contracts/privacy-safe-learning-evidence";
+import {
+  persistedLearningSupportStepSchema,
+  privacySafeActivityAttemptSchema,
+  privacySafeLearningSupportEventSchema,
+} from "@/shared/contracts/privacy-safe-learning-evidence";
+
+const entityIdSchema = z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/);
 
 const learnerTargetAfterAttemptSchema = targetLanguageItemSchema
   .pick({
@@ -31,7 +37,7 @@ export const learningLabSessionResponseSchema = z
 export const learningLabAttemptRequestSchema = z
   .object({
     sessionId: z.string().uuid().optional(),
-    activityId: z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/),
+    activityId: entityIdSchema,
     idempotencyKey: z.string().uuid(),
     response: activityResponseSchema,
   })
@@ -39,7 +45,7 @@ export const learningLabAttemptRequestSchema = z
 
 export const learningLabAttemptResponseSchema = z
   .object({
-    activityId: z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/),
+    activityId: entityIdSchema,
     idempotencyKey: z.string().uuid(),
     evaluation: activityEvaluationSchema,
     persistedAttempt: privacySafeActivityAttemptSchema.optional(),
@@ -53,6 +59,36 @@ export const learningLabAttemptResponseSchema = z
         chunkBoundaryText: z.string().min(1).max(1_000).nullable(),
       })
       .strict(),
+  })
+  .strict();
+
+export const learningLabSupportEventRequestSchema = z.discriminatedUnion(
+  "eventKind",
+  [
+    z
+      .object({
+        sessionId: z.string().uuid(),
+        activityId: entityIdSchema,
+        idempotencyKey: z.string().uuid(),
+        eventKind: z.literal("playback"),
+      })
+      .strict(),
+    z
+      .object({
+        sessionId: z.string().uuid(),
+        activityId: entityIdSchema,
+        idempotencyKey: z.string().uuid(),
+        eventKind: z.literal("support_opened"),
+        supportStep: persistedLearningSupportStepSchema,
+      })
+      .strict(),
+  ],
+);
+
+export const learningLabSupportEventResponseSchema = z
+  .object({
+    event: privacySafeLearningSupportEventSchema,
+    created: z.boolean(),
   })
   .strict();
 
@@ -79,6 +115,14 @@ export type LearningLabAttemptResponse = Omit<
     };
   };
 };
+
+export type LearningLabSupportEventRequest = z.infer<
+  typeof learningLabSupportEventRequestSchema
+>;
+
+export type LearningLabSupportEventResponse = z.infer<
+  typeof learningLabSupportEventResponseSchema
+>;
 
 export type LearnerTargetAfterAttempt = z.infer<
   typeof learnerTargetAfterAttemptSchema

@@ -6,6 +6,7 @@ import { z } from "zod";
 import type {
   LearningSessionRepository,
   RecordLearningAttemptInput,
+  RecordLearningSupportEventInput,
   StartLearningSessionInput,
 } from "@/modules/learning/ports/learning-session-repository";
 import {
@@ -15,8 +16,10 @@ import {
   type LessonSession,
 } from "@/shared/contracts/lesson-v2";
 import {
+  persistedLearningSupportStepSchema,
   privacySafeActivityAttemptSchema,
   privacySafeActivityResponseSchema,
+  privacySafeLearningSupportEventSchema,
 } from "@/shared/contracts/privacy-safe-learning-evidence";
 
 const sessionRowSchema = z
@@ -78,6 +81,18 @@ const attemptRowSchema = z
     response: privacySafeActivityResponseSchema,
     evaluation: activityEvaluationSchema,
     submitted_at: z.string(),
+  })
+  .strict();
+
+const supportEventRpcRowSchema = z
+  .object({
+    event_id: z.string().uuid(),
+    idempotency_key: z.string().uuid(),
+    event_kind: z.enum(["playback", "support_opened"]),
+    support_step: persistedLearningSupportStepSchema.nullable(),
+    playback_ordinal: z.coerce.number().int().positive().nullable(),
+    occurred_at: z.string(),
+    created: z.boolean(),
   })
   .strict();
 
@@ -144,6 +159,21 @@ export class SupabaseLearningSessionRepository
     return mapSession(sessionRowSchema.parse(result.data));
   }
 
+  async countAttempts(
+    sessionId: string,
+    activityId: string,
+    ownerUserId: string,
+  ) {
+    const result = await this.client
+      .from("activity_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", sessionId)
+      .eq("activity_id", activityId)
+      .eq("owner_user_id", ownerUserId);
+    if (result.error) throw result.error;
+    return result.count ?? 0;
+  }
+
   async recordAttempt(input: RecordLearningAttemptInput) {
     const rpc = await this.client.rpc("record_lesson_v2_attempt", {
       p_owner_user_id: input.ownerUserId,
@@ -190,5 +220,32 @@ export class SupabaseLearningSessionRepository
     });
 
     return { attempt, session, created: rpcRow.created };
+  }
+
+  async recordSupportEvent(input: RecordLearningSupportEventInput) {
+    const rpc = await this.client.rpc("record_lesson_v2_support_event", {
+      p_owner_user_id: input.ownerUserId,
+      p_session_id: input.sessionId,
+      p_activity_id: input.activityId,
+      p_idempotency_key: input.idempotencyKey,
+      p_event_kind: input.eventKind,
+      p_support_step:
+        input.eventKind === "support_opened" ? input.supportStep : null,
+    });
+    if (rpc.error) throw rpc.error;
+
+    const row = supportEventRpcRowSchema.parse(firstRow(rpc.data));
+    const event = privacySafeLearningSupportEventSchema.parse({
+      id: row.event_id,
+      sessionId: input.sessionId,
+      activityId: input.activityId,
+      idempotencyKey: row.idempotency_key,
+      eventKind: row.event_kind,
+      supportStep: row.support_step,
+      playbackOrdinal: row.playback_ordinal,
+      occurredAt: row.occurred_at,
+    });
+
+    return { event, created: row.created };
   }
 }

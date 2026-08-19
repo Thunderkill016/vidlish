@@ -22,6 +22,7 @@ import {
 import {
   learningLabAttemptResponseSchema,
   learningLabSessionResponseSchema,
+  learningLabSupportEventResponseSchema,
   type LearningLabAttemptResponse,
 } from "@/shared/contracts/learning-lab";
 import type { VerifiedLearningMedia } from "@/shared/contracts/learning-media";
@@ -32,6 +33,7 @@ import {
   type SupportStep,
 } from "@/shared/contracts/learning-policy-v2";
 import type { ActivityResponse, LessonSession } from "@/shared/contracts/lesson-v2";
+import type { PersistedLearningSupportStep } from "@/shared/contracts/privacy-safe-learning-evidence";
 import { YouTubeEvidencePlayer } from "./youtube-evidence-player";
 
 const PHASE_LABELS: Record<LearnerActivityView["phase"], string> = {
@@ -53,7 +55,7 @@ const SUPPORT_LABELS: Record<SupportStep, string> = {
 };
 
 type StoredLabState = {
-  version: 3;
+  version: 4;
   blueprintId: string;
   sessionId: string | null;
   started: boolean;
@@ -63,7 +65,7 @@ type StoredLabState = {
 };
 
 function storageKey(blueprintId: string): string {
-  return `vidlish:learning-lab:v3:${blueprintId}`;
+  return `vidlish:learning-lab:v4:${blueprintId}`;
 }
 
 function formatTime(ms: number): string {
@@ -254,6 +256,7 @@ export function LearningSessionLab({
   const [retrying, setRetrying] = useState(false);
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [supporting, setSupporting] = useState(false);
   const [error, setError] = useState("");
 
   const current = blueprint.activities[currentIndex];
@@ -289,7 +292,7 @@ export function LearningSessionLab({
         if (stored) {
           const parsed = JSON.parse(stored) as Partial<StoredLabState>;
           if (
-            parsed.version === 3 &&
+            parsed.version === 4 &&
             parsed.blueprintId === blueprint.blueprintId
           ) {
             setSessionId(
@@ -312,6 +315,9 @@ export function LearningSessionLab({
             );
           }
         }
+        window.localStorage.removeItem(
+          `vidlish:learning-lab:v3:${blueprint.blueprintId}`,
+        );
       } catch {
         window.localStorage.removeItem(storageKey(blueprint.blueprintId));
       } finally {
@@ -324,7 +330,7 @@ export function LearningSessionLab({
   useEffect(() => {
     if (!loaded) return;
     const state: StoredLabState = {
-      version: 3,
+      version: 4,
       blueprintId: blueprint.blueprintId,
       sessionId,
       started,
@@ -346,18 +352,27 @@ export function LearningSessionLab({
     started,
   ]);
 
+  function updateProgressForActivity(
+    activityId: string,
+    updater: (
+      progress: LearningActivityRuntimeProgress,
+    ) => LearningActivityRuntimeProgress,
+  ) {
+    setProgressByActivity((previous) => ({
+      ...previous,
+      [activityId]: updater(
+        previous[activityId] ?? createEmptyLearningActivityProgress(),
+      ),
+    }));
+  }
+
   function updateProgress(
     updater: (
       progress: LearningActivityRuntimeProgress,
     ) => LearningActivityRuntimeProgress,
   ) {
     if (!current) return;
-    setProgressByActivity((previous) => ({
-      ...previous,
-      [current.id]: updater(
-        previous[current.id] ?? createEmptyLearningActivityProgress(),
-      ),
-    }));
+    updateProgressForActivity(current.id, updater);
   }
 
   function clearDraft() {
@@ -379,9 +394,7 @@ export function LearningSessionLab({
       method: "POST",
     });
     const body = (await request.json()) as unknown;
-    if (!request.ok) {
-      throw new Error("Vidlish chưa thể mở phiên học.");
-    }
+    if (!request.ok) throw new Error("Vidlish chưa thể mở phiên học.");
     const parsed = learningLabSessionResponseSchema.parse(body);
     setSessionId(parsed.session.id);
     setCurrentIndex(activityIndexForSession(parsed.session));
@@ -422,15 +435,66 @@ export function LearningSessionLab({
       }),
     });
     const body = (await request.json()) as unknown;
-    if (!request.ok) {
-      throw new Error("Vidlish chưa thể kiểm tra câu trả lời.");
-    }
+    if (!request.ok) throw new Error("Vidlish chưa thể kiểm tra câu trả lời.");
     const parsed = learningLabAttemptResponseSchema.parse(body);
     if (!parsed.persistedAttempt || !parsed.session) {
       throw new Error("Attempt chưa được lưu bền vững.");
     }
     setSessionId(parsed.session.id);
     return parsed;
+  }
+
+  async function sendSupportEvent(
+    activityId: string,
+    event:
+      | { eventKind: "playback" }
+      | {
+          eventKind: "support_opened";
+          supportStep: PersistedLearningSupportStep;
+        },
+  ) {
+    const activeSessionId = sessionId ?? (await startOrResumeSession());
+    const request = await fetch("/api/learning-lab/v2/support-events", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sessionId: activeSessionId,
+        activityId,
+        idempotencyKey: crypto.randomUUID(),
+        ...event,
+      }),
+    });
+    const body = (await request.json()) as unknown;
+    if (!request.ok) {
+      throw new Error("Vidlish chưa thể lưu evidence hỗ trợ.");
+    }
+    return learningLabSupportEventResponseSchema.parse(body);
+  }
+
+  async function recordPlaybackEvidence() {
+    if (!current || !currentPolicy) return;
+    const activityId = current.id;
+    const policyAtPlay = currentPolicy;
+    try {
+      const persisted = await sendSupportEvent(activityId, {
+        eventKind: "playback",
+      });
+      const ordinal = persisted.event.playbackOrdinal ?? 0;
+      updateProgressForActivity(activityId, (progress) => {
+        let confirmed = progress;
+        while (confirmed.playCount < ordinal) {
+          confirmed = recordLearningPlayback(confirmed, policyAtPlay);
+        }
+        return confirmed;
+      });
+      setError("");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Đoạn đã phát nhưng Vidlish chưa lưu được evidence nghe.",
+      );
+    }
   }
 
   async function submitAttempt(event: FormEvent<HTMLFormElement>) {
@@ -541,8 +605,15 @@ export function LearningSessionLab({
     setCurrentIndex((index) => index + 1);
   }
 
-  function openNextSupport() {
-    if (!current || !currentPolicy?.support || !nextSupportStep) return;
+  async function openNextSupport() {
+    if (
+      !current ||
+      !currentPolicy?.support ||
+      !nextSupportStep ||
+      supporting
+    ) {
+      return;
+    }
     if (nextSupportStep === "replay") {
       setError("Nhấn Phát đoạn lần thứ hai để dùng hỗ trợ Nghe lại đoạn.");
       return;
@@ -557,10 +628,30 @@ export function LearningSessionLab({
       setError("Hãy thử trả lời trước khi mở mức hỗ trợ này.");
       return;
     }
-    updateProgress((progress) =>
-      openLearningSupportStep(progress, nextSupportStep),
-    );
+
+    setSupporting(true);
     setError("");
+    const activityId = current.id;
+    try {
+      const persisted = await sendSupportEvent(activityId, {
+        eventKind: "support_opened",
+        supportStep: nextSupportStep,
+      });
+      if (persisted.event.supportStep !== nextSupportStep) {
+        throw new Error("Server trả về support evidence không khớp.");
+      }
+      updateProgressForActivity(activityId, (progress) =>
+        openLearningSupportStep(progress, nextSupportStep),
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Vidlish chưa thể mở mức hỗ trợ này.",
+      );
+    } finally {
+      setSupporting(false);
+    }
   }
 
   function resetLab() {
@@ -735,11 +826,7 @@ export function LearningSessionLab({
                 videoTitle={blueprint.source.videoTitle}
                 evidence={evidenceRange}
                 captionControlAllowed={captionControlAllowed}
-                onPlay={() =>
-                  updateProgress((progress) =>
-                    recordLearningPlayback(progress, currentPolicy),
-                  )
-                }
+                onPlay={() => void recordPlaybackEvidence()}
               />
             </div>
           ) : (
@@ -779,10 +866,13 @@ export function LearningSessionLab({
             ) : nextSupportStep ? (
               <button
                 type="button"
-                onClick={openNextSupport}
-                className="min-h-11 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold"
+                onClick={() => void openNextSupport()}
+                disabled={supporting}
+                className="min-h-11 w-full rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold disabled:opacity-60"
               >
-                Mở {SUPPORT_LABELS[nextSupportStep].toLocaleLowerCase("vi")}
+                {supporting
+                  ? "Đang lưu hỗ trợ…"
+                  : `Mở ${SUPPORT_LABELS[nextSupportStep].toLocaleLowerCase("vi")}`}
               </button>
             ) : (
               <p className="text-sm text-[var(--muted-foreground)]">
@@ -944,7 +1034,7 @@ export function LearningSessionLab({
                       </button>
                       <button
                         type="button"
-                        onClick={confirmSelfCheck}
+                        onClick={() => void confirmSelfCheck()}
                         disabled={!allCriteriaSelected || submitting}
                         className="min-h-11 rounded-xl bg-[var(--primary)] px-3 py-2 font-semibold text-white disabled:opacity-50"
                       >
@@ -983,9 +1073,9 @@ export function LearningSessionLab({
       </div>
 
       <p className="text-center text-xs text-[var(--muted-foreground)]">
-        Server lưu attempt result, bounded support/progress evidence và session
-        state. Nội dung câu trả lời mở không được ghi vào local storage hoặc
-        persistence.
+        Server xác nhận attempt result, playback/support evidence và session
+        state trước khi local runtime phản chiếu tiến độ. Nội dung câu trả lời mở
+        không được ghi vào local storage hoặc persistence.
       </p>
     </div>
   );

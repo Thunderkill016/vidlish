@@ -4,8 +4,10 @@ import type {
   LessonSession,
 } from "@/shared/contracts/lesson-v2";
 import type {
+  PersistedLearningSupportStep,
   PrivacySafeActivityAttempt,
   PrivacySafeActivityResponse,
+  PrivacySafeLearningSupportEvent,
 } from "@/shared/contracts/privacy-safe-learning-evidence";
 
 export type StartLearningSessionInput = {
@@ -27,6 +29,22 @@ export type RecordLearningAttemptInput = {
   complete: boolean;
 };
 
+export type RecordLearningSupportEventInput = {
+  ownerUserId: string;
+  sessionId: string;
+  activityId: string;
+  idempotencyKey: string;
+} & (
+  | {
+      eventKind: "playback";
+      supportStep?: never;
+    }
+  | {
+      eventKind: "support_opened";
+      supportStep: PersistedLearningSupportStep;
+    }
+);
+
 export interface LearningSessionRepository {
   start(
     input: StartLearningSessionInput,
@@ -37,11 +55,24 @@ export interface LearningSessionRepository {
     ownerUserId: string,
   ): Promise<LessonSession | null>;
 
+  countAttempts(
+    sessionId: string,
+    activityId: string,
+    ownerUserId: string,
+  ): Promise<number>;
+
   recordAttempt(
     input: RecordLearningAttemptInput,
   ): Promise<{
     attempt: PrivacySafeActivityAttempt;
     session: LessonSession;
+    created: boolean;
+  }>;
+
+  recordSupportEvent(
+    input: RecordLearningSupportEventInput,
+  ): Promise<{
+    event: PrivacySafeLearningSupportEvent;
     created: boolean;
   }>;
 }
