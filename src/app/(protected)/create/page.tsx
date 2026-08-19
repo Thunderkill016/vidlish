@@ -8,8 +8,8 @@ const STEPS = [
 
 export default function CreatePage() {
   return (
-    <div className="mx-auto max-w-5xl space-y-8">
-      <div className="space-y-3">
+    <div className="mx-auto min-w-0 max-w-5xl space-y-8">
+      <div className="min-w-0 space-y-3">
         <p className="text-sm font-semibold text-[var(--accent)]">Tạo bài học</p>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Dán video tiếng Anh bạn muốn học</h1>
         <p className="max-w-2xl text-[var(--muted-foreground)]">
@@ -17,9 +17,9 @@ export default function CreatePage() {
         </p>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-3 sm:grid-cols-3">
         {STEPS.map(([number, title, description]) => (
-          <div key={number} className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
+          <div key={number} className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-4 shadow-sm">
             <p className="font-mono text-xs font-semibold text-[var(--faint-foreground)]">{number}</p>
             <h2 className="mt-2 font-bold">{title}</h2>
             <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">{description}</p>
@@ -27,11 +27,11 @@ export default function CreatePage() {
         ))}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)] sm:p-6">
+      <div className="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+        <div className="min-w-0 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-5 shadow-[var(--shadow-card)] sm:p-6">
           <VideoUrlForm />
         </div>
-        <aside className="space-y-4">
+        <aside className="min-w-0 space-y-4">
           <div className="rounded-2xl bg-[var(--primary-wash)] p-5">
             <p className="text-sm font-semibold text-[var(--primary)]">Phạm vi MVP</p>
             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
