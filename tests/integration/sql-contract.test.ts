@@ -27,6 +27,13 @@ const languageMigration = readFileSync(
   ),
   "utf8",
 );
+const studyProgressMigration = readFileSync(
+  join(
+    process.cwd(),
+    "supabase/migrations/20260818120000_create_lesson_progress.sql",
+  ),
+  "utf8",
+);
 
 describe("beta_access migration contract", () => {
   it("enables RLS and denies browser roles", () => {
@@ -170,6 +177,45 @@ describe("original-English eligibility migration contract", () => {
     );
     expect(languageMigration).toMatch(
       /revoke all on function public\.persist_language_eligibility[\s\S]*authenticated/i,
+    );
+  });
+});
+
+describe("study progress migration contract", () => {
+  it("keeps one progress row per lesson and lets the browser only read it", () => {
+    expect(studyProgressMigration).toMatch(
+      /create table public\.lesson_progress/i,
+    );
+    expect(studyProgressMigration).toMatch(/unique \(lesson_id\)/i);
+    expect(studyProgressMigration).toMatch(
+      /alter table public\.lesson_progress enable row level security/i,
+    );
+    expect(studyProgressMigration).toMatch(
+      /grant select on table public\.lesson_progress to authenticated/i,
+    );
+    expect(studyProgressMigration).not.toMatch(
+      /grant (insert|update|delete).*lesson_progress to authenticated/i,
+    );
+    expect(studyProgressMigration).toMatch(
+      /revoke all on function public\.save_lesson_progress[\s\S]*authenticated/i,
+    );
+  });
+
+  it("resolves the owner from the lesson rather than trusting the job ID", () => {
+    expect(studyProgressMigration).toMatch(
+      /from public\.lessons[\s\S]*lessons\.job_id = p_job_id[\s\S]*lessons\.owner_user_id = p_owner_user_id/i,
+    );
+    expect(studyProgressMigration).toMatch(
+      /raise exception 'lesson not found for study progress'/i,
+    );
+  });
+
+  it("does not let study progress reach the lesson artifact", () => {
+    // Progress is the learner's side of a lesson. A migration that started
+    // writing into `lessons` here would put learner input next to citations the
+    // grounding gate is responsible for.
+    expect(studyProgressMigration).not.toMatch(
+      /(insert into|update) public\.lessons\b/i,
     );
   });
 });

@@ -26,6 +26,9 @@ export type LessonSummary = {
   cefrLevel: CefrLevel;
   titleVi: string;
   vocabularyCount: number;
+  /** Comprehension questions plus cloze items, so the shelf can show how far
+   *  through a lesson the learner is without loading the whole draft. */
+  activityCount: number;
   createdAt: string;
 };
 

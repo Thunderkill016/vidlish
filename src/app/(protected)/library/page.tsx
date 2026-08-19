@@ -4,7 +4,9 @@ import { redirect } from "next/navigation";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
+import { createStudyProgressRepository } from "@/platform/study/create-study-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
+import { studyCompletionPercent } from "@/modules/study/application/score-study-progress";
 import { Card } from "@/shared/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -23,15 +25,24 @@ export default async function LibraryPage() {
 
   const generationRepository = createGenerationRepository();
   const transcriptRuntime = createTranscriptRuntime(generationRepository);
-  const [lessons, activeJobs] = await Promise.all([
-    createLessonRepository(
-      generationRepository,
-      transcriptRuntime.repository,
-    ).listOwned(access.userId),
+  const lessonRepository = createLessonRepository(
+    generationRepository,
+    transcriptRuntime.repository,
+  );
+  const [lessons, activeJobs, progressSummaries] = await Promise.all([
+    lessonRepository.listOwned(access.userId),
     // A job keeps running after the learner navigates away. Without it listed
     // here they lose the only link to it and believe the work was thrown away.
     generationRepository.listActiveOwned(access.userId),
+    // What the learner already did in each lesson, so the shelf answers "where
+    // was I?" instead of only "what did I make?".
+    createStudyProgressRepository(lessonRepository).listOwnedSummaries(
+      access.userId,
+    ),
   ]);
+  const progressByJobId = new Map(
+    progressSummaries.map((summary) => [summary.jobId, summary]),
+  );
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -74,26 +85,61 @@ export default async function LibraryPage() {
         </Card>
       ) : (
         <ul className="space-y-3" data-testid="lesson-library">
-          {lessons.map((lesson) => (
-            <li key={lesson.id}>
-              <Link href={`/lessons/${lesson.jobId}`} className="block">
-                <Card className="space-y-2 transition-colors hover:border-[var(--accent)]">
-                  <div className="flex items-baseline justify-between gap-3">
-                    <p className="text-sm font-semibold text-[var(--accent)]">
-                      {lesson.cefrLevel} · {lesson.vocabularyCount} từ vựng
+          {lessons.map((lesson) => {
+            const progress = progressByJobId.get(lesson.jobId);
+            const percent = progress
+              ? studyCompletionPercent(
+                  {
+                    activityCount: lesson.activityCount,
+                    vocabularyCount: lesson.vocabularyCount,
+                  },
+                  progress,
+                )
+              : 0;
+
+            return (
+              <li key={lesson.id}>
+                <Link href={`/lessons/${lesson.jobId}`} className="block">
+                  <Card className="space-y-2 transition-colors hover:border-[var(--accent)]">
+                    <div className="flex items-baseline justify-between gap-3">
+                      <p className="text-sm font-semibold text-[var(--accent)]">
+                        {lesson.cefrLevel} · {lesson.vocabularyCount} từ vựng
+                      </p>
+                      <p className="shrink-0 text-xs text-[var(--muted-foreground)]">
+                        {formatDate(lesson.createdAt)}
+                      </p>
+                    </div>
+                    <h2 className="text-lg font-semibold">{lesson.titleVi}</h2>
+                    <p className="text-sm text-[var(--muted-foreground)]">
+                      {lesson.videoTitle} — {lesson.channelName}
                     </p>
-                    <p className="shrink-0 text-xs text-[var(--muted-foreground)]">
-                      {formatDate(lesson.createdAt)}
-                    </p>
-                  </div>
-                  <h2 className="text-lg font-semibold">{lesson.titleVi}</h2>
-                  <p className="text-sm text-[var(--muted-foreground)]">
-                    {lesson.videoTitle} — {lesson.channelName}
-                  </p>
-                </Card>
-              </Link>
-            </li>
-          ))}
+                    <div className="flex items-center gap-3 pt-1">
+                      <div
+                        className="h-1.5 w-full overflow-hidden rounded-full bg-[var(--muted)]"
+                        role="progressbar"
+                        aria-valuenow={percent}
+                        aria-valuemin={0}
+                        aria-valuemax={100}
+                        aria-label={`Tiến độ học ${lesson.titleVi}`}
+                      >
+                        <div
+                          className="h-full rounded-full bg-[var(--accent)]"
+                          style={{ width: `${percent}%` }}
+                        />
+                      </div>
+                      <p className="shrink-0 text-xs font-semibold text-[var(--muted-foreground)]">
+                        {progress?.completedAt
+                          ? "Đã hoàn thành"
+                          : percent > 0
+                            ? `Đang học ${percent}%`
+                            : "Chưa bắt đầu"}
+                      </p>
+                    </div>
+                  </Card>
+                </Link>
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>

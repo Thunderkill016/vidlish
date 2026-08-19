@@ -1,6 +1,6 @@
 # Vidlish Project Context
 
-Cập nhật: 2026-08-06.
+Cập nhật: 2026-08-18.
 
 Đọc theo thứ tự:
 
@@ -14,7 +14,8 @@ Cập nhật: 2026-08-06.
 
 - Research, PRD, UX, architecture, epics/stories và readiness: hoàn tất.
 - Product code: đã chạy trên production private beta.
-- Core path đã được triển khai: auth → YouTube metadata → durable job → native transcript → original-English gate → grounded lesson generation → atomic publish → viewer/library.
+- Core path đã được triển khai: auth → YouTube metadata → durable job → native transcript → original-English gate → grounded lesson generation → atomic publish → study workspace/library.
+- Trải nghiệm học (M3): activities có chấm điểm, flashcard, luyện nghe theo câu và tiến độ được lưu ở `lesson_progress`.
 - Giai đoạn hiện tại: **production stabilization and regression hardening**.
 - Ưu tiên hiện tại: acceptance production sau PR #39 và structured observability.
 - Blocker: acceptance production cần quyền ghi dữ liệu thật và tiêu Gemini quota.
@@ -83,6 +84,7 @@ videos
 → transcripts + transcript_segments
 → language_eligibility_reports + language_eligible_segments
 → lessons
+→ lesson_progress
 ```
 
 Provider changes belong in adapters/composition roots, not in use cases.
@@ -99,6 +101,7 @@ Provider changes belong in adapters/composition roots, not in use cases.
 - Persistence: Supabase with RLS, security-definer RPCs and pg_cron watchdog.
 - Watchdog: every 2 minutes; terminalizes active jobs idle over 5 minutes.
 - Local/CI: fixtures; provider truth requires integration/full-real or authorized production acceptance.
+- Study progress: separate owner-scoped table written only through `save_lesson_progress`; learner input never touches the published lesson artifact.
 
 ## Core MVP scope
 
@@ -107,8 +110,8 @@ input eligible English video
 → obtain original-language transcript
 → verify sufficient original English
 → generate grounded Core Lesson
-→ learn
-→ save / reopen / delete
+→ learn: listen per line, answer graded activities, drill vocabulary
+→ save progress / reopen where you stopped / delete
 ```
 
 No translation-based lesson mode, tutor chat, pronunciation scoring, gamification, payment, classroom management, mobile-native app or public sharing before the MVP core is stable.

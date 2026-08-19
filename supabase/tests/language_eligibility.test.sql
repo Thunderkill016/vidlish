@@ -311,8 +311,8 @@ select * from public.persist_language_eligibility(
 );
 
 select is((select report_status from weak_result), 'insufficient_evidence', 'weak evidence stays distinct from unsupported language');
-select is((select status::text from public.lesson_jobs where id = '66666666-6666-4666-8666-666666666666'), 'acquiring_transcript', 'weak evidence returns to transcript acquisition');
-select is((select safe_error_code is null from public.lesson_jobs where id = '66666666-6666-4666-8666-666666666666'), true, 'weak evidence sets no language error');
+select is((select status::text from public.lesson_jobs where id = '66666666-6666-4666-8666-666666666666'), 'failed', 'weak evidence cannot return to an active polling state');
+select is((select safe_error_code from public.lesson_jobs where id = '66666666-6666-4666-8666-666666666666'), 'TRANSCRIPT_UNAVAILABLE', 'weak evidence uses the error code understood by the deployed runtime');
 
 set local role authenticated;
 set local "request.jwt.claim.sub" = '22222222-2222-4222-8222-222222222222';
