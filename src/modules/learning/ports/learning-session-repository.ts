@@ -27,6 +27,12 @@ export type RecordLearningAttemptInput = {
   nextPhase: LearningPhase;
   nextActivityId: string;
   complete: boolean;
+  /**
+   * Immutable target item keys from the lesson blueprint. Fake persistence uses
+   * these to mirror the database completion trigger. Supabase independently
+   * derives the authoritative set from the stored immutable blueprint.
+   */
+  reviewItemKeys: string[];
 };
 
 export type RecordLearningSupportEventInput = {
