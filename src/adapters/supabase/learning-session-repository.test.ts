@@ -191,6 +191,7 @@ describe("SupabaseLearningSessionRepository", () => {
       nextPhase: "practice",
       nextActivityId: "activity_meaning",
       complete: false,
+      reviewItemKeys: [],
     });
 
     expect(rpc).toHaveBeenCalledWith("record_lesson_v2_attempt", {

@@ -165,4 +165,9 @@ test("golden Learning Model v2 session enforces support retry transfer and hones
   ).toBeVisible();
   await expect(page.getByText(/không phải tuyên bố đã thành thạo/i)).toBeVisible();
   await expect(page.getByText("Đã viết và tự đối chiếu đủ tiêu chí")).toBeVisible();
+
+  await page.goto("/review");
+  await expect(page.getByText("Lịch ôn đã được tạo")).toBeVisible();
+  await expect(page.getByText("Đang chờ delay")).toBeVisible();
+  await expect(page.getByText(/mục cần ôn/)).toHaveCount(0);
 });

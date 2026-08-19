@@ -31,6 +31,8 @@ const statusByCode = {
   JOB_STATUS_FAILED: 503,
   LESSON_NOT_FOUND: 404,
   STUDY_PROGRESS_FAILED: 503,
+  REVIEW_NOT_DUE: 409,
+  REVIEW_PROGRESS_FAILED: 503,
 } as const satisfies Record<ProductErrorCode, number>;
 
 export function productErrorResponse(

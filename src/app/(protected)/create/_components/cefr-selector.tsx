@@ -11,7 +11,7 @@ export function CefrSelector({
   onChange: (level: CefrLevel) => void;
 }) {
   return (
-    <section className="space-y-3" aria-labelledby="cefr-heading">
+    <section className="min-w-0 space-y-3" aria-labelledby="cefr-heading">
       <div className="space-y-1">
         <h2 id="cefr-heading" className="text-lg font-semibold">
           Trình độ tiếng Anh của bạn
@@ -21,7 +21,7 @@ export function CefrSelector({
         </p>
       </div>
 
-      <div className="overflow-x-auto pb-1">
+      <div className="max-w-full min-w-0 overflow-x-auto overscroll-x-contain pb-1">
         <div
           role="group"
           aria-labelledby="cefr-heading"

@@ -4,8 +4,10 @@ import type {
   LessonSession,
 } from "@/shared/contracts/lesson-v2";
 import type {
+  PersistedLearningSupportStep,
   PrivacySafeActivityAttempt,
   PrivacySafeActivityResponse,
+  PrivacySafeLearningSupportEvent,
 } from "@/shared/contracts/privacy-safe-learning-evidence";
 
 export type StartLearningSessionInput = {
@@ -25,7 +27,29 @@ export type RecordLearningAttemptInput = {
   nextPhase: LearningPhase;
   nextActivityId: string;
   complete: boolean;
+  /**
+   * Immutable target item keys from the lesson blueprint. Fake persistence uses
+   * these to mirror the database completion trigger. Supabase independently
+   * derives the authoritative set from the stored immutable blueprint.
+   */
+  reviewItemKeys: string[];
 };
+
+export type RecordLearningSupportEventInput = {
+  ownerUserId: string;
+  sessionId: string;
+  activityId: string;
+  idempotencyKey: string;
+} & (
+  | {
+      eventKind: "playback";
+      supportStep?: never;
+    }
+  | {
+      eventKind: "support_opened";
+      supportStep: PersistedLearningSupportStep;
+    }
+);
 
 export interface LearningSessionRepository {
   start(
@@ -37,11 +61,24 @@ export interface LearningSessionRepository {
     ownerUserId: string,
   ): Promise<LessonSession | null>;
 
+  countAttempts(
+    sessionId: string,
+    activityId: string,
+    ownerUserId: string,
+  ): Promise<number>;
+
   recordAttempt(
     input: RecordLearningAttemptInput,
   ): Promise<{
     attempt: PrivacySafeActivityAttempt;
     session: LessonSession;
+    created: boolean;
+  }>;
+
+  recordSupportEvent(
+    input: RecordLearningSupportEventInput,
+  ): Promise<{
+    event: PrivacySafeLearningSupportEvent;
     created: boolean;
   }>;
 }
