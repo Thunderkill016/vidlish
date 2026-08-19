@@ -7,8 +7,8 @@ import {
   sourceEvidenceSchema,
   targetLanguageItemSchema,
 } from "@/shared/contracts/lesson-v2";
-import { supportStepSchema } from "@/shared/contracts/learning-policy-v2";
 import {
+  persistedLearningSupportStepSchema,
   privacySafeActivityAttemptSchema,
   privacySafeLearningSupportEventSchema,
 } from "@/shared/contracts/privacy-safe-learning-evidence";
@@ -62,11 +62,6 @@ export const learningLabAttemptResponseSchema = z
   })
   .strict();
 
-const nonReplaySupportStepSchema = supportStepSchema.refine(
-  (step) => step !== "replay",
-  "Replay support is represented by playback evidence.",
-);
-
 export const learningLabSupportEventRequestSchema = z.discriminatedUnion(
   "eventKind",
   [
@@ -84,7 +79,7 @@ export const learningLabSupportEventRequestSchema = z.discriminatedUnion(
         activityId: entityIdSchema,
         idempotencyKey: z.string().uuid(),
         eventKind: z.literal("support_opened"),
-        supportStep: nonReplaySupportStepSchema,
+        supportStep: persistedLearningSupportStepSchema,
       })
       .strict(),
   ],
