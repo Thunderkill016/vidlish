@@ -4,7 +4,8 @@ import {
   estimateLexicalCoverage,
   needsComprehensionSupport,
   tokenizeEnglish,
-  MINIMUM_COMPREHENSION_COVERAGE,
+  LISTENING_COMPREHENSION_COVERAGE,
+  VIEWING_COMPREHENSION_COVERAGE,
 } from "./lexical-coverage";
 
 describe("tokenizeEnglish", () => {
@@ -82,12 +83,22 @@ describe("estimateLexicalCoverage", () => {
 
 describe("needsComprehensionSupport", () => {
   it("asks for support below the minimum comprehension threshold", () => {
-    expect(needsComprehensionSupport(MINIMUM_COMPREHENSION_COVERAGE - 0.01)).toBe(true);
+    expect(needsComprehensionSupport(VIEWING_COMPREHENSION_COVERAGE - 0.01)).toBe(true);
   });
 
   it("withholds support only at or above the threshold", () => {
-    expect(needsComprehensionSupport(MINIMUM_COMPREHENSION_COVERAGE)).toBe(false);
+    expect(needsComprehensionSupport(VIEWING_COMPREHENSION_COVERAGE)).toBe(false);
     expect(needsComprehensionSupport(0.99)).toBe(false);
+  });
+
+  it("reads video against the viewing band, not the listening one", () => {
+    // 92% is below the listening threshold and above the viewing one. Judging a
+    // video by the listening number would scaffold every video in this gap as
+    // though the learner had no picture to look at.
+    expect(VIEWING_COMPREHENSION_COVERAGE).toBeLessThan(
+      LISTENING_COMPREHENSION_COVERAGE,
+    );
+    expect(needsComprehensionSupport(0.92)).toBe(false);
   });
 
   it("fails safe when coverage is unknown", () => {

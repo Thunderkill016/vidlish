@@ -1,6 +1,10 @@
 import { ENGLISH_FREQUENCY_RANKED } from "../data/english-frequency-ranked";
 
-import { estimateLexicalCoverage, tokenizeEnglish } from "./lexical-coverage";
+import {
+  estimateLexicalCoverage,
+  tokenizeEnglish,
+  VIEWING_COMPREHENSION_COVERAGE,
+} from "./lexical-coverage";
 import type { CoverageCefrLevel } from "./lexical-coverage";
 
 /**
@@ -193,4 +197,44 @@ export function segmentIntoTopicUnits(
   // previous unit would push that one past maxMs, so it stands on its own.
   flush(segments.length);
   return units;
+}
+
+/**
+ * Picks the unit to build the lesson from.
+ *
+ * A long video is not uniformly hard: some chapters sit within the learner's
+ * reach and some are far past it. With a five-minute budget only one stretch
+ * gets taught anyway, so the question is which one — and coverage answers it
+ * better than position does.
+ *
+ * Among units the learner can follow, this takes the *lowest* coverage rather
+ * than the highest. The easiest chapter is usually the one with nothing left to
+ * learn; the useful one is the hardest chapter still within reach, which is
+ * where new material sits close enough to existing knowledge to be picked up.
+ *
+ * When no unit clears the band it returns the most reachable one instead of
+ * nothing. Coverage never rejects a video — no single threshold holds across
+ * every video, accent and learner, so a number this rough must not be the thing
+ * that tells a learner no.
+ */
+export function selectTeachableUnit(
+  units: readonly TopicUnit[],
+  band: number = VIEWING_COMPREHENSION_COVERAGE,
+): TopicUnit | null {
+  if (units.length === 0) return null;
+
+  // An unmeasurable unit sorts as reachable rather than being dropped: silence
+  // about a unit is not evidence against it.
+  const coverageOf = (unit: TopicUnit) => unit.lexicalCoverage ?? 1;
+  const withinReach = units.filter((unit) => coverageOf(unit) >= band);
+
+  if (withinReach.length > 0) {
+    return withinReach.reduce((hardest, unit) =>
+      coverageOf(unit) < coverageOf(hardest) ? unit : hardest,
+    );
+  }
+
+  return units.reduce((easiest, unit) =>
+    coverageOf(unit) > coverageOf(easiest) ? unit : easiest,
+  );
 }

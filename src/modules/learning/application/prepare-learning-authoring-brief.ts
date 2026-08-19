@@ -1,7 +1,10 @@
 import { z } from "zod";
 import { estimateLexicalCoverage, tokenizeEnglish } from "./lexical-coverage";
 import { isDue, recordReview, type ReviewState } from "./review-scheduler";
-import { segmentIntoTopicUnits } from "./topic-segmentation";
+import {
+  segmentIntoTopicUnits,
+  selectTeachableUnit,
+} from "./topic-segmentation";
 
 import {
   languageEligibilityReportSchema,
@@ -475,10 +478,6 @@ export function diagnoseLearningVideo(
     estimatedSpeechRateWpm !== null && estimatedSpeechRateWpm >= 180
       ? ["fast"]
       : ["none"];
-  const candidateWindows = buildLearningWindows(
-    context.permittedSegments,
-    confidenceFromReport(context.eligibility),
-  );
   // Windows are breath groups — they flush on a 3.5s pause, 30 seconds, or 90
   // words — so counting them counts breaths, not topics: an hour of video would
   // report roughly 120 "topic shifts" and this number goes straight into the
@@ -487,6 +486,23 @@ export function diagnoseLearningVideo(
   const topicUnits = segmentIntoTopicUnits(context.permittedSegments, {
     cefrLevel: context.learnerSnapshot.targetCefr,
   });
+
+  // A budget buys one stretch of video, so an hour-long source has to be
+  // narrowed before windows are built — otherwise the model picks three breath
+  // groups out of a hundred and twenty with nothing to go on. Coverage answers
+  // "which stretch" better than position does; it never answers "whether".
+  const teachableUnit =
+    topicUnits.length > 1 ? selectTeachableUnit(topicUnits) : null;
+  const teachableSegments = teachableUnit
+    ? context.permittedSegments.filter((segment) =>
+        teachableUnit.segmentIds.includes(segment.id),
+      )
+    : context.permittedSegments;
+
+  const candidateWindows = buildLearningWindows(
+    teachableSegments,
+    confidenceFromReport(context.eligibility),
+  );
 
   return videoLearningProfileV2Schema.parse({
     diagnosisVersion: LEARNING_DIAGNOSIS_VERSION,

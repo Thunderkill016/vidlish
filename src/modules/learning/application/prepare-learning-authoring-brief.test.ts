@@ -497,9 +497,36 @@ describe("prepareLearningAuthoringBrief", () => {
     });
     const profile = diagnoseLearningVideo(context);
 
-    expect(profile.candidateWindows.length).toBeGreaterThan(20);
     expect(profile.topicShiftCount).toBeGreaterThan(0);
     expect(profile.topicShiftCount).toBeLessThan(10);
+  });
+
+  it("narrows a long video to one teachable stretch before building windows", () => {
+    // Twenty minutes yields well over a hundred breath groups. Handing all of
+    // them to the model means it picks three at random; the budget only ever
+    // buys one stretch, so the choice of stretch is the decision that matters.
+    const long = createLongTranscript();
+    const context = assembleLearningGenerationContext({
+      ...createInput(),
+      transcript: long,
+      eligibility: createLongEligibility(long),
+    });
+    const profile = diagnoseLearningVideo(context);
+
+    const covered = new Set(
+      profile.candidateWindows.flatMap((window) => window.sourceSegmentIds),
+    );
+    expect(covered.size).toBeGreaterThan(0);
+    expect(covered.size).toBeLessThan(long.segments.length);
+
+    // The chosen stretch is contiguous — a lesson assembled from scattered
+    // minutes of a video is not a lesson about anything.
+    const positions = long.segments
+      .filter((segment) => covered.has(segment.id))
+      .map((segment) => segment.position);
+    expect(positions[positions.length - 1]! - positions[0]!).toBe(
+      positions.length - 1,
+    );
   });
 
   it("teaches a known item again once its review falls due", () => {

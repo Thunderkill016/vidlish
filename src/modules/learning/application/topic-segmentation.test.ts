@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { segmentIntoTopicUnits } from "./topic-segmentation";
-import type { TranscriptLikeSegment } from "./topic-segmentation";
+import {
+  segmentIntoTopicUnits,
+  selectTeachableUnit,
+} from "./topic-segmentation";
+import type { TopicUnit, TranscriptLikeSegment } from "./topic-segmentation";
 
 /**
  * Builds a run of segments on one topic. Each segment is 10 seconds with no
@@ -125,5 +128,44 @@ describe("segmentIntoTopicUnits", () => {
   it("counts running words per unit", () => {
     const units = segmentIntoTopicUnits(run("one two three", 9, 0, "a"));
     expect(units[0]!.wordCount).toBe(27);
+  });
+});
+
+describe("selectTeachableUnit", () => {
+  const unit = (id: string, lexicalCoverage: number | null): TopicUnit => ({
+    segmentIds: [id],
+    startMs: 0,
+    endMs: 120_000,
+    wordCount: 100,
+    lexicalCoverage,
+  });
+
+  it("returns nothing when there are no units", () => {
+    expect(selectTeachableUnit([])).toBeNull();
+  });
+
+  it("takes the hardest chapter still within reach, not the easiest", () => {
+    // The 99% chapter is the one the learner already understands — teaching from
+    // it would spend the whole budget on nothing new. The 91% chapter is where
+    // unfamiliar material sits close enough to be picked up.
+    const picked = selectTeachableUnit([
+      unit("easy", 0.99),
+      unit("reachable", 0.91),
+      unit("impossible", 0.62),
+    ]);
+    expect(picked?.segmentIds).toEqual(["reachable"]);
+  });
+
+  it("still returns a unit when nothing clears the band", () => {
+    // Coverage must never be the thing that tells a learner no — the estimate is
+    // far too rough to carry a refusal.
+    const picked = selectTeachableUnit([unit("hard", 0.55), unit("less", 0.71)]);
+    expect(picked?.segmentIds).toEqual(["less"]);
+  });
+
+  it("treats an unmeasurable unit as reachable rather than dropping it", () => {
+    // Silence about a unit is not evidence against it.
+    const picked = selectTeachableUnit([unit("unknown", null)]);
+    expect(picked?.segmentIds).toEqual(["unknown"]);
   });
 });

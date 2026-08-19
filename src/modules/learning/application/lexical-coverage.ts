@@ -35,8 +35,24 @@ const ASSUMED_VOCABULARY_BY_CEFR = {
 
 export type CoverageCefrLevel = keyof typeof ASSUMED_VOCABULARY_BY_CEFR;
 
-/** 95% is the minimum-comprehension threshold in the coverage literature. */
-export const MINIMUM_COMPREHENSION_COVERAGE = 0.95;
+/**
+ * Coverage thresholds are modality-specific, and Vidlish is a viewing product.
+ *
+ * The literature separates three numbers: roughly 98% for reading, 95% for
+ * listening, and around 90% for viewing — audiovisual input carries imagery
+ * that supports meaning, so a learner follows video at a coverage that would
+ * leave them stranded on a page. Van Zeeland and Schmitt also measured only a
+ * small gap between 90% and 95% for listening (73.5% vs 76% comprehension),
+ * which is not the cliff a single hard threshold implies.
+ *
+ * So 0.90 is the band this product reads against. It is a band, not a gate:
+ * nothing in the pipeline may reject a video for falling under it, because no
+ * single coverage threshold holds across every video, accent and learner.
+ */
+export const VIEWING_COMPREHENSION_COVERAGE = 0.9;
+
+/** Kept for reference: the listening figure, which does not apply here. */
+export const LISTENING_COMPREHENSION_COVERAGE = 0.95;
 
 /**
  * Suffixes stripped when a surface form is not in the list, so "watching" can
@@ -113,12 +129,18 @@ export function estimateLexicalCoverage(
 }
 
 /**
- * Whether the learner can be expected to follow this speech unaided. Below the
- * threshold the session should offer support from the start instead of holding
- * it back: withholding captions is a desirable difficulty only for learners who
- * are already above the comprehension threshold.
+ * Whether the session should offer support from the first viewing rather than
+ * holding it back.
+ *
+ * This decides how much scaffolding to open with — captions on, glosses ready —
+ * and nothing else. It must never decide whether a video is teachable at all:
+ * withholding captions is a desirable difficulty only for a learner already
+ * following the speech, and for everyone else it is just a wall.
+ *
+ * An unmeasurable coverage returns true, so the failure mode is too much help
+ * rather than a learner left without any.
  */
 export function needsComprehensionSupport(coverage: number | null): boolean {
   if (coverage === null) return true;
-  return coverage < MINIMUM_COMPREHENSION_COVERAGE;
+  return coverage < VIEWING_COMPREHENSION_COVERAGE;
 }
