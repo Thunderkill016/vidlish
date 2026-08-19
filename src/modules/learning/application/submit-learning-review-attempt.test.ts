@@ -1,8 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
-import type { LearningReviewRepository } from "@/modules/learning/ports/learning-review-repository";
 import { SubmitLearningReviewAttempt } from "@/modules/learning/application/submit-learning-review-attempt";
+import type {
+  LearningReviewRepository,
+  RecordLearningReviewAttemptInput,
+} from "@/modules/learning/ports/learning-review-repository";
 import type {
   LearningReviewItemState,
   LearningReviewSession,
@@ -49,21 +52,23 @@ function repositoryFor(input: {
   recallAttempts?: number;
 }) {
   const session = reviewSession(input.step);
-  const recordReviewAttempt = vi.fn(async (recordInput) => ({
-    attempt: {
-      id: "44444444-4444-4444-8444-444444444444",
-      reviewSessionId: SESSION_ID,
-      step: recordInput.step,
-      attemptNumber: 1,
-      idempotencyKey: recordInput.idempotencyKey,
-      responseEvidence: recordInput.responseEvidence,
-      evaluation: recordInput.evaluation,
-      submittedAt: NOW,
-    },
-    session,
-    itemState: itemState(),
-    created: true,
-  }));
+  const recordReviewAttempt = vi.fn(
+    async (recordInput: RecordLearningReviewAttemptInput) => ({
+      attempt: {
+        id: "44444444-4444-4444-8444-444444444444",
+        reviewSessionId: SESSION_ID,
+        step: recordInput.step,
+        attemptNumber: 1,
+        idempotencyKey: recordInput.idempotencyKey,
+        responseEvidence: recordInput.responseEvidence,
+        evaluation: recordInput.evaluation,
+        submittedAt: NOW,
+      },
+      session,
+      itemState: itemState(),
+      created: true,
+    }),
+  );
   const repository: LearningReviewRepository = {
     listScheduled: vi.fn(async () => [itemState()]),
     startDue: vi.fn(async () => ({ session, created: true })),
