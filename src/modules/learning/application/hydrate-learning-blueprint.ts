@@ -224,8 +224,14 @@ export function hydrateLearningBlueprint(
           evaluation: {
             kind: "self_check" as const,
             criteriaVi: activity.criteriaVi,
+            // Nested inside the evaluation in the blueprint, flat in the draft.
+            // The exemplar is part of what "done well" means, so it lives with
+            // the criteria rather than beside them.
+            ...(activity.exemplarAfterAttempt === undefined
+              ? {}
+              : { exemplarAfterAttempt: activity.exemplarAfterAttempt }),
           },
-          exemplarAfterAttempt: activity.exemplarAfterAttempt,
+          feedback: activity.feedback,
         };
       case "exit_ticket":
         return {

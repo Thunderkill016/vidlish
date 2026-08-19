@@ -134,7 +134,7 @@ export function resolveSegmentLabels(
   }
 }
 
-function stripCodeFence(text: string): string {
+export function stripCodeFence(text: string): string {
   const trimmed = text.trim();
   if (!trimmed.startsWith("```")) return trimmed;
   return trimmed

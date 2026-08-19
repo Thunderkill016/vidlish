@@ -58,6 +58,11 @@ const serverConfigSchema = z
       .max(30000)
       .default(8000),
     LESSON_PROVIDER: z.enum(["gemini", "fixture"]).default("fixture"),
+    // Defaults to fixture even in production: turning the v2 authoring chain on
+    // is a deliberate act, not something a deploy should do by itself.
+    LEARNING_AUTHORING_PROVIDER: z
+      .enum(["gemini", "fixture"])
+      .default("fixture"),
     // Overridable so a newer Gemini model can be adopted without a code change.
     LESSON_MODEL_ID: z.string().min(1).default("gemini-3.5-flash-lite"),
     GEMINI_API_KEY: z.string().min(1).optional(),
@@ -186,6 +191,7 @@ export function getServerConfig(): ServerConfig {
     SUPADATA_NATIVE_TIMEOUT_MS: process.env.SUPADATA_NATIVE_TIMEOUT_MS,
     LESSON_PROVIDER:
       process.env.LESSON_PROVIDER ?? (isProduction ? "gemini" : undefined),
+    LEARNING_AUTHORING_PROVIDER: process.env.LEARNING_AUTHORING_PROVIDER,
     LESSON_MODEL_ID: process.env.LESSON_MODEL_ID,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
   });
