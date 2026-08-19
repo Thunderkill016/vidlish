@@ -6,20 +6,18 @@ import type {
 /**
  * Checks a model's draft before it becomes a lesson.
  *
- * Research on automatically generated test items keeps finding the same
- * systematic defects — answer-position bias above all — and the standard
- * response is a quality-control pass between generation and use. Vidlish had a
- * deterministic gate *before* authoring and nothing after it: whatever the model
- * wrote went straight to hydration and then to a learner.
+ * The model is allowed to propose pedagogy; it is not allowed to weaken the
+ * learning loop. These checks keep the minimum evidence-producing sequence
+ * deterministic: first listen without captions, retrieve the target form from
+ * memory, then use that same item in a changed context. Support can still be
+ * opened later by the runtime policy.
  *
  * Everything here is deterministic. None of it costs a model call, and none of
  * it depends on the model being honest about its own output.
  *
- * Two kinds of finding, deliberately handled differently. A defect that can be
- * repaired without judgement is repaired — refusing a whole lesson because the
- * correct answer sat in the same slot twice would waste a good lesson. A defect
- * that means the lesson does not teach is refused, because shipping it is worse
- * than failing the job.
+ * Two kinds of finding are handled differently. A defect that can be repaired
+ * without judgement is repaired. A defect that changes what the lesson can
+ * measure is refused rather than silently turned into a weaker lesson.
  */
 
 export class AuthoringQualityError extends Error {
@@ -33,7 +31,12 @@ export class AuthoringQualityError extends Error {
 }
 
 export type AuthoringQualityRejection =
-  | "NO_RETRIEVAL_ACTIVITY"
+  | "NO_UNAIDED_GIST"
+  | "NO_FORM_RETRIEVAL"
+  | "RETRIEVAL_ANSWER_EXPOSED"
+  | "NO_CHANGED_CONTEXT_TRANSFER"
+  | "NO_RETRIEVAL_TO_TRANSFER_BRIDGE"
+  | "TRANSFER_BEFORE_RETRIEVAL"
   | "DUPLICATE_OPTIONS"
   | "CORRECT_OPTION_ALWAYS_LONGEST";
 
@@ -51,6 +54,16 @@ type ChoiceActivity = Extract<
   { options: readonly { id: string; textVi: string }[] }
 >;
 
+type RecallActivity = Extract<
+  LearningActivityDraftV2,
+  { activityType: "chunk_recall" }
+>;
+
+type TransferActivity = Extract<
+  LearningActivityDraftV2,
+  { activityType: "guided_transfer" }
+>;
+
 function isChoiceActivity(
   activity: LearningActivityDraftV2,
 ): activity is ChoiceActivity {
@@ -60,21 +73,104 @@ function isChoiceActivity(
   );
 }
 
+function isRecallActivity(
+  activity: LearningActivityDraftV2,
+): activity is RecallActivity {
+  return activity.activityType === "chunk_recall";
+}
+
+function isTransferActivity(
+  activity: LearningActivityDraftV2,
+): activity is TransferActivity {
+  return activity.activityType === "guided_transfer";
+}
+
 function normalize(text: string): string {
   return text.trim().toLocaleLowerCase("vi").replace(/\s+/g, " ");
+}
+
+function enforceLearningSequence(draft: LearningAuthoringDraftV2): void {
+  const first = draft.activities[0];
+  if (
+    !first ||
+    first.activityType !== "gist_choice" ||
+    first.captionPolicy !== "hidden_first"
+  ) {
+    throw new AuthoringQualityError(
+      "The lesson must begin with a gist listen while captions are hidden.",
+      "NO_UNAIDED_GIST",
+    );
+  }
+
+  const recalls = draft.activities
+    .map((activity, index) => ({ activity, index }))
+    .filter(
+      (entry): entry is { activity: RecallActivity; index: number } =>
+        isRecallActivity(entry.activity),
+    );
+  if (recalls.length === 0) {
+    throw new AuthoringQualityError(
+      "The lesson has no form-retrieval activity.",
+      "NO_FORM_RETRIEVAL",
+    );
+  }
+  if (recalls.some(({ activity }) => activity.captionPolicy === "shown")) {
+    throw new AuthoringQualityError(
+      "A retrieval activity exposes captions before the learner retrieves the form.",
+      "RETRIEVAL_ANSWER_EXPOSED",
+    );
+  }
+
+  const transfers = draft.activities
+    .map((activity, index) => ({ activity, index }))
+    .filter(
+      (entry): entry is { activity: TransferActivity; index: number } =>
+        isTransferActivity(entry.activity),
+    );
+  if (transfers.length === 0) {
+    throw new AuthoringQualityError(
+      "The lesson has no changed-context transfer activity.",
+      "NO_CHANGED_CONTEXT_TRANSFER",
+    );
+  }
+
+  const bridgedPairs = recalls.flatMap((recall) =>
+    transfers.flatMap((transfer) =>
+      transfer.activity.candidateIds.includes(recall.activity.candidateId)
+        ? [{ recall, transfer }]
+        : [],
+    ),
+  );
+  if (bridgedPairs.length === 0) {
+    throw new AuthoringQualityError(
+      "No target item is both retrieved and reused in changed-context transfer.",
+      "NO_RETRIEVAL_TO_TRANSFER_BRIDGE",
+    );
+  }
+  if (
+    !bridgedPairs.some(
+      ({ recall, transfer }) => recall.index < transfer.index,
+    )
+  ) {
+    throw new AuthoringQualityError(
+      "Changed-context transfer occurs before retrieval of the same target item.",
+      "TRANSFER_BEFORE_RETRIEVAL",
+    );
+  }
 }
 
 export function reviewAuthoringDraft(
   draft: LearningAuthoringDraftV2,
 ): ReviewedAuthoringDraft {
+  enforceLearningSequence(draft);
+
   const choices = draft.activities.filter(isChoiceActivity);
 
   for (const activity of choices) {
     const seen = new Set(activity.options.map((option) => normalize(option.textVi)));
     if (seen.size !== activity.options.length) {
-      // Two options saying the same thing means the question has two correct
-      // answers or one dead slot. Either way the learner is being graded on
-      // something the item cannot measure.
+      // Two options saying the same thing means the item cannot tell whether the
+      // learner understood the evidence or merely selected an equivalent slot.
       throw new AuthoringQualityError(
         `Activity ${activity.id} offers the same option twice.`,
         "DUPLICATE_OPTIONS",
@@ -84,8 +180,7 @@ export function reviewAuthoringDraft(
 
   // A learner can score full marks by always picking the longest option without
   // understanding a word. One activity landing that way is chance; every
-  // activity landing that way is the model's habit, and the lesson stops
-  // measuring comprehension.
+  // activity landing that way is a model habit and stops measuring comprehension.
   if (choices.length >= 2) {
     const alwaysLongest = choices.every((activity) => {
       const correct = activity.options.find(
@@ -106,36 +201,13 @@ export function reviewAuthoringDraft(
     }
   }
 
-  // Recognition is not retrieval. A lesson with no activity asking the learner
-  // to produce the language from memory teaches them to recognise it and
-  // nothing more, which is the single most common way a generated lesson looks
-  // complete and does not work.
-  const hasRetrieval = draft.activities.some(
-    (activity) =>
-      activity.activityType === "chunk_recall" ||
-      activity.activityType === "guided_transfer",
-  );
-  if (!hasRetrieval) {
-    throw new AuthoringQualityError(
-      "Draft has no activity that asks the learner to produce language.",
-      "NO_RETRIEVAL_ACTIVITY",
-    );
-  }
-
   return rebalanceAnswerPositions(draft, choices);
 }
 
 /**
- * Spreads correct answers across option slots.
- *
- * Models put the right answer in the same position far more often than chance,
- * and a learner who notices spends the lesson pattern-matching. Rotating is a
- * repair rather than a refusal: the item is fine, only its layout gives the
- * game away.
- *
- * The rotation is by activity index, so the same draft always produces the same
- * lesson — a random shuffle would make every regeneration a different lesson
- * and nothing here testable.
+ * Spreads correct answers across option slots deterministically. A random
+ * shuffle would make regeneration produce a different lesson and make failures
+ * harder to reproduce.
  */
 function rebalanceAnswerPositions(
   draft: LearningAuthoringDraftV2,
