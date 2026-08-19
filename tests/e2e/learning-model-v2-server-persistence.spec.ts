@@ -9,6 +9,8 @@ test.skip(
 
 const PRIVATE_TRANSFER_TEXT = "I'm a member of the release team PRIVATE-7f83.";
 const PRIVATE_REFLECTION_TEXT = "PRIVATE-REFLECTION-20260807-7f83";
+const PRIVATE_DELAYED_TRANSFER_TEXT =
+  "I'm a member of the community volunteer team PRIVATE-DELAYED-91ac.";
 
 async function login(page: Page) {
   await page.goto("/sign-in");
@@ -53,7 +55,7 @@ async function mockYouTubeIframeApi(page: Page) {
   });
 }
 
-test("Golden Session UI persists retry transfer completion and privacy-safe evidence", async ({
+test("Golden Session UI persists immediate and delayed learning evidence without raw learner text", async ({
   page,
 }) => {
   await mockYouTubeIframeApi(page);
@@ -132,9 +134,7 @@ test("Golden Session UI persists retry transfer completion and privacy-safe evid
     }),
   ).toBeVisible();
 
-  const localState = await page.evaluate(() =>
-    Object.values(localStorage).join("\n"),
-  );
+  let localState = await page.evaluate(() => Object.values(localStorage).join("\n"));
   expect(localState).not.toContain(PRIVATE_TRANSFER_TEXT);
   expect(localState).not.toContain(PRIVATE_REFLECTION_TEXT);
 
@@ -241,4 +241,143 @@ test("Golden Session UI persists retry transfer completion and privacy-safe evid
     expect(event).not.toHaveProperty("caption");
     expect(event).not.toHaveProperty("copy");
   }
+
+  const { data: scheduledItems, error: scheduledItemsError } = await admin
+    .from("learning_item_states")
+    .select(
+      "item_key,exposure_count,attempt_count,successful_retrievals,last_outcome,next_review_at,last_delayed_transfer_at",
+    )
+    .eq("owner_user_id", "133f314f-4bfd-46aa-8fc6-b6a33252232b")
+    .eq("item_key", "a-member-of");
+  expect(scheduledItemsError).toBeNull();
+  expect(scheduledItems).toHaveLength(1);
+  expect(scheduledItems?.[0]).toMatchObject({
+    item_key: "a-member-of",
+    exposure_count: 1,
+    attempt_count: 0,
+    successful_retrievals: 0,
+    last_outcome: null,
+    last_delayed_transfer_at: null,
+  });
+  expect(new Date(scheduledItems?.[0]?.next_review_at as string).getTime()).toBeGreaterThan(
+    Date.now(),
+  );
+
+  await page.goto("/review");
+  await expect(page.getByText("Lịch ôn đã được tạo")).toBeVisible();
+  await expect(page.getByText("Đang chờ delay")).toBeVisible();
+
+  const dueAt = new Date(Date.now() - 60_000).toISOString();
+  const { error: makeDueError } = await admin
+    .from("learning_item_states")
+    .update({ next_review_at: dueAt })
+    .eq("owner_user_id", "133f314f-4bfd-46aa-8fc6-b6a33252232b")
+    .eq("item_key", "a-member-of");
+  expect(makeDueError).toBeNull();
+
+  await page.reload();
+  await expect(page.getByText("1 mục cần ôn")).toBeVisible();
+  await page.getByRole("link", { name: "Bắt đầu phiên ôn" }).click();
+  await expect(page).toHaveURL(/\/learning-lab\/v2\/review$/);
+  await page.getByRole("button", { name: "Bắt đầu ôn" }).click();
+
+  await expect(page.getByText("Gọi lại trước khi nhìn đáp án")).toBeVisible();
+  await expect(page.getByText("a member of", { exact: true })).toHaveCount(0);
+
+  await page.getByLabel("Câu trả lời").fill("member of");
+  await page.getByRole("button", { name: "Kiểm tra trí nhớ" }).click();
+  await expect(page.getByText("Chưa nhớ đủ")).toBeVisible();
+  await expect(page.getByText("a member of", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Thử lại không nhìn đáp án" }).click();
+  await expect(page.getByText("a member of", { exact: true })).toHaveCount(0);
+
+  await page.getByLabel("Câu trả lời").fill("a member of");
+  await page.getByRole("button", { name: "Kiểm tra trí nhớ" }).click();
+  await expect(page.getByText("Không lặp lại câu nguồn")).toBeVisible();
+  await expect(page.getByText(/nhóm tình nguyện cộng đồng/i)).toBeVisible();
+  await expect(page.getByText("Câu mẫu sau attempt:")).toHaveCount(0);
+
+  await page.getByLabel("Câu của bạn").fill(PRIVATE_DELAYED_TRANSFER_TEXT);
+  await page.getByRole("button", { name: "Gửi câu để tự đối chiếu" }).click();
+  await expect(page.getByText("Tự đối chiếu câu bạn vừa viết")).toBeVisible();
+  await expect(page.getByText(/community volunteer team/i)).toBeVisible();
+
+  const delayedCriteria = page.locator('input[type="checkbox"]');
+  await delayedCriteria.nth(0).check();
+  await delayedCriteria.nth(1).check();
+  await delayedCriteria.nth(2).check();
+  await page.getByRole("button", { name: "Xác nhận đủ tiêu chí" }).click();
+  await expect(
+    page.getByRole("heading", { name: "Phiên ôn đã hoàn tất" }),
+  ).toBeVisible();
+  await expect(page.getByText(/không phải tuyên bố.*mastered/i)).toBeVisible();
+
+  localState = await page.evaluate(() => Object.values(localStorage).join("\n"));
+  expect(localState).not.toContain(PRIVATE_DELAYED_TRANSFER_TEXT);
+
+  const { data: reviewSessions, error: reviewSessionsError } = await admin
+    .from("learning_review_sessions")
+    .select("id,status,current_step,scheduled_for,completed_at,variant_id")
+    .eq("owner_user_id", "133f314f-4bfd-46aa-8fc6-b6a33252232b")
+    .eq("item_key", "a-member-of");
+  expect(reviewSessionsError).toBeNull();
+  expect(reviewSessions).toHaveLength(1);
+  expect(reviewSessions?.[0]).toMatchObject({
+    status: "completed",
+    current_step: "completed",
+    variant_id: "review_variant_affiliation_01",
+  });
+  expect(reviewSessions?.[0]?.completed_at).toBeTruthy();
+
+  const reviewSessionId = reviewSessions?.[0]?.id as string;
+  const { data: reviewAttempts, error: reviewAttemptsError } = await admin
+    .from("learning_review_attempts")
+    .select("step,attempt_number,response,evaluation")
+    .eq("review_session_id", reviewSessionId)
+    .order("submitted_at", { ascending: true });
+  expect(reviewAttemptsError).toBeNull();
+  expect(
+    reviewAttempts?.map((attempt) => [
+      attempt.step,
+      attempt.attempt_number,
+      (attempt.evaluation as { verdict?: string }).verdict,
+    ]),
+  ).toEqual([
+    ["recall", 1, "incorrect"],
+    ["recall", 2, "correct"],
+    ["transfer", 1, "self_check"],
+    ["transfer", 2, "self_check"],
+  ]);
+
+  for (const attempt of reviewAttempts ?? []) {
+    const response = attempt.response as Record<string, unknown>;
+    expect(Object.prototype.hasOwnProperty.call(response, "text")).toBe(false);
+  }
+  expect(reviewAttempts?.[2]?.response).toMatchObject({
+    kind: "self_check",
+    checkedCriteria: [],
+  });
+  expect(reviewAttempts?.[3]?.response).toMatchObject({
+    kind: "self_check",
+    checkedCriteria: [0, 1, 2],
+  });
+
+  const { data: reviewedItems, error: reviewedItemsError } = await admin
+    .from("learning_item_states")
+    .select(
+      "attempt_count,successful_retrievals,last_outcome,next_review_at,last_delayed_transfer_at",
+    )
+    .eq("owner_user_id", "133f314f-4bfd-46aa-8fc6-b6a33252232b")
+    .eq("item_key", "a-member-of");
+  expect(reviewedItemsError).toBeNull();
+  expect(reviewedItems).toHaveLength(1);
+  expect(reviewedItems?.[0]).toMatchObject({
+    attempt_count: 4,
+    successful_retrievals: 1,
+    last_outcome: "hard",
+  });
+  expect(reviewedItems?.[0]?.last_delayed_transfer_at).toBeTruthy();
+  expect(new Date(reviewedItems?.[0]?.next_review_at as string).getTime()).toBeGreaterThan(
+    Date.now(),
+  );
 });
