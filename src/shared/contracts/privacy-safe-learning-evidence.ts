@@ -4,7 +4,6 @@ import {
   activityEvaluationSchema,
   type ActivityResponse,
 } from "@/shared/contracts/lesson-v2";
-import { supportStepSchema } from "@/shared/contracts/learning-policy-v2";
 
 const entityIdSchema = z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/);
 
@@ -91,6 +90,19 @@ export type PrivacySafeActivityAttempt = z.infer<
   typeof privacySafeActivityAttemptSchema
 >;
 
+/** Replay is represented by playbackOrdinal >= 2, never by support_opened. */
+export const persistedLearningSupportStepSchema = z.enum([
+  "context_hint",
+  "keyword_hint",
+  "english_caption",
+  "chunk_boundaries",
+  "vietnamese_meaning",
+  "slower_playback",
+]);
+export type PersistedLearningSupportStep = z.infer<
+  typeof persistedLearningSupportStepSchema
+>;
+
 /**
  * Server-confirmed evidence that a learner used bounded runtime support.
  *
@@ -106,7 +118,7 @@ export const privacySafeLearningSupportEventSchema = z
     activityId: entityIdSchema,
     idempotencyKey: z.string().uuid(),
     eventKind: z.enum(["playback", "support_opened"]),
-    supportStep: supportStepSchema.nullable(),
+    supportStep: persistedLearningSupportStepSchema.nullable(),
     playbackOrdinal: z.number().int().positive().nullable(),
     occurredAt: z.string().datetime({ offset: true }),
   })
@@ -130,12 +142,11 @@ export const privacySafeLearningSupportEventSchema = z
       return;
     }
 
-    if (event.supportStep === null || event.supportStep === "replay") {
+    if (event.supportStep === null) {
       context.addIssue({
         code: "custom",
         path: ["supportStep"],
-        message:
-          "Support-opened evidence requires a non-replay support step; replay is derived from playback ordinal.",
+        message: "Support-opened evidence requires a support step.",
       });
     }
     if (event.playbackOrdinal !== null) {
