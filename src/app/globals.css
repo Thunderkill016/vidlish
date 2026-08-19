@@ -1,32 +1,78 @@
 @import "tailwindcss";
 
+/* Tailwind v4 resolves `font-sans` from this theme block. Without it the
+   utility falls back to Tailwind's system stack and the loaded webfont is paid
+   for but never rendered. */
+@theme {
+  --font-sans: var(--font-app-sans), "Segoe UI", -apple-system, BlinkMacSystemFont,
+    Roboto, "Noto Sans", "Helvetica Neue", sans-serif;
+  --font-mono: var(--font-app-mono), "SF Mono", "Cascadia Mono", Menlo, Consolas,
+    monospace;
+}
+
 :root {
-  --background: #f8fafc;
-  --foreground: #111827;
+  --background: #f6f7fb;
+  --foreground: #131829;
   --card: #ffffff;
-  --muted: #f1f5f9;
-  --muted-foreground: #64748b;
-  --border: #dbe3ee;
+  --muted: #eef1f7;
+  --muted-foreground: #5a6480;
+  --faint-foreground: #8b94ac;
+  --border: #dde3ef;
+  --border-strong: #c3ccdf;
+
   --primary: #4338ca;
   --primary-hover: #3730a3;
+  --primary-wash: #ecebfb;
   --accent: #0f766e;
-  --evidence: #b45309;
+  --accent-wash: #e2f2f0;
   --ring: #4338ca;
+
+  /* Provenance, and nothing else. Amber on screen means one thing: this came
+     from the video and can be checked against it. Never decorative. */
+  --evidence: #a1560a;
+  --evidence-wash: #fdf1e0;
+  --evidence-border: #e0a765;
+
+  /* Solved and revealed are different learner outcomes, so they are different
+     tokens. Colour never carries either state alone — the label says it too. */
+  --solved: #15704a;
+  --solved-wash: #e3f3ea;
+  --revealed: #8a5a12;
+  --revealed-wash: #fbf0da;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --shadow-card: 0 1px 2px rgb(19 24 41 / 0.05), 0 8px 22px -14px rgb(19 24 41 / 0.3);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0b1120;
-    --foreground: #f8fafc;
-    --card: #111827;
-    --muted: #1e293b;
-    --muted-foreground: #a8b3c5;
-    --border: #334155;
-    --primary: #818cf8;
-    --primary-hover: #a5b4fc;
-    --accent: #5eead4;
-    --evidence: #fbbf24;
-    --ring: #818cf8;
+    --background: #0a0e1a;
+    --foreground: #f2f5fc;
+    --card: #141a2b;
+    --muted: #1c2437;
+    --muted-foreground: #a9b3ca;
+    --faint-foreground: #78829b;
+    --border: #2a3348;
+    --border-strong: #3b4762;
+
+    --primary: #93a0ff;
+    --primary-hover: #b3bcff;
+    --primary-wash: #1e2340;
+    --accent: #63d9c8;
+    --accent-wash: #102b2a;
+    --ring: #93a0ff;
+
+    --evidence: #e9ab5e;
+    --evidence-wash: #2a2016;
+    --evidence-border: #6d4c21;
+
+    --solved: #6fd39c;
+    --solved-wash: #10281d;
+    --revealed: #e0b464;
+    --revealed-wash: #29200f;
+
+    --shadow-card: 0 1px 2px rgb(0 0 0 / 0.5), 0 10px 26px -16px rgb(0 0 0 / 0.9);
   }
 }
 
@@ -43,6 +89,13 @@ body {
   margin: 0;
   background: var(--background);
   color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
 }
 
 a {
@@ -53,4 +106,15 @@ a {
 button,
 input {
   font: inherit;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
