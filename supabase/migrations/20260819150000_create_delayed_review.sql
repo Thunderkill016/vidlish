@@ -377,7 +377,7 @@ begin
     if p_complete <> v_confirmed then
       raise exception 'delayed transfer completion must match confirmation';
     end if;
-    if p_complete and p_outcome not in ('hard', 'good') then
+    if p_complete and coalesce(p_outcome, '') not in ('hard', 'good') then
       raise exception 'completed delayed transfer requires hard or good outcome';
     end if;
     if not p_complete and p_outcome is not null then
