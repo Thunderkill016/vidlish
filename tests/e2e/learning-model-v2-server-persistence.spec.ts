@@ -300,7 +300,12 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await page.getByLabel("Câu của bạn").fill(PRIVATE_DELAYED_TRANSFER_TEXT);
   await page.getByRole("button", { name: "Gửi câu để tự đối chiếu" }).click();
   await expect(page.getByText("Tự đối chiếu câu bạn vừa viết")).toBeVisible();
-  await expect(page.getByText(/community volunteer team/i)).toBeVisible();
+  await expect(
+    page.getByText(
+      "Câu mẫu sau attempt: I'm a member of the community volunteer team.",
+      { exact: true },
+    ),
+  ).toBeVisible();
 
   const delayedCriteria = page.locator('input[type="checkbox"]');
   await delayedCriteria.nth(0).check();
