@@ -15,3 +15,4 @@ supabase/.branches/
 # Generated planning artifacts are local by default.
 _bmad-output/*
 !_bmad-output/.gitkeep
+benchmark-authoring-results.json

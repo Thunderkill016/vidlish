@@ -34,14 +34,9 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
-  "src/modules/learning/application/prepare-learning-authoring-brief.ts":
-    "Learning Model v2 authoring. Lesson generation still runs the v1 path in " +
-    "src/workflows/generate-lesson.steps.ts; AGENTS.md puts the v2 rollout " +
-    "behind gates 4-9.",
-  "src/modules/learning/application/topic-segmentation.ts":
-    "Reached only through the v2 authoring brief above.",
-  "src/modules/learning/application/lexical-coverage.ts":
-    "Reached only through the v2 authoring brief above.",
+  // Empty, and that is the point. The v2 authoring chain is wired into
+  // `generate-lesson.steps.ts`, so every module it uses is now reachable from a
+  // real entry point. Anything added back here has to say why.
 };
 
 function listSourceFiles(dir: string): string[] {

@@ -222,29 +222,35 @@ describe("study progress migration contract", () => {
 
 describe("learning model v2 content provenance", () => {
   /**
-   * Guards the claim in AGENTS.md that no production path creates a v2 lesson.
+   * `lesson_versions` is what the whole v2 stack operates on — sessions,
+   * attempts, support evidence, delayed review, FSRS scheduling. For a long
+   * time nothing outside CI created a row, so none of it was reachable for a
+   * real learner. `publish_lesson_version` is the one production path that
+   * creates one.
    *
-   * The whole v2 stack — sessions, attempts, support evidence, delayed review,
-   * FSRS scheduling — operates on `lesson_versions` rows. Nothing outside CI
-   * creates one, so none of it is reachable for a real learner even though the
-   * durable journey passes: that journey seeds the fixture first.
-   *
-   * This test fails the moment someone adds a writer. That failure is good
-   * news — it means gate 0 is being closed — and the fix is to update the
-   * program state in AGENTS.md rather than to loosen the assertion.
+   * This guard keeps it the *only* one. An ad-hoc insert somewhere else would
+   * skip the ownership check and the publish-once rule, and the first sign of
+   * that would be a learner's lesson changing under them mid-session.
    */
-  const migrationSql = readdirSync(join(process.cwd(), "supabase/migrations"))
+  const migrationFiles = readdirSync(join(process.cwd(), "supabase/migrations"))
     .filter((file) => file.endsWith(".sql"))
-    .map((file) =>
-      readFileSync(join(process.cwd(), "supabase/migrations", file), "utf8"),
-    )
-    .join("\n");
+    .map((file) => ({
+      file,
+      sql: readFileSync(
+        join(process.cwd(), "supabase/migrations", file),
+        "utf8",
+      ),
+    }));
 
   const WRITE_PATTERN =
     /(?:insert\s+into|update|copy)\s+(?:public\.)?lesson_versions\b/i;
+  const PUBLISH_MIGRATION = "20260819170000_publish_lesson_version.sql";
 
-  it("has no migration that writes a lesson version", () => {
-    expect(WRITE_PATTERN.test(migrationSql)).toBe(false);
+  it("writes lesson versions only from the publish function", () => {
+    const writers = migrationFiles
+      .filter(({ sql }) => WRITE_PATTERN.test(sql))
+      .map(({ file }) => file);
+    expect(writers).toEqual([PUBLISH_MIGRATION]);
   });
 
   it("proves the pattern would catch a writer", () => {
@@ -258,11 +264,13 @@ describe("learning model v2 content provenance", () => {
     );
   });
 
-  it("keeps the fixture as the only source, and says so", () => {
-    const fixture = readFileSync(
-      join(process.cwd(), "supabase/fixtures/learning_model_v2_durable.sql"),
-      "utf8",
-    );
-    expect(WRITE_PATTERN.test(fixture)).toBe(true);
+  it("keeps the publish path owner-scoped and publish-once", () => {
+    const publishSql = migrationFiles.find(
+      ({ file }) => file === PUBLISH_MIGRATION,
+    )!.sql;
+    // Two properties the pgTAP suite proves at runtime; asserted here too so a
+    // future rewrite of the function cannot drop them unnoticed.
+    expect(publishSql).toContain("owned lesson not found");
+    expect(publishSql).toContain("security definer");
   });
 });

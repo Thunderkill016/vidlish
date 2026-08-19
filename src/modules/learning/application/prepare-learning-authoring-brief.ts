@@ -719,7 +719,21 @@ export function gateLearningCandidates(
   }
 
   if (selected.length === 0) {
-    throw new Error("No teachable candidate survived the deterministic gate.");
+    // Say *why*. Without the reasons this failure cannot be read: a model that
+    // invents phrases and a gate that is too strict look identical from the
+    // outside, and the first is a provider problem while the second is ours.
+    const counts = new Map<string, number>();
+    for (const rejection of rejections) {
+      counts.set(rejection.reason, (counts.get(rejection.reason) ?? 0) + 1);
+    }
+    const summary =
+      [...counts.entries()]
+        .sort((left, right) => right[1] - left[1])
+        .map(([reason, count]) => `${reason}×${count}`)
+        .join(", ") || "no candidates proposed";
+    throw new Error(
+      `No teachable candidate survived the deterministic gate — ${summary}`,
+    );
   }
 
   const windowOrder = new Map(

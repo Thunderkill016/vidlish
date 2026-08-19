@@ -17,6 +17,16 @@ export class InMemoryLanguageEligibilityRepository
 
   constructor(private readonly generationRepository: GenerationJobRepository) {}
 
+  async findForJob(input: { ownerUserId: string; jobId: string }) {
+    // The key carries transcript hash and versions, so scan by owner and job
+    // rather than reconstructing a key the caller cannot know.
+    const prefix = `${input.ownerUserId}:${input.jobId}:`;
+    for (const [key, entry] of this.reports) {
+      if (key.startsWith(prefix)) return entry.report;
+    }
+    return null;
+  }
+
   async persistDecision(input: {
     ownerUserId: string;
     jobId: string;

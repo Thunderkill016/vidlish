@@ -3,6 +3,7 @@ import type { GenerationRequestedEvent } from "@/shared/contracts/generation";
 import {
   acquireNativeCaptionStep,
   advanceToTranscriptAcquisition,
+  authorLearningLessonStep,
   checkOriginalEnglishStep,
   generateLessonStep,
   loadFinalGenerationStateStep,
@@ -61,6 +62,18 @@ export async function generateLessonWorkflow(
       // one of the learner's active-job slots until the watchdog notices, and
       // tell them nothing in the meantime.
       lessonOutcome = (await resolveLessonFailureStep(jobRef)).kind;
+    }
+  }
+
+  // After the v1 lesson is saved, and outside its try block on purpose. The
+  // learner already has a lesson by now; losing the richer v2 one is a degraded
+  // result, but letting it turn their finished job into a failure is not. The
+  // step swallows its own errors too — this is the second lock on the same door.
+  if (lessonOutcome === "published" || lessonOutcome === "already_published") {
+    try {
+      await authorLearningLessonStep(jobRef);
+    } catch {
+      // Deliberately silent here: the step already emitted the failure event.
     }
   }
 

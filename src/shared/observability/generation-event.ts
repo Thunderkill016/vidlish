@@ -16,6 +16,7 @@ export const generationEventSchema = z
       "language_eligibility",
       "lesson_generation",
       "workflow_terminalization",
+      "learning_authoring",
     ]),
     action: z.enum(["started", "succeeded", "skipped", "failed"]),
     provider: z.enum([
