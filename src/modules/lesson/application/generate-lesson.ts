@@ -1,5 +1,9 @@
 import { hydrateLessonCitations } from "@/modules/lesson/application/hydrate-lesson-citations";
-import type { LessonGenerationProvider } from "@/modules/lesson/ports/lesson-generation-provider";
+import { validateGeneratedLessonQuality } from "@/modules/lesson/application/validate-generated-lesson-quality";
+import {
+  LessonGenerationFailure,
+  type LessonGenerationProvider,
+} from "@/modules/lesson/ports/lesson-generation-provider";
 import type { LessonRepository } from "@/modules/lesson/ports/lesson-repository";
 import type { GenerationJob } from "@/shared/contracts/generation";
 
@@ -42,6 +46,22 @@ export class GenerateLesson {
       channelName: job.channelName,
       permittedSegments: permitted,
     });
+
+    // Cross-field quality gate for things a JSON schema cannot prove: a term
+    // must actually occur in the segment it cites, options must be distinct,
+    // cloze shape must be valid, and generated examples must not simply copy a
+    // canonical source line. Never auto-repair model output here.
+    const qualityIssues = validateGeneratedLessonQuality(result.draft, permitted);
+    if (qualityIssues.length > 0) {
+      const detail = qualityIssues
+        .slice(0, 8)
+        .map((issue) => `${issue.code}@${issue.path}`)
+        .join(", ");
+      throw new LessonGenerationFailure(
+        `Lesson output failed deterministic quality validation — ${detail}`,
+        true,
+      );
+    }
 
     // Grounding gate. Throws if the draft cited anything outside `permitted`.
     const citations = hydrateLessonCitations(result.draft, permitted);

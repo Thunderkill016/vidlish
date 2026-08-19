@@ -13,6 +13,18 @@ import { mapYouTubeVideo } from "@/adapters/youtube/youtube-metadata-mapper";
 
 const endpoint = "https://www.googleapis.com/youtube/v3/videos";
 
+// YouTube's `fields` parameter does not reduce videos.list quota units, but it
+// does reduce response bytes and narrows the external contract to exactly what
+// Vidlish validates and persists. Keeping this allowlist next to the adapter
+// also makes accidental collection of descriptions/tags less likely.
+const RESPONSE_FIELDS = [
+  "etag",
+  "items(id,etag,",
+  "snippet(title,channelTitle,defaultLanguage,defaultAudioLanguage,thumbnails),",
+  "contentDetails(duration,caption,regionRestriction),",
+  "status(uploadStatus,privacyStatus,embeddable))",
+].join("");
+
 export class YouTubeDataApiProvider implements VideoMetadataProvider {
   constructor(
     private readonly apiKey: string,
@@ -25,6 +37,7 @@ export class YouTubeDataApiProvider implements VideoMetadataProvider {
     const url = new URL(endpoint);
     url.searchParams.set("id", videoId);
     url.searchParams.set("part", "snippet,contentDetails,status");
+    url.searchParams.set("fields", RESPONSE_FIELDS);
     url.searchParams.set("key", this.apiKey);
 
     let response: Response;

@@ -1,0 +1,123 @@
+import type { LessonDraft } from "@/shared/contracts/lesson";
+
+export type PermittedLessonSegment = Readonly<{
+  id: string;
+  text: string;
+}>;
+
+export type LessonQualityIssueCode =
+  | "DUPLICATE_VOCABULARY"
+  | "DUPLICATE_PHRASE"
+  | "DUPLICATE_QUESTION_OPTIONS"
+  | "INVALID_CLOZE_BLANK"
+  | "UNGROUNDED_VOCABULARY_TERM"
+  | "UNGROUNDED_PHRASE"
+  | "UNGROUNDED_CLOZE_ANSWER"
+  | "COPIED_EXAMPLE";
+
+export type LessonQualityIssue = Readonly<{
+  code: LessonQualityIssueCode;
+  path: string;
+}>;
+
+function normalize(value: string): string {
+  return value
+    .normalize("NFKC")
+    .toLowerCase()
+    .replace(/[’‘]/g, "'")
+    .replace(/[^a-z0-9']+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function citationText(
+  sourceSegmentIds: readonly string[],
+  byId: ReadonlyMap<string, string>,
+): string {
+  return sourceSegmentIds
+    .map((id) => byId.get(id) ?? "")
+    .join(" ");
+}
+
+function containsGroundedText(haystack: string, needle: string): boolean {
+  const normalizedNeedle = normalize(needle);
+  if (!normalizedNeedle) return false;
+  return normalize(haystack).includes(normalizedNeedle);
+}
+
+/**
+ * Deterministic post-model gate for constraints that JSON Schema cannot express.
+ * It never scores learner ability and never repairs model output. A failed draft
+ * is rejected so the provider/workflow can retry or surface a real defect.
+ */
+export function validateGeneratedLessonQuality(
+  draft: LessonDraft,
+  permittedSegments: ReadonlyArray<PermittedLessonSegment>,
+): LessonQualityIssue[] {
+  const issues: LessonQualityIssue[] = [];
+  const byId = new Map(permittedSegments.map((segment) => [segment.id, segment.text]));
+  const exactSourceSentences = new Set(
+    permittedSegments.map((segment) => normalize(segment.text)).filter(Boolean),
+  );
+
+  const seenVocabulary = new Set<string>();
+  draft.vocabulary.forEach((item, index) => {
+    const normalizedTerm = normalize(item.term);
+    if (seenVocabulary.has(normalizedTerm)) {
+      issues.push({ code: "DUPLICATE_VOCABULARY", path: `vocabulary.${index}.term` });
+    }
+    seenVocabulary.add(normalizedTerm);
+
+    const source = citationText(item.sourceSegmentIds, byId);
+    if (!containsGroundedText(source, item.term)) {
+      issues.push({ code: "UNGROUNDED_VOCABULARY_TERM", path: `vocabulary.${index}.term` });
+    }
+    if (exactSourceSentences.has(normalize(item.exampleEn))) {
+      issues.push({ code: "COPIED_EXAMPLE", path: `vocabulary.${index}.exampleEn` });
+    }
+  });
+
+  const seenPhrases = new Set<string>();
+  draft.phrases.forEach((item, index) => {
+    const normalizedPhrase = normalize(item.phrase);
+    if (seenPhrases.has(normalizedPhrase)) {
+      issues.push({ code: "DUPLICATE_PHRASE", path: `phrases.${index}.phrase` });
+    }
+    seenPhrases.add(normalizedPhrase);
+
+    const source = citationText(item.sourceSegmentIds, byId);
+    if (!containsGroundedText(source, item.phrase)) {
+      issues.push({ code: "UNGROUNDED_PHRASE", path: `phrases.${index}.phrase` });
+    }
+  });
+
+  draft.grammarPoints.forEach((item, index) => {
+    if (exactSourceSentences.has(normalize(item.exampleEn))) {
+      issues.push({ code: "COPIED_EXAMPLE", path: `grammarPoints.${index}.exampleEn` });
+    }
+  });
+
+  draft.comprehensionQuestions.forEach((item, index) => {
+    const normalizedOptions = item.options.map(normalize);
+    if (new Set(normalizedOptions).size !== normalizedOptions.length) {
+      issues.push({
+        code: "DUPLICATE_QUESTION_OPTIONS",
+        path: `comprehensionQuestions.${index}.options`,
+      });
+    }
+  });
+
+  draft.clozeItems.forEach((item, index) => {
+    const blankCount = item.sentence.split("___").length - 1;
+    if (blankCount !== 1) {
+      issues.push({ code: "INVALID_CLOZE_BLANK", path: `clozeItems.${index}.sentence` });
+    }
+
+    const source = citationText(item.sourceSegmentIds, byId);
+    if (!containsGroundedText(source, item.answer)) {
+      issues.push({ code: "UNGROUNDED_CLOZE_ANSWER", path: `clozeItems.${index}.answer` });
+    }
+  });
+
+  return issues;
+}
