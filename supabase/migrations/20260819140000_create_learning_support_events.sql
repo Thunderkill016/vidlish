@@ -116,16 +116,27 @@ begin
     if p_support_step is not null then
       raise exception 'playback cannot carry a support step';
     end if;
-  else
-    if p_support_step is null or p_support_step not in (
-      'context_hint', 'keyword_hint', 'english_caption', 'chunk_boundaries',
-      'vietnamese_meaning', 'slower_playback'
-    ) then
-      raise exception 'invalid persisted support step';
-    end if;
+  elsif p_support_step is null or p_support_step not in (
+    'context_hint', 'keyword_hint', 'english_caption', 'chunk_boundaries',
+    'vietnamese_meaning', 'slower_playback'
+  ) then
+    raise exception 'invalid persisted support step';
+  end if;
 
-    -- Opening a support level is a state fact, not a counter. A lost response
-    -- followed by a new client key must not create duplicate evidence.
+  -- This row lock serializes playback ordinals and same-step support opens for
+  -- one session. It also proves ownership before semantic dedup is returned.
+  select * into v_session
+  from public.lesson_sessions
+  where id = p_session_id and owner_user_id = p_owner_user_id
+  for update;
+
+  if v_session.id is null then
+    raise exception 'owned learning session not found';
+  end if;
+
+  if p_event_kind = 'support_opened' then
+    -- Opening a support level is a state fact, not a counter. Re-check after
+    -- the session lock so concurrent requests with different keys converge.
     select * into v_existing
     from public.learning_support_events
     where owner_user_id = p_owner_user_id
@@ -146,14 +157,6 @@ begin
     end if;
   end if;
 
-  select * into v_session
-  from public.lesson_sessions
-  where id = p_session_id and owner_user_id = p_owner_user_id
-  for update;
-
-  if v_session.id is null then
-    raise exception 'owned learning session not found';
-  end if;
   if v_session.status not in ('not_started', 'in_progress') then
     raise exception 'learning session is not active';
   end if;
