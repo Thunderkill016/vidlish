@@ -120,7 +120,25 @@ function createLearnerSnapshot(): LearnerContextSnapshot {
     supportPreference: "balanced",
     knownItemKeys: ["player"],
     weakItemKeys: ["a-member-of"],
+    // Four spaced recalls, not one. A single correct answer on a brand-new item
+    // means "come back in ten minutes", not "known" — a genuinely known item is
+    // one the learner has held onto across widening gaps.
     recentReviewOutcomes: [
+      {
+        itemKey: "player",
+        outcome: "good",
+        occurredAt: "2026-06-01T09:00:00+00:00",
+      },
+      {
+        itemKey: "player",
+        outcome: "good",
+        occurredAt: "2026-06-02T09:00:00+00:00",
+      },
+      {
+        itemKey: "player",
+        outcome: "good",
+        occurredAt: "2026-06-20T09:00:00+00:00",
+      },
       {
         itemKey: "player",
         outcome: "good",
@@ -306,6 +324,57 @@ function createInput() {
     eligibility: createEligibility(),
     learnerSnapshot: createLearnerSnapshot(),
     diagnosisProposal: createProposal(),
+    // Pinned one day after the fixture's only review. Without a fixed clock
+    // these assertions would quietly change meaning as the calendar moves.
+    now: new Date("2026-08-07T09:00:00+00:00"),
+  };
+}
+
+/**
+ * A 20-minute transcript that changes subject once, halfway through. Long
+ * enough that breath-group counting and topic counting give visibly different
+ * answers, which is the whole point of the field.
+ */
+function createLongTranscript(): CanonicalTranscript {
+  const line = (index: number, text: string) => ({
+    id: `seg_${String(index).padStart(32, "0")}`,
+    position: index,
+    startMs: index * 10_000,
+    endMs: index * 10_000 + 10_000,
+    text,
+    confidence: 0.99,
+    detectedLanguage: "en" as const,
+  });
+  const segments = [
+    ...Array.from({ length: 60 }, (_, index) =>
+      line(index, "we sear the salmon and reduce the butter sauce in the pan"),
+    ),
+    ...Array.from({ length: 60 }, (_, index) =>
+      line(
+        index + 60,
+        "the telescope resolves distant galaxies beyond the nebula cluster",
+      ),
+    ),
+  ];
+  return { ...createTranscript(), durationMs: 1_200_000, segments };
+}
+
+function createLongEligibility(
+  transcript: CanonicalTranscript,
+): LanguageEligibilityReport {
+  const ids = transcript.segments.map((segment) => segment.id);
+  return {
+    ...createEligibility(),
+    englishSegmentIds: ids,
+    permittedSegmentIds: ids,
+    excludedSegmentIds: [],
+    windowEvidence: [
+      {
+        ...createEligibility().windowEvidence[0]!,
+        segmentIds: ids,
+        endMs: 1_200_000,
+      },
+    ],
   };
 }
 
@@ -349,12 +418,19 @@ describe("prepareLearningAuthoringBrief", () => {
       "window_cccccccc_cccccccc",
       "window_dddddddd_dddddddd",
     ]);
-    expect(profile.topicShiftCount).toBe(2);
+    // Zero, not two. The fixture is a single 60-second stretch on one subject;
+    // the three windows are breath groups, and counting those as topic shifts
+    // told the model an unbroken minute changed subject twice.
+    expect(profile.topicShiftCount).toBe(0);
     expect(profile.speechDensity).toBe("medium");
     expect(profile.register).toContain("technical");
     expect(profile.audioChallenge).not.toContain("accent");
     expect(profile.audioChallenge).not.toContain("noise");
-    expect(profile.lexicalCoverageEstimate).toBeNull();
+    // Was hardcoded to null while every other diagnostic was computed, so the
+    // pipeline could never tell a teachable video from an impossible one.
+    expect(profile.lexicalCoverageEstimate).not.toBeNull();
+    expect(profile.lexicalCoverageEstimate).toBeGreaterThan(0);
+    expect(profile.lexicalCoverageEstimate).toBeLessThanOrEqual(1);
   });
 
   it("grounds candidates, applies learner gap and respects the five-minute budget", () => {
@@ -408,6 +484,64 @@ describe("prepareLearningAuthoringBrief", () => {
     expect(prepared.authoringBrief.forbiddenFields).toContain(
       "segment_id_outside_allowlist",
     );
+  });
+
+  it("counts real topic shifts in a long video, not breath groups", () => {
+    // Twenty minutes on two subjects. Breath groups would have reported this as
+    // roughly forty topic shifts; the answer a learner would give is "one".
+    const long = createLongTranscript();
+    const context = assembleLearningGenerationContext({
+      ...createInput(),
+      transcript: long,
+      eligibility: createLongEligibility(long),
+    });
+    const profile = diagnoseLearningVideo(context);
+
+    expect(profile.topicShiftCount).toBeGreaterThan(0);
+    expect(profile.topicShiftCount).toBeLessThan(10);
+  });
+
+  it("narrows a long video to one teachable stretch before building windows", () => {
+    // Twenty minutes yields well over a hundred breath groups. Handing all of
+    // them to the model means it picks three at random; the budget only ever
+    // buys one stretch, so the choice of stretch is the decision that matters.
+    const long = createLongTranscript();
+    const context = assembleLearningGenerationContext({
+      ...createInput(),
+      transcript: long,
+      eligibility: createLongEligibility(long),
+    });
+    const profile = diagnoseLearningVideo(context);
+
+    const covered = new Set(
+      profile.candidateWindows.flatMap((window) => window.sourceSegmentIds),
+    );
+    expect(covered.size).toBeGreaterThan(0);
+    expect(covered.size).toBeLessThan(long.segments.length);
+
+    // The chosen stretch is contiguous — a lesson assembled from scattered
+    // minutes of a video is not a lesson about anything.
+    const positions = long.segments
+      .filter((segment) => covered.has(segment.id))
+      .map((segment) => segment.position);
+    expect(positions[positions.length - 1]! - positions[0]!).toBe(
+      positions.length - 1,
+    );
+  });
+
+  it("teaches a known item again once its review falls due", () => {
+    // The fixture recalled "player" correctly on 2026-08-06 and that alone kept
+    // it out of every lesson. A year later the learner has almost certainly
+    // forgotten it, and being able to meet it again is the point of scheduling.
+    const prepared = prepareLearningAuthoringBrief({
+      ...createInput(),
+      now: new Date("2027-08-07T09:00:00+00:00"),
+    });
+
+    expect(prepared.selection.rejections).not.toContainEqual({
+      candidateId: "candidate_player",
+      reason: "KNOWN_ITEM_NOT_DUE",
+    });
   });
 
   it("stops before authoring when constrained diagnosis abstains", () => {

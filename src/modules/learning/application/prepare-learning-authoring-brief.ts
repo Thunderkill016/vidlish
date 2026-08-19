@@ -1,4 +1,10 @@
 import { z } from "zod";
+import { estimateLexicalCoverage, tokenizeEnglish } from "./lexical-coverage";
+import { isDue, recordReview, type ReviewState } from "./review-scheduler";
+import {
+  segmentIntoTopicUnits,
+  selectTeachableUnit,
+} from "./topic-segmentation";
 
 import {
   languageEligibilityReportSchema,
@@ -100,6 +106,8 @@ export type PrepareLearningAuthoringBriefInput = {
   eligibility: LanguageEligibilityReport;
   learnerSnapshot: LearnerContextSnapshot;
   diagnosisProposal: ConstrainedDiagnosisProposal;
+  /** Injectable so a test can place the learner at a chosen point in time. */
+  now?: Date;
 };
 
 export type PreparedLearningAuthoringBrief = {
@@ -251,6 +259,32 @@ function latestReviewOutcome(
         Date.parse(right.occurredAt) - Date.parse(left.occurredAt),
     )[0];
   return latest?.outcome ?? null;
+}
+
+/**
+ * Replays an item's recorded outcomes through the scheduler to find when it
+ * next falls due.
+ *
+ * The snapshot stores the review log rather than a schedule, so the schedule is
+ * derived here. Returns null for an item the learner has never been asked to
+ * recall.
+ */
+function reviewStateFor(
+  snapshot: LearnerContextSnapshot,
+  itemKey: string,
+): ReviewState | null {
+  const history = snapshot.recentReviewOutcomes
+    .filter((review) => review.itemKey === itemKey)
+    .sort(
+      (left, right) =>
+        Date.parse(left.occurredAt) - Date.parse(right.occurredAt),
+    );
+
+  let state: ReviewState | null = null;
+  for (const review of history) {
+    state = recordReview(state, review.outcome, new Date(review.occurredAt));
+  }
+  return state;
 }
 
 function learnerGapScore(
@@ -444,8 +478,29 @@ export function diagnoseLearningVideo(
     estimatedSpeechRateWpm !== null && estimatedSpeechRateWpm >= 180
       ? ["fast"]
       : ["none"];
+  // Windows are breath groups — they flush on a 3.5s pause, 30 seconds, or 90
+  // words — so counting them counts breaths, not topics: an hour of video would
+  // report roughly 120 "topic shifts" and this number goes straight into the
+  // brief the model reads. Topic units measure the thing the field is named
+  // after, by looking at where the vocabulary actually turns over.
+  const topicUnits = segmentIntoTopicUnits(context.permittedSegments, {
+    cefrLevel: context.learnerSnapshot.targetCefr,
+  });
+
+  // A budget buys one stretch of video, so an hour-long source has to be
+  // narrowed before windows are built — otherwise the model picks three breath
+  // groups out of a hundred and twenty with nothing to go on. Coverage answers
+  // "which stretch" better than position does; it never answers "whether".
+  const teachableUnit =
+    topicUnits.length > 1 ? selectTeachableUnit(topicUnits) : null;
+  const teachableSegments = teachableUnit
+    ? context.permittedSegments.filter((segment) =>
+        teachableUnit.segmentIds.includes(segment.id),
+      )
+    : context.permittedSegments;
+
   const candidateWindows = buildLearningWindows(
-    context.permittedSegments,
+    teachableSegments,
     confidenceFromReport(context.eligibility),
   );
 
@@ -454,10 +509,13 @@ export function diagnoseLearningVideo(
     durationMs: context.transcript.durationMs,
     speechDensity,
     estimatedSpeechRateWpm,
-    topicShiftCount: Math.max(0, candidateWindows.length - 1),
+    topicShiftCount: Math.max(0, topicUnits.length - 1),
     register,
     audioChallenge,
-    lexicalCoverageEstimate: null,
+    lexicalCoverageEstimate: estimateLexicalCoverage(
+      context.permittedSegments.flatMap((segment) => tokenizeEnglish(segment.text)),
+      context.learnerSnapshot.targetCefr,
+    ),
     backgroundKnowledgeDependency,
     candidateWindows,
   });
@@ -475,6 +533,7 @@ export function gateLearningCandidates(
   context: LearningGenerationContext,
   profile: VideoLearningProfileV2,
   rawProposal: ConstrainedDiagnosisProposal,
+  now: Date = new Date(),
 ): LearningCandidateSelection {
   const proposal = constrainedDiagnosisProposalSchema.parse(rawProposal);
   if (proposal.abstainReason !== null) {
@@ -546,10 +605,16 @@ export function gateLearningCandidates(
         reject(rejections, candidate.id, "SOURCE_FORM_NOT_FOUND");
         continue;
       }
+      // The rejection is named NOT_DUE, so ask whether it is due. The previous
+      // test — last outcome was "good" — has no clock in it, so an item recalled
+      // once six months ago stayed permanently ineligible and the learner never
+      // met it again. Forgetting is what makes it teachable again.
+      const reviewState = reviewStateFor(context.learnerSnapshot, candidate.key);
       if (
         context.learnerSnapshot.knownItemKeys.includes(candidate.key) &&
         !context.learnerSnapshot.weakItemKeys.includes(candidate.key) &&
-        latestReviewOutcome(context.learnerSnapshot, candidate.key) === "good"
+        reviewState !== null &&
+        !isDue(reviewState, now)
       ) {
         reject(rejections, candidate.id, "KNOWN_ITEM_NOT_DUE");
         continue;
@@ -760,6 +825,7 @@ export function prepareLearningAuthoringBrief(
     context,
     videoProfile,
     input.diagnosisProposal,
+    input.now ?? new Date(),
   );
   const authoringBrief = buildLearningAuthoringBrief(
     context,
