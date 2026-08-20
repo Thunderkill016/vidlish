@@ -34,13 +34,9 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
-  "src/modules/learning/application/derive-learning-runtime-policy.ts":
-    "Derives per-lesson runtime rules so a generated lesson has any. Used by " +
-    "the same page as derive-learning-media, which is the next step.",
-  "src/modules/learning/application/derive-learning-media.ts":
-    "Builds playable media for a published v2 lesson from its own transcript, " +
-    "replacing the hardcoded fixture the learning lab still plays. The page " +
-    "that would use it is the next step; until then nothing calls it.",
+  // Empty. Every application module is reachable from a route or a workflow,
+  // including the ones that render a learner's own v2 lesson. Anything added
+  // back here has to say why.
 };
 
 function listSourceFiles(dir: string): string[] {

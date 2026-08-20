@@ -27,10 +27,16 @@ import type { LearningActivity, LessonBlueprintV2 } from "@/shared/contracts/les
  * passage, so a translation would end it, while a recall task is about one
  * phrase the learner has already met.
  */
+/**
+ * No `keyword_hint`. It would have to be filled with words from the passage,
+ * and for a gist question those words are most of the answer. A support step
+ * the product cannot fill honestly is worse than one it does not offer: the
+ * learner opens it, gets "no further hint", and has spent a support level for
+ * nothing.
+ */
 const LISTENING_SUPPORT = [
   "replay",
   "context_hint",
-  "keyword_hint",
   "english_caption",
 ] as const;
 
