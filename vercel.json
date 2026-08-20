@@ -7,5 +7,13 @@
       "preview/**": true
     }
   },
-  "ignoreCommand": "bash scripts/vercel-should-build.sh"
+  "ignoreCommand": "bash scripts/vercel-should-build.sh",
+  "functions": {
+    "app/.well-known/workflow/**": {
+      "maxDuration": 300
+    },
+    "app/api/**": {
+      "maxDuration": 60
+    }
+  }
 }
