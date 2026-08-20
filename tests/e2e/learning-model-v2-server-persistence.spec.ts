@@ -432,9 +432,13 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .eq("item_key", "a-member-of");
   expect(reviewedItemsError).toBeNull();
   expect(reviewedItems).toHaveLength(1);
+  // The lesson contributed four attempts and two retrievals; the delayed review
+  // adds its own four and one. Before VLR-201 the lesson half was written as
+  // zeros, so this row only ever counted the review — the totals said nothing
+  // about the session that taught the item.
   expect(reviewedItems?.[0]).toMatchObject({
-    attempt_count: 4,
-    successful_retrievals: 1,
+    attempt_count: 8,
+    successful_retrievals: 3,
     last_outcome: "hard",
   });
   expect(reviewedItems?.[0]?.last_delayed_transfer_at).toBeTruthy();
