@@ -78,7 +78,13 @@ test("golden Learning Model v2 session enforces support retry transfer and hones
   await page.getByRole("button", { name: "Kiểm tra câu trả lời" }).click();
   await expect(page.getByText("Chưa đúng", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
-  await page.getByRole("button", { name: "Mở gợi ý từ khóa" }).click();
+  // No keyword hint any more. It could only be filled with words from the
+  // passage, and for a gist question those words are most of the answer — a
+  // support step the product cannot fill honestly is worse than one it does not
+  // offer, because the learner spends a support level for nothing.
+  await expect(
+    page.getByRole("button", { name: "Mở gợi ý từ khóa" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Mở phụ đề tiếng anh" }).click();
   await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
   await page.getByRole("button", { name: "Thử lại" }).click();

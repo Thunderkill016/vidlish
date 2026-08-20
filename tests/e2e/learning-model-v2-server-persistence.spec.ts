@@ -77,7 +77,9 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await expect(page.getByText("Chưa đúng", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
 
-  await page.getByRole("button", { name: "Mở gợi ý từ khóa" }).click();
+  await expect(
+    page.getByRole("button", { name: "Mở gợi ý từ khóa" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Mở phụ đề tiếng anh" }).click();
   await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
 
@@ -225,9 +227,10 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     )
     .map((event) => event.support_step)
     .sort();
-  expect(gistSupportSteps).toEqual(
-    ["context_hint", "english_caption", "keyword_hint"].sort(),
-  );
+  // Keyword hint is gone from the ladder, so it must not appear in the durable
+  // record either — the persisted evidence and the offered ladder are the same
+  // claim seen from two sides.
+  expect(gistSupportSteps).toEqual(["context_hint", "english_caption"].sort());
 
   const exitPlayback = (supportEvents ?? []).filter(
     (event) =>
