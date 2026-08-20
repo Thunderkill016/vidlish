@@ -433,6 +433,21 @@ export class SupabaseLearningSessionRepository
     return mapReviewSession(reviewSessionRowSchema.parse(result.data));
   }
 
+  async countActivityAttempts(input: {
+    ownerUserId: string;
+    sessionId: string;
+    activityId: string;
+  }) {
+    const result = await this.client
+      .from("activity_attempts")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("session_id", input.sessionId)
+      .eq("activity_id", input.activityId);
+    if (result.error) throw result.error;
+    return result.count ?? 0;
+  }
+
   async countReviewAttempts(
     reviewSessionId: string,
     step: "recall" | "transfer",

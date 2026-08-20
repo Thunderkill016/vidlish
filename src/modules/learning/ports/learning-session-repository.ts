@@ -67,6 +67,18 @@ export interface LearningSessionRepository {
     ownerUserId: string,
   ): Promise<number>;
 
+  /**
+   * How many attempts this session already holds for an activity.
+   *
+   * The server needs it to apply the same attempt limit the browser displays;
+   * without it the two disagree about when a learner may move on.
+   */
+  countActivityAttempts(input: {
+    ownerUserId: string;
+    sessionId: string;
+    activityId: string;
+  }): Promise<number>;
+
   recordAttempt(
     input: RecordLearningAttemptInput,
   ): Promise<{

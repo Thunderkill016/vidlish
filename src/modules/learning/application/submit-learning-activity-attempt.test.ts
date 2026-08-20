@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { createFixtureLearningBlueprint } from "@/adapters/fake/fixture-learning-blueprint";
 import { InMemoryLearningSessionRepository } from "@/adapters/fake/in-memory-learning-session-repository";
+import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import { SubmitLearningActivityAttempt } from "@/modules/learning/application/submit-learning-activity-attempt";
 
 const ownerUserId = "11111111-1111-4111-8111-111111111111";
@@ -25,6 +26,7 @@ describe("SubmitLearningActivityAttempt", () => {
       ownerUserId,
       sessionId: session.id,
       blueprint: createFixtureLearningBlueprint(),
+      policy: deriveLearningRuntimePolicy(createFixtureLearningBlueprint()),
       activityId: "activity_gist",
       idempotencyKey: "33333333-3333-4333-8333-333333333333",
       response: { kind: "choice", optionId: "option_embedded_player" },
@@ -47,6 +49,7 @@ describe("SubmitLearningActivityAttempt", () => {
       ownerUserId,
       sessionId: session.id,
       blueprint: createFixtureLearningBlueprint(),
+      policy: deriveLearningRuntimePolicy(createFixtureLearningBlueprint()),
       activityId: "activity_gist",
       idempotencyKey: "44444444-4444-4444-8444-444444444444",
       response: {
@@ -70,6 +73,7 @@ describe("SubmitLearningActivityAttempt", () => {
         ownerUserId,
         sessionId: session.id,
         blueprint: createFixtureLearningBlueprint(),
+      policy: deriveLearningRuntimePolicy(createFixtureLearningBlueprint()),
         activityId: "activity_transfer",
         idempotencyKey: "55555555-5555-4555-8555-555555555555",
         response: {
@@ -90,6 +94,7 @@ describe("SubmitLearningActivityAttempt", () => {
       ownerUserId,
       sessionId: session.id,
       blueprint,
+      policy: deriveLearningRuntimePolicy(blueprint),
       activityId: "activity_gist",
       idempotencyKey: "56111111-1111-4111-8111-111111111111",
       response: { kind: "choice", optionId: "option_embedded_player" },
@@ -98,6 +103,7 @@ describe("SubmitLearningActivityAttempt", () => {
       ownerUserId,
       sessionId: session.id,
       blueprint,
+      policy: deriveLearningRuntimePolicy(blueprint),
       activityId: "activity_meaning",
       idempotencyKey: "56222222-2222-4222-8222-222222222222",
       response: { kind: "choice", optionId: "option_affiliation" },
@@ -107,6 +113,7 @@ describe("SubmitLearningActivityAttempt", () => {
       ownerUserId,
       sessionId: session.id,
       blueprint,
+      policy: deriveLearningRuntimePolicy(blueprint),
       activityId: "activity_recall",
       idempotencyKey: "56333333-3333-4333-8333-333333333333",
       response: { kind: "text", text: rawAnswer },
@@ -169,6 +176,7 @@ describe("SubmitLearningActivityAttempt", () => {
         ownerUserId,
         sessionId: session.id,
         blueprint,
+        policy: deriveLearningRuntimePolicy(blueprint),
         ...attempt,
       });
     }

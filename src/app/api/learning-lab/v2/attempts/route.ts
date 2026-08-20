@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import { evaluateLearningActivity } from "@/modules/learning/application/evaluate-learning-activity";
 import { SubmitLearningActivityAttempt } from "@/modules/learning/application/submit-learning-activity-attempt";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
@@ -57,6 +58,9 @@ export async function POST(request: NextRequest) {
           ownerUserId: access.userId,
           sessionId: parsed.data.sessionId,
           blueprint,
+          // Derived from this lesson, so the attempt limit the server enforces
+          // is the same one the learner was shown.
+          policy: deriveLearningRuntimePolicy(blueprint),
           activityId: parsed.data.activityId,
           idempotencyKey: parsed.data.idempotencyKey,
           response: parsed.data.response,

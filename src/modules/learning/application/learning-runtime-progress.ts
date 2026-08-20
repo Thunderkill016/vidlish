@@ -125,6 +125,30 @@ export function learningActivityProgressEvidence(
   };
 }
 
+/**
+ * Whether the learner has run out of attempts on an answer that is still wrong.
+ *
+ * VLR-005. The browser computed this and offered Continue; the server had no
+ * notion of an attempt limit and refused to advance. A learner could exhaust
+ * their attempts, be shown Continue, click it, and stay exactly where they
+ * were with no explanation.
+ *
+ * One function, used by both, so the two cannot drift again. Advancing here is
+ * not a claim of mastery: the persisted attempts still record every wrong
+ * answer and how many were spent, and capability evidence is read from those,
+ * never from having moved on.
+ */
+export function isAssistedCompletion(input: {
+  attemptCount: number;
+  latestVerdict: "correct" | "incorrect" | "self_check" | "unscored" | null;
+  maxAttemptsPerSession: number;
+}): boolean {
+  return (
+    input.attemptCount >= input.maxAttemptsPerSession &&
+    input.latestVerdict === "incorrect"
+  );
+}
+
 export function learningActivityCompletionState(
   policy: ActivityLearningPolicy,
   progress: LearningActivityRuntimeProgress,
@@ -136,8 +160,11 @@ export function learningActivityCompletionState(
   const latest = latestLearningAttempt(progress);
   const attemptLimitReached =
     evidence.attemptCount >= policy.retry.maxAttemptsPerSession;
-  const assistedCompletion =
-    attemptLimitReached && latest?.evaluation.verdict === "incorrect";
+  const assistedCompletion = isAssistedCompletion({
+    attemptCount: evidence.attemptCount,
+    latestVerdict: latest?.evaluation.verdict ?? null,
+    maxAttemptsPerSession: policy.retry.maxAttemptsPerSession,
+  });
 
   if (
     latest?.evaluation.verdict === "incorrect" &&
