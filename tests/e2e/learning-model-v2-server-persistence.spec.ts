@@ -301,7 +301,14 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await page.getByLabel("Câu trả lời").fill("a member of");
   await page.getByRole("button", { name: "Kiểm tra trí nhớ" }).click();
   await expect(page.getByText("Không lặp lại câu nguồn")).toBeVisible();
-  await expect(page.getByText(/nhóm tình nguyện cộng đồng/i)).toBeVisible();
+  // The delayed transfer reuses the scenario the lesson itself authored, not a
+  // scenario invented for review. The resolver this replaced carried its own
+  // hard-coded "nhóm tình nguyện cộng đồng" text, which is exactly the kind of
+  // ungrounded content VLR-003 removed — so the string asserted here has to be
+  // the blueprint's own.
+  await expect(
+    page.getByText(/đang giới thiệu bản thân với cộng tác viên mới/i),
+  ).toBeVisible();
   await expect(page.getByText("Câu mẫu sau attempt:")).toHaveCount(0);
 
   await page.getByLabel("Câu của bạn").fill(PRIVATE_DELAYED_TRANSFER_TEXT);
@@ -309,7 +316,7 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await expect(page.getByText("Tự đối chiếu câu bạn vừa viết")).toBeVisible();
   await expect(
     page.getByText(
-      "Câu mẫu sau attempt: I'm a member of the community volunteer team.",
+      "Câu mẫu sau attempt: I'm a member of the product design team.",
       { exact: true },
     ),
   ).toBeVisible();
