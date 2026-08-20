@@ -227,7 +227,7 @@ const PROVIDER_FAILURE_REASON: Record<
   LessonGenerationFailureKind,
   "provider_failure" | "provider_rate_limited" | "provider_truncated" |
   "provider_declined" | "provider_not_json" | "provider_schema_rejected" |
-  "provider_unavailable"
+  "provider_unavailable" | "quality_rejected"
 > = {
   request_failed: "provider_failure",
   rate_limited: "provider_rate_limited",
@@ -236,6 +236,7 @@ const PROVIDER_FAILURE_REASON: Record<
   declined: "provider_declined",
   not_json: "provider_not_json",
   schema_rejected: "provider_schema_rejected",
+  quality_rejected: "quality_rejected",
 };
 
 export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
@@ -337,6 +338,9 @@ export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
         : "unexpected_error",
       causeName: generationFailure?.causeName,
       providerStatus: generationFailure?.providerStatus,
+      qualityIssues: generationFailure?.qualityIssues
+        ? [...generationFailure.qualityIssues]
+        : undefined,
       elapsedMs: Date.now() - startedAt,
       ...(generationFailure ? { retryable: generationFailure.retryable } : {}),
       errorName: safeErrorName(error),

@@ -44,7 +44,9 @@ export type LessonGenerationFailureKind =
   | "truncated"
   | "declined"
   | "not_json"
-  | "schema_rejected";
+  | "schema_rejected"
+  /** Vidlish's own deterministic gate refused the output, not the provider. */
+  | "quality_rejected";
 
 export class LessonGenerationFailure extends Error {
   readonly name = "LessonGenerationFailure";
@@ -61,12 +63,14 @@ export class LessonGenerationFailure extends Error {
       kind?: LessonGenerationFailureKind;
       causeName?: string;
       providerStatus?: number;
+      qualityIssues?: readonly string[];
     },
   ) {
     super(message, options);
     this.kind = options?.kind ?? "request_failed";
     this.causeName = options?.causeName;
     this.providerStatus = options?.providerStatus;
+    this.qualityIssues = options?.qualityIssues;
   }
 
   readonly kind: LessonGenerationFailureKind;
@@ -74,4 +78,6 @@ export class LessonGenerationFailure extends Error {
   readonly causeName?: string;
   /** Any HTTP status found in the provider's message, safe to log. */
   readonly providerStatus?: number;
+  /** Deterministic quality codes that refused the output, safe to log. */
+  readonly qualityIssues?: readonly string[];
 }
