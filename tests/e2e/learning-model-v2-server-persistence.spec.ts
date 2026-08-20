@@ -51,7 +51,6 @@ async function mockYouTubeIframeApi(page: Page) {
               getAvailablePlaybackRates() { return [0.25, 0.5, 0.75, 1, 1.5, 2]; },
               getPlaybackRate() { return rate; },
               setPlaybackRate(next) {
-                window.__vidlishYouTubeCalls.push({ method: "rate", input: next });
                 if (!this.getAvailablePlaybackRates().includes(next)) return;
                 rate = next;
                 options.events.onPlaybackRateChange?.({ target: player, data: next });
