@@ -416,11 +416,30 @@ reset role;
 select has_column('public', 'learning_item_states', 'last_independent_at', 'item state stores independent-production timestamp');
 select has_column('public', 'learning_item_states', 'transfer_succeeded_at', 'item state stores changed-context reuse timestamp');
 
+-- A second parent lesson: `lesson_versions` is unique on
+-- (lesson_id, schema_version), so a second v2 blueprint cannot hang off the
+-- lesson the earlier fixture already used.
+insert into public.lessons (
+  id, owner_user_id, job_id, transcript_id, video_id, cefr_level,
+  schema_version, pipeline_version, prompt_version, model_id,
+  transcript_hash, input_tokens, output_tokens, draft, citations
+) values (
+  'b6666666-6666-4666-8666-666666666666',
+  'a1111111-1111-4111-8111-111111111111',
+  'a4444444-4444-4444-8444-444444444444',
+  'a5555555-5555-4555-8555-555555555555',
+  'a3333333-3333-4333-8333-333333333333',
+  'B1', 'lesson:v1', 'lesson-pipeline:v1', 'lesson-prompt:v1',
+  'fixture-review-model', repeat('d', 64), 1, 1,
+  '{"titleVi":"Evidence parent"}'::jsonb,
+  '[{"segmentId":"seg_dddddddddddddddddddddddddddddddd","startMs":0,"endMs":1000,"text":"one"}]'::jsonb
+);
+
 insert into public.lesson_versions (
   id, lesson_id, owner_user_id, schema_version, blueprint
 ) values (
   'a9999999-9999-4999-8999-999999999999',
-  'a6666666-6666-4666-8666-666666666666',
+  'b6666666-6666-4666-8666-666666666666',
   'a1111111-1111-4111-8111-111111111111',
   'lesson:v2',
   '{
