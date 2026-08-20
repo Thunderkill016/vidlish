@@ -347,6 +347,12 @@ export function LearningSessionLab({
             setSessionId(
               typeof parsed.sessionId === "string" ? parsed.sessionId : null,
             );
+            // Only a session restored from storage needs reconciling. A session
+            // opened in this page load has just been read from the server, and
+            // asking again would race the plays and attempts that follow — it
+            // did, and only on the slower mobile project.
+            needsReconcileRef.current =
+              typeof parsed.sessionId === "string" && Boolean(parsed.started);
             setStarted(Boolean(parsed.started));
             setCompleted(Boolean(parsed.completed));
             setEvidenceIndex(0);
@@ -384,11 +390,11 @@ export function LearningSessionLab({
   // stayed on screen until the next attempt — and on a device that had never
   // seen the lesson, an empty one did. Resuming is idempotent, so asking here
   // costs one request and makes the durable record the thing on screen.
-  const reconciledRef = useRef(false);
+  const needsReconcileRef = useRef(false);
   useEffect(() => {
-    if (!loaded || reconciledRef.current) return;
+    if (!loaded || !needsReconcileRef.current) return;
     if (!sessionId || !started || completed) return;
-    reconciledRef.current = true;
+    needsReconcileRef.current = false;
     void startOrResumeSession().catch(() => {
       // Left to the next action to report. Failing loudly here would replace a
       // usable restored session with an error the learner cannot act on.
