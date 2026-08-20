@@ -37,6 +37,17 @@ export const LEARNING_AUTHORING_PROMPT_VERSION =
 const MAX_OUTPUT_TOKENS = 24_000;
 
 /**
+ * A ceiling on each model call, so a slow one fails loudly instead of silently.
+ *
+ * The authoring chain makes two calls, roughly 25 seconds each when measured.
+ * Without a ceiling a hung call runs until the platform kills the whole
+ * invocation — which is what happened in production: the step logged that it
+ * started and then nothing at all, because the process died before any catch
+ * block could run. A failure nobody can see is worse than a slower failure.
+ */
+const CALL_TIMEOUT_MS = 90_000;
+
+/**
  * Gemini rejects a response schema carrying these — it answers "too many states
  * for serving" rather than failing on the offending keyword, so the cause is
  * invisible unless you already know. Measured against a live key.
@@ -159,6 +170,7 @@ export class GeminiLearningAuthoringProvider
         model: this.options.modelId,
         contents: prompt,
         config: {
+          abortSignal: AbortSignal.timeout(CALL_TIMEOUT_MS),
           systemInstruction,
           responseMimeType: "application/json",
           responseJsonSchema: schema,

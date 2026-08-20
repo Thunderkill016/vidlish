@@ -487,7 +487,7 @@ export async function authorLearningLessonStep(
   const startedAt = Date.now();
 
   try {
-    const result = await createAuthorLearningLesson().execute({
+    const result = await withDeadline(createAuthorLearningLesson().execute({
       jobId: job.id,
       lessonId: lesson.id,
       ownerUserId: job.ownerUserId,
@@ -498,7 +498,7 @@ export async function authorLearningLessonStep(
       learnerSnapshot: defaultLearnerSnapshot(job.cefrLevel),
       blueprintId: crypto.randomUUID(),
       now: new Date(),
-    });
+    }), AUTHORING_DEADLINE_MS);
 
     emitGenerationEvent({
       level: "info",
@@ -527,6 +527,29 @@ export async function authorLearningLessonStep(
     });
     return { kind: "skipped", reason: "authoring_failed" } as const;
   }
+}
+
+/**
+ * Long enough for two model calls, short enough to lose the race against the
+ * platform's own limit.
+ *
+ * In production this step logged that it started and then nothing at all: the
+ * invocation was killed mid-flight, so no catch block ran and no failure was
+ * recorded. Losing to our own deadline is worse than finishing, and far better
+ * than dying silently — a failure nobody can see cannot be fixed.
+ */
+const AUTHORING_DEADLINE_MS = 240_000;
+
+function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
+  return Promise.race([
+    work,
+    new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error(`Learning authoring exceeded ${ms}ms.`)),
+        ms,
+      ).unref?.(),
+    ),
+  ]);
 }
 
 /**
