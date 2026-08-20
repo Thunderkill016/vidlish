@@ -39,6 +39,53 @@ function citationText(
     .join(" ");
 }
 
+/**
+ * How many neighbouring cues a cited phrase may run into.
+ *
+ * Caption cues are not sentences. On many YouTube videos they are five-word
+ * fragments that break mid-phrase — "This is the deathnut" / "challenge." — so
+ * a phrase the speaker plainly said does not fit inside any single cue.
+ *
+ * Measured on a real failing video: the model taught "at the same time" and
+ * "winners", both spoken in the video, both spanning a cue boundary, and the
+ * gate rejected the whole lesson. Every Gemini model failed the same way,
+ * because no model can guess which neighbouring cue to cite as well.
+ *
+ * Two is enough for a fragment split across a boundary without turning the
+ * check into "anywhere in the video", which is what would actually let a
+ * hallucination through.
+ */
+const ADJACENT_CUE_REACH = 2;
+
+/**
+ * The speech a citation covers, plus the cues immediately after it.
+ *
+ * This does not widen what a lesson may quote: every cue here is already a
+ * permitted segment, so the speech is still real and still inside the language
+ * gate's allowlist. Only the citation's boundary is treated as approximate,
+ * because cue boundaries are an artefact of captioning, not of speech.
+ */
+function groundingWindow(
+  sourceSegmentIds: readonly string[],
+  permittedSegments: ReadonlyArray<PermittedLessonSegment>,
+  byId: ReadonlyMap<string, string>,
+): string {
+  const positions = sourceSegmentIds
+    .map((id) => permittedSegments.findIndex((segment) => segment.id === id))
+    .filter((index) => index >= 0);
+  if (positions.length === 0) return citationText(sourceSegmentIds, byId);
+
+  // Symmetric. Measured on the failing video, a rejected phrase sat three cues
+  // *before* the cited one — a forward-only window missed it. Cue boundaries
+  // are arbitrary in both directions, so reaching in only one was arbitrary too.
+  const start = Math.max(0, Math.min(...positions) - ADJACENT_CUE_REACH);
+  const end = Math.max(...positions) + ADJACENT_CUE_REACH;
+  return permittedSegments
+    .slice(start, end + 1)
+    .map((segment) => segment.text)
+    .join(" ");
+}
+
 function containsGroundedText(haystack: string, needle: string): boolean {
   const normalizedNeedle = normalize(needle);
   if (!normalizedNeedle) return false;
@@ -68,7 +115,7 @@ export function validateGeneratedLessonQuality(
     }
     seenVocabulary.add(normalizedTerm);
 
-    const source = citationText(item.sourceSegmentIds, byId);
+    const source = groundingWindow(item.sourceSegmentIds, permittedSegments, byId);
     if (!containsGroundedText(source, item.term)) {
       issues.push({ code: "UNGROUNDED_VOCABULARY_TERM", path: `vocabulary.${index}.term` });
     }
@@ -85,7 +132,7 @@ export function validateGeneratedLessonQuality(
     }
     seenPhrases.add(normalizedPhrase);
 
-    const source = citationText(item.sourceSegmentIds, byId);
+    const source = groundingWindow(item.sourceSegmentIds, permittedSegments, byId);
     if (!containsGroundedText(source, item.phrase)) {
       issues.push({ code: "UNGROUNDED_PHRASE", path: `phrases.${index}.phrase` });
     }

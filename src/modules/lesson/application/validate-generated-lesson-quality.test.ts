@@ -109,3 +109,93 @@ describe("validateGeneratedLessonQuality", () => {
     );
   });
 });
+
+/**
+ * A draft whose only interesting part is one phrase and its citation. Every
+ * other field is grounded in the first cue so the assertions isolate the phrase.
+ */
+function draftWithPhrase(phrase: string, sourceSegmentIds: string[]): LessonDraft {
+  const base = validDraft();
+  return {
+    ...base,
+    vocabulary: base.vocabulary.map((item, index) => ({
+      ...item,
+      term: index === 0 ? "deathnut" : `unused${index}`,
+      sourceSegmentIds: ["seg_a"],
+    })),
+    phrases: [
+      { ...base.phrases[0]!, phrase, sourceSegmentIds },
+      // Spares must themselves be grounded, or they raise the very issue the
+      // assertions are looking for and the test measures nothing.
+      ...base.phrases.slice(1).map((item, index) => ({
+        ...item,
+        phrase: index === 0 ? "let's go" : "no water",
+        sourceSegmentIds: index === 0 ? ["seg_e"] : ["seg_d"],
+      })),
+    ],
+    comprehensionQuestions: base.comprehensionQuestions.map((question) => ({
+      ...question,
+      sourceSegmentIds: ["seg_a"],
+    })),
+  } as LessonDraft;
+}
+
+describe("grounding across caption cues", () => {
+  const cues = [
+    { id: "seg_a", text: "This is the deathnut" },
+    { id: "seg_b", text: "challenge." },
+    { id: "seg_c", text: "We ain't got no milk," },
+    { id: "seg_d", text: "no water, no nothing." },
+    { id: "seg_e", text: "Let's go, bro." },
+  ];
+
+  it("accepts a phrase split across two cues", () => {
+    // Caption cues are not sentences. On many YouTube videos they are five-word
+    // fragments that break mid-phrase, so a phrase the speaker plainly said
+    // fits inside no single cue. Rejecting it called the model a liar for
+    // quoting the video correctly.
+    const issues = validateGeneratedLessonQuality(
+      draftWithPhrase("the deathnut challenge", ["seg_a"]),
+      cues,
+    );
+    expect(issues.map((issue) => issue.code)).not.toContain("UNGROUNDED_PHRASE");
+  });
+
+  it("accepts a phrase sitting just before the cited cue", () => {
+    // Measured on the real failing video: a rejected phrase sat three cues
+    // before the citation. A forward-only window missed it.
+    const issues = validateGeneratedLessonQuality(
+      draftWithPhrase("this is the deathnut", ["seg_c"]),
+      cues,
+    );
+    expect(issues.map((issue) => issue.code)).not.toContain("UNGROUNDED_PHRASE");
+  });
+
+  it("still rejects a phrase nobody said", () => {
+    // The whole point. Widening the window must not turn the gate off — an
+    // invented phrase has to stay rejected however it is cited.
+    const issues = validateGeneratedLessonQuality(
+      draftWithPhrase("we should schedule a follow up meeting", ["seg_a"]),
+      cues,
+    );
+    expect(issues.map((issue) => issue.code)).toContain("UNGROUNDED_PHRASE");
+  });
+
+  it("still rejects speech from the far end of the video", () => {
+    // Real speech, but nowhere near the citation. Accepting this would make the
+    // citation meaningless and play the learner the wrong moment.
+    const long = [
+      ...cues,
+      ...Array.from({ length: 30 }, (_, i) => ({
+        id: `seg_pad${i}`,
+        text: "padding words here",
+      })),
+      { id: "seg_far", text: "an entirely different closing remark" },
+    ];
+    const issues = validateGeneratedLessonQuality(
+      draftWithPhrase("an entirely different closing remark", ["seg_a"]),
+      long,
+    );
+    expect(issues.map((issue) => issue.code)).toContain("UNGROUNDED_PHRASE");
+  });
+});

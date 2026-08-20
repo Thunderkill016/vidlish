@@ -58,6 +58,9 @@ export const generationEventSchema = z
         "provider_declined",
         "provider_not_json",
         "provider_schema_rejected",
+        // Our own gate, not the provider's. The distinction matters: one is
+        // someone else's outage, the other is a decision this codebase made.
+        "quality_rejected",
         "unexpected_error",
       ])
       .optional(),
@@ -76,6 +79,7 @@ export const generationEventSchema = z
      */
     causeName: safeIdentifierSchema.optional(),
     providerStatus: z.number().int().min(100).max(599).optional(),
+    qualityIssues: z.array(safeIdentifierSchema).max(8).optional(),
   })
   .strict();
 
