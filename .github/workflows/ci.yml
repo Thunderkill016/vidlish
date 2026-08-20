@@ -266,6 +266,11 @@ jobs:
           psql "$DB_URL" \
             --set ON_ERROR_STOP=1 \
             --file supabase/fixtures/learning_model_v2_durable.sql
+          # VLR-004. A second lesson whose ids nothing recognises, so a layer
+          # quietly depending on the Golden names fails instead of passing.
+          psql "$DB_URL" \
+            --set ON_ERROR_STOP=1 \
+            --file supabase/fixtures/learning_model_v2_arbitrary.sql
       - name: Export local Supabase API credentials
         run: |
           supabase status -o env \
@@ -289,6 +294,7 @@ jobs:
         run: >-
           pnpm exec playwright test
           tests/e2e/learning-model-v2-server-persistence.spec.ts
+          tests/e2e/learning-model-v2-arbitrary.spec.ts
           --project=chromium
           --workers=1
           --retries=0
