@@ -34,6 +34,7 @@ async function mockYouTubeIframeApi(page: Page) {
             const iframe = document.createElement("iframe");
             iframe.dataset.mockYoutube = "true";
             element.replaceWith(iframe);
+            let rate = 1;
             const player = {
               cueVideoById() {},
               loadVideoById() {
@@ -43,7 +44,18 @@ async function mockYouTubeIframeApi(page: Page) {
                 options.events.onStateChange({ target: player, data: 2 });
               },
               destroy() { iframe.remove(); },
-              getIframe() { return iframe; }
+              getIframe() { return iframe; },
+              // Mirrors a real embed: the rate only changes if it is one the
+              // player offers, and the change is announced through the event
+              // rather than assumed by the caller.
+              getAvailablePlaybackRates() { return [0.25, 0.5, 0.75, 1, 1.5, 2]; },
+              getPlaybackRate() { return rate; },
+              setPlaybackRate(next) {
+                window.__vidlishYouTubeCalls.push({ method: "rate", input: next });
+                if (!this.getAvailablePlaybackRates().includes(next)) return;
+                rate = next;
+                options.events.onPlaybackRateChange?.({ target: player, data: next });
+              }
             };
             setTimeout(() => options.events.onReady({ target: player }), 0);
             return player;
@@ -80,6 +92,15 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await expect(
     page.getByRole("button", { name: "Mở gợi ý từ khóa" }),
   ).toHaveCount(0);
+
+  // Slowing the audio now sits before the caption in the ladder. Driven from
+  // the player, not the ladder button, so the row written below can only exist
+  // because the player confirmed the rate change.
+  await page.getByRole("button", { name: "Phát chậm 0.75×" }).click();
+  await expect(
+    page.getByText("Đoạn nguồn đang phát chậm hơn theo xác nhận của trình phát."),
+  ).toBeVisible();
+
   await page.getByRole("button", { name: "Mở phụ đề tiếng anh" }).click();
   await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
 
@@ -208,11 +229,11 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .select("*")
     .eq("session_id", sessionId);
   expect(supportEventsError).toBeNull();
-  // Two gist replays, the two support steps the ladder still offers, and one
-  // exit replay. This total and the per-kind assertions below have to be
-  // changed together; when the keyword hint left the ladder only the per-kind
-  // ones were updated, and the stale total was the failure.
-  expect(supportEvents).toHaveLength(5);
+  // Two gist replays, the three support steps the ladder offers, and one exit
+  // replay. This total and the per-kind assertions below have to be changed
+  // together; when the keyword hint left the ladder only the per-kind ones were
+  // updated, and the stale total was the failure.
+  expect(supportEvents).toHaveLength(6);
 
   const gistPlaybackOrdinals = (supportEvents ?? [])
     .filter(
@@ -233,8 +254,11 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .sort();
   // Keyword hint is gone from the ladder, so it must not appear in the durable
   // record either — the persisted evidence and the offered ladder are the same
-  // claim seen from two sides.
-  expect(gistSupportSteps).toEqual(["context_hint", "english_caption"].sort());
+  // claim seen from two sides. `slower_playback` is here because the player
+  // confirmed the rate; had it refused, this row must not exist.
+  expect(gistSupportSteps).toEqual(
+    ["context_hint", "slower_playback", "english_caption"].sort(),
+  );
 
   const exitPlayback = (supportEvents ?? []).filter(
     (event) =>

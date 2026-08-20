@@ -213,7 +213,9 @@ function supportMessage(
       "Vidlish chưa có nghĩa theo ngữ cảnh đã kiểm chứng."
     );
   }
-  if (step === "slower_playback") return "Fixture này chưa bật phát chậm.";
+  if (step === "slower_playback") {
+    return "Đoạn nguồn đang phát chậm hơn theo xác nhận của trình phát.";
+  }
   return supportCopy[activityId]?.[step] ?? "Không có gợi ý bổ sung.";
 }
 
@@ -283,6 +285,19 @@ export function LearningSessionLab({
   const evidenceRange = current?.evidence[0];
   const captionControlAllowed = currentProgress.openedSupportSteps.includes(
     "english_caption",
+  );
+  // The control appears once the policy would permit the step, not once the
+  // learner has opened it: unlike a caption, slowing the audio reveals no
+  // language, so the earned thing is the act itself and it is recorded when the
+  // player confirms it.
+  const slowPlaybackAllowed = Boolean(
+    currentPolicy?.support &&
+      currentPolicy.support.steps.includes("slower_playback") &&
+      canUseSupportStep(
+        currentPolicy.support,
+        "slower_playback",
+        currentProgress.attempts.length,
+      ),
   );
   // Offered only if the policy would actually permit it. Picking the first
   // unopened step regardless put an answer-revealing button in front of a
@@ -495,6 +510,39 @@ export function LearningSessionLab({
     return learningLabSupportEventResponseSchema.parse(body);
   }
 
+  /**
+   * Records the slow-playback support step, after the player confirmed it.
+   *
+   * Called from the player's rate-change event rather than its button, so the
+   * durable record says the audio slowed only when it actually did. The server
+   * still decides whether the step was permitted; a refusal surfaces as an
+   * error instead of a support level the learner never received.
+   */
+  async function recordSlowPlaybackEvidence() {
+    if (!current || !currentPolicy?.support) return;
+    if (currentProgress.openedSupportSteps.includes("slower_playback")) return;
+    const activityId = current.id;
+    try {
+      const persisted = await sendSupportEvent(activityId, {
+        eventKind: "support_opened",
+        supportStep: "slower_playback",
+      });
+      if (persisted.event.supportStep !== "slower_playback") {
+        throw new Error("Server trả về support evidence không khớp.");
+      }
+      updateProgressForActivity(activityId, (progress) =>
+        openLearningSupportStep(progress, "slower_playback"),
+      );
+      setError("");
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Đoạn đã phát chậm nhưng Vidlish chưa lưu được evidence.",
+      );
+    }
+  }
+
   async function recordPlaybackEvidence() {
     if (!current || !currentPolicy) return;
     const activityId = current.id;
@@ -640,6 +688,13 @@ export function LearningSessionLab({
     }
     if (nextSupportStep === "replay") {
       setError("Nhấn Phát đoạn lần thứ hai để dùng hỗ trợ Nghe lại đoạn.");
+      return;
+    }
+    // Same reason as replay: this step is recorded from what the player did,
+    // not from a click on the ladder. Recording it here would claim the audio
+    // slowed while it was still playing at full speed.
+    if (nextSupportStep === "slower_playback") {
+      setError("Nhấn Phát chậm trong trình phát để dùng mức hỗ trợ này.");
       return;
     }
     if (
@@ -850,7 +905,11 @@ export function LearningSessionLab({
                 videoTitle={blueprint.source.videoTitle}
                 evidence={evidenceRange}
                 captionControlAllowed={captionControlAllowed}
+                slowPlaybackAllowed={slowPlaybackAllowed}
                 onPlay={() => void recordPlaybackEvidence()}
+                onSlowPlaybackConfirmed={() =>
+                  void recordSlowPlaybackEvidence()
+                }
               />
             </div>
           ) : (
