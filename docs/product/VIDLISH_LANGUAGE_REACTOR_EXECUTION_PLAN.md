@@ -320,8 +320,27 @@ Acceptance:
 
 #### VLR-007 — stale PR #68 must not be merged blindly
 
-**Status:** `[ ]` the one Phase 0 item still open  
+**Status:** `[x]`  
 **Priority:** P1
+
+```text
+PR: #79 (PR #68 closed unmerged)
+Merge SHA: 2a12908
+Evidence: CI run 32377992304 — unit, typecheck/lint, production build, pgTAP,
+Chromium product journeys, Supabase-backed learning journey (all pass);
+each of the five gate conditions verified red before the fix
+Date: 2026-08-20
+```
+
+Salvaged selectively rather than rebased, which is what "must not be merged
+blindly" turned out to mean in practice. PR #68 predates PR #69–#76 and its
+`gemini-learning-authoring-provider.ts` deletes `CALL_TIMEOUT_MS` and its
+`abortSignal` — the fix for the production step that died silently — so merging
+it would have reintroduced that defect. Only the prompt changes were taken.
+
+One rule the plan asked for that PR #68 did not implement was added here:
+a recall's `promptVi`/`hintVi` may not contain the phrase to be recalled.
+Captions are not the only way an answer leaks.
 
 PR #68 contains useful evidence-producing authoring gates but currently targets an old base and is non-mergeable against the current `main`.
 
@@ -405,7 +424,7 @@ AI output never becomes source evidence by declaration.
 
 **Language Reactor lesson:** reliable media interaction must work before layering vocabulary memory and AI features.
 
-**Status:** `[x]` VLR-001…006 closed and verified at exact head
+**Status:** `[x]` complete — VLR-001…007 closed and verified at exact head
 
 ```text
 PR: #77
@@ -423,6 +442,7 @@ Date: 2026-08-20
 - [x] VLR-004 arbitrary generated-v2 durable E2E
 - [x] VLR-005 assisted-completion consistency
 - [x] VLR-006 production fixture-authoring guard
+- [x] VLR-007 evidence-producing lesson sequence gate (salvaged from PR #68)
 - [x] replace fixture-specific imports in learner production API tree
       (`tests/integration/production-fixture-boundary.test.ts` holds it; the demo-lab
       session route is the one named exception and writes no learner grade)
