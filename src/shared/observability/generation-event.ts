@@ -38,6 +38,11 @@ export const generationEventSchema = z
         "published",
         "already_published",
         "no_permitted_segments",
+        // The v2 chain runs as two steps, so its events need to say which half
+        // reported. Without this both halves log the same word and the split
+        // becomes invisible in production.
+        "diagnosed",
+        "authoring",
         "terminated",
         "already_settled",
       ])
@@ -49,12 +54,37 @@ export const generationEventSchema = z
         "transcript_missing",
         "language_check_failed",
         "provider_failure",
+        // Provider failures split by kind. None of these carry learner or
+        // transcript text — they name the shape of the failure, which is what
+        // production needs to tell a rate limit from a rejected schema.
+        "provider_rate_limited",
+        "provider_unavailable",
+        "provider_truncated",
+        "provider_declined",
+        "provider_not_json",
+        "provider_schema_rejected",
+        // Our own gate, not the provider's. The distinction matters: one is
+        // someone else's outage, the other is a decision this codebase made.
+        "quality_rejected",
         "unexpected_error",
       ])
       .optional(),
     elapsedMs: z.number().int().nonnegative().optional(),
     retryable: z.boolean().optional(),
     errorName: safeIdentifierSchema.optional(),
+    /**
+     * The underlying error's class name, e.g. `TypeError` or `AbortError`, and
+     * any HTTP status found in its message.
+     *
+     * Both are needed because four rounds of classification failed to identify
+     * a production failure: it carries no HTTP status at all, so every
+     * status-based branch fell through to the generic bucket. A class name and
+     * a number cannot carry transcript or learner text, which is why the raw
+     * message still may not be logged.
+     */
+    causeName: safeIdentifierSchema.optional(),
+    providerStatus: z.number().int().min(100).max(599).optional(),
+    qualityIssues: z.array(safeIdentifierSchema).max(8).optional(),
   })
   .strict();
 

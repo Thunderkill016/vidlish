@@ -29,6 +29,25 @@ export interface LessonGenerationProvider {
   generate(input: LessonGenerationInput): Promise<LessonGenerationResult>;
 }
 
+/**
+ * Why a provider call failed, in a vocabulary safe to log.
+ *
+ * A bounded set on purpose: the raw provider message can carry transcript text,
+ * so it must never reach the event stream. But "provider_failure" alone is
+ * unreadable — a rate limit, a truncated answer and a rejected schema all look
+ * identical from production, and they need three different responses.
+ */
+export type LessonGenerationFailureKind =
+  | "request_failed"
+  | "rate_limited"
+  | "unavailable"
+  | "truncated"
+  | "declined"
+  | "not_json"
+  | "schema_rejected"
+  /** Vidlish's own deterministic gate refused the output, not the provider. */
+  | "quality_rejected";
+
 export class LessonGenerationFailure extends Error {
   readonly name = "LessonGenerationFailure";
   /**
@@ -39,8 +58,26 @@ export class LessonGenerationFailure extends Error {
   constructor(
     message: string,
     readonly retryable: boolean,
-    options?: { cause?: unknown },
+    options?: {
+      cause?: unknown;
+      kind?: LessonGenerationFailureKind;
+      causeName?: string;
+      providerStatus?: number;
+      qualityIssues?: readonly string[];
+    },
   ) {
     super(message, options);
+    this.kind = options?.kind ?? "request_failed";
+    this.causeName = options?.causeName;
+    this.providerStatus = options?.providerStatus;
+    this.qualityIssues = options?.qualityIssues;
   }
+
+  readonly kind: LessonGenerationFailureKind;
+  /** The underlying error's class name, safe to log. */
+  readonly causeName?: string;
+  /** Any HTTP status found in the provider's message, safe to log. */
+  readonly providerStatus?: number;
+  /** Deterministic quality codes that refused the output, safe to log. */
+  readonly qualityIssues?: readonly string[];
 }

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
+import { InMemoryLearningAuthoringBriefRepository } from "@/adapters/fake/in-memory-learning-authoring-brief-repository";
 import { InMemoryLessonVersionRepository } from "@/adapters/fake/in-memory-lesson-version-repository";
 import { GeminiLearningAuthoringProvider } from "@/adapters/gemini/gemini-learning-authoring-provider";
-import { AuthorLearningLesson } from "@/modules/learning/application/author-learning-lesson";
+import {
+  AuthorLearningLesson,
+  DiagnoseLearningLesson,
+} from "@/modules/learning/application/author-learning-lesson";
 import type { LanguageEligibilityReport } from "@/shared/contracts/language-eligibility";
 import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
 import type { CanonicalTranscript } from "@/shared/contracts/transcript";
@@ -114,13 +118,13 @@ describe.skipIf(!ready)("v2 authoring against the real model", () => {
     async () => {
       const source = transcript();
       const repository = new InMemoryLessonVersionRepository();
-      const service = new AuthorLearningLesson(
-        new GeminiLearningAuthoringProvider({
-          apiKey: process.env.GEMINI_API_KEY!,
-          modelId: process.env.LESSON_MODEL_ID ?? "gemini-3.5-flash-lite",
-        }),
-        repository,
-      );
+      const provider = new GeminiLearningAuthoringProvider({
+        apiKey: process.env.GEMINI_API_KEY!,
+        modelId: process.env.LESSON_MODEL_ID ?? "gemini-3.5-flash-lite",
+      });
+      const briefs = new InMemoryLearningAuthoringBriefRepository();
+      const diagnose = new DiagnoseLearningLesson(provider, briefs);
+      const service = new AuthorLearningLesson(provider, repository, briefs);
 
       const published: unknown[] = [];
       const originalPublish = repository.publish.bind(repository);
@@ -129,7 +133,7 @@ describe.skipIf(!ready)("v2 authoring against the real model", () => {
         return originalPublish(input);
       };
 
-      const result = await service.execute({
+      const chainInput = {
         jobId: "22222222-2222-4222-8222-222222222222",
         lessonId: "66666666-6666-4666-8666-666666666666",
         ownerUserId: "11111111-1111-4111-8111-111111111111",
@@ -140,7 +144,9 @@ describe.skipIf(!ready)("v2 authoring against the real model", () => {
         learnerSnapshot: LEARNER,
         blueprintId: crypto.randomUUID(),
         now: new Date(),
-      });
+      };
+      await diagnose.execute(chainInput);
+      const result = await service.execute(chainInput);
 
       const blueprint = published[0] as {
         activities: { activityType: string; phase: string }[];

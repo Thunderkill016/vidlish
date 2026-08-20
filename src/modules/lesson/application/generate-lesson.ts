@@ -57,9 +57,17 @@ export class GenerateLesson {
         .slice(0, 8)
         .map((issue) => `${issue.code}@${issue.path}`)
         .join(", ");
+      // Marked as *our* rejection, not the provider's. Left unmarked, this
+      // defaulted to `request_failed` and appeared in production as a network
+      // failure — four rounds of diagnosis chased Gemini for a decision this
+      // gate made. The codes are a closed set and carry no learner text.
       throw new LessonGenerationFailure(
         `Lesson output failed deterministic quality validation — ${detail}`,
         true,
+        {
+          kind: "quality_rejected",
+          qualityIssues: qualityIssues.map((issue) => issue.code),
+        },
       );
     }
 

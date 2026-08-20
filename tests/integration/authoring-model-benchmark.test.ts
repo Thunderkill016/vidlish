@@ -19,9 +19,13 @@ import { writeFileSync } from "node:fs";
 
 import { describe, it } from "vitest";
 
+import { InMemoryLearningAuthoringBriefRepository } from "@/adapters/fake/in-memory-learning-authoring-brief-repository";
 import { InMemoryLessonVersionRepository } from "@/adapters/fake/in-memory-lesson-version-repository";
 import { GeminiLearningAuthoringProvider } from "@/adapters/gemini/gemini-learning-authoring-provider";
-import { AuthorLearningLesson } from "@/modules/learning/application/author-learning-lesson";
+import {
+  AuthorLearningLesson,
+  DiagnoseLearningLesson,
+} from "@/modules/learning/application/author-learning-lesson";
 import type { LanguageEligibilityReport } from "@/shared/contracts/language-eligibility";
 import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
 import type { CanonicalTranscript } from "@/shared/contracts/transcript";
@@ -197,17 +201,17 @@ async function runOnce(
     return originalPublish(input);
   };
 
-  const service = new AuthorLearningLesson(
-    new GeminiLearningAuthoringProvider({
-      apiKey: process.env.GEMINI_API_KEY!,
-      modelId: model,
-    }),
-    repository,
-  );
+  const provider = new GeminiLearningAuthoringProvider({
+    apiKey: process.env.GEMINI_API_KEY!,
+    modelId: model,
+  });
+  const briefs = new InMemoryLearningAuthoringBriefRepository();
+  const diagnose = new DiagnoseLearningLesson(provider, briefs);
+  const service = new AuthorLearningLesson(provider, repository, briefs);
 
   const startedAt = Date.now();
   try {
-    const result = await service.execute({
+    const chainInput = {
       jobId: "22222222-2222-4222-8222-222222222222",
       lessonId: crypto.randomUUID(),
       ownerUserId: "11111111-1111-4111-8111-111111111111",
@@ -218,7 +222,9 @@ async function runOnce(
       learnerSnapshot: LEARNER,
       blueprintId: crypto.randomUUID(),
       now: new Date(),
-    });
+    };
+    await diagnose.execute(chainInput);
+    const result = await service.execute(chainInput);
 
     const blueprint = captured[0] as {
       targetItems: { surfaceForm: string }[];

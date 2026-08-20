@@ -139,4 +139,50 @@ describe("YouTubeDataApiProvider", () => {
     );
     await expect(timeout.lookup(videoId)).rejects.toMatchObject({ retryable: true });
   });
+
+  it("asks for exactly two top-level fields, correctly separated", async () => {
+    // The old assertions only checked that the fields string *contained*
+    // certain words, which stayed true when the string was malformed. A missing
+    // comma glued `etag` onto `items(...)`, YouTube answered 400, the adapter
+    // read a non-429/5xx status as permanent, and every video validation in
+    // production failed. The fake fetch returned a valid body regardless of
+    // what was asked, so nothing here noticed.
+    //
+    // Splitting at depth zero and comparing the selector names is what actually
+    // pins the request shape: the adapter narrows the external contract on
+    // purpose, so which top-level fields it asks for is the invariant.
+    let captured = "";
+    const fetchMock = vi.fn(async (input: URL | RequestInfo) => {
+      captured = new URL(String(input)).searchParams.get("fields") ?? "";
+      return new Response(JSON.stringify(validBody()), { status: 200 });
+    });
+
+    await new YouTubeDataApiProvider(
+      "secret-test-key",
+      "VN",
+      5_000,
+      fetchMock as unknown as typeof fetch,
+    ).lookup(videoId);
+
+    const topLevel: string[] = [];
+    let depth = 0;
+    let current = "";
+    for (const character of captured) {
+      if (character === "(") depth += 1;
+      if (character === ")") depth -= 1;
+      if (character === "," && depth === 0) {
+        topLevel.push(current);
+        current = "";
+        continue;
+      }
+      current += character;
+    }
+    if (current) topLevel.push(current);
+
+    expect(depth).toBe(0);
+    expect(topLevel.map((field) => field.split("(")[0])).toEqual([
+      "etag",
+      "items",
+    ]);
+  });
 });

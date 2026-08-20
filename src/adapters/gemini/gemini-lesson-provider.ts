@@ -134,6 +134,14 @@ export function resolveSegmentLabels(
   }
 }
 
+export /** Pulls an HTTP status out of a provider message, if it has one. */
+function readHttpStatus(message: string): number | undefined {
+  const match = /\b([1-5][0-9]{2})\b/.exec(message);
+  if (!match) return undefined;
+  const status = Number(match[1]);
+  return status >= 100 && status <= 599 ? status : undefined;
+}
+
 export function stripCodeFence(text: string): string {
   const trimmed = text.trim();
   if (!trimmed.startsWith("```")) return trimmed;
@@ -185,19 +193,40 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";
       const permanent = /\b(400|401|403|404)\b/.test(message);
+      const rateLimited =
+        /\b429\b/.test(message) || /RESOURCE_EXHAUSTED/.test(message);
+      // 503 UNAVAILABLE is what Gemini answers when a model is oversubscribed,
+      // and it is a different problem from a quota the caller has spent: one
+      // clears on its own, the other does not. Both were landing in the same
+      // bucket as a network error, which is why production could not be read.
+      const unavailable =
+        /\b503\b/.test(message) || /UNAVAILABLE/.test(message);
       throw new LessonGenerationFailure(
         `Lesson provider request failed: ${message}`,
         !permanent,
-        { cause: error },
+        {
+          cause: error,
+          kind: rateLimited
+            ? "rate_limited"
+            : unavailable
+              ? "unavailable"
+              : "request_failed",
+          causeName: error instanceof Error ? error.name : typeof error,
+          providerStatus: readHttpStatus(message),
+        },
       );
     }
 
     const finishReason = response.candidates?.[0]?.finishReason;
     if (finishReason === "MAX_TOKENS") {
-      throw new LessonGenerationFailure("Lesson output was truncated.", true);
+      throw new LessonGenerationFailure("Lesson output was truncated.", true, {
+        kind: "truncated",
+      });
     }
     if (finishReason && finishReason !== "STOP") {
-      throw new LessonGenerationFailure("Lesson provider declined.", false);
+      throw new LessonGenerationFailure("Lesson provider declined.", false, {
+        kind: "declined",
+      });
     }
 
     const text = response.text;
@@ -209,7 +238,9 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
     try {
       parsed = JSON.parse(stripCodeFence(text));
     } catch {
-      throw new LessonGenerationFailure("Lesson output was not valid JSON.", true);
+      throw new LessonGenerationFailure("Lesson output was not valid JSON.", true, {
+        kind: "not_json",
+      });
     }
 
     resolveSegmentLabels(parsed, input.permittedSegments);
@@ -223,7 +254,7 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
       throw new LessonGenerationFailure(
         `Lesson output failed schema validation — ${issues}`,
         true,
-        { cause: draft.error },
+        { cause: draft.error, kind: "schema_rejected" },
       );
     }
 
