@@ -79,15 +79,22 @@ test("a learner studies a lesson whose ids nothing recognises", async ({
   // not a degraded page.
   await expect(page).toHaveURL(new RegExp(`/lessons/${JOB_ID}/session$`));
 
-  // A session opened over HTTP against the learner's own lesson version. The
-  // server resolves which row that is from the job id; the browser never names
-  // it.
-  const sessionResponse = await page.waitForResponse(
+  // A session opened over HTTP against the learner's own lesson version: the
+  // server resolves which row that is from the job id, the browser never names
+  // it. Nothing opens a session on mount — the learner starts it, the same as
+  // in the lab — and the listener is armed before the click so the response
+  // cannot land first.
+  const sessionResponsePromise = page.waitForResponse(
     (response) =>
       response.url().includes("/api/learning-lab/v2/sessions") &&
       response.request().method() === "POST",
     { timeout: 30_000 },
   );
+  await page
+    .getByRole("button", { name: "Bắt đầu nghe không phụ đề" })
+    .click();
+
+  const sessionResponse = await sessionResponsePromise;
   expect([200, 201]).toContain(sessionResponse.status());
 
   // The first activity is this blueprint's own, not a remembered fixture name.

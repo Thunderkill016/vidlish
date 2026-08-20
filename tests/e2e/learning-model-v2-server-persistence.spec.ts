@@ -208,7 +208,11 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .select("*")
     .eq("session_id", sessionId);
   expect(supportEventsError).toBeNull();
-  expect(supportEvents).toHaveLength(6);
+  // Two gist replays, the two support steps the ladder still offers, and one
+  // exit replay. This total and the per-kind assertions below have to be
+  // changed together; when the keyword hint left the ladder only the per-kind
+  // ones were updated, and the stale total was the failure.
+  expect(supportEvents).toHaveLength(5);
 
   const gistPlaybackOrdinals = (supportEvents ?? [])
     .filter(
