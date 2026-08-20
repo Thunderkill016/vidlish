@@ -639,6 +639,38 @@ A moderated learner should be able to say what changed between the first and fin
 
 ### VLR-201 — canonical learner item state
 
+**Status:** `[~]` in progress — evidence dimensions landed, manual-control and
+support-history dimensions still open
+
+```text
+PR: #85
+Merge SHA: 75ed710
+Evidence: CI run 32401169278 — pgTAP (56 assertions), Supabase-backed learning
+journey, Chromium journeys, unit, build, typecheck/lint (all pass)
+Date: 2026-08-20
+```
+
+What changed: the completion trigger wrote `attempt_count` and
+`successful_retrievals` as literal zeros and nothing in the lesson path updated
+them, so an item the learner had just worked through looked untouched until its
+first review. It now reads the rows that session wrote. Two dimensions gained
+storage: `last_independent_at` (last correct production with no support open)
+and `transfer_succeeded_at`.
+
+`last_independent_at` is the one that carries a claim rather than a count, and
+the pgTAP case that matters proves the distinction: an answer graded correct
+*after* opening support still counts as a retrieval and does **not** count as
+independent. A timestamp comparison cannot show this — both attempts land in one
+transaction, where `now()` is fixed — so the test asserts the absence of
+independent evidence instead.
+
+Still open on this item:
+
+- `support_history` — no storage yet;
+- `transfer_attempted` as distinct from `transfer_succeeded_at`;
+- `delayed_retrieved` is inferable from review attempts but not surfaced on the
+  item.
+
 Required dimensions:
 
 ```text
