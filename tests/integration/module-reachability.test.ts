@@ -34,9 +34,9 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
-  // Empty, and that is the point. The v2 authoring chain is wired into
-  // `generate-lesson.steps.ts`, so every module it uses is now reachable from a
-  // real entry point. Anything added back here has to say why.
+  // Empty. Every application module is reachable from a route or a workflow,
+  // including the ones that render a learner's own v2 lesson. Anything added
+  // back here has to say why.
 };
 
 function listSourceFiles(dir: string): string[] {

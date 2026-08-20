@@ -16,3 +16,5 @@ supabase/.branches/
 _bmad-output/*
 !_bmad-output/.gitkeep
 benchmark-authoring-results.json
+.vercel
+.env*

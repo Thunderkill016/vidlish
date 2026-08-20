@@ -236,11 +236,20 @@ export function LearningSessionLab({
   media,
   policy,
   supportCopy,
+  jobId,
 }: {
   blueprint: LearnerBlueprintView;
   media: VerifiedLearningMedia;
   policy: LearningRuntimePolicyV2;
   supportCopy: LearningSupportCopyByActivity;
+  /**
+   * Which lesson to open a session on. Omitted by the fixture lab, which has no
+   * learner lesson behind it; the server falls back to its demo version then.
+   *
+   * A job id rather than a lesson version id: the server resolves the version
+   * itself, so the browser never names the row it wants to write against.
+   */
+  jobId?: string;
 }) {
   const [loaded, setLoaded] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
@@ -392,6 +401,8 @@ export function LearningSessionLab({
   async function startOrResumeSession(): Promise<string> {
     const request = await fetch("/api/learning-lab/v2/sessions", {
       method: "POST",
+      headers: jobId ? { "Content-Type": "application/json" } : {},
+      body: jobId ? JSON.stringify({ jobId }) : undefined,
     });
     const body = (await request.json()) as unknown;
     if (!request.ok) throw new Error("Vidlish chưa thể mở phiên học.");
