@@ -134,6 +134,14 @@ export function resolveSegmentLabels(
   }
 }
 
+export /** Pulls an HTTP status out of a provider message, if it has one. */
+function readHttpStatus(message: string): number | undefined {
+  const match = /\b([1-5][0-9]{2})\b/.exec(message);
+  if (!match) return undefined;
+  const status = Number(match[1]);
+  return status >= 100 && status <= 599 ? status : undefined;
+}
+
 export function stripCodeFence(text: string): string {
   const trimmed = text.trim();
   if (!trimmed.startsWith("```")) return trimmed;
@@ -203,6 +211,8 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
             : unavailable
               ? "unavailable"
               : "request_failed",
+          causeName: error instanceof Error ? error.name : typeof error,
+          providerStatus: readHttpStatus(message),
         },
       );
     }

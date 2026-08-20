@@ -64,6 +64,18 @@ export const generationEventSchema = z
     elapsedMs: z.number().int().nonnegative().optional(),
     retryable: z.boolean().optional(),
     errorName: safeIdentifierSchema.optional(),
+    /**
+     * The underlying error's class name, e.g. `TypeError` or `AbortError`, and
+     * any HTTP status found in its message.
+     *
+     * Both are needed because four rounds of classification failed to identify
+     * a production failure: it carries no HTTP status at all, so every
+     * status-based branch fell through to the generic bucket. A class name and
+     * a number cannot carry transcript or learner text, which is why the raw
+     * message still may not be logged.
+     */
+    causeName: safeIdentifierSchema.optional(),
+    providerStatus: z.number().int().min(100).max(599).optional(),
   })
   .strict();
 

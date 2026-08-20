@@ -56,11 +56,22 @@ export class LessonGenerationFailure extends Error {
   constructor(
     message: string,
     readonly retryable: boolean,
-    options?: { cause?: unknown; kind?: LessonGenerationFailureKind },
+    options?: {
+      cause?: unknown;
+      kind?: LessonGenerationFailureKind;
+      causeName?: string;
+      providerStatus?: number;
+    },
   ) {
     super(message, options);
     this.kind = options?.kind ?? "request_failed";
+    this.causeName = options?.causeName;
+    this.providerStatus = options?.providerStatus;
   }
 
   readonly kind: LessonGenerationFailureKind;
+  /** The underlying error's class name, safe to log. */
+  readonly causeName?: string;
+  /** Any HTTP status found in the provider's message, safe to log. */
+  readonly providerStatus?: number;
 }
