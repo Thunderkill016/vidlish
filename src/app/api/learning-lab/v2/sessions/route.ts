@@ -13,8 +13,17 @@ import { assertSameOrigin } from "@/shared/http/same-origin";
 
 const requestSchema = z.object({ jobId: z.string().uuid() }).strict();
 
-/** Returns the job id when the caller sent one, or null for the fixture lab. */
+/**
+ * Returns the job id when the caller sent one, or null for the demo lab.
+ *
+ * Gated on the content type rather than just reading: the lab posts with no
+ * body at all, and asking for one that was never sent left the request hanging
+ * until the journey timed out.
+ */
 async function readOptionalJobId(request: NextRequest): Promise<string | null> {
+  const contentType = request.headers.get("content-type") ?? "";
+  if (!contentType.includes("application/json")) return null;
+
   const raw = await request.text();
   if (!raw) return null;
   const parsed = requestSchema.safeParse(JSON.parse(raw));
