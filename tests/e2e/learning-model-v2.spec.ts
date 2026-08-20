@@ -223,6 +223,17 @@ test("golden Learning Model v2 session enforces support retry transfer and hones
   await expect(page.getByText(/không phải tuyên bố đã thành thạo/i)).toBeVisible();
   await expect(page.getByText("Đã viết và tự đối chiếu đủ tiêu chí")).toBeVisible();
 
+  // VLR-104. The first listen took three plays and three support steps, the
+  // final one a single play with none. The closing screen has to show that
+  // difference — and stop there: less help within one session is not evidence
+  // of remembering, and saying so would be the mastery claim the product
+  // refuses to make.
+  await expect(page.getByText("Lần nghe đầu so với lần nghe cuối")).toBeVisible();
+  await expect(
+    page.getByText(/Lần nghe cuối bạn cần ít hỗ trợ hơn/),
+  ).toBeVisible();
+  await expect(page.getByText(/chưa phải bằng chứng nhớ lâu/)).toBeVisible();
+
   await page.goto("/review");
   await expect(page.getByText("Lịch ôn đã được tạo")).toBeVisible();
   await expect(page.getByText("Đang chờ delay")).toBeVisible();

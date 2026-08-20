@@ -584,12 +584,28 @@ which is a larger change than this rule asks for.
 
 ### VLR-104 — close the before/after loop
 
+**Status:** `[x]`
+
 At the end of the session:
 
-- replay original source without text first;
-- ask a bounded recognition/comprehension check;
-- show the learner the support difference from first encounter;
-- do not call improvement “mastery.”
+- [x] replay original source without text first — the exit ticket carries the
+      same source window at `hidden_first`;
+- [x] ask a bounded recognition/comprehension check;
+- [x] show the learner the support difference from first encounter — plays and
+      support steps at the first listening activity against the last;
+- [x] do not call improvement "mastery" — the screen says a smaller amount of
+      help is a change within one session and not evidence of remembering, and
+      says the opposite case is normal rather than a failure.
+
+Closing this rule also removed a fixture dependency that had survived in the
+completion screen: it read `progressByActivity.activity_recall` and
+`.activity_transfer` **by name**. Those ids exist only in the demo lesson, so on
+a learner's own lesson both were always undefined and every learner was told
+they had not recalled the item and had not met the transfer criteria —
+regardless of what they had just done. The summary now finds them by activity
+type, and answers `null` rather than `false` when the lesson has no such
+activity or the learner never reached it: "did not recall it" is a claim about
+the learner, and an absent activity is not evidence for it.
 
 ### Phase 1 metrics
 

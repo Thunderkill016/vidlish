@@ -20,6 +20,7 @@ import {
   requestLearningSelfCheckCorrection,
   type LearningActivityRuntimeProgress,
 } from "@/modules/learning/application/learning-runtime-progress";
+import { summariseLearningSession } from "@/modules/learning/application/summarise-learning-session";
 import {
   learningLabAttemptResponseSchema,
   learningLabSessionResponseSchema,
@@ -875,19 +876,7 @@ export function LearningSessionLab({
   }
 
   if (completed) {
-    const totalAttempts = Object.values(progressByActivity).reduce(
-      (sum, progress) => sum + progress.attempts.length,
-      0,
-    );
-    const supportCount = Object.values(progressByActivity).reduce(
-      (sum, progress) => sum + progress.openedSupportSteps.length,
-      0,
-    );
-    const recall = latestLearningAttempt(
-      progressByActivity.activity_recall ??
-        createEmptyLearningActivityProgress(),
-    );
-    const transfer = progressByActivity.activity_transfer;
+    const summary = summariseLearningSession(blueprint, progressByActivity);
 
     return (
       <section className="mx-auto max-w-3xl space-y-6 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-6 sm:p-8">
@@ -904,22 +893,43 @@ export function LearningSessionLab({
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <p className="rounded-xl bg-[var(--muted)] p-4">
-            Attempt đã thực hiện: <strong>{totalAttempts}</strong>
+            Attempt đã thực hiện: <strong>{summary.totalAttempts}</strong>
           </p>
           <p className="rounded-xl bg-[var(--muted)] p-4">
-            Mức hỗ trợ đã mở: <strong>{supportCount}</strong>
+            Mức hỗ trợ đã mở: <strong>{summary.totalSupportSteps}</strong>
           </p>
           <p className="rounded-xl border border-[var(--border)] p-4">
-            {recall?.evaluation.verdict === "correct"
-              ? "Đã nhớ lại đúng trong phiên này"
-              : "Đã thử; cần đưa trở lại khi ôn"}
+            {summary.recalledUnaided === null
+              ? "Phiên này chưa có bằng chứng nhớ lại"
+              : summary.recalledUnaided
+                ? "Đã nhớ lại đúng trong phiên này"
+                : "Đã thử; cần đưa trở lại khi ôn"}
           </p>
           <p className="rounded-xl border border-[var(--border)] p-4">
-            {transfer?.selfCheckConfirmed
-              ? "Đã viết và tự đối chiếu đủ tiêu chí"
-              : "Đã thử; chưa đủ tiêu chí xác nhận"}
+            {summary.transferSelfChecked === null
+              ? "Phiên này chưa có bằng chứng dùng lại"
+              : summary.transferSelfChecked
+                ? "Đã viết và tự đối chiếu đủ tiêu chí"
+                : "Đã thử; chưa đủ tiêu chí xác nhận"}
           </p>
         </div>
+
+        {summary.firstListen && summary.finalListen ? (
+          <div className="space-y-2 rounded-xl border border-[var(--border)] p-4">
+            <p className="font-semibold">Lần nghe đầu so với lần nghe cuối</p>
+            <p className="text-sm">
+              Lần đầu: phát <strong>{summary.firstListen.plays}</strong> lượt,
+              mở <strong>{summary.firstListen.supportSteps}</strong> mức hỗ trợ.
+              Lần cuối: phát <strong>{summary.finalListen.plays}</strong> lượt,
+              mở <strong>{summary.finalListen.supportSteps}</strong> mức hỗ trợ.
+            </p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              {summary.supportDelta !== null && summary.supportDelta < 0
+                ? "Lần nghe cuối bạn cần ít hỗ trợ hơn. Đây là thay đổi trong một phiên, chưa phải bằng chứng nhớ lâu."
+                : "Lượng hỗ trợ chưa giảm giữa hai lần nghe. Điều đó bình thường ở phiên đầu và không nói lên bạn học kém."}
+            </p>
+          </div>
+        ) : null}
         <p className="rounded-xl border border-[var(--accent)] p-4 text-sm">
           Vidlish cần kiểm tra lại bằng input hoặc bối cảnh khác sau một khoảng
           thời gian trước khi có thể nói năng lực này ổn định.
