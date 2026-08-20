@@ -8,12 +8,34 @@ import {
 } from "@/shared/contracts/learning-policy-v2";
 
 export type LearningActivityRuntimeProgress = {
+  /**
+   * Attempts this device has seen, kept for display.
+   *
+   * Not a count of what the learner has done: a learner returning on another
+   * device has attempts on the server and none here. Anything that gates on
+   * "how many attempts" must read `durableAttemptCount`.
+   */
   attempts: LearningLabAttemptResponse[];
+  /** Server-recorded attempt count, once a session has been opened. */
+  durableAttemptCount: number;
   openedSupportSteps: SupportStep[];
   playCount: number;
   selfCheckConfirmed: boolean;
   selfCheckCorrectionRequested: boolean;
 };
+
+/**
+ * How many attempts the support ladder must treat this activity as having.
+ *
+ * The durable count wins wherever it is higher, so a device that has seen
+ * nothing cannot hand back a support step the learner already spent an attempt
+ * to earn — and cannot withhold one they earned somewhere else either.
+ */
+export function gatingAttemptCount(
+  progress: LearningActivityRuntimeProgress,
+): number {
+  return Math.max(progress.attempts.length, progress.durableAttemptCount);
+}
 
 export type LearningRuntimeCompletionBlocker =
   | ActivityCompletionBlocker
@@ -28,6 +50,7 @@ export type LearningActivityCompletionState = {
 export function createEmptyLearningActivityProgress(): LearningActivityRuntimeProgress {
   return {
     attempts: [],
+    durableAttemptCount: 0,
     openedSupportSteps: [],
     playCount: 0,
     selfCheckConfirmed: false,

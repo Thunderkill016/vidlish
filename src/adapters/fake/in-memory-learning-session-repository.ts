@@ -26,6 +26,7 @@ import {
 import {
   privacySafeActivityAttemptSchema,
   privacySafeLearningSupportEventSchema,
+  type PersistedLearningSupportStep,
   type PrivacySafeActivityAttempt,
   type PrivacySafeLearningSupportEvent,
 } from "@/shared/contracts/privacy-safe-learning-evidence";
@@ -100,6 +101,62 @@ export class InMemoryLearningSessionRepository
       input.activityId,
       input.ownerUserId,
     );
+  }
+
+  async findSessionProgress(input: {
+    ownerUserId: string;
+    sessionId: string;
+  }) {
+    const session = this.sessions.get(input.sessionId);
+    if (!session || session.ownerUserId !== input.ownerUserId) return [];
+
+    const byActivity = new Map<
+      string,
+      {
+        playbackCount: number;
+        attemptCount: number;
+        openedSupportSteps: PersistedLearningSupportStep[];
+      }
+    >();
+    const entry = (activityId: string) => {
+      const existing = byActivity.get(activityId);
+      if (existing) return existing;
+      const created = {
+        playbackCount: 0,
+        attemptCount: 0,
+        openedSupportSteps: [] as PersistedLearningSupportStep[],
+      };
+      byActivity.set(activityId, created);
+      return created;
+    };
+
+    for (const attempt of this.attempts.values()) {
+      if (attempt.sessionId !== input.sessionId) continue;
+      entry(attempt.activityId).attemptCount += 1;
+    }
+
+    // Ordered by when they happened, so the restored ladder reads the way the
+    // learner walked it rather than in map insertion order.
+    const events = [...this.supportEvents.values()]
+      .filter((event) => event.sessionId === input.sessionId)
+      .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
+    for (const event of events) {
+      const record = entry(event.activityId);
+      if (event.eventKind === "playback" || event.supportStep === null) {
+        record.playbackCount += event.eventKind === "playback" ? 1 : 0;
+        continue;
+      }
+      if (!record.openedSupportSteps.includes(event.supportStep)) {
+        record.openedSupportSteps.push(event.supportStep);
+      }
+    }
+
+    return [...byActivity.entries()].map(([activityId, record]) => ({
+      activityId,
+      playbackCount: record.playbackCount,
+      attemptCount: record.attemptCount,
+      openedSupportSteps: record.openedSupportSteps,
+    }));
   }
 
   async countAttempts(

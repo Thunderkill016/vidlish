@@ -51,6 +51,14 @@ export type RecordLearningSupportEventInput = {
     }
 );
 
+export type LearningActivityDurableProgress = {
+  activityId: string;
+  playbackCount: number;
+  attemptCount: number;
+  /** In the order the learner opened them. */
+  openedSupportSteps: readonly PersistedLearningSupportStep[];
+};
+
 export interface LearningSessionRepository {
   start(
     input: StartLearningSessionInput,
@@ -78,6 +86,20 @@ export interface LearningSessionRepository {
     sessionId: string;
     activityId: string;
   }): Promise<number>;
+
+  /**
+   * What this session durably records for each of its activities.
+   *
+   * VLR-103. Support state was restored from the browser alone, so a learner
+   * returning on another device — or after clearing storage — was shown an
+   * untouched support ladder while the server already held the caption they had
+   * opened. The two disagreed about what help the learner had been given, and
+   * the browser's answer was the one on screen.
+   */
+  findSessionProgress(input: {
+    ownerUserId: string;
+    sessionId: string;
+  }): Promise<readonly LearningActivityDurableProgress[]>;
 
   recordAttempt(
     input: RecordLearningAttemptInput,

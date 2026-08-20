@@ -55,7 +55,8 @@ export async function POST(request: NextRequest) {
     const firstActivity = blueprint.activities[0];
     if (!firstActivity) throw authErrors.rejected();
 
-    const result = await createLearningSessionRepository().start({
+    const repository = createLearningSessionRepository();
+    const result = await repository.start({
       ownerUserId: access.userId,
       lessonVersionId: owned?.lessonVersionId ?? resolveLearningLabLessonVersionId(),
       // The real blueprint's first activity, not the fixture's. Starting a
@@ -65,10 +66,21 @@ export async function POST(request: NextRequest) {
       initialActivityId: firstActivity.id,
     });
 
-    return NextResponse.json(learningLabSessionResponseSchema.parse(result), {
-      status: result.created ? 201 : 200,
-      headers: { "Cache-Control": "private, no-store" },
+    // Read after start, so a resumed session comes back with the support the
+    // learner has already been given rather than an empty ladder the browser
+    // would then re-offer.
+    const progress = await repository.findSessionProgress({
+      ownerUserId: access.userId,
+      sessionId: result.session.id,
     });
+
+    return NextResponse.json(
+      learningLabSessionResponseSchema.parse({ ...result, progress }),
+      {
+        status: result.created ? 201 : 200,
+        headers: { "Cache-Control": "private, no-store" },
+      },
+    );
   } catch (error) {
     return productErrorResponse(error, authErrors.rejected());
   }
