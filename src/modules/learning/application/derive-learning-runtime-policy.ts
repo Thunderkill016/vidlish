@@ -37,12 +37,14 @@ import type { LearningActivity, LessonBlueprintV2 } from "@/shared/contracts/les
 const LISTENING_SUPPORT = [
   "replay",
   "context_hint",
+  "slower_playback",
   "english_caption",
 ] as const;
 
 const MEANING_SUPPORT = [
   "replay",
   "context_hint",
+  "slower_playback",
   "english_caption",
   "vietnamese_meaning",
 ] as const;
@@ -55,6 +57,7 @@ const MEANING_SUPPORT = [
 const RECALL_SUPPORT = [
   "replay",
   "context_hint",
+  "slower_playback",
   "english_caption",
 ] as const;
 

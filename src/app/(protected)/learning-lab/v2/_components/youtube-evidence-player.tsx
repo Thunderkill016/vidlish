@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { chooseSlowPlaybackRate } from "@/modules/learning/application/choose-slow-playback-rate";
 import type { EvidenceRef } from "@/shared/contracts/lesson-v2";
 
 type YouTubePlayer = {
@@ -18,6 +19,9 @@ type YouTubePlayer = {
   pauseVideo(): void;
   destroy(): void;
   getIframe(): HTMLIFrameElement;
+  getAvailablePlaybackRates(): number[];
+  getPlaybackRate(): number;
+  setPlaybackRate(rate: number): void;
 };
 
 type YouTubePlayerEvent = {
@@ -36,6 +40,7 @@ type YouTubeApi = {
       events: {
         onReady(event: YouTubePlayerEvent): void;
         onStateChange(event: YouTubePlayerEvent): void;
+        onPlaybackRateChange(event: YouTubePlayerEvent): void;
         onError(event: YouTubePlayerEvent): void;
         onAutoplayBlocked(): void;
       };
@@ -116,13 +121,17 @@ export function YouTubeEvidencePlayer({
   videoTitle,
   evidence,
   captionControlAllowed,
+  slowPlaybackAllowed,
   onPlay,
+  onSlowPlaybackConfirmed,
 }: {
   videoId: string;
   videoTitle: string;
   evidence: EvidenceRef;
   captionControlAllowed: boolean;
+  slowPlaybackAllowed: boolean;
   onPlay?: () => void;
+  onSlowPlaybackConfirmed?: (rate: number) => void;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -131,6 +140,20 @@ export function YouTubeEvidencePlayer({
     evidence.captionPolicy === "shown",
   );
   const [status, setStatus] = useState("Đang tải trình phát YouTube…");
+  // The rate the player reports, never the rate we asked for. YouTube ignores a
+  // `setPlaybackRate` outside `getAvailablePlaybackRates()` without erroring,
+  // so a value we set optimistically could describe audio nobody is hearing.
+  const [confirmedRate, setConfirmedRate] = useState(1);
+  const [availableRates, setAvailableRates] = useState<readonly number[]>([]);
+  // Held so the rate can be reapplied after `loadVideoById`, which resets
+  // playback speed back to normal.
+  const requestedRateRef = useRef<number | null>(null);
+  // Held in a ref so the player effect does not tear down and rebuild the
+  // embed every time the parent re-renders with a new callback identity.
+  const slowConfirmedRef = useRef(onSlowPlaybackConfirmed);
+  useEffect(() => {
+    slowConfirmedRef.current = onSlowPlaybackConfirmed;
+  }, [onSlowPlaybackConfirmed]);
 
   const startSeconds = evidence.startMs / 1000;
   const endSeconds = evidence.endMs / 1000;
@@ -174,6 +197,8 @@ export function YouTubeEvidencePlayer({
                 startSeconds,
                 endSeconds,
               });
+              setAvailableRates(event.target.getAvailablePlaybackRates?.() ?? []);
+              setConfirmedRate(event.target.getPlaybackRate?.() ?? 1);
               setReady(true);
               setStatus("Đoạn nguồn đã sẵn sàng.");
             },
@@ -187,6 +212,19 @@ export function YouTubeEvidencePlayer({
                 setStatus("Đã tạm dừng đoạn nguồn.");
               } else if (event.data === api.PlayerState.ENDED) {
                 setStatus("Đã phát xong đoạn nguồn.");
+              }
+            },
+            onPlaybackRateChange: (event) => {
+              if (disposed) return;
+              const rate = event.data ?? event.target.getPlaybackRate?.() ?? 1;
+              setConfirmedRate(rate);
+              // Evidence is recorded here rather than on the click, because
+              // this is the only point at which the audio is known to have
+              // actually slowed. A support step spent on a rate the player
+              // refused would be a false record of what the learner was given.
+              if (rate === requestedRateRef.current) {
+                requestedRateRef.current = null;
+                slowConfirmedRef.current?.(rate);
               }
             },
             onError: (event) => {
@@ -234,10 +272,32 @@ export function YouTubeEvidencePlayer({
       startSeconds,
       endSeconds,
     });
+    // `loadVideoById` resets playback speed to normal, so a rate the learner
+    // already earned has to be reapplied or the next replay silently undoes the
+    // support they spent a step on.
+    if (confirmedRate !== 1) {
+      playerRef.current.setPlaybackRate?.(confirmedRate);
+    }
     onPlay?.();
     setStatus(
       `Đang phát đoạn ${formatTime(evidence.startMs)}–${formatTime(evidence.endMs)}.`,
     );
+  }
+
+  const slowerRate = chooseSlowPlaybackRate(availableRates, confirmedRate);
+
+  function slowDown() {
+    const player = playerRef.current;
+    if (!player || !ready || slowerRate === null) {
+      setStatus("Trình phát chưa nhận tốc độ chậm hơn.");
+      return;
+    }
+    requestedRateRef.current = slowerRate;
+    player.setPlaybackRate(slowerRate);
+    // Deliberately no optimistic message. Whether the audio actually slowed is
+    // answered by the player's own rate-change event, and saying so before then
+    // is how a learner is told they got help they did not get.
+    setStatus(`Đã yêu cầu phát ở tốc độ ${slowerRate}×…`);
   }
 
   function pauseClip() {
@@ -276,6 +336,18 @@ export function YouTubeEvidencePlayer({
         >
           Tạm dừng
         </button>
+        {slowPlaybackAllowed ? (
+          <button
+            type="button"
+            onClick={slowDown}
+            disabled={!ready || slowerRate === null}
+            className="min-h-11 rounded-xl border border-[var(--border)] px-3 py-2 text-sm font-semibold hover:bg-[var(--background)] disabled:opacity-50"
+          >
+            {slowerRate === null
+              ? `Chậm nhất rồi (${confirmedRate}×)`
+              : `Phát chậm ${slowerRate}×`}
+          </button>
+        ) : null}
         {captionControlAllowed ? (
           <button
             type="button"
@@ -296,6 +368,11 @@ export function YouTubeEvidencePlayer({
       <p className="text-sm" aria-live="polite">
         {status}
       </p>
+      {confirmedRate !== 1 ? (
+        <p className="text-xs text-[var(--muted-foreground)]">
+          Đang phát ở tốc độ {confirmedRate}× theo xác nhận của trình phát.
+        </p>
+      ) : null}
       <a
         href={`https://www.youtube.com/watch?v=${videoId}&t=${Math.floor(startSeconds)}s`}
         target="_blank"

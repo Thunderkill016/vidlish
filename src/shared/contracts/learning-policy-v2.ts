@@ -18,14 +18,25 @@ export const supportStepSchema = z.enum([
 ]);
 export type SupportStep = z.infer<typeof supportStepSchema>;
 
+/**
+ * Ranked by how much of the answer each step hands over, lowest first. A ladder
+ * has to be in increasing rank order, so this table decides what a learner must
+ * spend before reaching text.
+ *
+ * `slower_playback` sits above the hints and below every step that shows words.
+ * It used to rank last, which meant a learner had to reveal the full English
+ * caption before being allowed to slow the audio down — backwards, because
+ * slowing playback gives away no language at all. It changes how hard the audio
+ * is to decode, which is the thing a listening task is supposed to measure.
+ */
 const SUPPORT_ORDER: Record<SupportStep, number> = {
   replay: 0,
   context_hint: 1,
-  keyword_hint: 2,
-  english_caption: 3,
-  chunk_boundaries: 4,
-  vietnamese_meaning: 5,
-  slower_playback: 6,
+  slower_playback: 2,
+  keyword_hint: 3,
+  english_caption: 4,
+  chunk_boundaries: 5,
+  vietnamese_meaning: 6,
 };
 
 const FULL_REVEAL_STEPS = new Set<SupportStep>([

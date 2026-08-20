@@ -9,8 +9,14 @@ async function login(page: import("@playwright/test").Page) {
   await expect(page).toHaveURL(/\/create$/);
 }
 
+/**
+ * @param rates what the embed reports from `getAvailablePlaybackRates`. Real
+ * embeds do not all offer the same set, and the product must not claim a speed
+ * the player never accepted — so this is a parameter, not a constant.
+ */
 async function mockYouTubeIframeApi(
   page: import("@playwright/test").Page,
+  rates: readonly number[] = [0.25, 0.5, 0.75, 1, 1.5, 2],
 ) {
   await page.route("https://www.youtube.com/iframe_api", async (route) => {
     await route.fulfill({
@@ -23,6 +29,7 @@ async function mockYouTubeIframeApi(
             const iframe = document.createElement("iframe");
             iframe.dataset.mockYoutube = "true";
             element.replaceWith(iframe);
+            let rate = 1;
             const player = {
               cueVideoById(input) {
                 window.__vidlishYouTubeCalls.push({ method: "cue", input });
@@ -36,7 +43,18 @@ async function mockYouTubeIframeApi(
                 options.events.onStateChange({ target: player, data: 2 });
               },
               destroy() { iframe.remove(); },
-              getIframe() { return iframe; }
+              getIframe() { return iframe; },
+              // Mirrors a real embed: the rate only changes if it is one the
+              // player offers, and the change is announced through the event
+              // rather than assumed by the caller.
+              getAvailablePlaybackRates() { return ${JSON.stringify(rates)}; },
+              getPlaybackRate() { return rate; },
+              setPlaybackRate(next) {
+                window.__vidlishYouTubeCalls.push({ method: "rate", input: next });
+                if (!this.getAvailablePlaybackRates().includes(next)) return;
+                rate = next;
+                options.events.onPlaybackRateChange?.({ target: player, data: next });
+              }
             };
             setTimeout(() => options.events.onReady({ target: player }), 0);
             return player;
@@ -85,6 +103,30 @@ test("golden Learning Model v2 session enforces support retry transfer and hones
   await expect(
     page.getByRole("button", { name: "Mở gợi ý từ khóa" }),
   ).toHaveCount(0);
+
+  // VLR-102. Slowing the audio now sits between the hint and the caption,
+  // because it reveals no language at all — a learner should not have to read
+  // the English before being allowed to hear it more slowly.
+  //
+  // It is not opened from the support ladder. The ladder button refuses it and
+  // points at the player, so the durable record can only say the audio slowed
+  // once the player said so.
+  await page.getByRole("button", { name: "Mở phát chậm hơn" }).click();
+  await expect(
+    page.getByText("Nhấn Phát chậm trong trình phát để dùng mức hỗ trợ này."),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Mở phụ đề tiếng anh" }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Phát chậm 0.75×" }).click();
+  await expect(
+    page.getByText("Đang phát ở tốc độ 0.75× theo xác nhận của trình phát."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Đoạn nguồn đang phát chậm hơn theo xác nhận của trình phát."),
+  ).toBeVisible();
+
   await page.getByRole("button", { name: "Mở phụ đề tiếng anh" }).click();
   await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
   await page.getByRole("button", { name: "Thử lại" }).click();
@@ -176,4 +218,41 @@ test("golden Learning Model v2 session enforces support retry transfer and hones
   await expect(page.getByText("Lịch ôn đã được tạo")).toBeVisible();
   await expect(page.getByText("Đang chờ delay")).toBeVisible();
   await expect(page.getByText(/mục cần ôn/)).toHaveCount(0);
+});
+
+test("a player that cannot slow down never claims it did", async ({ page }) => {
+  // VLR-102. The one thing this step must never do is tell a learner the audio
+  // is slower when it is not: they would spend a support level and adjust their
+  // listening for help they did not get.
+  //
+  // An embed reporting only full speed and faster is the honest failure case.
+  // Without this the whole slow-playback path is unfalsifiable — every
+  // assertion elsewhere runs against a mock that always accepts.
+  await mockYouTubeIframeApi(page, [1, 1.5, 2]);
+  await login(page);
+  await page.goto("/learning-lab/v2");
+  await page
+    .getByRole("button", { name: "Bắt đầu nghe không phụ đề" })
+    .click();
+
+  await page.getByRole("button", { name: "Phát đoạn" }).click();
+  await page.getByRole("button", { name: "Phát đoạn" }).click();
+  await page.getByRole("button", { name: "Mở gợi ý ngữ cảnh" }).click();
+
+  const slowButton = page.getByRole("button", { name: /Chậm nhất rồi/ });
+  await expect(slowButton).toBeVisible();
+  await expect(slowButton).toBeDisabled();
+  await expect(
+    page.getByText(/theo xác nhận của trình phát/),
+  ).toHaveCount(0);
+
+  // And the ladder must not hand the step out either, or the learner would be
+  // recorded as having received help the player refused.
+  await page.getByRole("button", { name: "Mở phát chậm hơn" }).click();
+  await expect(
+    page.getByText("Nhấn Phát chậm trong trình phát để dùng mức hỗ trợ này."),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Đoạn nguồn đang phát chậm hơn theo xác nhận của trình phát."),
+  ).toHaveCount(0);
 });
