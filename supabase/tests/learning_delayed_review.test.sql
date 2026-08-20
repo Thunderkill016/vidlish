@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(55);
+select plan(56);
 
 -- ---------------------------------------------------------------------------
 -- Shape, RLS and browser privileges
@@ -476,9 +476,13 @@ insert into public.lesson_versions (
   'lesson:v2',
   '{
     "schemaVersion":"lesson:v2",
-    "targetItems":[{"id":"item_evidence","itemKey":"evidence-item"}],
+    "targetItems":[
+      {"id":"item_evidence","itemKey":"evidence-item"},
+      {"id":"item_supported","itemKey":"supported-item"}
+    ],
     "activities":[
       {"id":"activity_recall","phase":"retrieve","activityType":"chunk_recall","targetItemId":"item_evidence"},
+      {"id":"activity_helped","phase":"retrieve","activityType":"chunk_recall","targetItemId":"item_supported"},
       {"id":"activity_transfer","phase":"transfer","activityType":"guided_transfer","targetItemIds":["item_evidence"]},
       {"id":"activity_exit","phase":"reflect","activityType":"exit_ticket"}
     ]
@@ -500,6 +504,30 @@ select * from public.record_lesson_v2_attempt(
   (select session_id from evidence_session),
   'activity_recall',
   'b1111111-1111-4111-8111-111111111111',
+  '{"kind":"text","submitted":true,"characterCount":11}'::jsonb,
+  '{"verdict":"correct"}'::jsonb,
+  'retrieve',
+  'activity_helped',
+  false
+);
+
+-- The same kind of activity, answered just as correctly, but with a support
+-- step opened first. Timestamps cannot separate these two: both attempts land
+-- in one transaction and `now()` is fixed for its duration. The distinction has
+-- to be visible in whether the item has independent evidence at all.
+select * from public.record_lesson_v2_support_event(
+  'a1111111-1111-4111-8111-111111111111',
+  (select session_id from evidence_session),
+  'activity_helped',
+  'b5111111-1111-4111-8111-111111111111',
+  'support_opened',
+  'context_hint'
+);
+select * from public.record_lesson_v2_attempt(
+  'a1111111-1111-4111-8111-111111111111',
+  (select session_id from evidence_session),
+  'activity_helped',
+  'b5222222-2222-4222-8222-222222222222',
   '{"kind":"text","submitted":true,"characterCount":11}'::jsonb,
   '{"verdict":"correct"}'::jsonb,
   'transfer',
@@ -559,9 +587,15 @@ select ok(
   (select transfer_succeeded_at is not null from public.learning_item_states where item_key = 'evidence-item'),
   'a confirmed self-check records changed-context reuse'
 );
-select ok(
-  (select last_independent_at < transfer_succeeded_at from public.learning_item_states where item_key = 'evidence-item'),
-  'the supported transfer is not counted as independent production'
+select is(
+  (select last_independent_at is null from public.learning_item_states where item_key = 'supported-item'),
+  true,
+  'a correct answer given after opening support is not independent production'
+);
+select is(
+  (select successful_retrievals from public.learning_item_states where item_key = 'supported-item'),
+  1,
+  'that answer still counts as a retrieval; only the independence claim is withheld'
 );
 select is(
   (select last_independent_at is null from public.learning_item_states where item_key = 'a-member-of'),
