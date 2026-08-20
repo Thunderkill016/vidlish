@@ -185,19 +185,24 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";
       const permanent = /\b(400|401|403|404)\b/.test(message);
+      const rateLimited = /\b429\b/.test(message) || /RESOURCE_EXHAUSTED/.test(message);
       throw new LessonGenerationFailure(
         `Lesson provider request failed: ${message}`,
         !permanent,
-        { cause: error },
+        { cause: error, kind: rateLimited ? "rate_limited" : "request_failed" },
       );
     }
 
     const finishReason = response.candidates?.[0]?.finishReason;
     if (finishReason === "MAX_TOKENS") {
-      throw new LessonGenerationFailure("Lesson output was truncated.", true);
+      throw new LessonGenerationFailure("Lesson output was truncated.", true, {
+        kind: "truncated",
+      });
     }
     if (finishReason && finishReason !== "STOP") {
-      throw new LessonGenerationFailure("Lesson provider declined.", false);
+      throw new LessonGenerationFailure("Lesson provider declined.", false, {
+        kind: "declined",
+      });
     }
 
     const text = response.text;
@@ -209,7 +214,9 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
     try {
       parsed = JSON.parse(stripCodeFence(text));
     } catch {
-      throw new LessonGenerationFailure("Lesson output was not valid JSON.", true);
+      throw new LessonGenerationFailure("Lesson output was not valid JSON.", true, {
+        kind: "not_json",
+      });
     }
 
     resolveSegmentLabels(parsed, input.permittedSegments);
@@ -223,7 +230,7 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
       throw new LessonGenerationFailure(
         `Lesson output failed schema validation — ${issues}`,
         true,
-        { cause: draft.error },
+        { cause: draft.error, kind: "schema_rejected" },
       );
     }
 

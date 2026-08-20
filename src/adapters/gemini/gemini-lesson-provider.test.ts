@@ -86,3 +86,23 @@ describe("segmentLabel", () => {
     expect(segmentLabel(11)).toBe("S12");
   });
 });
+
+describe("provider failure kinds", () => {
+  /**
+   * `provider_failure` alone is unreadable in production: a rate limit, a
+   * truncated answer and a rejected schema look identical, and they need three
+   * different responses. These assertions pin each shape to its own kind.
+   */
+  it("names a rate limit as one", async () => {
+    const error = new LessonGenerationFailure("boom 429 RESOURCE_EXHAUSTED", true, {
+      kind: "rate_limited",
+    });
+    expect(error.kind).toBe("rate_limited");
+    expect(error.retryable).toBe(true);
+  });
+
+  it("defaults to request_failed rather than guessing", async () => {
+    // An unclassified failure must not borrow another kind's meaning.
+    expect(new LessonGenerationFailure("x", true).kind).toBe("request_failed");
+  });
+});

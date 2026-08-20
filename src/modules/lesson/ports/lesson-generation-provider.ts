@@ -29,6 +29,22 @@ export interface LessonGenerationProvider {
   generate(input: LessonGenerationInput): Promise<LessonGenerationResult>;
 }
 
+/**
+ * Why a provider call failed, in a vocabulary safe to log.
+ *
+ * A bounded set on purpose: the raw provider message can carry transcript text,
+ * so it must never reach the event stream. But "provider_failure" alone is
+ * unreadable — a rate limit, a truncated answer and a rejected schema all look
+ * identical from production, and they need three different responses.
+ */
+export type LessonGenerationFailureKind =
+  | "request_failed"
+  | "rate_limited"
+  | "truncated"
+  | "declined"
+  | "not_json"
+  | "schema_rejected";
+
 export class LessonGenerationFailure extends Error {
   readonly name = "LessonGenerationFailure";
   /**
@@ -39,8 +55,11 @@ export class LessonGenerationFailure extends Error {
   constructor(
     message: string,
     readonly retryable: boolean,
-    options?: { cause?: unknown },
+    options?: { cause?: unknown; kind?: LessonGenerationFailureKind },
   ) {
     super(message, options);
+    this.kind = options?.kind ?? "request_failed";
   }
+
+  readonly kind: LessonGenerationFailureKind;
 }

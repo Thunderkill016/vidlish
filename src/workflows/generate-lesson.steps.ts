@@ -3,7 +3,10 @@ import "server-only";
 import { FatalError, RetryableError } from "workflow";
 
 import { AcquireNativeCaption } from "@/modules/transcript/application/acquire-native-caption";
-import { LessonGenerationFailure } from "@/modules/lesson/ports/lesson-generation-provider";
+import {
+  LessonGenerationFailure,
+  type LessonGenerationFailureKind,
+} from "@/modules/lesson/ports/lesson-generation-provider";
 import { createLanguageEligibilityRepository } from "@/platform/language/create-language-runtime";
 import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
 import {
@@ -214,6 +217,25 @@ export async function resolveTranscriptExhaustionStep(
 
 resolveTranscriptExhaustionStep.maxRetries = 5;
 
+/**
+ * Maps a provider failure to the bounded event vocabulary.
+ *
+ * Kept as a total map rather than a string prefix so a new failure kind cannot
+ * silently log as something else — the type checker demands an entry.
+ */
+const PROVIDER_FAILURE_REASON: Record<
+  LessonGenerationFailureKind,
+  "provider_failure" | "provider_rate_limited" | "provider_truncated" |
+  "provider_declined" | "provider_not_json" | "provider_schema_rejected"
+> = {
+  request_failed: "provider_failure",
+  rate_limited: "provider_rate_limited",
+  truncated: "provider_truncated",
+  declined: "provider_declined",
+  not_json: "provider_not_json",
+  schema_rejected: "provider_schema_rejected",
+};
+
 export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
   "use step";
 
@@ -308,7 +330,9 @@ export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
       stage: "lesson_generation",
       action: "failed",
       ...providerFields,
-      reason: generationFailure ? "provider_failure" : "unexpected_error",
+      reason: generationFailure
+        ? PROVIDER_FAILURE_REASON[generationFailure.kind]
+        : "unexpected_error",
       elapsedMs: Date.now() - startedAt,
       ...(generationFailure ? { retryable: generationFailure.retryable } : {}),
       errorName: safeErrorName(error),
