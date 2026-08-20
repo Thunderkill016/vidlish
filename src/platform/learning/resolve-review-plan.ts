@@ -2,8 +2,8 @@ import "server-only";
 
 import { deriveLearningReviewPlan } from "@/modules/learning/application/derive-learning-review-plan";
 import type { LearningReviewPlan } from "@/modules/learning/application/learning-review-plan";
-import { createLessonVersionRepository } from "@/platform/learning/create-learning-authoring-runtime";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
+import { resolveOwnedLessonBlueprint } from "@/platform/learning/resolve-session-blueprint";
 
 /**
  * Finds the lesson that taught an item and builds its review task from it.
@@ -24,11 +24,11 @@ export async function resolveLearningReviewPlan(
   );
   if (!state) return null;
 
-  const owned = await createLessonVersionRepository().findByIdForOwner({
+  const blueprint = await resolveOwnedLessonBlueprint({
     ownerUserId,
     lessonVersionId: state.sourceLessonVersionId,
   });
-  if (!owned) return null;
+  if (!blueprint) return null;
 
-  return deriveLearningReviewPlan(owned.blueprint, itemKey);
+  return deriveLearningReviewPlan(blueprint, itemKey);
 }

@@ -34,18 +34,36 @@ export async function resolveSessionBlueprint(input: {
   // this function exists to remove.
   if (!session) return null;
 
-  const owned = await createLessonVersionRepository().findByIdForOwner({
+  return await resolveOwnedLessonBlueprint({
     ownerUserId: input.ownerUserId,
     lessonVersionId: session.lessonVersionId,
   });
+}
+
+/**
+ * The blueprint behind one lesson version, owner-scoped.
+ *
+ * Shared because more than one caller needs it and they must not answer
+ * differently: the review queue asked a fixture that knew a single hard-coded
+ * item while the review API read the real lesson, and an item from a learner's
+ * own video fell into the gap between the two answers.
+ */
+export async function resolveOwnedLessonBlueprint(input: {
+  ownerUserId: string;
+  lessonVersionId: string;
+}): Promise<LessonBlueprintV2 | null> {
+  const owned = await createLessonVersionRepository().findByIdForOwner({
+    ownerUserId: input.ownerUserId,
+    lessonVersionId: input.lessonVersionId,
+  });
   if (owned) return owned.blueprint;
 
-  // The demo lab's session points at a configured lesson version that nothing
-  // ever published — its blueprint lives in code, not in a row. Narrowed to
-  // that exact id on purpose: any other session with no published blueprint is
-  // a real learner's, and answering it with a demo is the defect this function
-  // exists to remove.
-  return session.lessonVersionId === resolveLearningLabLessonVersionId()
+  // The demo lab points at a configured lesson version that nothing ever
+  // published — its blueprint lives in code, not in a row. Narrowed to that
+  // exact id on purpose: any other lesson version with no published blueprint
+  // is a real learner's, and answering it with a demo is the defect this
+  // function exists to remove.
+  return input.lessonVersionId === resolveLearningLabLessonVersionId()
     ? createGoldenSessionLearningBlueprint()
     : null;
 }
