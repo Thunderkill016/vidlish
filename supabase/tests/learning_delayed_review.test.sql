@@ -416,9 +416,41 @@ reset role;
 select has_column('public', 'learning_item_states', 'last_independent_at', 'item state stores independent-production timestamp');
 select has_column('public', 'learning_item_states', 'transfer_succeeded_at', 'item state stores changed-context reuse timestamp');
 
--- A second parent lesson: `lesson_versions` is unique on
--- (lesson_id, schema_version), so a second v2 blueprint cannot hang off the
--- lesson the earlier fixture already used.
+-- A second lesson needs its own job and transcript, not only its own row.
+-- Three unique constraints sit on this chain and each one has to be cleared:
+-- lesson_versions (lesson_id, schema_version), lessons (job_id,
+-- pipeline_version), transcripts (job_id, normalized_hash,
+-- normalization_version). The active-generation index does not apply because
+-- both jobs are completed.
+insert into public.lesson_jobs (
+  id, owner_user_id, video_id, cefr_level, metadata_version,
+  pipeline_version, status, current_stage, dispatch_status
+) values (
+  'b4444444-4444-4444-8444-444444444444',
+  'a1111111-1111-4111-8111-111111111111',
+  'a3333333-3333-4333-8333-333333333333',
+  'B1', 'fixture:v1', 'generation-pipeline:v1',
+  'completed', 'completed', 'sent'
+);
+
+insert into public.transcripts (
+  id, owner_user_id, job_id, video_id, strategy_id, provider,
+  source_type, declared_language, available_languages, track_kind,
+  translation_status, normalized_hash, normalization_version,
+  duration_ms, segment_count
+) values (
+  'b5555555-5555-4555-8555-555555555555',
+  'a1111111-1111-4111-8111-111111111111',
+  'b4444444-4444-4444-8444-444444444444',
+  'a3333333-3333-4333-8333-333333333333',
+  'supadata-native-caption', 'supadata', 'native_caption', 'en', array['en'],
+  'unknown', 'unknown', repeat('e', 64), 'transcript-normalization:v1', 24000, 1
+);
+
+update public.lesson_jobs
+set canonical_transcript_id = 'b5555555-5555-4555-8555-555555555555'
+where id = 'b4444444-4444-4444-8444-444444444444';
+
 insert into public.lessons (
   id, owner_user_id, job_id, transcript_id, video_id, cefr_level,
   schema_version, pipeline_version, prompt_version, model_id,
@@ -426,11 +458,11 @@ insert into public.lessons (
 ) values (
   'b6666666-6666-4666-8666-666666666666',
   'a1111111-1111-4111-8111-111111111111',
-  'a4444444-4444-4444-8444-444444444444',
-  'a5555555-5555-4555-8555-555555555555',
+  'b4444444-4444-4444-8444-444444444444',
+  'b5555555-5555-4555-8555-555555555555',
   'a3333333-3333-4333-8333-333333333333',
   'B1', 'lesson:v1', 'lesson-pipeline:v1', 'lesson-prompt:v1',
-  'fixture-review-model', repeat('d', 64), 1, 1,
+  'fixture-review-model', repeat('e', 64), 1, 1,
   '{"titleVi":"Evidence parent"}'::jsonb,
   '[{"segmentId":"seg_dddddddddddddddddddddddddddddddd","startMs":0,"endMs":1000,"text":"one"}]'::jsonb
 );
