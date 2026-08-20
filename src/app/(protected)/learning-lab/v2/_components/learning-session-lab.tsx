@@ -268,6 +268,7 @@ export function LearningSessionLab({
   const [starting, setStarting] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [supporting, setSupporting] = useState(false);
+  const [evidenceIndex, setEvidenceIndex] = useState(0);
   const [error, setError] = useState("");
 
   const current = blueprint.activities[currentIndex];
@@ -282,7 +283,13 @@ export function LearningSessionLab({
   const completionState = currentPolicy
     ? learningActivityCompletionState(currentPolicy, currentProgress)
     : null;
-  const evidenceRange = current?.evidence[0];
+  // An activity may cite two source windows, and only the first was ever
+  // playable: the second existed in the blueprint, was hydrated, was shown as a
+  // citation — and the learner could not hear it. A gist question resting on
+  // the passage they cannot play is unanswerable by listening, which is the one
+  // thing the activity claims to measure.
+  const evidenceRanges = current?.evidence ?? [];
+  const evidenceRange = evidenceRanges[Math.min(evidenceIndex, evidenceRanges.length - 1)];
   const captionControlAllowed = currentProgress.openedSupportSteps.includes(
     "english_caption",
   );
@@ -337,6 +344,7 @@ export function LearningSessionLab({
             );
             setStarted(Boolean(parsed.started));
             setCompleted(Boolean(parsed.completed));
+            setEvidenceIndex(0);
             setCurrentIndex(
               Math.min(
                 Math.max(0, Number(parsed.currentIndex) || 0),
@@ -436,6 +444,7 @@ export function LearningSessionLab({
     if (!request.ok) throw new Error("Vidlish chưa thể mở phiên học.");
     const parsed = learningLabSessionResponseSchema.parse(body);
     setSessionId(parsed.session.id);
+    setEvidenceIndex(0);
     setCurrentIndex(activityIndexForSession(parsed.session));
     setCompleted(parsed.session.status === "completed");
     return parsed.session.id;
@@ -674,6 +683,7 @@ export function LearningSessionLab({
 
     clearDraft();
     setRetrying(false);
+    setEvidenceIndex(0);
     setCurrentIndex((index) => index + 1);
   }
 
@@ -739,6 +749,7 @@ export function LearningSessionLab({
     setSessionId(null);
     setStarted(false);
     setCompleted(false);
+    setEvidenceIndex(0);
     setCurrentIndex(0);
     setProgressByActivity({});
     setRetrying(false);
@@ -899,8 +910,32 @@ export function LearningSessionLab({
                 {formatTime(evidenceRange.startMs)}–
                 {formatTime(evidenceRange.endMs)}
               </p>
+              {evidenceRanges.length > 1 ? (
+                <div
+                  className="flex flex-wrap gap-2"
+                  role="group"
+                  aria-label="Đoạn nguồn của hoạt động này"
+                >
+                  {evidenceRanges.map((range, index) => (
+                    <button
+                      key={`${range.startMs}-${range.endMs}`}
+                      type="button"
+                      aria-pressed={index === evidenceIndex}
+                      onClick={() => setEvidenceIndex(index)}
+                      className={
+                        index === evidenceIndex
+                          ? "min-h-9 rounded-lg border border-[var(--primary)] bg-[var(--primary)] px-3 text-xs font-semibold text-white"
+                          : "min-h-9 rounded-lg border border-[var(--border)] px-3 text-xs font-semibold hover:bg-[var(--background)]"
+                      }
+                    >
+                      Đoạn {index + 1}: {formatTime(range.startMs)}–
+                      {formatTime(range.endMs)}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
               <YouTubeEvidencePlayer
-                key={`${current.id}:${captionControlAllowed}`}
+                key={`${current.id}:${captionControlAllowed}:${evidenceIndex}`}
                 videoId={media.videoId}
                 videoTitle={blueprint.source.videoTitle}
                 evidence={evidenceRange}

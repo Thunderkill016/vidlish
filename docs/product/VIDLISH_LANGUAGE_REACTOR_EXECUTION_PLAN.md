@@ -491,11 +491,19 @@ without any fixture IDs or fixture blueprint/policy imports
 
 ### VLR-101 — segment replay as first-class action
 
-- [ ] current activity always knows its evidence range;
-- [ ] replay one bounded source segment/window;
-- [ ] replay ordinal persisted server-side;
-- [ ] second+ replay distinguishable from initial exposure;
-- [ ] player does not drift to unrelated transcript ranges.
+**Status:** `[x]`
+
+- [x] current activity always knows its evidence range — **every** range, not
+      only the first. The contract allows two source windows per activity and
+      the authoring draft can produce them; the UI bound `evidence[0]` and the
+      second was hydrated, shown as a citation, and unplayable. A gist question
+      resting on the passage the learner cannot hear is unanswerable by
+      listening, which is the one thing the activity claims to measure;
+- [x] replay one bounded source segment/window;
+- [x] replay ordinal persisted server-side (`learning_support_events.playback_ordinal`);
+- [x] second+ replay distinguishable from initial exposure;
+- [x] player does not drift to unrelated transcript ranges — `bindVerifiedLearningMedia`
+      rejects a range broader or narrower than the segments it cites.
 
 Acceptance:
 
@@ -506,6 +514,8 @@ Acceptance:
 ## 1.2 Slow playback as support, not default
 
 ### VLR-102 — wire playback-rate selector to YouTube player
+
+**Status:** `[x]` — PR #81, merge SHA `e8ba326`, CI run 32381859447
 
 Existing groundwork:
 
