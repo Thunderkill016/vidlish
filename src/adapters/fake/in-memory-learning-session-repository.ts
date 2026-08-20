@@ -265,6 +265,8 @@ export class InMemoryLearningSessionRepository
           : nextReviewAt,
         reviewState: existing?.reviewState ?? null,
         lastDelayedTransferAt: existing?.lastDelayedTransferAt ?? null,
+        lastIndependentAt: existing?.lastIndependentAt ?? null,
+        transferSucceededAt: existing?.transferSucceededAt ?? null,
       });
       this.reviewItems.set(mapKey, item);
     }

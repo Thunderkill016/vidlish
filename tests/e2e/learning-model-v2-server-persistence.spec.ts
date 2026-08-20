@@ -275,20 +275,35 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   const { data: scheduledItems, error: scheduledItemsError } = await admin
     .from("learning_item_states")
     .select(
-      "item_key,exposure_count,attempt_count,successful_retrievals,last_outcome,next_review_at,last_delayed_transfer_at",
+      "item_key,exposure_count,attempt_count,successful_retrievals,last_outcome,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_succeeded_at",
     )
     .eq("owner_user_id", "133f314f-4bfd-46aa-8fc6-b6a33252232b")
     .eq("item_key", "a-member-of");
   expect(scheduledItemsError).toBeNull();
   expect(scheduledItems).toHaveLength(1);
+  // VLR-201. These were literal zeros before: the completion trigger wrote them
+  // as constants and nothing in the lesson path ever updated them, so an item
+  // the learner had just worked through looked untouched until its first
+  // review.
+  //
+  // Four attempts, because three activities in this lesson target this item —
+  // meaning, recall and transfer — and transfer was attempted twice. Two of
+  // them were graded correct.
   expect(scheduledItems?.[0]).toMatchObject({
     item_key: "a-member-of",
     exposure_count: 1,
-    attempt_count: 0,
-    successful_retrievals: 0,
+    attempt_count: 4,
+    successful_retrievals: 2,
     last_outcome: null,
     last_delayed_transfer_at: null,
   });
+
+  // The journey opens support on the gist activity only, so both correct
+  // answers were produced with nothing open on their own activity. That is what
+  // independent production means here, and it is the one thing in this row that
+  // is a claim about capability rather than a count.
+  expect(scheduledItems?.[0]?.last_independent_at).not.toBeNull();
+  expect(scheduledItems?.[0]?.transfer_succeeded_at).not.toBeNull();
   expect(new Date(scheduledItems?.[0]?.next_review_at as string).getTime()).toBeGreaterThan(
     Date.now(),
   );
@@ -417,9 +432,13 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .eq("item_key", "a-member-of");
   expect(reviewedItemsError).toBeNull();
   expect(reviewedItems).toHaveLength(1);
+  // The lesson contributed four attempts and two retrievals; the delayed review
+  // adds its own four and one. Before VLR-201 the lesson half was written as
+  // zeros, so this row only ever counted the review — the totals said nothing
+  // about the session that taught the item.
   expect(reviewedItems?.[0]).toMatchObject({
-    attempt_count: 4,
-    successful_retrievals: 1,
+    attempt_count: 8,
+    successful_retrievals: 3,
     last_outcome: "hard",
   });
   expect(reviewedItems?.[0]?.last_delayed_transfer_at).toBeTruthy();
