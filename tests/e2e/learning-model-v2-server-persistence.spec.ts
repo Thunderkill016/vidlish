@@ -341,10 +341,14 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .eq("item_key", "a-member-of");
   expect(reviewSessionsError).toBeNull();
   expect(reviewSessions).toHaveLength(1);
+  // Derived from the blueprint that taught the item, not a variant id chosen
+  // by hand: `review_<blueprint prefix>_<item id>`. It has to be tied to the
+  // blueprint so a republished lesson cannot be mistaken for the variant the
+  // learner already saw.
   expect(reviewSessions?.[0]).toMatchObject({
     status: "completed",
     current_step: "completed",
-    variant_id: "review_variant_affiliation_01",
+    variant_id: "review_11111111_item_member_of",
   });
   expect(reviewSessions?.[0]?.completed_at).toBeTruthy();
 
