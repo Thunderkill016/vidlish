@@ -101,6 +101,18 @@ describe("provider failure kinds", () => {
     expect(error.retryable).toBe(true);
   });
 
+  it("separates an overloaded model from a spent quota", async () => {
+    // 503 UNAVAILABLE and 429 RESOURCE_EXHAUSTED need different answers: one
+    // clears on its own, the other does not. Both were landing in the same
+    // bucket as a network error, which is exactly why a production failure
+    // could not be read from its logs.
+    const unavailable = new LessonGenerationFailure("boom 503 UNAVAILABLE", true, {
+      kind: "unavailable",
+    });
+    expect(unavailable.kind).toBe("unavailable");
+    expect(unavailable.retryable).toBe(true);
+  });
+
   it("defaults to request_failed rather than guessing", async () => {
     // An unclassified failure must not borrow another kind's meaning.
     expect(new LessonGenerationFailure("x", true).kind).toBe("request_failed");

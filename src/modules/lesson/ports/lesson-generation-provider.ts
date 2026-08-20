@@ -40,6 +40,7 @@ export interface LessonGenerationProvider {
 export type LessonGenerationFailureKind =
   | "request_failed"
   | "rate_limited"
+  | "unavailable"
   | "truncated"
   | "declined"
   | "not_json"

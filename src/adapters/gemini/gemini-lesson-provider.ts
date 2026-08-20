@@ -185,11 +185,25 @@ export class GeminiLessonProvider implements LessonGenerationProvider {
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";
       const permanent = /\b(400|401|403|404)\b/.test(message);
-      const rateLimited = /\b429\b/.test(message) || /RESOURCE_EXHAUSTED/.test(message);
+      const rateLimited =
+        /\b429\b/.test(message) || /RESOURCE_EXHAUSTED/.test(message);
+      // 503 UNAVAILABLE is what Gemini answers when a model is oversubscribed,
+      // and it is a different problem from a quota the caller has spent: one
+      // clears on its own, the other does not. Both were landing in the same
+      // bucket as a network error, which is why production could not be read.
+      const unavailable =
+        /\b503\b/.test(message) || /UNAVAILABLE/.test(message);
       throw new LessonGenerationFailure(
         `Lesson provider request failed: ${message}`,
         !permanent,
-        { cause: error, kind: rateLimited ? "rate_limited" : "request_failed" },
+        {
+          cause: error,
+          kind: rateLimited
+            ? "rate_limited"
+            : unavailable
+              ? "unavailable"
+              : "request_failed",
+        },
       );
     }
 

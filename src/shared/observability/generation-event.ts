@@ -53,6 +53,7 @@ export const generationEventSchema = z
         // transcript text — they name the shape of the failure, which is what
         // production needs to tell a rate limit from a rejected schema.
         "provider_rate_limited",
+        "provider_unavailable",
         "provider_truncated",
         "provider_declined",
         "provider_not_json",
