@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { createGoldenSessionLearningBlueprint } from "@/adapters/fake/fixture-golden-learning-blueprint";
-import { createFixtureLearningRuntimePolicy } from "@/adapters/fake/fixture-learning-runtime-policy";
+import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import { RecordLearningSupportEvidence } from "@/modules/learning/application/record-learning-support-evidence";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningSessionRepository } from "@/platform/learning/create-learning-session-repository";
+import { resolveSessionBlueprint } from "@/platform/learning/resolve-session-blueprint";
 import {
   learningLabSupportEventRequestSchema,
   learningLabSupportEventResponseSchema,
@@ -25,12 +25,22 @@ export async function POST(request: NextRequest) {
     );
     if (!parsed.success) throw authErrors.rejected();
 
+    // VLR-002. The support boundary — how much help a learner may open before
+    // an answer is revealed — has to be decided by the policy of the lesson
+    // they are in. Deciding it from a fixture meant the boundary was right only
+    // when the two happened to agree.
+    const blueprint = await resolveSessionBlueprint({
+      ownerUserId: access.userId,
+      sessionId: parsed.data.sessionId,
+    });
+    if (!blueprint) throw authErrors.rejected();
+
     const result = await new RecordLearningSupportEvidence(
       createLearningSessionRepository(),
     ).execute({
       ownerUserId: access.userId,
-      blueprint: createGoldenSessionLearningBlueprint(),
-      policy: createFixtureLearningRuntimePolicy(),
+      blueprint,
+      policy: deriveLearningRuntimePolicy(blueprint),
       ...parsed.data,
     });
 

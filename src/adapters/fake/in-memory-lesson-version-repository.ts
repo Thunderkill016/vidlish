@@ -32,6 +32,24 @@ export class InMemoryLessonVersionRepository implements LessonVersionRepository 
     this.lessonByJob.set(jobId, lessonId);
   }
 
+  async findByIdForOwner(input: {
+    ownerUserId: string;
+    lessonVersionId: string;
+  }) {
+    for (const entry of this.published.values()) {
+      if (
+        entry.lessonVersionId === input.lessonVersionId &&
+        entry.ownerUserId === input.ownerUserId
+      ) {
+        return {
+          lessonVersionId: entry.lessonVersionId,
+          blueprint: entry.blueprint,
+        };
+      }
+    }
+    return null;
+  }
+
   async findForJob(input: { ownerUserId: string; jobId: string }) {
     const lessonId = this.lessonByJob.get(input.jobId);
     if (!lessonId) return null;

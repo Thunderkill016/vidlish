@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
 import { classifyLearningReviewQueue } from "@/modules/learning/application/classify-learning-review-queue";
+import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-plan";
 import { studyCompletionPercent } from "@/modules/study/application/score-study-progress";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
@@ -64,9 +64,10 @@ export default async function DashboardPage() {
     (summary) => summary.completedAt,
   ).length;
   const { due: dueReviews, upcoming: upcomingReview } =
-    classifyLearningReviewQueue(
+    await classifyLearningReviewQueue(
       scheduledReviews,
-      (itemKey) => resolveFixtureLearningReviewPlan(itemKey) !== null,
+      async (itemKey) =>
+        (await resolveLearningReviewPlan(access.userId, itemKey)) !== null,
     );
 
   return (

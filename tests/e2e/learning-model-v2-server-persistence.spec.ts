@@ -77,7 +77,9 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await expect(page.getByText("Chưa đúng", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Tiếp tục" })).toBeDisabled();
 
-  await page.getByRole("button", { name: "Mở gợi ý từ khóa" }).click();
+  await expect(
+    page.getByRole("button", { name: "Mở gợi ý từ khóa" }),
+  ).toHaveCount(0);
   await page.getByRole("button", { name: "Mở phụ đề tiếng anh" }).click();
   await expect(page.getByRole("button", { name: "Bật phụ đề" })).toBeVisible();
 
@@ -206,7 +208,11 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .select("*")
     .eq("session_id", sessionId);
   expect(supportEventsError).toBeNull();
-  expect(supportEvents).toHaveLength(6);
+  // Two gist replays, the two support steps the ladder still offers, and one
+  // exit replay. This total and the per-kind assertions below have to be
+  // changed together; when the keyword hint left the ladder only the per-kind
+  // ones were updated, and the stale total was the failure.
+  expect(supportEvents).toHaveLength(5);
 
   const gistPlaybackOrdinals = (supportEvents ?? [])
     .filter(
@@ -225,9 +231,10 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     )
     .map((event) => event.support_step)
     .sort();
-  expect(gistSupportSteps).toEqual(
-    ["context_hint", "english_caption", "keyword_hint"].sort(),
-  );
+  // Keyword hint is gone from the ladder, so it must not appear in the durable
+  // record either — the persisted evidence and the offered ladder are the same
+  // claim seen from two sides.
+  expect(gistSupportSteps).toEqual(["context_hint", "english_caption"].sort());
 
   const exitPlayback = (supportEvents ?? []).filter(
     (event) =>
@@ -294,7 +301,14 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await page.getByLabel("Câu trả lời").fill("a member of");
   await page.getByRole("button", { name: "Kiểm tra trí nhớ" }).click();
   await expect(page.getByText("Không lặp lại câu nguồn")).toBeVisible();
-  await expect(page.getByText(/nhóm tình nguyện cộng đồng/i)).toBeVisible();
+  // The delayed transfer reuses the scenario the lesson itself authored, not a
+  // scenario invented for review. The resolver this replaced carried its own
+  // hard-coded "nhóm tình nguyện cộng đồng" text, which is exactly the kind of
+  // ungrounded content VLR-003 removed — so the string asserted here has to be
+  // the blueprint's own.
+  await expect(
+    page.getByText(/đang giới thiệu bản thân với cộng tác viên mới/i),
+  ).toBeVisible();
   await expect(page.getByText("Câu mẫu sau attempt:")).toHaveCount(0);
 
   await page.getByLabel("Câu của bạn").fill(PRIVATE_DELAYED_TRANSFER_TEXT);
@@ -302,7 +316,7 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await expect(page.getByText("Tự đối chiếu câu bạn vừa viết")).toBeVisible();
   await expect(
     page.getByText(
-      "Câu mẫu sau attempt: I'm a member of the community volunteer team.",
+      "Câu mẫu sau attempt: I'm a member of the product design team.",
       { exact: true },
     ),
   ).toBeVisible();
@@ -327,10 +341,14 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .eq("item_key", "a-member-of");
   expect(reviewSessionsError).toBeNull();
   expect(reviewSessions).toHaveLength(1);
+  // Derived from the blueprint that taught the item, not a variant id chosen
+  // by hand: `review_<blueprint prefix>_<item id>`. It has to be tied to the
+  // blueprint so a republished lesson cannot be mistaken for the variant the
+  // learner already saw.
   expect(reviewSessions?.[0]).toMatchObject({
     status: "completed",
     current_step: "completed",
-    variant_id: "review_variant_affiliation_01",
+    variant_id: "review_11111111_item_member_of",
   });
   expect(reviewSessions?.[0]?.completed_at).toBeTruthy();
 

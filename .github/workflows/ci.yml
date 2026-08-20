@@ -210,6 +210,12 @@ jobs:
       AUTH_FAKE_CODE: "123456"
       TEST_BETA_EMAILS: learning-preview@example.com
       LEARNING_SESSION_REPOSITORY: supabase
+      # The job exists to prove durable persistence, so every repository has to
+      # be the durable one. Leaving these in memory meant a page could read the
+      # published lesson from the database and then fail to find the job and
+      # transcript that lesson belongs to, and redirect away from itself.
+      GENERATION_REPOSITORY: supabase
+      TRANSCRIPT_REPOSITORY: supabase
       LEARNING_LAB_V2_LESSON_VERSION_ID: 77777777-7777-4777-8777-777777777777
     steps:
       - name: Checkout
@@ -266,6 +272,11 @@ jobs:
           psql "$DB_URL" \
             --set ON_ERROR_STOP=1 \
             --file supabase/fixtures/learning_model_v2_durable.sql
+          # VLR-004. A second lesson whose ids nothing recognises, so a layer
+          # quietly depending on the Golden names fails instead of passing.
+          psql "$DB_URL" \
+            --set ON_ERROR_STOP=1 \
+            --file supabase/fixtures/learning_model_v2_arbitrary.sql
       - name: Export local Supabase API credentials
         run: |
           supabase status -o env \
@@ -289,6 +300,7 @@ jobs:
         run: >-
           pnpm exec playwright test
           tests/e2e/learning-model-v2-server-persistence.spec.ts
+          tests/e2e/learning-model-v2-arbitrary.spec.ts
           --project=chromium
           --workers=1
           --retries=0

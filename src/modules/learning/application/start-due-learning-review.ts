@@ -14,7 +14,7 @@ export class StartDueLearningReview {
   async execute(input: { ownerUserId: string; now?: Date }) {
     const now = input.now ?? new Date();
     const scheduled = await this.repository.listScheduled(input.ownerUserId);
-    const due = scheduled
+    const candidates = scheduled
       .filter(
         (item) =>
           item.nextReviewAt !== null &&
@@ -24,19 +24,25 @@ export class StartDueLearningReview {
         (left, right) =>
           new Date(left.nextReviewAt!).getTime() -
           new Date(right.nextReviewAt!).getTime(),
-      )
-      .find((item) => this.resolvePlan(item.itemKey) !== null);
-
-    if (!due) {
-      throw new LearningReviewUnavailableError(
-        "No supported delayed review item is due yet.",
       );
+
+    // Walked in due order until one resolves. An item whose lesson can no
+    // longer supply a grounded task is skipped rather than failing the whole
+    // review — the learner still has everything else that came due.
+    let due: (typeof candidates)[number] | undefined;
+    let plan: Awaited<ReturnType<LearningReviewPlanResolver>> = null;
+    for (const candidate of candidates) {
+      const resolved = await this.resolvePlan(candidate.itemKey);
+      if (resolved) {
+        due = candidate;
+        plan = resolved;
+        break;
+      }
     }
 
-    const plan = this.resolvePlan(due.itemKey);
-    if (!plan) {
+    if (!due || !plan) {
       throw new LearningReviewUnavailableError(
-        "The due item does not have a bounded review variant.",
+        "No supported delayed review item is due yet.",
       );
     }
 

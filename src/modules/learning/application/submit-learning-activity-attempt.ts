@@ -1,5 +1,7 @@
 import { evaluateLearningActivity } from "@/modules/learning/application/evaluate-learning-activity";
+import { isAssistedCompletion } from "@/modules/learning/application/learning-runtime-progress";
 import type { LearningSessionRepository } from "@/modules/learning/ports/learning-session-repository";
+import type { LearningRuntimePolicyV2 } from "@/shared/contracts/learning-policy-v2";
 import type {
   ActivityResponse,
   LessonBlueprintV2,
@@ -42,6 +44,8 @@ export class SubmitLearningActivityAttempt {
     ownerUserId: string;
     sessionId: string;
     blueprint: LessonBlueprintV2;
+    /** The lesson's own rules, so the limit matches the one shown to the learner. */
+    policy: LearningRuntimePolicyV2;
     activityId: string;
     idempotencyKey: string;
     response: ActivityResponse;
@@ -67,11 +71,33 @@ export class SubmitLearningActivityAttempt {
     const evaluation = evaluateLearningActivity(activity, input.response);
     const responseEvidence = createPrivacySafeActivityResponse(input.response);
     const nextActivity = input.blueprint.activities[activityIndex + 1];
-    const advance = canAdvanceAfterAttempt({
+    const canAdvance = canAdvanceAfterAttempt({
       activity,
       response: input.response,
       verdict: evaluation.verdict,
     });
+    // VLR-005. The browser offers Continue once attempts run out on a wrong
+    // answer; the server used to refuse, leaving the learner stuck on a screen
+    // that told them they could move on. Same rule, one function.
+    const activityPolicy = input.policy.activityPolicies.find(
+      (entry) => entry.activityId === activity.id,
+    );
+    const priorAttempts = await this.repository.countActivityAttempts({
+      ownerUserId: input.ownerUserId,
+      sessionId: input.sessionId,
+      activityId: activity.id,
+    });
+    const assisted = activityPolicy
+      ? isAssistedCompletion({
+          attemptCount: priorAttempts + 1,
+          latestVerdict: evaluation.verdict,
+          maxAttemptsPerSession: activityPolicy.retry.maxAttemptsPerSession,
+        })
+      : false;
+
+    // Advancing is not mastery. Every wrong answer and every attempt spent is
+    // still persisted, and capability evidence is read from those.
+    const advance = canAdvance || assisted;
     const complete = advance && !nextActivity;
 
     // The repository resolves an owned idempotency key before checking the

@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
 import { classifyLearningReviewQueue } from "@/modules/learning/application/classify-learning-review-queue";
+import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-plan";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
 import { Card } from "@/shared/ui/card";
@@ -39,9 +39,10 @@ export default async function ReviewPage() {
   const scheduled = await createLearningReviewRepository().listScheduled(
     access.userId,
   );
-  const { due, upcoming } = classifyLearningReviewQueue(
+  const { due, upcoming } = await classifyLearningReviewQueue(
     scheduled,
-    (itemKey) => resolveFixtureLearningReviewPlan(itemKey) !== null,
+    async (itemKey) =>
+      (await resolveLearningReviewPlan(access.userId, itemKey)) !== null,
   );
 
   return (

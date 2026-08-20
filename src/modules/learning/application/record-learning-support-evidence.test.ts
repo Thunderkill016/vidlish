@@ -1,3 +1,4 @@
+import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import { describe, expect, it } from "vitest";
 
 import { createGoldenSessionLearningBlueprint } from "@/adapters/fake/fixture-golden-learning-blueprint";
@@ -108,6 +109,7 @@ describe("RecordLearningSupportEvidence", () => {
       ownerUserId,
       sessionId: session.id,
       blueprint,
+      policy: deriveLearningRuntimePolicy(blueprint),
       activityId: "activity_gist",
       idempotencyKey: "76666666-6666-4666-8666-666666666666",
       response: { kind: "choice", optionId: "option_camera_hardware" },

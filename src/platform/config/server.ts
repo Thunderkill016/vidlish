@@ -146,6 +146,23 @@ const serverConfigSchema = z
         message: "The fixture lesson provider cannot run in production.",
       });
     }
+    // VLR-006. The fixture authoring provider writes a stand-in lesson that
+    // looks exactly like a real one — same schema, same runtime, same session.
+    // Nothing downstream can tell the difference, so a learner would study a
+    // demo believing it came from their video. `off` is a fine production
+    // value; `fixture` never is.
+    if (
+      value.NODE_ENV === "production" &&
+      !value.CI &&
+      value.LEARNING_AUTHORING_PROVIDER === "fixture"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["LEARNING_AUTHORING_PROVIDER"],
+        message:
+          "The fixture learning authoring provider cannot run in production.",
+      });
+    }
   });
 
 export type ServerConfig = z.infer<typeof serverConfigSchema>;

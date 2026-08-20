@@ -90,6 +90,18 @@ export class InMemoryLearningSessionRepository
     return session?.ownerUserId === ownerUserId ? session : null;
   }
 
+  async countActivityAttempts(input: {
+    ownerUserId: string;
+    sessionId: string;
+    activityId: string;
+  }) {
+    return this.countAttempts(
+      input.sessionId,
+      input.activityId,
+      input.ownerUserId,
+    );
+  }
+
   async countAttempts(
     sessionId: string,
     activityId: string,

@@ -42,4 +42,16 @@ export interface LessonVersionRepository {
     ownerUserId: string;
     jobId: string;
   }): Promise<OwnedLessonVersion | null>;
+
+  /**
+   * The blueprint a durable session is running on.
+   *
+   * Attempt and support routes need it to grade against the lesson the learner
+   * actually opened. Owner-scoped: a session id from someone else's account
+   * must resolve to nothing rather than to their content.
+   */
+  findByIdForOwner(input: {
+    ownerUserId: string;
+    lessonVersionId: string;
+  }): Promise<OwnedLessonVersion | null>;
 }

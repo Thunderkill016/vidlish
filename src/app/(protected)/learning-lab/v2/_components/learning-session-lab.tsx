@@ -284,9 +284,22 @@ export function LearningSessionLab({
   const captionControlAllowed = currentProgress.openedSupportSteps.includes(
     "english_caption",
   );
-  const nextSupportStep = currentPolicy?.support?.steps.find(
-    (step) => !currentProgress.openedSupportSteps.includes(step),
-  );
+  // Offered only if the policy would actually permit it. Picking the first
+  // unopened step regardless put an answer-revealing button in front of a
+  // learner who had not attempted anything: the server refused it, so the
+  // button did nothing, and the promise that text is earned was broken on
+  // screen even though the data stayed honest.
+  const nextSupportStep = currentPolicy?.support
+    ? currentPolicy.support.steps.find(
+        (step) =>
+          !currentProgress.openedSupportSteps.includes(step) &&
+          canUseSupportStep(
+            currentPolicy.support!,
+            step,
+            currentProgress.attempts.length,
+          ),
+      )
+    : undefined;
   const allCriteriaSelected = Boolean(
     currentAttempt?.selfCheckCriteriaVi?.length &&
       checkedCriteria.length === currentAttempt.selfCheckCriteriaVi.length,

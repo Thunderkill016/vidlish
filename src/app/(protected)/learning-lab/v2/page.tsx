@@ -2,11 +2,9 @@ import { redirect } from "next/navigation";
 
 import { createGoldenSessionLearningBlueprint } from "@/adapters/fake/fixture-golden-learning-blueprint";
 import { createFixtureLearningMedia } from "@/adapters/fake/fixture-learning-media";
-import {
-  createFixtureLearningRuntimePolicy,
-  fixtureLearningSupportCopy,
-} from "@/adapters/fake/fixture-learning-runtime-policy";
+import { fixtureLearningSupportCopy } from "@/adapters/fake/fixture-learning-runtime-policy";
 import { createLearnerBlueprintView } from "@/modules/learning/application/create-learner-blueprint-view";
+import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { bindVerifiedLearningMedia } from "@/shared/contracts/learning-media";
 import { validateLearningRuntimePolicyAgainstBlueprint } from "@/shared/contracts/learning-policy-v2";
@@ -19,7 +17,10 @@ export default async function LearningModelV2LabPage() {
   if (!access) redirect("/sign-in?next=/learning-lab/v2");
 
   const blueprint = createGoldenSessionLearningBlueprint();
-  const policy = createFixtureLearningRuntimePolicy();
+  // The same derivation the support route uses. Passing a hand-written policy
+  // here while the server derived its own is how a button appears that the
+  // server then refuses — the same client/server split VLR-005 was about.
+  const policy = deriveLearningRuntimePolicy(blueprint);
   const policyIssues = validateLearningRuntimePolicyAgainstBlueprint(
     policy,
     blueprint,
