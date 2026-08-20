@@ -35,11 +35,13 @@ insert into public.transcripts (
 update public.lesson_jobs set canonical_transcript_id = 'd0000000-0000-4000-8000-000000000001' where id = 'b0000000-0000-4000-8000-000000000001';
 
 insert into public.transcript_segments (
-  transcript_id, id, position, start_ms, end_ms, text, confidence, detected_language
+  transcript_id, id, owner_user_id, position, start_ms, end_ms, text, confidence, detected_language
 ) values
-  ('d0000000-0000-4000-8000-000000000001', 'seg_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', 0, 16000, 19000, 'I''m a member of the Developer Relations team.', 0.99, 'en'),
-  ('d0000000-0000-4000-8000-000000000001', 'seg_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', 1, 21000, 24000, 'different ways of customizing the YouTube-embedded player.', 0.99, 'en')
-on conflict (id) do nothing;
+  ('d0000000-0000-4000-8000-000000000001', 'seg_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa', '133f314f-4bfd-46aa-8fc6-b6a33252232b', 0, 16000, 19000, 'I''m a member of the Developer Relations team.', 0.99, 'en'),
+  ('d0000000-0000-4000-8000-000000000001', 'seg_bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb', '133f314f-4bfd-46aa-8fc6-b6a33252232b', 1, 21000, 24000, 'different ways of customizing the YouTube-embedded player.', 0.99, 'en')
+-- Nhắm theo tên ràng buộc: khoá chính ở đây là (transcript_id, id), nên một cột
+-- trần không khớp ràng buộc nào.
+on conflict on constraint transcript_segments_pkey do nothing;
 
 insert into public.lessons (
   id, owner_user_id, job_id, transcript_id, video_id, cefr_level,
