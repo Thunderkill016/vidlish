@@ -210,6 +210,12 @@ jobs:
       AUTH_FAKE_CODE: "123456"
       TEST_BETA_EMAILS: learning-preview@example.com
       LEARNING_SESSION_REPOSITORY: supabase
+      # The job exists to prove durable persistence, so every repository has to
+      # be the durable one. Leaving these in memory meant a page could read the
+      # published lesson from the database and then fail to find the job and
+      # transcript that lesson belongs to, and redirect away from itself.
+      GENERATION_REPOSITORY: supabase
+      TRANSCRIPT_REPOSITORY: supabase
       LEARNING_LAB_V2_LESSON_VERSION_ID: 77777777-7777-4777-8777-777777777777
     steps:
       - name: Checkout
