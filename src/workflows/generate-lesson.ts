@@ -4,6 +4,7 @@ import {
   acquireNativeCaptionStep,
   advanceToTranscriptAcquisition,
   authorLearningLessonStep,
+  diagnoseLearningLessonStep,
   checkOriginalEnglishStep,
   generateLessonStep,
   loadFinalGenerationStateStep,
@@ -70,10 +71,15 @@ export async function generateLessonWorkflow(
   // result, but letting it turn their finished job into a failure is not. The
   // step swallows its own errors too — this is the second lock on the same door.
   if (lessonOutcome === "published" || lessonOutcome === "already_published") {
+    // Two steps, one model call each. Together they overran a single step's
+    // budget and the invocation was killed with no error handler ever running.
     try {
-      await authorLearningLessonStep(jobRef);
+      const diagnosed = await diagnoseLearningLessonStep(jobRef);
+      if (diagnosed.kind === "diagnosed") {
+        await authorLearningLessonStep(jobRef);
+      }
     } catch {
-      // Deliberately silent here: the step already emitted the failure event.
+      // Deliberately silent here: each step already emitted its own failure.
     }
   }
 

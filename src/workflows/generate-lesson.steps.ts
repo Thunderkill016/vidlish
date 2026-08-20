@@ -11,6 +11,7 @@ import { createLanguageEligibilityRepository } from "@/platform/language/create-
 import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
 import {
   createAuthorLearningLesson,
+  createDiagnoseLearningLesson,
   learningAuthoringEnabled,
 } from "@/platform/learning/create-learning-authoring-runtime";
 import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
@@ -440,15 +441,13 @@ loadFinalGenerationStateStep.maxRetries = 3;
  * Off by default. Turning it on is a deliberate act — it publishes content
  * someone will study.
  */
-export async function authorLearningLessonStep(
-  jobRef: GenerationWorkflowJobRef,
-) {
-  "use step";
-
-  if (!learningAuthoringEnabled()) {
-    return { kind: "skipped", reason: "disabled" } as const;
-  }
-
+/**
+ * Everything both halves need, loaded once per step.
+ *
+ * A step is a fresh invocation, so neither half can hand the other anything in
+ * memory. Both re-read from the database, and both refuse the same way.
+ */
+async function loadAuthoringContext(jobRef: GenerationWorkflowJobRef) {
   const { generationRepository, transcriptRuntime } = createStepRuntime();
   const job = await generationRepository.findOwnedById(
     jobRef.jobId,
@@ -471,11 +470,37 @@ export async function authorLearningLessonStep(
     return { kind: "skipped", reason: "not_eligible" } as const;
   }
 
-  const lesson = await createLessonRepository(
+  return {
+    kind: "ready",
+    job,
+    transcript,
+    eligibility,
     generationRepository,
-    transcriptRuntime.repository,
-  ).findOwnedByJobId(job.id, job.ownerUserId);
-  if (!lesson) return { kind: "skipped", reason: "lesson_missing" } as const;
+    transcriptRuntime,
+  } as const;
+}
+
+/**
+ * First half of the v2 chain: one model call, then the deterministic gate.
+ *
+ * Split from authoring because two model calls at roughly 25 seconds each
+ * overrun a workflow step. Production showed exactly that: the combined step
+ * logged that it started and then nothing at all — the invocation was killed
+ * about thirty seconds in, before any error handler could run. A failure nobody
+ * can see cannot be fixed, so the work had to get smaller rather than the
+ * timeouts larger.
+ */
+export async function diagnoseLearningLessonStep(
+  jobRef: GenerationWorkflowJobRef,
+) {
+  "use step";
+
+  if (!learningAuthoringEnabled()) {
+    return { kind: "skipped", reason: "disabled" } as const;
+  }
+
+  const loaded = await loadAuthoringContext(jobRef);
+  if (loaded.kind !== "ready") return loaded;
 
   emitGenerationEvent({
     level: "info",
@@ -487,18 +512,89 @@ export async function authorLearningLessonStep(
   const startedAt = Date.now();
 
   try {
-    const result = await withDeadline(createAuthorLearningLesson().execute({
-      jobId: job.id,
+    await createDiagnoseLearningLesson().execute({
+      jobId: loaded.job.id,
+      ownerUserId: loaded.job.ownerUserId,
+      videoTitle: loaded.job.videoTitle,
+      channelName: loaded.job.channelName,
+      transcript: loaded.transcript,
+      eligibility: loaded.eligibility,
+      learnerSnapshot: defaultLearnerSnapshot(loaded.job.cefrLevel),
+      now: new Date(),
+    });
+
+    emitGenerationEvent({
+      level: "info",
+      jobId: jobRef.jobId,
+      stage: "learning_authoring",
+      action: "succeeded",
+      provider: "workflow",
+      outcome: "diagnosed",
+      elapsedMs: Date.now() - startedAt,
+    });
+    return { kind: "diagnosed" } as const;
+  } catch {
+    emitGenerationEvent({
+      level: "warning",
+      jobId: jobRef.jobId,
+      stage: "learning_authoring",
+      action: "failed",
+      provider: "workflow",
+      reason: "provider_failure",
+      elapsedMs: Date.now() - startedAt,
+    });
+    return { kind: "skipped", reason: "diagnosis_failed" } as const;
+  }
+}
+
+/**
+ * Second half: one model call, then publish.
+ *
+ * Additive on purpose. The v1 lesson is already saved by the time this runs, so
+ * a failure here must leave the learner with the lesson they already have
+ * rather than turning a working job into a failed one. Every exit is a skip.
+ */
+export async function authorLearningLessonStep(
+  jobRef: GenerationWorkflowJobRef,
+) {
+  "use step";
+
+  if (!learningAuthoringEnabled()) {
+    return { kind: "skipped", reason: "disabled" } as const;
+  }
+
+  const loaded = await loadAuthoringContext(jobRef);
+  if (loaded.kind !== "ready") return loaded;
+
+  const lesson = await createLessonRepository(
+    loaded.generationRepository,
+    loaded.transcriptRuntime.repository,
+  ).findOwnedByJobId(loaded.job.id, loaded.job.ownerUserId);
+  if (!lesson) return { kind: "skipped", reason: "lesson_missing" } as const;
+
+  emitGenerationEvent({
+    level: "info",
+    jobId: jobRef.jobId,
+    stage: "learning_authoring",
+    action: "started",
+    provider: "workflow",
+    outcome: "authoring",
+  });
+  const startedAt = Date.now();
+
+  try {
+    const result = await createAuthorLearningLesson().execute({
+      jobId: loaded.job.id,
       lessonId: lesson.id,
-      ownerUserId: job.ownerUserId,
-      videoTitle: job.videoTitle,
-      channelName: job.channelName,
-      transcript,
-      eligibility,
-      learnerSnapshot: defaultLearnerSnapshot(job.cefrLevel),
+      ownerUserId: loaded.job.ownerUserId,
+      videoTitle: loaded.job.videoTitle,
+      channelName: loaded.job.channelName,
+      transcript: loaded.transcript,
+      eligibility: loaded.eligibility,
+      learnerSnapshot: defaultLearnerSnapshot(loaded.job.cefrLevel),
       blueprintId: crypto.randomUUID(),
       now: new Date(),
-    }), AUTHORING_DEADLINE_MS);
+    });
 
     emitGenerationEvent({
       level: "info",
@@ -510,7 +606,7 @@ export async function authorLearningLessonStep(
       elapsedMs: Date.now() - startedAt,
     });
     return { kind: "published", created: result.created } as const;
-  } catch (error) {
+  } catch {
     // Logged, not rethrown. The learner keeps the v1 lesson; losing the v2 one
     // is a degraded result, not a failed job.
     emitGenerationEvent({
@@ -519,37 +615,11 @@ export async function authorLearningLessonStep(
       stage: "learning_authoring",
       action: "failed",
       provider: "workflow",
-      // The reason vocabulary is a closed enum on purpose: it keeps arbitrary
-      // text — which can carry learner data — out of the event stream. Detail
-      // for debugging comes from VIDLISH_DEBUG_AUTHORING instead.
       reason: "provider_failure",
       elapsedMs: Date.now() - startedAt,
     });
     return { kind: "skipped", reason: "authoring_failed" } as const;
   }
-}
-
-/**
- * Long enough for two model calls, short enough to lose the race against the
- * platform's own limit.
- *
- * In production this step logged that it started and then nothing at all: the
- * invocation was killed mid-flight, so no catch block ran and no failure was
- * recorded. Losing to our own deadline is worse than finishing, and far better
- * than dying silently — a failure nobody can see cannot be fixed.
- */
-const AUTHORING_DEADLINE_MS = 240_000;
-
-function withDeadline<T>(work: Promise<T>, ms: number): Promise<T> {
-  return Promise.race([
-    work,
-    new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error(`Learning authoring exceeded ${ms}ms.`)),
-        ms,
-      ).unref?.(),
-    ),
-  ]);
 }
 
 /**

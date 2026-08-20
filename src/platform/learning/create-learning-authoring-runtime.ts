@@ -2,16 +2,23 @@ import "server-only";
 
 import { FixtureLearningAuthoringProvider } from "@/adapters/fake/fixture-learning-authoring-provider";
 import { GeminiLearningAuthoringProvider } from "@/adapters/gemini/gemini-learning-authoring-provider";
+import { InMemoryLearningAuthoringBriefRepository } from "@/adapters/fake/in-memory-learning-authoring-brief-repository";
 import { InMemoryLessonVersionRepository } from "@/adapters/fake/in-memory-lesson-version-repository";
 import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
+import { SupabaseLearningAuthoringBriefRepository } from "@/adapters/supabase/learning-authoring-brief-repository";
 import { SupabaseLessonVersionRepository } from "@/adapters/supabase/lesson-version-repository";
-import { AuthorLearningLesson } from "@/modules/learning/application/author-learning-lesson";
+import {
+  AuthorLearningLesson,
+  DiagnoseLearningLesson,
+} from "@/modules/learning/application/author-learning-lesson";
 import type { LearningAuthoringProvider } from "@/modules/learning/ports/learning-authoring-provider";
+import type { LearningAuthoringBriefRepository } from "@/modules/learning/ports/learning-authoring-brief-repository";
 import type { LessonVersionRepository } from "@/modules/learning/ports/lesson-version-repository";
 import { getServerConfig } from "@/platform/config/server";
 
 type AuthoringGlobal = typeof globalThis & {
   __vidlishFakeLessonVersionRepository?: InMemoryLessonVersionRepository;
+  __vidlishFakeAuthoringBriefRepository?: InMemoryLearningAuthoringBriefRepository;
 };
 
 const authoringGlobal = globalThis as AuthoringGlobal;
@@ -55,17 +62,40 @@ export function createLessonVersionRepository(): LessonVersionRepository {
   // Follows the same switch as the session repository, read the same way: v2
   // content and v2 sessions have to live in the same store or a published
   // blueprint is invisible to the session that should run it.
+  return usesFakeStore()
+    ? fakeRepository()
+    : new SupabaseLessonVersionRepository(getAdminSupabaseClient());
+}
+
+function usesFakeStore(): boolean {
   const configured =
     process.env.LEARNING_SESSION_REPOSITORY ??
     (process.env.NODE_ENV === "production" ? "supabase" : "fake");
-  return configured === "fake"
-    ? fakeRepository()
-    : new SupabaseLessonVersionRepository(getAdminSupabaseClient());
+  return configured === "fake";
+}
+
+export function createAuthoringBriefRepository(): LearningAuthoringBriefRepository {
+  if (!usesFakeStore()) {
+    return new SupabaseLearningAuthoringBriefRepository(getAdminSupabaseClient());
+  }
+  // One instance per process, or the brief saved by the diagnosis step is
+  // invisible to the authoring step that has to read it back.
+  authoringGlobal.__vidlishFakeAuthoringBriefRepository ??=
+    new InMemoryLearningAuthoringBriefRepository();
+  return authoringGlobal.__vidlishFakeAuthoringBriefRepository;
+}
+
+export function createDiagnoseLearningLesson(): DiagnoseLearningLesson {
+  return new DiagnoseLearningLesson(
+    createLearningAuthoringProvider(),
+    createAuthoringBriefRepository(),
+  );
 }
 
 export function createAuthorLearningLesson(): AuthorLearningLesson {
   return new AuthorLearningLesson(
     createLearningAuthoringProvider(),
     createLessonVersionRepository(),
+    createAuthoringBriefRepository(),
   );
 }

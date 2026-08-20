@@ -38,6 +38,11 @@ export const generationEventSchema = z
         "published",
         "already_published",
         "no_permitted_segments",
+        // The v2 chain runs as two steps, so its events need to say which half
+        // reported. Without this both halves log the same word and the split
+        // becomes invisible in production.
+        "diagnosed",
+        "authoring",
         "terminated",
         "already_settled",
       ])

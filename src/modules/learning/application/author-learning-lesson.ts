@@ -9,7 +9,9 @@ import {
   prepareLearningAuthoringBrief,
 } from "./prepare-learning-authoring-brief";
 
+
 import type { LearningAuthoringProvider } from "@/modules/learning/ports/learning-authoring-provider";
+import type { LearningAuthoringBriefRepository } from "@/modules/learning/ports/learning-authoring-brief-repository";
 import type { LessonVersionRepository } from "@/modules/learning/ports/lesson-version-repository";
 import type { LanguageEligibilityReport } from "@/shared/contracts/language-eligibility";
 import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
@@ -52,15 +54,29 @@ export type AuthorLearningLessonResult = {
   readonly outputTokens: number;
 };
 
-export class AuthorLearningLesson {
+/**
+ * First half: read the video, propose, and let the deterministic gate refuse.
+ *
+ * Split from authoring because the two model calls together overrun a workflow
+ * step and the invocation dies with no error handler ever running. Each half is
+ * one model call now, and the brief rests in the database between them.
+ */
+export class DiagnoseLearningLesson {
   constructor(
     private readonly provider: LearningAuthoringProvider,
-    private readonly repository: LessonVersionRepository,
+    private readonly briefs: LearningAuthoringBriefRepository,
   ) {}
 
-  async execute(
-    input: AuthorLearningLessonInput,
-  ): Promise<AuthorLearningLessonResult> {
+  async execute(input: {
+    jobId: string;
+    ownerUserId: string;
+    videoTitle: string;
+    channelName: string;
+    transcript: CanonicalTranscript;
+    eligibility: LanguageEligibilityReport;
+    learnerSnapshot: LearnerContextSnapshot;
+    now: Date;
+  }): Promise<{ inputTokens: number; outputTokens: number }> {
     const context = assembleLearningGenerationContext({
       jobId: input.jobId,
       videoTitle: input.videoTitle,
@@ -70,11 +86,7 @@ export class AuthorLearningLesson {
       learnerSnapshot: input.learnerSnapshot,
     });
 
-    // Deterministic: measured from the transcript, no model involved. The model
-    // is given these findings rather than asked to produce them, so a model
-    // that flatters the video cannot make an impossible one look teachable.
     const profile = diagnoseLearningVideo(context);
-
     const diagnosis = await this.provider.diagnose({
       videoTitle: input.videoTitle,
       channelName: input.channelName,
@@ -93,9 +105,49 @@ export class AuthorLearningLesson {
       now: input.now,
     });
 
-    const authored = await this.provider.author({
+    await this.briefs.save({
+      ownerUserId: input.ownerUserId,
+      jobId: input.jobId,
       brief: prepared.authoringBrief,
-      permittedSegments: context.permittedSegments,
+      videoProfile: prepared.videoProfile,
+    });
+
+    return {
+      inputTokens: diagnosis.inputTokens,
+      outputTokens: diagnosis.outputTokens,
+    };
+  }
+}
+
+export class AuthorLearningLesson {
+  constructor(
+    private readonly provider: LearningAuthoringProvider,
+    private readonly repository: LessonVersionRepository,
+    private readonly briefs: LearningAuthoringBriefRepository,
+  ) {}
+
+  async execute(
+    input: AuthorLearningLessonInput,
+  ): Promise<AuthorLearningLessonResult> {
+    // The brief was produced and gated in the previous step. Re-running
+    // diagnosis here would spend a second model call and could quietly pick
+    // different material than the one already recorded.
+    const stored = await this.briefs.findForJob({
+      ownerUserId: input.ownerUserId,
+      jobId: input.jobId,
+    });
+    if (!stored) {
+      throw new Error("Learning authoring brief was not prepared for this job.");
+    }
+
+    const permittedIds = new Set(input.eligibility.permittedSegmentIds);
+    const permittedSegments = input.transcript.segments.filter((segment) =>
+      permittedIds.has(segment.id),
+    );
+
+    const authored = await this.provider.author({
+      brief: stored.brief,
+      permittedSegments,
     });
 
     // Between the model writing and a learner seeing it. Repairs what can be
@@ -103,9 +155,9 @@ export class AuthorLearningLesson {
     const reviewed = reviewAuthoringDraft(authored.value);
 
     const blueprint = hydrateLearningBlueprint({
-      brief: prepared.authoringBrief,
+      brief: stored.brief,
       draft: reviewed.draft,
-      profile: prepared.videoProfile,
+      profile: stored.videoProfile,
       learnerSnapshot: input.learnerSnapshot,
       transcript: input.transcript,
       videoTitle: input.videoTitle,
@@ -126,10 +178,8 @@ export class AuthorLearningLesson {
       created: published.created,
       repairs: reviewed.repairs,
       modelId: authored.modelId,
-      // Both calls are billed, so both are reported. Counting only the authoring
-      // call would understate the cost of a lesson by the larger half.
-      inputTokens: diagnosis.inputTokens + authored.inputTokens,
-      outputTokens: diagnosis.outputTokens + authored.outputTokens,
+      inputTokens: authored.inputTokens,
+      outputTokens: authored.outputTokens,
     };
   }
 }
