@@ -4,6 +4,7 @@ import { createGoldenSessionLearningBlueprint } from "@/adapters/fake/fixture-go
 import type { LessonBlueprintV2 } from "@/shared/contracts/lesson-v2";
 import { createLearningSessionRepository } from "@/platform/learning/create-learning-session-repository";
 import { createLessonVersionRepository } from "@/platform/learning/create-learning-authoring-runtime";
+import { resolveLearningLabLessonVersionId } from "@/platform/learning/learning-lab-session-config";
 
 /**
  * The blueprint a request must be graded against.
@@ -37,5 +38,14 @@ export async function resolveSessionBlueprint(input: {
     ownerUserId: input.ownerUserId,
     lessonVersionId: session.lessonVersionId,
   });
-  return owned?.blueprint ?? null;
+  if (owned) return owned.blueprint;
+
+  // The demo lab's session points at a configured lesson version that nothing
+  // ever published — its blueprint lives in code, not in a row. Narrowed to
+  // that exact id on purpose: any other session with no published blueprint is
+  // a real learner's, and answering it with a demo is the defect this function
+  // exists to remove.
+  return session.lessonVersionId === resolveLearningLabLessonVersionId()
+    ? createGoldenSessionLearningBlueprint()
+    : null;
 }
