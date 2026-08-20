@@ -335,6 +335,8 @@ export async function generateLessonStep(jobRef: GenerationWorkflowJobRef) {
       reason: generationFailure
         ? PROVIDER_FAILURE_REASON[generationFailure.kind]
         : "unexpected_error",
+      causeName: generationFailure?.causeName,
+      providerStatus: generationFailure?.providerStatus,
       elapsedMs: Date.now() - startedAt,
       ...(generationFailure ? { retryable: generationFailure.retryable } : {}),
       errorName: safeErrorName(error),
