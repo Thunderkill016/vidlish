@@ -52,6 +52,26 @@ export class SupabaseLessonVersionRepository
     };
   }
 
+  async findByIdForOwner(input: {
+    ownerUserId: string;
+    lessonVersionId: string;
+  }) {
+    const result = await this.client
+      .from("lesson_versions")
+      .select("id,blueprint")
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("id", input.lessonVersionId)
+      .maybeSingle();
+    if (result.error) throw result.error;
+    if (!result.data) return null;
+
+    const row = result.data as { id: string; blueprint: unknown };
+    return {
+      lessonVersionId: row.id,
+      blueprint: lessonBlueprintV2Schema.parse(row.blueprint),
+    };
+  }
+
   async publish(input: PublishLessonVersionInput) {
     // Parsed here rather than trusted from the caller. The database refuses a
     // blueprint whose schemaVersion is wrong, but it cannot check the rest of

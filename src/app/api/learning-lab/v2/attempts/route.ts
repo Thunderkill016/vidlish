@@ -1,10 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { createGoldenSessionLearningBlueprint } from "@/adapters/fake/fixture-golden-learning-blueprint";
 import { evaluateLearningActivity } from "@/modules/learning/application/evaluate-learning-activity";
 import { SubmitLearningActivityAttempt } from "@/modules/learning/application/submit-learning-activity-attempt";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningSessionRepository } from "@/platform/learning/create-learning-session-repository";
+import { resolveSessionBlueprint } from "@/platform/learning/resolve-session-blueprint";
 import {
   learningLabAttemptRequestSchema,
   learningLabAttemptResponseSchema,
@@ -37,7 +37,14 @@ export async function POST(request: NextRequest) {
     );
     if (!parsed.success) throw authErrors.rejected();
 
-    const blueprint = createGoldenSessionLearningBlueprint();
+    // The lesson this session is actually running on, not a fixture that
+    // happens to share activity ids.
+    const blueprint = await resolveSessionBlueprint({
+      ownerUserId: access.userId,
+      sessionId: parsed.data.sessionId,
+    });
+    if (!blueprint) throw authErrors.rejected();
+
     const activity = blueprint.activities.find(
       (candidate) => candidate.id === parsed.data.activityId,
     );
