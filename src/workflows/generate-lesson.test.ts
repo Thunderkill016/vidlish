@@ -6,6 +6,7 @@ const steps = vi.hoisted(() => ({
   checkOriginalEnglishStep: vi.fn(),
   generateLessonStep: vi.fn(),
   authorLearningLessonStep: vi.fn(),
+  diagnoseLearningLessonStep: vi.fn(),
   resolveLanguageFailureStep: vi.fn(),
   resolveLessonFailureStep: vi.fn(),
   loadFinalGenerationStateStep: vi.fn(),
@@ -19,6 +20,7 @@ vi.mock("./generate-lesson.steps", () => ({
   checkOriginalEnglishStep: steps.checkOriginalEnglishStep,
   generateLessonStep: steps.generateLessonStep,
   authorLearningLessonStep: steps.authorLearningLessonStep,
+  diagnoseLearningLessonStep: steps.diagnoseLearningLessonStep,
   resolveLanguageFailureStep: steps.resolveLanguageFailureStep,
   resolveLessonFailureStep: steps.resolveLessonFailureStep,
   loadFinalGenerationStateStep: steps.loadFinalGenerationStateStep,
@@ -48,6 +50,7 @@ describe("generateLessonWorkflow", () => {
     steps.acquireNativeCaptionStep.mockResolvedValue({ kind: "persisted" });
     steps.checkOriginalEnglishStep.mockResolvedValue({ status: "eligible" });
     steps.generateLessonStep.mockResolvedValue({ kind: "published" });
+    steps.diagnoseLearningLessonStep.mockResolvedValue({ kind: "diagnosed" });
     steps.authorLearningLessonStep.mockResolvedValue({ kind: "skipped" });
     steps.resolveLanguageFailureStep.mockResolvedValue({ kind: "terminated" });
     steps.resolveLessonFailureStep.mockResolvedValue({ kind: "terminated" });
@@ -66,9 +69,20 @@ describe("generateLessonWorkflow", () => {
     expect(steps.resolveTranscriptTerminalStateStep).not.toHaveBeenCalled();
   });
 
-  it("authors the v2 lesson after the v1 lesson is saved", async () => {
+  it("runs both halves of the v2 chain after the v1 lesson is saved", async () => {
     await generateLessonWorkflow(event);
+    expect(steps.diagnoseLearningLessonStep).toHaveBeenCalledWith(jobRef);
     expect(steps.authorLearningLessonStep).toHaveBeenCalledWith(jobRef);
+  });
+
+  it("does not author when diagnosis did not produce a brief", async () => {
+    // The second half reads a brief the first half writes. Running it anyway
+    // would spend a model call to fail on a brief that is not there.
+    steps.diagnoseLearningLessonStep.mockResolvedValue({ kind: "skipped" });
+
+    await generateLessonWorkflow(event);
+
+    expect(steps.authorLearningLessonStep).not.toHaveBeenCalled();
   });
 
   it("keeps the job completed when v2 authoring fails", async () => {

@@ -1,8 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { AuthorLearningLesson } from "./author-learning-lesson";
+import {
+  AuthorLearningLesson,
+  DiagnoseLearningLesson,
+} from "./author-learning-lesson";
 
 import { FixtureLearningAuthoringProvider } from "@/adapters/fake/fixture-learning-authoring-provider";
+import { InMemoryLearningAuthoringBriefRepository } from "@/adapters/fake/in-memory-learning-authoring-brief-repository";
 import { InMemoryLessonVersionRepository } from "@/adapters/fake/in-memory-lesson-version-repository";
 import type { LanguageEligibilityReport } from "@/shared/contracts/language-eligibility";
 import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
@@ -114,14 +118,34 @@ function input() {
   };
 }
 
-function service() {
+/**
+ * The chain is two steps now, so a test that only ran the second half would
+ * pass against a brief no diagnosis ever produced.
+ */
+function service(provider = new FixtureLearningAuthoringProvider()) {
   const repository = new InMemoryLessonVersionRepository();
+  const briefs = new InMemoryLearningAuthoringBriefRepository();
+  const diagnose = new DiagnoseLearningLesson(provider, briefs);
+  const author = new AuthorLearningLesson(provider, repository, briefs);
+
   return {
     repository,
-    service: new AuthorLearningLesson(
-      new FixtureLearningAuthoringProvider(),
-      repository,
-    ),
+    briefs,
+    service: {
+      async execute(input: Parameters<AuthorLearningLesson["execute"]>[0]) {
+        await diagnose.execute({
+          jobId: input.jobId,
+          ownerUserId: input.ownerUserId,
+          videoTitle: input.videoTitle,
+          channelName: input.channelName,
+          transcript: input.transcript,
+          eligibility: input.eligibility,
+          learnerSnapshot: input.learnerSnapshot,
+          now: input.now,
+        });
+        return author.execute(input);
+      },
+    },
   };
 }
 
@@ -148,9 +172,9 @@ describe("AuthorLearningLesson", () => {
     expect(second.lessonVersionId).toBe(first.lessonVersionId);
   });
 
-  it("counts the tokens of both model calls, not just the second", async () => {
+  it("reports each half's tokens separately", async () => {
     // Diagnosis reads the whole permitted transcript and is usually the larger
-    // half; reporting only authoring would understate what a lesson costs.
+    // half. Since the two run as separate steps, each reports its own.
     const provider = new FixtureLearningAuthoringProvider();
     const diagnose = provider.diagnose.bind(provider);
     const author = provider.author.bind(provider);
@@ -169,13 +193,29 @@ describe("AuthorLearningLesson", () => {
     };
 
     const repository = new InMemoryLessonVersionRepository();
+    const briefs = new InMemoryLearningAuthoringBriefRepository();
+    const args = input();
+    const diagnosed = await new DiagnoseLearningLesson(counted, briefs).execute({
+      jobId: args.jobId,
+      ownerUserId: args.ownerUserId,
+      videoTitle: args.videoTitle,
+      channelName: args.channelName,
+      transcript: args.transcript,
+      eligibility: args.eligibility,
+      learnerSnapshot: args.learnerSnapshot,
+      now: args.now,
+    });
     const result = await new AuthorLearningLesson(
       counted,
       repository,
-    ).execute(input());
+      briefs,
+    ).execute(args);
 
-    expect(result.inputTokens).toBe(820);
-    expect(result.outputTokens).toBe(340);
+    // Each half reports its own call now. Summing them is the caller's job,
+    // and a total that hid one half would understate a lesson's cost.
+    expect(diagnosed.inputTokens).toBe(700);
+    expect(result.inputTokens).toBe(120);
+    expect(result.outputTokens).toBe(300);
   });
 
   it("stops when diagnosis abstains instead of building a lesson from nothing", async () => {
