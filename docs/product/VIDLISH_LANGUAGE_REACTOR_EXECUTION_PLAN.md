@@ -535,26 +535,50 @@ Required:
 
 ### VLR-103 — text is an earned scaffold
 
+**Status:** `[x]`
+
 Default sequence:
 
 ```text
 source audio
 → replay
 → context hint
-→ keyword hint when safe
+→ slow playback
 → English caption
 → chunk boundaries
 → Vietnamese meaning
-→ slow playback when useful
 ```
+
+Two changes from the sequence as first written, both shipped:
+
+- **slow playback moved up, before any step that shows words.** It was listed
+  last, which meant a learner had to reveal the full English caption before
+  being allowed to hear the audio more slowly. Slowing playback gives away no
+  language; it changes how hard the audio is to decode, which is the thing a
+  listening task measures. (VLR-102)
+- **keyword hint dropped entirely.** It could only be filled with words from the
+  passage, and for a gist question those words are most of the answer. A step
+  the product cannot fill honestly is worse than one it does not offer: the
+  learner spends a support level and gets "no further hint".
 
 Rules:
 
-- [ ] first-listen gist begins with caption hidden;
-- [ ] answer-bearing hint is omitted rather than weakened into fake help;
-- [ ] caption reveal records support level;
-- [ ] meaning reveal records support level;
-- [ ] returning to lesson restores durable support state honestly.
+- [x] first-listen gist begins with caption hidden — enforced at authoring time
+      by the `NO_UNAIDED_GIST` gate (VLR-007), not only by the fixture;
+- [x] answer-bearing hint is omitted rather than weakened into fake help;
+- [x] caption reveal records support level;
+- [x] meaning reveal records support level;
+- [x] returning to lesson restores durable support state honestly — the session
+      response now carries per-activity durable progress and the browser's copy
+      is replaced by it, in both directions. A device that has seen nothing no
+      longer hands back a step the learner spent an attempt to earn, and a stale
+      local ladder no longer keeps offering help the record cannot account for.
+
+**Known remaining gap, deliberately not closed here:** attempt *feedback* is
+still whatever this device saw. A learner resuming elsewhere gets the correct
+support ladder and the correct attempt count — gating is honest — but not the
+text of earlier feedback. Restoring that means returning stored evaluations,
+which is a larger change than this rule asks for.
 
 ## 1.4 Listening replay after learning
 

@@ -36,6 +36,7 @@ import {
   privacySafeActivityAttemptSchema,
   privacySafeActivityResponseSchema,
   privacySafeLearningSupportEventSchema,
+  type PersistedLearningSupportStep,
 } from "@/shared/contracts/privacy-safe-learning-evidence";
 
 const sessionRowSchema = z
@@ -294,6 +295,70 @@ export class SupabaseLearningSessionRepository
       .eq("owner_user_id", ownerUserId);
     if (result.error) throw result.error;
     return result.count ?? 0;
+  }
+
+  async findSessionProgress(input: {
+    ownerUserId: string;
+    sessionId: string;
+  }) {
+    // Owner-scoped on both reads even though RLS already is: a repository that
+    // relies on the policy alone reads differently under a service key, and
+    // this one runs under both.
+    const [attempts, events] = await Promise.all([
+      this.client
+        .from("activity_attempts")
+        .select("activity_id")
+        .eq("session_id", input.sessionId)
+        .eq("owner_user_id", input.ownerUserId),
+      this.client
+        .from("learning_support_events")
+        .select("activity_id,event_kind,support_step,occurred_at")
+        .eq("session_id", input.sessionId)
+        .eq("owner_user_id", input.ownerUserId)
+        .order("occurred_at", { ascending: true }),
+    ]);
+    if (attempts.error) throw attempts.error;
+    if (events.error) throw events.error;
+
+    const byActivity = new Map<
+      string,
+      {
+        playbackCount: number;
+        attemptCount: number;
+        openedSupportSteps: PersistedLearningSupportStep[];
+      }
+    >();
+    const entry = (activityId: string) => {
+      const existing = byActivity.get(activityId);
+      if (existing) return existing;
+      const created = {
+        playbackCount: 0,
+        attemptCount: 0,
+        openedSupportSteps: [] as PersistedLearningSupportStep[],
+      };
+      byActivity.set(activityId, created);
+      return created;
+    };
+
+    for (const row of attempts.data ?? []) {
+      entry(row.activity_id).attemptCount += 1;
+    }
+    for (const row of events.data ?? []) {
+      const record = entry(row.activity_id);
+      if (row.event_kind === "playback") {
+        record.playbackCount += 1;
+        continue;
+      }
+      const step = row.support_step as PersistedLearningSupportStep | null;
+      if (step && !record.openedSupportSteps.includes(step)) {
+        record.openedSupportSteps.push(step);
+      }
+    }
+
+    return [...byActivity.entries()].map(([activityId, record]) => ({
+      activityId,
+      ...record,
+    }));
   }
 
   async recordAttempt(input: RecordLearningAttemptInput) {

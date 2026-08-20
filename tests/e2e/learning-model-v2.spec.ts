@@ -1,8 +1,17 @@
 import { expect, test } from "@playwright/test";
 
+/**
+ * Signs in as this project's own learner.
+ *
+ * A session belongs to a learner, not to a browser, so both projects signing in
+ * as one person means the second run resumes the first run's session and finds
+ * its support ladder already spent. That is the product working; sharing the
+ * learner is the test's mistake.
+ */
 async function login(page: import("@playwright/test").Page) {
+  const learnerEmail = `v2lab-${test.info().project.name}@example.com`;
   await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill("invited@example.com");
+  await page.getByLabel("Email được mời").fill(learnerEmail);
   await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
   await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
   await page.getByRole("button", { name: "Đăng nhập" }).click();

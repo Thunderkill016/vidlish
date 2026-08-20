@@ -27,10 +27,29 @@ const learnerTargetAfterAttemptSchema = targetLanguageItemSchema
   })
   .strict();
 
+/**
+ * What the server durably holds for each activity in this session.
+ *
+ * VLR-103. The browser used to be the only source of restored support state, so
+ * a learner returning on another device saw an untouched ladder while the
+ * server already held the caption they had opened. Support level is a claim
+ * about what help someone was given; the durable record has to be the one that
+ * answers it.
+ */
+export const learningActivityDurableProgressSchema = z
+  .object({
+    activityId: entityIdSchema,
+    playbackCount: z.number().int().min(0),
+    attemptCount: z.number().int().min(0),
+    openedSupportSteps: z.array(persistedLearningSupportStepSchema),
+  })
+  .strict();
+
 export const learningLabSessionResponseSchema = z
   .object({
     session: lessonSessionSchema,
     created: z.boolean(),
+    progress: z.array(learningActivityDurableProgressSchema),
   })
   .strict();
 

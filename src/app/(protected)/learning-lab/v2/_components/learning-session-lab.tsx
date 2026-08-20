@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 
 import type { LearningSupportCopyByActivity } from "@/adapters/fake/fixture-learning-runtime-policy";
 import type {
@@ -14,6 +14,7 @@ import {
   highestOpenedSupportStep,
   latestLearningAttempt,
   learningActivityCompletionState,
+  gatingAttemptCount,
   openLearningSupportStep,
   recordLearningPlayback,
   requestLearningSelfCheckCorrection,
@@ -114,6 +115,10 @@ function restoreProgress(value: unknown): LearningActivityRuntimeProgress {
 
   return {
     attempts,
+    // Never restored from the browser. Whatever this device believes about how
+    // many attempts exist is superseded by the session response, which is why
+    // the field is not read back out of storage.
+    durableAttemptCount: 0,
     openedSupportSteps: [...new Set(openedSupportSteps)],
     playCount:
       typeof candidate.playCount === "number" && candidate.playCount >= 0
@@ -303,7 +308,7 @@ export function LearningSessionLab({
       canUseSupportStep(
         currentPolicy.support,
         "slower_playback",
-        currentProgress.attempts.length,
+        gatingAttemptCount(currentProgress),
       ),
   );
   // Offered only if the policy would actually permit it. Picking the first
@@ -318,7 +323,7 @@ export function LearningSessionLab({
           canUseSupportStep(
             currentPolicy.support!,
             step,
-            currentProgress.attempts.length,
+            gatingAttemptCount(currentProgress),
           ),
       )
     : undefined;
@@ -342,6 +347,12 @@ export function LearningSessionLab({
             setSessionId(
               typeof parsed.sessionId === "string" ? parsed.sessionId : null,
             );
+            // Only a session restored from storage needs reconciling. A session
+            // opened in this page load has just been read from the server, and
+            // asking again would race the plays and attempts that follow — it
+            // did, and only on the slower mobile project.
+            needsReconcileRef.current =
+              typeof parsed.sessionId === "string" && Boolean(parsed.started);
             setStarted(Boolean(parsed.started));
             setCompleted(Boolean(parsed.completed));
             setEvidenceIndex(0);
@@ -371,6 +382,24 @@ export function LearningSessionLab({
     }, 0);
     return () => window.clearTimeout(timer);
   }, [blueprint.activities.length, blueprint.blueprintId]);
+
+  // A restored session must not run on the browser's memory alone.
+  //
+  // Restoring `started: true` from storage put a learner straight back into the
+  // activity without the server being asked anything, so a stale support ladder
+  // stayed on screen until the next attempt — and on a device that had never
+  // seen the lesson, an empty one did. Resuming is idempotent, so asking here
+  // costs one request and makes the durable record the thing on screen.
+  const needsReconcileRef = useRef(false);
+  useEffect(() => {
+    if (!loaded || !needsReconcileRef.current) return;
+    if (!sessionId || !started || completed) return;
+    needsReconcileRef.current = false;
+    void startOrResumeSession().catch(() => {
+      // Left to the next action to report. Failing loudly here would replace a
+      // usable restored session with an error the learner cannot act on.
+    });
+  }, [completed, loaded, sessionId, started]);
 
   useEffect(() => {
     if (!loaded) return;
@@ -447,6 +476,58 @@ export function LearningSessionLab({
     setEvidenceIndex(0);
     setCurrentIndex(activityIndexForSession(parsed.session));
     setCompleted(parsed.session.status === "completed");
+    // VLR-103. The support a learner has already been given is a durable fact,
+    // so the server's answer replaces this device's — not a merge. A browser
+    // that has seen nothing must not hand back a step the learner already
+    // spent an attempt to earn, and a browser holding a stale ladder must not
+    // keep offering what the record does not support.
+    setProgressByActivity((current) => {
+      const next = { ...current };
+      const durable = new Set<string>();
+      for (const entry of parsed.progress) {
+        durable.add(entry.activityId);
+        const existing =
+          next[entry.activityId] ?? createEmptyLearningActivityProgress();
+        const activityPolicy = policy.activityPolicies.find(
+          (candidate) => candidate.activityId === entry.activityId,
+        );
+
+        // Replayed through the same functions a live session uses. `replay` is
+        // never a support row — it is earned by playing twice — so rebuilding
+        // the ladder by hand here would be a second copy of that rule, and the
+        // two would drift the moment either changed.
+        let rebuilt: LearningActivityRuntimeProgress = {
+          ...createEmptyLearningActivityProgress(),
+          attempts: existing.attempts,
+          selfCheckConfirmed: existing.selfCheckConfirmed,
+          selfCheckCorrectionRequested: existing.selfCheckCorrectionRequested,
+          durableAttemptCount: entry.attemptCount,
+        };
+        if (activityPolicy) {
+          for (let play = 0; play < entry.playbackCount; play += 1) {
+            rebuilt = recordLearningPlayback(rebuilt, activityPolicy);
+          }
+        } else {
+          rebuilt = { ...rebuilt, playCount: entry.playbackCount };
+        }
+        for (const step of entry.openedSupportSteps) {
+          rebuilt = openLearningSupportStep(rebuilt, step);
+        }
+        next[entry.activityId] = rebuilt;
+      }
+      // An activity the server reports nothing for has no durable support, so
+      // any ladder this device still remembers for it is not evidence.
+      for (const [activityId, progress] of Object.entries(next)) {
+        if (durable.has(activityId)) continue;
+        next[activityId] = {
+          ...progress,
+          durableAttemptCount: 0,
+          playCount: 0,
+          openedSupportSteps: [],
+        };
+      }
+      return next;
+    });
     return parsed.session.id;
   }
 
@@ -582,7 +663,7 @@ export function LearningSessionLab({
     event.preventDefault();
     if (!current || !currentPolicy || submitting) return;
     if (
-      currentProgress.attempts.length >=
+      gatingAttemptCount(currentProgress) >=
       currentPolicy.retry.maxAttemptsPerSession
     ) {
       setError("Bước này đã đạt giới hạn attempt của phiên.");
@@ -711,7 +792,7 @@ export function LearningSessionLab({
       !canUseSupportStep(
         currentPolicy.support,
         nextSupportStep,
-        currentProgress.attempts.length,
+        gatingAttemptCount(currentProgress),
       )
     ) {
       setError("Hãy thử trả lời trước khi mở mức hỗ trợ này.");

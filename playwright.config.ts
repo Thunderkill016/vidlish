@@ -1,9 +1,24 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const port = 3100;
+/**
+ * `v2lab-*` give the learning-lab specs one learner each.
+ *
+ * Both browser projects drive the same dev server, and a resumed session is
+ * shared by everything signed in as that learner — correctly so, since that is
+ * what a learner returning on a second device gets. Running the same journey
+ * twice as one person therefore has the second run pick up the first run's
+ * support ladder, which is the product behaving properly and the test lying.
+ */
 const configuredBetaEmails =
   process.env.TEST_BETA_EMAILS ??
-  "invited@example.com,fresh@example.com,learning-preview@example.com";
+  [
+    "invited@example.com",
+    "fresh@example.com",
+    "learning-preview@example.com",
+    "v2lab-chromium@example.com",
+    "v2lab-mobile-chromium@example.com",
+  ].join(",");
 
 export default defineConfig({
   testDir: "./tests/e2e",
