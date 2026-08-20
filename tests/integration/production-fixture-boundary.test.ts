@@ -39,11 +39,8 @@ const DEMO_LAB_ROUTE = path.normalize(
  * describing a past that no longer exists.
  */
 const KNOWN_FIXTURE_BOUND: Record<string, string> = {
-  "src/app/api/learning-lab/v2/reviews/sessions/route.ts":
-    "VLR-003. The delayed-review resolver understands one hard-coded item, so " +
-    "a review plan can only be built for that one. Every durable reviewable " +
-    "item needs a bounded plan derived from persisted lesson evidence.",
-  "src/app/api/learning-lab/v2/reviews/attempts/route.ts": "VLR-003, as above.",
+  // Empty. Every route that grades a learner or writes their record resolves
+  // the lesson they actually opened. Anything added back has to say why.
 };
 
 function listRoutes(dir: string): string[] {

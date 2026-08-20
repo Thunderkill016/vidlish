@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
 import { toLearnerReviewSession } from "@/modules/learning/application/learning-review-view";
 import {
   LearningReviewUnavailableError,
@@ -8,6 +7,7 @@ import {
 } from "@/modules/learning/application/start-due-learning-review";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
+import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-plan";
 import { learningReviewStartResponseSchema } from "@/shared/contracts/learning-review";
 import { authErrors, reviewErrors } from "@/shared/errors/product-error";
 import { productErrorResponse } from "@/shared/http/product-error-response";
@@ -21,7 +21,9 @@ export async function POST(request: NextRequest) {
 
     const result = await new StartDueLearningReview(
       createLearningReviewRepository(),
-      resolveFixtureLearningReviewPlan,
+      // VLR-003. Built from the lesson that taught the item, so every durable
+      // reviewable item has a task instead of the one hard-coded fixture.
+      (itemKey) => resolveLearningReviewPlan(access.userId, itemKey),
     ).execute({ ownerUserId: access.userId });
 
     if (result.session.currentStep === "completed") {

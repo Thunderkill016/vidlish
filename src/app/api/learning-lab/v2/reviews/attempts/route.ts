@@ -1,6 +1,5 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { resolveFixtureLearningReviewPlan } from "@/adapters/fake/fixture-learning-review-plan";
 import { toLearnerReviewSession } from "@/modules/learning/application/learning-review-view";
 import {
   LearningReviewProgressError,
@@ -8,6 +7,7 @@ import {
 } from "@/modules/learning/application/submit-learning-review-attempt";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
+import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-plan";
 import {
   learningReviewAttemptRequestSchema,
   learningReviewAttemptResponseSchema,
@@ -30,7 +30,9 @@ export async function POST(request: NextRequest) {
 
     const persisted = await new SubmitLearningReviewAttempt(
       createLearningReviewRepository(),
-      resolveFixtureLearningReviewPlan,
+      // VLR-003. Built from the lesson that taught the item, so every durable
+      // reviewable item has a task instead of the one hard-coded fixture.
+      (itemKey) => resolveLearningReviewPlan(access.userId, itemKey),
     ).execute({
       ownerUserId: access.userId,
       reviewSessionId: parsed.data.sessionId,
@@ -39,7 +41,10 @@ export async function POST(request: NextRequest) {
       response: parsed.data.response,
     });
 
-    const plan = resolveFixtureLearningReviewPlan(persisted.session.itemKey);
+    const plan = await resolveLearningReviewPlan(
+      access.userId,
+      persisted.session.itemKey,
+    );
     if (!plan || plan.variantId !== persisted.session.variantId) {
       throw new LearningReviewProgressError(
         "Persisted review session lost its bounded variant.",

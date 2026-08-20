@@ -45,7 +45,7 @@ export class SubmitLearningReviewAttempt {
       throw new LearningReviewProgressError("Learning review session was not found.");
     }
 
-    const plan = this.resolvePlan(session.itemKey);
+    const plan = await this.resolvePlan(session.itemKey);
     if (!plan || plan.variantId !== session.variantId) {
       throw new LearningReviewProgressError(
         "Review session does not match a bounded review variant.",
