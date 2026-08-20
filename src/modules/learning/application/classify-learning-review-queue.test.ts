@@ -22,6 +22,7 @@ function item(
     nextReviewAt,
     lastDelayedTransferAt: null,
     lastIndependentAt: null,
+    transferAttemptedAt: null,
     transferSucceededAt: null,
     reviewState: null,
   };

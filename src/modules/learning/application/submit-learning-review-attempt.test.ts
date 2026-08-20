@@ -47,6 +47,7 @@ function itemState(): LearningReviewItemState {
     nextReviewAt: "2026-08-18T08:00:00.000Z",
     lastDelayedTransferAt: null,
     lastIndependentAt: null,
+    transferAttemptedAt: null,
     transferSucceededAt: null,
     reviewState: null,
   };

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(56);
+select plan(57);
 
 -- ---------------------------------------------------------------------------
 -- Shape, RLS and browser privileges
@@ -483,7 +483,7 @@ insert into public.lesson_versions (
     "activities":[
       {"id":"activity_recall","phase":"retrieve","activityType":"chunk_recall","targetItemId":"item_evidence"},
       {"id":"activity_helped","phase":"retrieve","activityType":"chunk_recall","targetItemId":"item_supported"},
-      {"id":"activity_transfer","phase":"transfer","activityType":"guided_transfer","targetItemIds":["item_evidence"]},
+      {"id":"activity_transfer","phase":"transfer","activityType":"guided_transfer","targetItemIds":["item_evidence"],"evaluation":{"kind":"self_check","criteriaVi":["mot","hai","ba"]}},
       {"id":"activity_exit","phase":"reflect","activityType":"exit_ticket"}
     ]
   }'::jsonb
@@ -584,8 +584,13 @@ select ok(
   'a correct attempt with no support open records independent production'
 );
 select ok(
-  (select transfer_succeeded_at is not null from public.learning_item_states where item_key = 'evidence-item'),
-  'a confirmed self-check records changed-context reuse'
+  (select transfer_attempted_at is not null from public.learning_item_states where item_key = 'evidence-item'),
+  'attempting the changed-context task is recorded'
+);
+select is(
+  (select transfer_succeeded_at is null from public.learning_item_states where item_key = 'evidence-item'),
+  true,
+  'ticking two of three criteria is attempting the task, not meeting it'
 );
 select is(
   (select last_independent_at is null from public.learning_item_states where item_key = 'supported-item'),
