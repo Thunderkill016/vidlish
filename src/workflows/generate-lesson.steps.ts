@@ -226,10 +226,12 @@ resolveTranscriptExhaustionStep.maxRetries = 5;
 const PROVIDER_FAILURE_REASON: Record<
   LessonGenerationFailureKind,
   "provider_failure" | "provider_rate_limited" | "provider_truncated" |
-  "provider_declined" | "provider_not_json" | "provider_schema_rejected"
+  "provider_declined" | "provider_not_json" | "provider_schema_rejected" |
+  "provider_unavailable"
 > = {
   request_failed: "provider_failure",
   rate_limited: "provider_rate_limited",
+  unavailable: "provider_unavailable",
   truncated: "provider_truncated",
   declined: "provider_declined",
   not_json: "provider_not_json",
