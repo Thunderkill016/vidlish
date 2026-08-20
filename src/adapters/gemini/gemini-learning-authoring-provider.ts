@@ -32,7 +32,7 @@ import { resolveSegmentLabels, stripCodeFence } from "./gemini-lesson-provider";
 export const LEARNING_DIAGNOSIS_PROMPT_VERSION =
   "learning-diagnosis-prompt:v1" as const;
 export const LEARNING_AUTHORING_PROMPT_VERSION =
-  "learning-authoring-prompt:v1" as const;
+  "learning-authoring-prompt:v2" as const;
 
 const MAX_OUTPUT_TOKENS = 24_000;
 
@@ -124,13 +124,20 @@ const AUTHORING_SYSTEM_INSTRUCTION = `Bạn soạn một buổi học tiếng An
 
 Brief đã quyết định dạy CÁI GÌ. Việc của bạn là quyết định dạy NHƯ THẾ NÀO.
 
+Mục tiêu của buổi học không phải là tạo nhiều câu hỏi. Mục tiêu là tạo chuỗi bằng chứng: người học nghe được ý chính khi chưa nhìn chữ, tự nhớ lại ngôn ngữ mục tiêu, rồi dùng chính ngôn ngữ đó trong một tình huống khác.
+
 Nguyên tắc bắt buộc:
 - Chỉ dùng windowId và candidateId có trong brief. Không tạo id mới.
 - Không viết câu trích dẫn hay mốc thời gian. Máy chủ sẽ tự ghép chúng từ transcript gốc.
-- Buổi học phải đi theo thứ tự pha: nghe lấy ý chính trước, rồi mới tới chú ý ngôn ngữ, rồi nhớ lại, rồi dùng lại trong tình huống khác.
-- Phải có ít nhất một hoạt động bắt người học TỰ TẠO RA ngôn ngữ (chunk_recall hoặc guided_transfer). Bài toàn trắc nghiệm chỉ dạy được mức nhận ra.
+- Hoạt động ĐẦU TIÊN phải là gist_choice với captionPolicy = hidden_first. Không cho người học đọc đáp án trước lượt nghe đầu.
+- Phải có ít nhất một chunk_recall. chunk_recall không được dùng captionPolicy = shown; phụ đề là scaffold có thể mở sau, không phải dữ liệu mặc định của lượt nhớ lại.
+- promptVi và hintVi của chunk_recall không được chứa chính cụm cần nhớ. Nhắc lại đáp án trong đề bài thì không còn là nhớ lại.
+- Phải có ít nhất một guided_transfer SAU chunk_recall.
+- Ít nhất một candidateId của guided_transfer phải chính là candidateId đã xuất hiện trong một chunk_recall đứng trước nó. Người học phải nhớ lại mục tiêu trước rồi mới dùng nó trong ngữ cảnh mới.
 - Phương án nhiễu phải hợp lý và không được dài ngắn lệch hẳn so với đáp án đúng. Đừng để đáp án đúng luôn nằm cùng một vị trí.
-- Toàn bộ chữ hiển thị cho người học viết bằng tiếng Việt, trừ chính cụm tiếng Anh đang dạy.`;
+- Toàn bộ chữ hiển thị cho người học viết bằng tiếng Việt, trừ chính cụm tiếng Anh đang dạy.
+
+Một bộ quality gate xác định sẽ từ chối bài vi phạm chuỗi trên. Đừng cố lách gate bằng cách thêm hoạt động hình thức; mỗi hoạt động phải tạo ra bằng chứng học tập có ý nghĩa.`;
 
 function segmentLabel(index: number): string {
   return `S${index + 1}`;

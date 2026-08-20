@@ -33,7 +33,12 @@ export class AuthoringQualityError extends Error {
 }
 
 export type AuthoringQualityRejection =
-  | "NO_RETRIEVAL_ACTIVITY"
+  | "NO_UNAIDED_GIST"
+  | "NO_FORM_RETRIEVAL"
+  | "RETRIEVAL_ANSWER_EXPOSED"
+  | "NO_CHANGED_CONTEXT_TRANSFER"
+  | "NO_RETRIEVAL_TO_TRANSFER_BRIDGE"
+  | "TRANSFER_BEFORE_RETRIEVAL"
   | "DUPLICATE_OPTIONS"
   | "CORRECT_OPTION_ALWAYS_LONGEST";
 
@@ -58,6 +63,131 @@ function isChoiceActivity(
     activity.activityType === "gist_choice" ||
     activity.activityType === "meaning_in_context"
   );
+}
+
+type RecallActivity = Extract<
+  LearningActivityDraftV2,
+  { activityType: "chunk_recall" }
+>;
+
+type TransferActivity = Extract<
+  LearningActivityDraftV2,
+  { activityType: "guided_transfer" }
+>;
+
+function isRecallActivity(
+  activity: LearningActivityDraftV2,
+): activity is RecallActivity {
+  return activity.activityType === "chunk_recall";
+}
+
+function isTransferActivity(
+  activity: LearningActivityDraftV2,
+): activity is TransferActivity {
+  return activity.activityType === "guided_transfer";
+}
+
+/**
+ * Holds the lesson to a sequence that can actually produce evidence.
+ *
+ * VLR-007. Each rule below rejects a lesson that looks complete and measures
+ * nothing:
+ *
+ * - an unaided gist first, because a learner who reads the answer before the
+ *   first listen never demonstrates listening at all;
+ * - a `chunk_recall`, because a `guided_transfer` alone lets a lesson claim
+ *   retrieval while the target language stays on screen;
+ * - that recall not starting with the answer in view, whether through captions
+ *   or through the prompt itself;
+ * - a `guided_transfer` reusing an item the learner has already retrieved, and
+ *   coming after that retrieval — reuse before recall is copying.
+ */
+function enforceLearningSequence(draft: LearningAuthoringDraftV2): void {
+  const first = draft.activities[0];
+  if (
+    !first ||
+    first.activityType !== "gist_choice" ||
+    first.captionPolicy !== "hidden_first"
+  ) {
+    throw new AuthoringQualityError(
+      "The lesson must begin with a gist listen while captions are hidden.",
+      "NO_UNAIDED_GIST",
+    );
+  }
+
+  const recalls = draft.activities
+    .map((activity, index) => ({ activity, index }))
+    .filter(
+      (entry): entry is { activity: RecallActivity; index: number } =>
+        isRecallActivity(entry.activity),
+    );
+  if (recalls.length === 0) {
+    // Deliberately stricter than "some activity produces language": a
+    // `guided_transfer` on its own can be answered with the source sentence
+    // still in front of the learner, so it cannot stand in for retrieval.
+    throw new AuthoringQualityError(
+      "The lesson has no form-retrieval activity.",
+      "NO_FORM_RETRIEVAL",
+    );
+  }
+  if (recalls.some(({ activity }) => activity.captionPolicy === "shown")) {
+    throw new AuthoringQualityError(
+      "A retrieval activity exposes captions before the learner retrieves the form.",
+      "RETRIEVAL_ANSWER_EXPOSED",
+    );
+  }
+
+  // Captions are not the only way the answer leaks. A prompt or hint that
+  // contains the phrase turns recall into copying, and the caption policy would
+  // still read as correct.
+  const leaking = recalls.find(({ activity }) => {
+    const answer = normalize(activity.revealAnswer);
+    return (
+      normalize(activity.promptVi).includes(answer) ||
+      (activity.hintVi !== null && normalize(activity.hintVi).includes(answer))
+    );
+  });
+  if (leaking) {
+    throw new AuthoringQualityError(
+      `Activity ${leaking.activity.id} shows its own answer in the prompt or hint.`,
+      "RETRIEVAL_ANSWER_EXPOSED",
+    );
+  }
+
+  const transfers = draft.activities
+    .map((activity, index) => ({ activity, index }))
+    .filter(
+      (entry): entry is { activity: TransferActivity; index: number } =>
+        isTransferActivity(entry.activity),
+    );
+  if (transfers.length === 0) {
+    throw new AuthoringQualityError(
+      "The lesson has no changed-context transfer activity.",
+      "NO_CHANGED_CONTEXT_TRANSFER",
+    );
+  }
+
+  const bridgedPairs = recalls.flatMap((recall) =>
+    transfers.flatMap((transfer) =>
+      transfer.activity.candidateIds.includes(recall.activity.candidateId)
+        ? [{ recall, transfer }]
+        : [],
+    ),
+  );
+  if (bridgedPairs.length === 0) {
+    // Retrieval and transfer of two unrelated items is two half lessons. The
+    // claim the lesson makes is that one item was recalled and then reused.
+    throw new AuthoringQualityError(
+      "No target item is both retrieved and reused in changed-context transfer.",
+      "NO_RETRIEVAL_TO_TRANSFER_BRIDGE",
+    );
+  }
+  if (!bridgedPairs.some(({ recall, transfer }) => recall.index < transfer.index)) {
+    throw new AuthoringQualityError(
+      "Changed-context transfer occurs before retrieval of the same target item.",
+      "TRANSFER_BEFORE_RETRIEVAL",
+    );
+  }
 }
 
 function normalize(text: string): string {
@@ -106,21 +236,9 @@ export function reviewAuthoringDraft(
     }
   }
 
-  // Recognition is not retrieval. A lesson with no activity asking the learner
-  // to produce the language from memory teaches them to recognise it and
-  // nothing more, which is the single most common way a generated lesson looks
-  // complete and does not work.
-  const hasRetrieval = draft.activities.some(
-    (activity) =>
-      activity.activityType === "chunk_recall" ||
-      activity.activityType === "guided_transfer",
-  );
-  if (!hasRetrieval) {
-    throw new AuthoringQualityError(
-      "Draft has no activity that asks the learner to produce language.",
-      "NO_RETRIEVAL_ACTIVITY",
-    );
-  }
+  // Recognition is not retrieval, and the order the activities come in decides
+  // whether the lesson can produce evidence at all.
+  enforceLearningSequence(draft);
 
   return rebalanceAnswerPositions(draft, choices);
 }
