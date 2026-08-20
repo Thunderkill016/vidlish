@@ -49,6 +49,14 @@ export const learningReviewItemStateSchema = z
     lastSeenAt: offsetDateTimeSchema,
     nextReviewAt: offsetDateTimeSchema.nullable(),
     lastDelayedTransferAt: offsetDateTimeSchema.nullable(),
+    /**
+     * Last correct production with no support open, and last confirmed reuse in
+     * a changed context. Separate from the counts on purpose: a due date says
+     * when to ask again, and a count says how often they tried — neither says
+     * the learner can do it unaided.
+     */
+    lastIndependentAt: offsetDateTimeSchema.nullable(),
+    transferSucceededAt: offsetDateTimeSchema.nullable(),
     reviewState: persistedReviewStateSchema.nullable(),
   })
   .strict();

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(47);
+select plan(55);
 
 -- ---------------------------------------------------------------------------
 -- Shape, RLS and browser privileges
@@ -408,6 +408,116 @@ set local "request.jwt.claim.sub" = 'a2222222-2222-4222-8222-222222222222';
 select is((select count(*)::integer from public.learning_review_sessions), 0, 'other learner reads no review session');
 select is((select count(*)::integer from public.learning_review_attempts), 0, 'other learner reads no review attempts');
 reset role;
+
+-- ---------------------------------------------------------------------------
+-- VLR-201: item state is built from what the session actually recorded
+-- ---------------------------------------------------------------------------
+
+select has_column('public', 'learning_item_states', 'last_independent_at', 'item state stores independent-production timestamp');
+select has_column('public', 'learning_item_states', 'transfer_succeeded_at', 'item state stores changed-context reuse timestamp');
+
+insert into public.lesson_versions (
+  id, lesson_id, owner_user_id, schema_version, blueprint
+) values (
+  'a9999999-9999-4999-8999-999999999999',
+  'a6666666-6666-4666-8666-666666666666',
+  'a1111111-1111-4111-8111-111111111111',
+  'lesson:v2',
+  '{
+    "schemaVersion":"lesson:v2",
+    "targetItems":[{"id":"item_evidence","itemKey":"evidence-item"}],
+    "activities":[
+      {"id":"activity_recall","phase":"retrieve","activityType":"chunk_recall","targetItemId":"item_evidence"},
+      {"id":"activity_transfer","phase":"transfer","activityType":"guided_transfer","targetItemIds":["item_evidence"]},
+      {"id":"activity_exit","phase":"reflect","activityType":"exit_ticket"}
+    ]
+  }'::jsonb
+);
+
+create temporary table evidence_session on commit drop as
+select * from public.start_lesson_v2_session(
+  'a1111111-1111-4111-8111-111111111111',
+  'a9999999-9999-4999-8999-999999999999',
+  'retrieve',
+  'activity_recall'
+);
+
+-- Recalled correctly with nothing open. This is the only thing the product
+-- observes that comes close to independent use, and nothing recorded it before.
+select * from public.record_lesson_v2_attempt(
+  'a1111111-1111-4111-8111-111111111111',
+  (select session_id from evidence_session),
+  'activity_recall',
+  'b1111111-1111-4111-8111-111111111111',
+  '{"kind":"text","normalizedLength":11}'::jsonb,
+  '{"verdict":"correct"}'::jsonb,
+  'transfer',
+  'activity_transfer',
+  false
+);
+
+-- Reused in a changed context, but only after opening help, so this attempt
+-- must count as transfer and must not count as independent.
+select * from public.record_lesson_v2_support_event(
+  'a1111111-1111-4111-8111-111111111111',
+  (select session_id from evidence_session),
+  'activity_transfer',
+  'b2222222-2222-4222-8222-222222222222',
+  'support_opened',
+  'context_hint'
+);
+select * from public.record_lesson_v2_attempt(
+  'a1111111-1111-4111-8111-111111111111',
+  (select session_id from evidence_session),
+  'activity_transfer',
+  'b3333333-3333-4333-8333-333333333333',
+  '{"kind":"self_check","checkedCriteria":[0,1]}'::jsonb,
+  '{"verdict":"self_check"}'::jsonb,
+  'reflect',
+  'activity_exit',
+  false
+);
+
+select * from public.record_lesson_v2_attempt(
+  'a1111111-1111-4111-8111-111111111111',
+  (select session_id from evidence_session),
+  'activity_exit',
+  'b4444444-4444-4444-8444-444444444444',
+  '{"kind":"reflection","submitted":true,"characterCount":9}'::jsonb,
+  '{"verdict":"unscored"}'::jsonb,
+  'completed',
+  'activity_exit',
+  true
+);
+
+select is(
+  (select attempt_count from public.learning_item_states where item_key = 'evidence-item'),
+  2,
+  'attempts on activities targeting the item reach the item'
+);
+select is(
+  (select successful_retrievals from public.learning_item_states where item_key = 'evidence-item'),
+  1,
+  'only the correct attempt counts as a retrieval'
+);
+select ok(
+  (select last_independent_at is not null from public.learning_item_states where item_key = 'evidence-item'),
+  'a correct attempt with no support open records independent production'
+);
+select ok(
+  (select transfer_succeeded_at is not null from public.learning_item_states where item_key = 'evidence-item'),
+  'a confirmed self-check records changed-context reuse'
+);
+select ok(
+  (select last_independent_at < transfer_succeeded_at from public.learning_item_states where item_key = 'evidence-item'),
+  'the supported transfer is not counted as independent production'
+);
+select is(
+  (select last_independent_at is null from public.learning_item_states where item_key = 'a-member-of'),
+  true,
+  'an item the learner never produced has no independent evidence'
+);
+
 
 select * from finish();
 rollback;

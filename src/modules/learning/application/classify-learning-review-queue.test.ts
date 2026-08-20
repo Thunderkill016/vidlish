@@ -21,6 +21,8 @@ function item(
     lastSeenAt: "2026-08-18T00:00:00.000Z",
     nextReviewAt,
     lastDelayedTransferAt: null,
+    lastIndependentAt: null,
+    transferSucceededAt: null,
     reviewState: null,
   };
 }
