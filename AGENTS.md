@@ -38,38 +38,44 @@ Integrated and reachable from a route or workflow:
 
 ### The blocker that outranks everything below
 
-**No production path produces a v2 blueprint yet.** The database half exists:
-`publish_lesson_version` creates the row, owner-scoped and publish-once. What is
-missing is the half above it — nothing authors a `lesson:v2` blueprint to hand
-that function. Production lesson generation still runs the v1 path
-(`src/workflows/generate-lesson.steps.ts` → `lesson:v1` draft), and outside CI
-the only `lesson_versions` rows come from
-`supabase/fixtures/learning_model_v2_durable.sql`.
+**No production run has been observed producing a v2 blueprint yet.** Both
+halves of the path now exist. The database half:
+`publish_lesson_version` creates the row, owner-scoped and publish-once. The
+authoring half above it is built and wired —
+`src/workflows/generate-lesson.steps.ts` reaches
+`authorLearningLessonStep` → `createAuthorLearningLesson()` →
+`prepare-learning-authoring-brief.ts`, which no longer lacks a caller.
+`tests/integration/module-reachability.test.ts` holds the import graph and fails
+if any application module stops being reachable from a route or workflow; its
+unwired list is currently empty.
 
-So the entire v2 stack — sessions, attempts, support evidence, delayed review,
-FSRS scheduling — is reachable in code and unreachable for a real learner,
-because a real learner can never own the content it operates on. Green CI does
-not contradict this: the durable journey seeds the fixture first.
+What is still missing is evidence, not code. `LEARNING_AUTHORING_PROVIDER`
+defaults to `off`, production rejects `fixture`
+(`src/platform/config/server.ts`), and no production job has yet been confirmed
+to have written a `lesson_versions` row. Outside CI the only rows anyone has
+verified still come from `supabase/fixtures/learning_model_v2_durable.sql`.
 
-The v2 authoring pipeline that would produce those rows
-(`src/modules/learning/application/prepare-learning-authoring-brief.ts`) has no
-caller at all. `tests/integration/module-reachability.test.ts` holds the current
-list of unwired modules and fails if that list stops matching the import graph.
+So the v2 stack is reachable in code and **unproven in production**. Green CI
+does not close this: the durable journey seeds its own fixture first. The
+arbitrary-blueprint journey narrows it — it proves no layer depends on fixture
+identifiers — but it still runs on a seeded row, not on one a learner's video
+produced in production.
 
-Until something authors a blueprint in production, do not describe any v2
-learning behaviour as shipped, and do not read a passing durable journey as
-evidence that a learner can reach it.
+Until a production run is confirmed to have authored and published a blueprint,
+do not describe v2 learning behaviour as shipped, and do not read a passing
+durable journey as evidence that a learner has reached it.
 
 ### Hard-gate sequence
 
 0. production authoring path that creates `lesson_versions` — **in progress**:
-   `publish_lesson_version` (database half) done; the authoring half that
-   produces a `lesson:v2` blueprint is not started, and
-   `prepare-learning-authoring-brief.ts` still has no caller;
+   `publish_lesson_version` (database half) done; the authoring half is built,
+   wired and CI-proven, but no production run has been confirmed to have
+   published a blueprint;
 1. first-session durable flow — done;
 2. CI failures fixed from real logs — done;
 3. support/replay server evidence — done;
-4. second-session varied/delayed review — done in code, unreachable per gate 0;
+4. second-session varied/delayed review — done in code and proven on an
+   arbitrary blueprint in CI; still unreachable in production per gate 0;
 5. analytics + moderated usability with 5 target users;
 6. 20–50 learner cohort + predeclared go/no-go thresholds;
 7. benchmark at most 3 temporary authoring models, select one production
