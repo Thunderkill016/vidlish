@@ -85,3 +85,28 @@ describe("server configuration in production", () => {
     ).resolves.toBeTruthy();
   });
 });
+
+describe("the lesson model", () => {
+  /**
+   * Production kept returning schema-adherence failures — a draft rejected at
+   * one field *after both model calls had been paid for*. A rejected lesson
+   * costs its whole generation, so the cheapest model per token is not the
+   * cheapest per accepted lesson. That trade is what this default encodes, and
+   * a silent downgrade would undo it without anyone noticing.
+   */
+  it("defaults to a tier that is not the cheapest and weakest", async () => {
+    const config = await loadConfig({ LESSON_MODEL_ID: undefined });
+    expect(config.LESSON_MODEL_ID).toBe("gemini-3.7-flash");
+  });
+
+  it("still allows a newer model without a code change", async () => {
+    const config = await loadConfig({ LESSON_MODEL_ID: "gemini-4.0-flash" });
+    expect(config.LESSON_MODEL_ID).toBe("gemini-4.0-flash");
+  });
+
+  it("refuses an empty model id rather than falling back silently", async () => {
+    // Defaulting past a misconfiguration would run production on a model
+    // nobody chose.
+    await expect(loadConfig({ LESSON_MODEL_ID: "" })).rejects.toThrow();
+  });
+});

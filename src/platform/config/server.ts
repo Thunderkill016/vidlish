@@ -64,8 +64,21 @@ const serverConfigSchema = z
     LEARNING_AUTHORING_PROVIDER: z
       .enum(["off", "gemini", "fixture"])
       .default("off"),
-    // Overridable so a newer Gemini model can be adopted without a code change.
-    LESSON_MODEL_ID: z.string().min(1).default("gemini-3.5-flash-lite"),
+    /**
+     * Overridable so a newer Gemini model can be adopted without a code change.
+     *
+     * The default was `gemini-3.5-flash-lite` — the cheapest, weakest tier — and
+     * the failures production kept returning were schema adherence: a draft
+     * rejected at one field after both model calls had been paid for. A
+     * rejected lesson costs its whole generation, so the cheapest model per
+     * token is not the cheapest per accepted lesson.
+     *
+     * `gemini-3.7-flash` is $0.75 / $3.75 per million against Flash-Lite's
+     * $0.30 / $2.50 — roughly a cent and a half more per lesson, against a
+     * generation thrown away. It is also cheaper than `gemini-3.5-flash`
+     * ($1.50 / $9.00), so this is not simply "spend more".
+     */
+    LESSON_MODEL_ID: z.string().min(1).default("gemini-3.7-flash"),
     GEMINI_API_KEY: z.string().min(1).optional(),
   })
   .superRefine((value, context) => {
