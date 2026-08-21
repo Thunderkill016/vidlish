@@ -49,9 +49,10 @@ describe("generateLessonWorkflow", () => {
     steps.advanceToTranscriptAcquisition.mockResolvedValue(jobRef);
     steps.acquireNativeCaptionStep.mockResolvedValue({ kind: "persisted" });
     steps.checkOriginalEnglishStep.mockResolvedValue({ status: "eligible" });
-    steps.generateLessonStep.mockResolvedValue({ kind: "published" });
     steps.diagnoseLearningLessonStep.mockResolvedValue({ kind: "diagnosed" });
-    steps.authorLearningLessonStep.mockResolvedValue({ kind: "skipped" });
+    // The happy path publishes a blueprint. Nothing else completes a job now,
+    // so a default of "skipped" would make every test run the failure path.
+    steps.authorLearningLessonStep.mockResolvedValue({ kind: "published" });
     steps.resolveLanguageFailureStep.mockResolvedValue({ kind: "terminated" });
     steps.resolveLessonFailureStep.mockResolvedValue({ kind: "terminated" });
     steps.loadFinalGenerationStateStep.mockResolvedValue("completed");
@@ -69,7 +70,7 @@ describe("generateLessonWorkflow", () => {
     expect(steps.resolveTranscriptTerminalStateStep).not.toHaveBeenCalled();
   });
 
-  it("runs both halves of the v2 chain after the v1 lesson is saved", async () => {
+  it("runs both halves of the v2 chain", async () => {
     await generateLessonWorkflow(event);
     expect(steps.diagnoseLearningLessonStep).toHaveBeenCalledWith(jobRef);
     expect(steps.authorLearningLessonStep).toHaveBeenCalledWith(jobRef);
@@ -85,14 +86,35 @@ describe("generateLessonWorkflow", () => {
     expect(steps.authorLearningLessonStep).not.toHaveBeenCalled();
   });
 
-  it("keeps the job completed when v2 authoring fails", async () => {
-    // The learner already has a lesson by this point. Losing the richer one is
-    // a degraded result; turning their finished job into a failure is not.
+  it("terminalizes the job when authoring produces no lesson", async () => {
+    // This inverts what it used to assert. A v2 failure was once a degraded
+    // result because the learner still had the v1 lesson; with v1 retired there
+    // is nothing behind the job, and pretending it completed would leave the
+    // learner on an empty page while the job held one of their active slots.
     steps.authorLearningLessonStep.mockRejectedValue(new Error("provider down"));
 
-    const result = await generateLessonWorkflow(event);
+    await generateLessonWorkflow(event);
 
-    expect(result.status).toBe("completed");
+    expect(steps.resolveLessonFailureStep).toHaveBeenCalledWith(jobRef);
+  });
+
+  it("terminalizes the job when diagnosis produces no brief", async () => {
+    steps.diagnoseLearningLessonStep.mockResolvedValue({ kind: "skipped" });
+
+    await generateLessonWorkflow(event);
+
+    expect(steps.authorLearningLessonStep).not.toHaveBeenCalled();
+    expect(steps.resolveLessonFailureStep).toHaveBeenCalledWith(jobRef);
+  });
+
+  it("leaves an already-published blueprint alone on a re-run", async () => {
+    // Re-running a workflow must not report failure for work that is done.
+    steps.authorLearningLessonStep.mockResolvedValue({
+      kind: "already_published",
+    });
+
+    await generateLessonWorkflow(event);
+
     expect(steps.resolveLessonFailureStep).not.toHaveBeenCalled();
   });
 
@@ -191,7 +213,9 @@ describe("generateLessonWorkflow", () => {
   });
 
   it("resolves a thrown lesson failure once and returns the terminal state", async () => {
-    steps.generateLessonStep.mockRejectedValue(new Error("provider failed"));
+    // Once, not twice: the failure path runs on a thrown step and on a step
+    // that returned without publishing, and a throw satisfies both readings.
+    steps.diagnoseLearningLessonStep.mockRejectedValue(new Error("provider failed"));
     steps.loadFinalGenerationStateStep.mockResolvedValue("failed");
 
     const result = await generateLessonWorkflow(event);

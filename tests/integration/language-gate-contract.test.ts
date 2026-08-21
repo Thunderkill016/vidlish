@@ -27,9 +27,14 @@ const evaluator = readFileSync(
 
 describe("original-English gate architecture contract", () => {
   it("orders caption acquisition, language gating and lesson generation", () => {
-    const acquisition = workflow.indexOf("acquireNativeCaptionStep");
-    const languageGate = workflow.indexOf("checkOriginalEnglishStep");
-    const lesson = workflow.indexOf("generateLessonStep");
+    // Call sites, not imports. Imports are sorted by name, so matching the bare
+    // identifier compared import order and passed for the wrong reason.
+    const acquisition = workflow.indexOf("await acquireNativeCaptionStep(");
+    const languageGate = workflow.indexOf("await checkOriginalEnglishStep(");
+    // The guided session is the lesson now; v1 generation no longer runs. The
+    // ordering this guards is unchanged — nothing may author before the
+    // original-English gate has spoken.
+    const lesson = workflow.indexOf("await diagnoseLearningLessonStep(");
 
     expect(acquisition).toBeGreaterThan(-1);
     expect(languageGate).toBeGreaterThan(acquisition);
