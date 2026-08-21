@@ -44,6 +44,8 @@ const NOT_YET_WIRED: Record<string, string> = {
   // reaches it, so it cannot quietly describe a past that is over.
   "src/modules/learning/application/select-next-vocabulary.ts":
     "A0 beginner track — no route yet",
+  "src/modules/learning/application/check-comprehensible-input.ts":
+    "A0 beginner track — no route yet",
 };
 
 function listSourceFiles(dir: string): string[] {
