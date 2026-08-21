@@ -36,6 +36,7 @@ export class InMemoryGenerationJobRepository
     string,
     LearningAuthoringOutcome
   >();
+  private readonly learningAuthoringDetails = new Map<string, string>();
   private readonly activeKeys = new Map<string, string>();
   private createQueue: Promise<void> = Promise.resolve();
 
@@ -208,15 +209,21 @@ export class InMemoryGenerationJobRepository
     ownerUserId: string;
     jobId: string;
     outcome: LearningAuthoringOutcome;
+    detail?: string;
   }) {
     const job = this.jobs.get(input.jobId);
     if (!job || job.ownerUserId !== input.ownerUserId) return;
     this.learningAuthoringOutcomes.set(input.jobId, input.outcome);
+    if (input.detail) this.learningAuthoringDetails.set(input.jobId, input.detail);
   }
 
   /** Exposed for tests: the branch the authoring path reported for a job. */
   learningAuthoringOutcomeFor(jobId: string) {
     return this.learningAuthoringOutcomes.get(jobId) ?? null;
+  }
+
+  learningAuthoringDetailFor(jobId: string) {
+    return this.learningAuthoringDetails.get(jobId) ?? null;
   }
 
   async updateStatus(

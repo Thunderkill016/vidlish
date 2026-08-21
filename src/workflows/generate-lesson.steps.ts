@@ -16,6 +16,7 @@ import {
 } from "@/platform/learning/create-learning-authoring-runtime";
 import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
 import { getServerConfig } from "@/platform/config/server";
+import { classifyAuthoringFailure } from "@/modules/generation/application/classify-authoring-failure";
 import type { LearningAuthoringOutcome } from "@/modules/generation/ports/generation-job-repository";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createOriginalEnglishGate } from "@/platform/language/create-language-runtime";
@@ -501,12 +502,14 @@ async function loadAuthoringContext(jobRef: GenerationWorkflowJobRef) {
 async function recordAuthoringOutcome(
   jobRef: GenerationWorkflowJobRef,
   outcome: LearningAuthoringOutcome,
+  detail?: string,
 ) {
   try {
     await createGenerationRepository().recordLearningAuthoringOutcome({
       ownerUserId: jobRef.ownerUserId,
       jobId: jobRef.jobId,
       outcome,
+      detail,
     });
   } catch {
     // Swallowed on purpose; see above.
@@ -636,19 +639,30 @@ export async function authorLearningLessonStep(
     });
     await recordAuthoringOutcome(jobRef, "authored");
     return { kind: "published", created: result.created } as const;
-  } catch {
+  } catch (error) {
     // Logged, not rethrown. The learner keeps the v1 lesson; losing the v2 one
     // is a degraded result, not a failed job.
+    //
+    // The error is classified rather than discarded: `catch {}` here reported a
+    // hardcoded `provider_failure` for every cause, so a draft the quality gate
+    // refused looked exactly like a provider outage.
+    const detail = classifyAuthoringFailure(error);
     emitGenerationEvent({
       level: "warning",
       jobId: jobRef.jobId,
       stage: "learning_authoring",
       action: "failed",
       provider: "workflow",
-      reason: "provider_failure",
+      // The event's reason vocabulary is fixed and shared with v1, so the
+      // precise code travels in the field built for it rather than replacing
+      // the reason with a value nothing else understands.
+      reason: detail.startsWith("quality_rejected")
+        ? "quality_rejected"
+        : "provider_failure",
+      qualityIssues: detail.includes(":") ? [detail.split(":")[1]!] : undefined,
       elapsedMs: Date.now() - startedAt,
     });
-    await recordAuthoringOutcome(jobRef, "authoring_failed");
+    await recordAuthoringOutcome(jobRef, "authoring_failed", detail);
     return { kind: "skipped", reason: "authoring_failed" } as const;
   }
 }

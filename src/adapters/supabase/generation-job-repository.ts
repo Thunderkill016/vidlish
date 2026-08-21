@@ -252,11 +252,13 @@ export class SupabaseGenerationJobRepository
     ownerUserId: string;
     jobId: string;
     outcome: LearningAuthoringOutcome;
+    detail?: string;
   }) {
     const rpc = await this.client.rpc("record_learning_authoring_outcome", {
       p_owner_user_id: input.ownerUserId,
       p_job_id: input.jobId,
       p_outcome: input.outcome,
+      p_detail: input.detail ?? null,
     });
     // Diagnostic only, so a write failure must not take down the job it is
     // describing — but it must not vanish either, or the field silently becomes
