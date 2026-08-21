@@ -10,6 +10,7 @@ import {
   type LearningAuthoringProvider,
 } from "@/modules/learning/ports/learning-authoring-provider";
 import {
+  PHASE_BY_ACTIVITY_TYPE,
   learningAuthoringDraftV2Schema,
   type LearningAuthoringDraftV2,
 } from "@/shared/contracts/learning-authoring-draft-v2";
@@ -363,6 +364,7 @@ export class GeminiLearningAuthoringProvider
 
     stampVersion(result.parsed, "draftVersion", "learning-authoring-draft:v2");
     normalizeEntityIds(result.parsed);
+    derivePhases(result.parsed);
 
     const draft = learningAuthoringDraftV2Schema.safeParse(result.parsed);
     if (!draft.success) {
@@ -429,6 +431,29 @@ function normalizeEntityIds(node: unknown): void {
     }
     normalizeEntityIds(value);
   }
+}
+
+/**
+ * Fills in the phase from the activity type, rather than asking for it.
+ *
+ * Same reasoning as `deriveNormalizedForms` below: a field the server can
+ * derive is not a question worth asking a model. The mapping lives with the
+ * contract that binds it.
+ */
+
+function derivePhases(node: unknown): void {
+  if (Array.isArray(node)) {
+    node.forEach(derivePhases);
+    return;
+  }
+  if (node === null || typeof node !== "object") return;
+  const record = node as Record<string, unknown>;
+  const phase =
+    PHASE_BY_ACTIVITY_TYPE[
+      String(record.activityType ?? "") as keyof typeof PHASE_BY_ACTIVITY_TYPE
+    ];
+  if (phase) record.phase = phase;
+  Object.values(record).forEach(derivePhases);
 }
 
 /**
