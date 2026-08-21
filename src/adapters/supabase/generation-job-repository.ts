@@ -26,6 +26,7 @@ const rawVideoSchema = z.object({
   channel_name: z.string(),
   thumbnail_url: z.string().nullable(),
   duration_ms: z.coerce.number().nullable(),
+  declared_audio_language: z.string().nullable().optional(),
 });
 
 const rawJobSchema = z.object({
@@ -54,6 +55,9 @@ function mapJob(raw: unknown): GenerationJob {
     channelName: video.channel_name,
     ...(video.thumbnail_url ? { thumbnailUrl: video.thumbnail_url } : {}),
     ...(video.duration_ms !== null ? { durationMs: video.duration_ms } : {}),
+    ...(video.declared_audio_language
+      ? { declaredAudioLanguage: video.declared_audio_language }
+      : {}),
     cefrLevel: row.cefr_level,
     metadataVersion: row.metadata_version,
     pipelineVersion: row.pipeline_version,
@@ -83,7 +87,8 @@ const jobSelect = `
     title,
     channel_name,
     thumbnail_url,
-    duration_ms
+    duration_ms,
+    declared_audio_language
   )
 `;
 
@@ -154,6 +159,9 @@ export class SupabaseGenerationJobRepository
       p_cefr_level: input.cefrLevel,
       p_metadata_version: input.metadata.metadataVersion,
       p_pipeline_version: input.pipelineVersion,
+      // Kept so the caption strategy can tell an original English track from an
+      // English translation.
+      p_declared_audio_language: input.metadata.declaredAudioLanguage ?? null,
     });
     if (rpc.error) throw rpc.error;
 

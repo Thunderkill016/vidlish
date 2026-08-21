@@ -36,6 +36,11 @@ const supadataErrorSchema = z
   })
   .passthrough();
 
+/** `en`, `en-US`, `en-GB` — the declared language, not the caption's. */
+function isEnglish(declared: string | undefined): boolean {
+  return /^en(-|$)/i.test(declared ?? "");
+}
+
 export class SupadataNativeCaptionStrategy implements TranscriptStrategy {
   readonly id = NATIVE_CAPTION_STRATEGY_ID;
   readonly provider = "supadata" as const;
@@ -50,6 +55,8 @@ export class SupadataNativeCaptionStrategy implements TranscriptStrategy {
 
   async acquire(input: {
     videoId: string;
+    /** YouTube's `defaultAudioLanguage`, when the video declares one. */
+    declaredAudioLanguage?: string;
     signal?: AbortSignal;
   }): Promise<TranscriptStrategyResult> {
     const fetchImpl = this.options.fetchImpl ?? fetch;
@@ -60,6 +67,18 @@ export class SupadataNativeCaptionStrategy implements TranscriptStrategy {
     );
     url.searchParams.set("text", "false");
     url.searchParams.set("mode", "native");
+    // Only when YouTube itself says the audio is English.
+    //
+    // A TED talk in English came back as a translated track — `english_share`
+    // zero across three thousand words — and the original-English gate refused
+    // it, correctly. Asking for `en` unconditionally would fix that and break
+    // something worse: on a Spanish video it would fetch an English
+    // *translation*, and teaching from a translation breaks the invariant that
+    // source quotes are exact spoken English. When the declared audio is
+    // English, an English track is the speech rather than a translation of it.
+    if (isEnglish(input.declaredAudioLanguage)) {
+      url.searchParams.set("lang", "en");
+    }
 
     const timeoutSignal = AbortSignal.timeout(this.options.timeoutMs);
     const signal = input.signal
