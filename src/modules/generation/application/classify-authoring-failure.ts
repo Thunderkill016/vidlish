@@ -14,6 +14,9 @@ import { LearningAuthoringFailure } from "@/modules/learning/ports/learning-auth
  * and model output can carry learner content, so nothing free-form goes into a
  * diagnostic field.
  */
+/** What `lesson_jobs_learning_authoring_detail` accepts after the colon. */
+const MAX_DETAIL_SUFFIX = 60;
+
 /** `activities.2.criteriaVi` → `ACTIVITIES_2_CRITERIAVI`, or null. */
 function firstIssuePath(error: unknown): string | null {
   const issues = (error as { issues?: readonly { path?: readonly unknown[] }[] })
@@ -24,8 +27,16 @@ function firstIssuePath(error: unknown): string | null {
     .map((segment) => String(segment))
     .join("_")
     .toUpperCase()
-    .replace(/[^A-Z0-9_]/g, "_")
-    .slice(0, 60);
+    .replace(/[^A-Z0-9_]/g, "_");
+}
+
+/** Zod's own issue code — `INVALID_VALUE`, `INVALID_UNION`, `TOO_SMALL`. */
+function firstIssueCode(error: unknown): string | null {
+  const issues = (error as { issues?: readonly Record<string, unknown>[] }).issues;
+  const code = issues?.[0]?.code;
+  if (typeof code !== "string") return null;
+  if (!/^[a-z][a-z_]{0,31}$/.test(code)) return null;
+  return code.toUpperCase();
 }
 
 /**
@@ -72,10 +83,22 @@ export function classifyAuthoringFailure(error: unknown): string {
     // Plus what the schema wanted there. A path alone said which field, and
     // production showed a field whose bindings looked identical in both
     // schemas — the branch that matched is the piece that was missing.
+    // Plus the issue code. Four production failures named the same field and I
+    // could not tell which kind of failure it was: a literal that did not
+    // match, or a union whose discriminator never selected a branch. Those two
+    // point at completely different bugs, and the field name alone cannot
+    // separate them.
+    const code = firstIssueCode(error);
     const label = firstIssueLabel(error);
-    return label
-      ? `schema_rejected:${path}_WANTS_${label}`
-      : `schema_rejected:${path}`;
+    // Truncated as a whole, not piece by piece. The column caps the suffix at
+    // sixty characters; appending the code and the label after truncating only
+    // the path pushed past it, the write would violate the check, and the
+    // workflow swallows that — the field goes quiet exactly when it is needed.
+    const suffix = [path, code, label && `WANTS_${label}`]
+      .filter(Boolean)
+      .join("_")
+      .slice(0, MAX_DETAIL_SUFFIX);
+    return `schema_rejected:${suffix}`;
   }
   if (name) return `unexpected_error:${name.toUpperCase().replace(/[^A-Z_]/g, "_")}`;
   return "unexpected_error";

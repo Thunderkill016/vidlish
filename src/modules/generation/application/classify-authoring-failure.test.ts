@@ -27,7 +27,10 @@ describe("classifyAuthoringFailure", () => {
     ).toBe("provider_rejected");
   });
 
-  it("names the field a schema rejection failed on", () => {
+  it("names the field and the kind of failure", () => {
+    // Four production failures named the same field and could not say which
+    // kind of failure it was — a literal that did not match, or a union whose
+    // discriminator never selected a branch. Those point at different bugs.
     // `schema_rejected` on its own leaves you guessing which of the draft's
     // forty fields was wrong — production returned exactly that.
     const parsed = z
@@ -35,7 +38,7 @@ describe("classifyAuthoringFailure", () => {
       .safeParse({ activities: [{ criteriaVi: [] }, { criteriaVi: ["a"] }] });
     expect(parsed.success).toBe(false);
     expect(classifyAuthoringFailure(parsed.error)).toBe(
-      "schema_rejected:ACTIVITIES_0_CRITERIAVI",
+      "schema_rejected:ACTIVITIES_0_CRITERIAVI_TOO_SMALL",
     );
   });
 
@@ -47,7 +50,7 @@ describe("classifyAuthoringFailure", () => {
       .safeParse({ activities: [{ phase: "notice" }] });
     expect(parsed.success).toBe(false);
     expect(classifyAuthoringFailure(parsed.error)).toBe(
-      "schema_rejected:ACTIVITIES_0_PHASE_WANTS_RETRIEVE",
+      "schema_rejected:ACTIVITIES_0_PHASE_INVALID_VALUE_WANTS_RETRIEVE",
     );
   });
 
@@ -83,6 +86,9 @@ describe("classifyAuthoringFailure", () => {
       .safeParse({ [deep]: 1 });
     expect(parsed.success).toBe(false);
 
+    // The whole suffix, not just the path: appending the code and label after
+    // truncating only the path pushed past the column and the write would have
+    // been rejected.
     const detail = classifyAuthoringFailure(parsed.error);
     expect(detail.split(":")[1]!.length).toBe(60);
     expect(detail).toMatch(/^[a-z_]+(:[A-Z0-9_]{1,60})?$/);
