@@ -625,6 +625,32 @@ A moderated learner should be able to say what changed between the first and fin
 
 ---
 
+## Retiring v1
+
+Four steps, agreed with the product owner. v1 is fragile — production showed a
+job failing six times inside its quality gate — and it stood in front of v2.
+
+1. **Prove v2 produces a blueprint in production** — still open. No
+   `lesson_versions` row has been observed. `learning_authoring_outcome` and
+   `learning_authoring_detail` now name the branch and the cause, so the next
+   run answers this instead of leaving an absence.
+2. **Unhook v2 from the v1 table** — done (PR #90). Blueprints hang off the job;
+   `lesson_id` is nullable, kept for what was published before.
+3. **Make the guided session the default lesson** — done. `/lessons/[jobId]`
+   forwards to the session when one can render; the reference lesson stays
+   reachable at `?view=reference` and is linked from the session.
+4. **Delete the v1 pipeline, UI, contracts and table** — not started, and gated
+   on step 1. Removing v1 before a learner has ever reached v2 would leave the
+   product with no working path at all.
+
+Step 3 put the routing decision in one place
+(`src/platform/learning/resolve-learner-lesson-route.ts`). Two pages asking the
+same question separately is how a redirect loop is born: v1 forwards on a
+blueprint, v2 returns when it cannot render, and a blueprint whose transcript is
+missing satisfies both.
+
+---
+
 # PHASE 2 — Learner Language Memory
 
 **Objective:** make every studied video improve the next one.

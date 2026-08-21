@@ -5,10 +5,8 @@ import { createLearnerBlueprintView } from "@/modules/learning/application/creat
 import { deriveLearningMedia } from "@/modules/learning/application/derive-learning-media";
 import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import { deriveLearningSupportCopy } from "@/modules/learning/application/derive-learning-support-copy";
-import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
-import { createLessonVersionRepository } from "@/platform/learning/create-learning-authoring-runtime";
-import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
+import { resolveLearnerLessonRoute } from "@/platform/learning/resolve-learner-lesson-route";
 import { validateLearningRuntimePolicyAgainstBlueprint } from "@/shared/contracts/learning-policy-v2";
 import { LearningSessionLab } from "../../../learning-lab/v2/_components/learning-session-lab";
 
@@ -33,24 +31,16 @@ export default async function LearnerSessionPage({
   const jobId = z.string().uuid().safeParse(rawJobId);
   if (!jobId.success) notFound();
 
-  const published = await createLessonVersionRepository().findForJob({
+  // Asked, not decided here. The v1 page forwards to this one when a blueprint
+  // exists; if the two disagreed about what "renderable" means the learner
+  // would bounce between them.
+  const route = await resolveLearnerLessonRoute({
     ownerUserId: access.userId,
     jobId: jobId.data,
   });
-  // Not every lesson has a v2 blueprint: authoring is additive and can be off
-  // or can have failed. Send the learner to the lesson they definitely have
-  // rather than showing an empty shell.
-  if (!published) redirect(`/lessons/${jobId.data}`);
+  if (route.kind !== "v2") redirect(`/lessons/${jobId.data}`);
 
-  const generationRepository = createGenerationRepository();
-  const transcriptRuntime = createTranscriptRuntime(generationRepository);
-  const transcript = await transcriptRuntime.repository.findCanonicalForJob(
-    access.userId,
-    jobId.data,
-  );
-  if (!transcript) redirect(`/lessons/${jobId.data}`);
-
-  const { blueprint } = published;
+  const { blueprint, transcript } = route;
   const media = deriveLearningMedia(
     blueprint,
     transcript,
@@ -75,6 +65,17 @@ export default async function LearnerSessionPage({
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
+      {/*
+        The reference lesson is no longer the default landing page, so this is
+        the only way back to it. Without the query flag the v1 page would send
+        the learner straight here again.
+      */}
+      <a
+        className="mb-4 inline-block text-sm text-[var(--muted-foreground)] underline"
+        href={`/lessons/${jobId.data}?view=reference`}
+      >
+        Xem bản tra cứu của bài học này
+      </a>
       <LearningSessionLab
         blueprint={createLearnerBlueprintView(blueprint)}
         media={media}
