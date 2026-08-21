@@ -159,6 +159,26 @@ supabase test db
 pnpm test:e2e
 ```
 
+### Check SQL locally before pushing it
+
+```bash
+pnpm db:local                                    # apply every migration
+pnpm db:local supabase/fixtures/a.sql b.sql      # then run these, in order
+```
+
+`scripts/local-schema.mjs` applies all migrations to an in-process Postgres
+(PGlite — real Postgres compiled to WASM, no Docker) in about thirteen seconds.
+
+Use it before pushing any migration, fixture or pgTAP fixture block. Seven CI
+round-trips in one session were spent on fixture SQL written from memory — a
+dropped quote, a column that does not exist, a check constraint, a unique
+constraint. **None of those needed pgTAP to catch. They needed the schema.**
+
+It does not replace `supabase test db`: PGlite has no pgTAP, so assertions,
+RLS-as-a-role and `security definer` behaviour are still only proven in CI. It
+answers a narrower question — *does this SQL run against the real schema* — and
+that question is where the round-trips went.
+
 Database changes are not complete until pgTAP passes. Learning-flow changes are not complete until Chromium journeys pass. Persistence changes are not complete until the durable Supabase journey proves the expected rows and privacy boundary.
 
 Never weaken tests, add forced browser clicks, or loosen security constraints just to make CI green. Diagnose from the failing job/log and fix the product behavior or test contract deliberately.
