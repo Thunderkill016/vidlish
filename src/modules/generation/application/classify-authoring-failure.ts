@@ -14,6 +14,20 @@ import { LearningAuthoringFailure } from "@/modules/learning/ports/learning-auth
  * and model output can carry learner content, so nothing free-form goes into a
  * diagnostic field.
  */
+/** `activities.2.criteriaVi` → `ACTIVITIES_2_CRITERIAVI`, or null. */
+function firstIssuePath(error: unknown): string | null {
+  const issues = (error as { issues?: readonly { path?: readonly unknown[] }[] })
+    .issues;
+  const path = issues?.[0]?.path;
+  if (!path?.length) return null;
+  return path
+    .map((segment) => String(segment))
+    .join("_")
+    .toUpperCase()
+    .replace(/[^A-Z0-9_]/g, "_")
+    .slice(0, 60);
+}
+
 export function classifyAuthoringFailure(error: unknown): string {
   if (error instanceof AuthoringQualityError) {
     // The gate's own code, which names the rule the draft broke — the single
@@ -28,7 +42,14 @@ export function classifyAuthoringFailure(error: unknown): string {
   // would tie this to a validation library. The constructor name is enough to
   // tell a schema rejection from an unexpected throw.
   const name = error instanceof Error ? error.name : "";
-  if (name === "ZodError") return "schema_rejected";
+  if (name === "ZodError") {
+    // The failing path, not the value. `schema_rejected` alone says a draft was
+    // malformed and leaves you to guess which of forty fields — production
+    // returned exactly that and it named nothing actionable. A path is field
+    // names the schema already defines, so it carries no model output.
+    const path = firstIssuePath(error);
+    return path ? `schema_rejected:${path}` : "schema_rejected";
+  }
   if (name) return `unexpected_error:${name.toUpperCase().replace(/[^A-Z_]/g, "_")}`;
   return "unexpected_error";
 }
