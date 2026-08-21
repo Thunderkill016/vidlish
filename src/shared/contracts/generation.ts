@@ -136,6 +136,15 @@ export const generationJobSchema = z
     channelName: z.string().min(1).max(300),
     thumbnailUrl: z.string().url().optional(),
     durationMs: z.number().int().nonnegative().optional(),
+    /**
+     * YouTube's `defaultAudioLanguage`, when the video declares one.
+     *
+     * Lets the caption strategy tell an original English track from an English
+     * translation. Forcing `en` without it would fetch translations of
+     * non-English videos, and teaching from a translation breaks the invariant
+     * that source quotes are exact spoken English.
+     */
+    declaredAudioLanguage: z.string().min(2).max(35).optional(),
     cefrLevel: cefrLevelSchema,
     metadataVersion: z.string().min(1).max(256),
     pipelineVersion: z.literal(GENERATION_PIPELINE_VERSION),

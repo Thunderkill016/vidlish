@@ -15,6 +15,16 @@ export type GenerationPolicySnapshot = {
 export type ActiveGenerationJobKey = {
   ownerUserId: string;
   videoId: string;
+  /**
+   * YouTube's `defaultAudioLanguage`, when the video declares one.
+   *
+   * The caption strategy uses it to tell an original English track from an
+   * English translation. A TED talk in English was refused because the native
+   * endpoint returned a translated track; forcing `en` blindly would instead
+   * fetch translations of non-English videos, which breaks the invariant that
+   * source quotes are exact spoken English.
+   */
+  declaredAudioLanguage?: string;
   cefrLevel: CefrLevel;
   pipelineVersion: GenerationJob["pipelineVersion"];
 };

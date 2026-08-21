@@ -10,6 +10,53 @@ function response(body: unknown, status = 200): Response {
 }
 
 describe("SupadataNativeCaptionStrategy", () => {
+  it("asks for the English track when YouTube declares English audio", async () => {
+    // A TED talk in English came back as a translated track — english_share
+    // zero across three thousand words — and the original-English gate refused
+    // it, correctly. The declared audio language is what makes asking safe.
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      response({
+        content: [{ text: "Original speech", offset: 100, duration: 900, lang: "en" }],
+        lang: "en",
+        availableLangs: ["en", "ar"],
+      }),
+    );
+    const strategy = new SupadataNativeCaptionStrategy({
+      apiKey: "server-secret",
+      timeoutMs: 1000,
+      fetchImpl: fetchMock,
+    });
+
+    await strategy.acquire({ videoId: "M7lc1UVf-VE", declaredAudioLanguage: "en-US" });
+
+    const requested = new URL(String(fetchMock.mock.calls[0]![0]));
+    expect(requested.searchParams.get("lang")).toBe("en");
+    expect(requested.searchParams.get("mode")).toBe("native");
+  });
+
+  it("never asks for English when the audio is declared as something else", async () => {
+    // The dangerous half. On a Spanish video an English track is a
+    // translation, and teaching from a translation breaks the invariant that
+    // source quotes are exact spoken English.
+    const fetchMock = vi.fn<typeof fetch>(async () =>
+      response({
+        content: [{ text: "Habla original", offset: 100, duration: 900, lang: "es" }],
+        lang: "es",
+        availableLangs: ["es", "en"],
+      }),
+    );
+    const strategy = new SupadataNativeCaptionStrategy({
+      apiKey: "server-secret",
+      timeoutMs: 1000,
+      fetchImpl: fetchMock,
+    });
+
+    await strategy.acquire({ videoId: "M7lc1UVf-VE", declaredAudioLanguage: "es" });
+
+    const requested = new URL(String(fetchMock.mock.calls[0]![0]));
+    expect(requested.searchParams.get("lang")).toBeNull();
+  });
+
   it("uses the universal native timestamp endpoint without a language override", async () => {
     const fetchMock = vi.fn<typeof fetch>(async () =>
       response({

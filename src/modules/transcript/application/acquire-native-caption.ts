@@ -80,7 +80,12 @@ export class AcquireNativeCaption {
 
     const startedAt = performance.now();
     const result = this.enabled
-      ? await this.strategy.acquire({ videoId: job.videoId })
+      ? await this.strategy.acquire({
+          videoId: job.videoId,
+          ...(job.declaredAudioLanguage
+            ? { declaredAudioLanguage: job.declaredAudioLanguage }
+            : {}),
+        })
       : disabledStrategy();
     const latencyMs = Math.max(0, performance.now() - startedAt);
 
