@@ -96,6 +96,23 @@ const meaningInContextDraftSchema = z
     }
   });
 
+/**
+ * The phase each activity type is pinned to.
+ *
+ * The schemas below bind these one-to-one, so a phase carries no judgement — it
+ * restates the type. Exported because the provider derives the field instead of
+ * asking the model for it: production rejected a draft at `activities.3.phase`
+ * for getting that restatement wrong, after both model calls had been paid for,
+ * and the prompt never stated the mapping at all.
+ */
+export const PHASE_BY_ACTIVITY_TYPE = {
+  gist_choice: "gist",
+  meaning_in_context: "practice",
+  chunk_recall: "retrieve",
+  guided_transfer: "transfer",
+  exit_ticket: "reflect",
+} as const;
+
 const chunkRecallDraftSchema = z
   .object({
     ...groundedActivityBaseShape,

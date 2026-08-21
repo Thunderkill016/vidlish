@@ -254,6 +254,25 @@ describe("reviewAuthoringDraft", () => {
     ).toThrow(/longest one in every/i);
   });
 
+  it("ignores a correct option that is only slightly longer", () => {
+    // The rule measures length to catch guessability. One character is not a
+    // tell, and a correct option is naturally a little longer than a plausible
+    // distractor because it has to be specific — production refused whole
+    // lessons over differences nobody could see.
+    const almost = { id: "option_almost", textVi: "Giới thiệu bản thâna" };
+    const reviewed = reviewAuthoringDraft(
+      draft([
+        gist("activity_gist", [B, almost], "option_almost"),
+        meaning("activity_meaning", [C, almost], "option_almost"),
+        meaning("activity_meaning_two", [A, almost], "option_almost"),
+        RECALL,
+        TRANSFER,
+      ]),
+    );
+
+    expect(reviewed.draft.activities.length).toBeGreaterThan(0);
+  });
+
   it("does not call two activities a habit", () => {
     // "Every activity" is a claim about a habit, and two is not a sample: the
     // pattern appears one time in four by chance. Since v1 was retired a

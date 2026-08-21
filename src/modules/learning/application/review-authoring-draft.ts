@@ -227,6 +227,12 @@ export function reviewAuthoringDraft(
   // way to lengthen a distractor without inventing content.
   const MINIMUM_CHOICES_FOR_A_HABIT = 3;
   if (choices.length >= MINIMUM_CHOICES_FOR_A_HABIT) {
+    // Longest by a margin a learner could actually notice. The rule measures
+    // length to catch guessability, and one character longer is not a tell —
+    // production refused lessons over differences nobody could see, while a
+    // correct option is naturally a little longer than a plausible distractor
+    // because it has to be specific.
+    const NOTICEABLE_LONGER = 1.25;
     const alwaysLongest = choices.every((activity) => {
       const correct = activity.options.find(
         (option) => option.id === activity.correctOptionId,
@@ -235,7 +241,7 @@ export function reviewAuthoringDraft(
       return activity.options.every(
         (option) =>
           option.id === correct.id ||
-          correct.textVi.length > option.textVi.length,
+          correct.textVi.length > option.textVi.length * NOTICEABLE_LONGER,
       );
     });
     if (alwaysLongest) {
