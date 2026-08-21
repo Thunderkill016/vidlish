@@ -84,9 +84,24 @@ export const sourceEvidenceSchema = z
   });
 export type SourceEvidence = z.infer<typeof sourceEvidenceSchema>;
 
+/**
+ * How many transcript segments one playable evidence range may cover.
+ *
+ * Exported because the authoring brief builds the windows this schema has to
+ * accept, and the two limits disagreeing is not a theoretical risk: a brief
+ * window allowed twenty segments, a dense caption track produced thirteen, and
+ * the hydrated blueprint was rejected at
+ * `activities.0.evidence.0.sourceSegmentIds` — after both model calls had been
+ * paid for.
+ */
+export const MAX_EVIDENCE_SEGMENTS = 8;
+
 export const evidenceRefSchema = z
   .object({
-    sourceSegmentIds: z.array(segmentIdSchema).min(1).max(8),
+    sourceSegmentIds: z
+      .array(segmentIdSchema)
+      .min(1)
+      .max(MAX_EVIDENCE_SEGMENTS),
     startMs: z.number().int().nonnegative(),
     endMs: z.number().int().positive(),
     captionPolicy: z.enum(["hidden_first", "toggle", "shown"]),

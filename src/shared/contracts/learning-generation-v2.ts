@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { MAX_EVIDENCE_SEGMENTS } from "@/shared/contracts/lesson-v2";
+
 import {
   canDoOutcomeSchema,
   learnerContextSnapshotSchema,
@@ -21,7 +23,13 @@ const entityIdSchema = z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/);
 export const learningWindowCandidateSchema = z
   .object({
     id: entityIdSchema,
-    sourceSegmentIds: z.array(segmentIdSchema).min(1).max(20),
+    // Bounded by what a blueprint's evidence range can hold. A window wider than
+    // that reaches the model, gets cited, and is only refused after both calls
+    // are paid for.
+    sourceSegmentIds: z
+      .array(segmentIdSchema)
+      .min(1)
+      .max(MAX_EVIDENCE_SEGMENTS),
     startMs: z.number().int().nonnegative(),
     endMs: z.number().int().positive(),
     wordCount: z.number().int().positive(),
@@ -279,7 +287,13 @@ export const learningAuthoringBriefSchema = z
         z
           .object({
             id: entityIdSchema,
-            sourceSegmentIds: z.array(segmentIdSchema).min(1).max(20),
+            // Bounded by what a blueprint's evidence range can hold. A window wider than
+    // that reaches the model, gets cited, and is only refused after both calls
+    // are paid for.
+    sourceSegmentIds: z
+      .array(segmentIdSchema)
+      .min(1)
+      .max(MAX_EVIDENCE_SEGMENTS),
             gistVi: z.string().min(10).max(500),
             discourseFunctionVi: z.string().min(5).max(300),
             evidenceConfidence: z.number().min(0).max(1),

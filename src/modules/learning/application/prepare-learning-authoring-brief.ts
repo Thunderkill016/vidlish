@@ -29,6 +29,7 @@ import {
   videoLearningProfileV2Schema,
 } from "@/shared/contracts/learning-generation-v2";
 import {
+  MAX_EVIDENCE_SEGMENTS,
   learnerContextSnapshotSchema,
   type CanDoOutcome,
   type LearnerContextSnapshot,
@@ -235,7 +236,14 @@ function buildLearningWindows(
 
     if (
       current.length > 0 &&
-      (gapMs > 3_500 || projectedDurationMs > 30_000 || currentWordCount >= 90)
+      (gapMs > 3_500 ||
+        projectedDurationMs > 30_000 ||
+        currentWordCount >= 90 ||
+        // A window the blueprint cannot hold is a window nobody can play. The
+        // other bounds are about attention span; this one is about what the
+        // contract downstream accepts, and it was missing — a caption track of
+        // many short cues packed thirteen segments into thirty seconds.
+        current.length >= MAX_EVIDENCE_SEGMENTS)
     ) {
       flush();
     }
