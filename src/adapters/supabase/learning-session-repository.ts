@@ -126,6 +126,7 @@ const reviewItemRowSchema = z
     next_review_at: z.string().nullable(),
     last_delayed_transfer_at: z.string().nullable(),
     last_independent_at: z.string().nullable(),
+    transfer_attempted_at: z.string().nullable(),
     transfer_succeeded_at: z.string().nullable(),
     review_state: persistedReviewStateSchema.nullable(),
   })
@@ -218,6 +219,7 @@ function mapReviewItem(
     nextReviewAt: row.next_review_at,
     lastDelayedTransferAt: row.last_delayed_transfer_at,
     lastIndependentAt: row.last_independent_at ?? null,
+    transferAttemptedAt: row.transfer_attempted_at ?? null,
     transferSucceededAt: row.transfer_succeeded_at ?? null,
     reviewState: row.review_state,
   });
@@ -444,7 +446,7 @@ export class SupabaseLearningSessionRepository
     const result = await this.client
       .from("learning_item_states")
       .select(
-        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_succeeded_at,review_state",
+        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_attempted_at,transfer_succeeded_at,review_state",
       )
       .eq("owner_user_id", ownerUserId)
       .not("next_review_at", "is", null)
@@ -459,7 +461,7 @@ export class SupabaseLearningSessionRepository
     const result = await this.client
       .from("learning_item_states")
       .select(
-        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_succeeded_at,review_state",
+        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_attempted_at,transfer_succeeded_at,review_state",
       )
       .eq("owner_user_id", ownerUserId)
       .eq("item_key", itemKey)
@@ -536,7 +538,7 @@ export class SupabaseLearningSessionRepository
     const result = await this.client
       .from("learning_item_states")
       .select(
-        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_succeeded_at,review_state",
+        "owner_user_id,item_key,source_lesson_version_id,exposure_count,attempt_count,successful_retrievals,last_outcome,last_seen_at,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_attempted_at,transfer_succeeded_at,review_state",
       )
       .eq("owner_user_id", ownerUserId)
       .eq("item_key", itemKey)

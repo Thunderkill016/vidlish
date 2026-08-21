@@ -275,7 +275,7 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   const { data: scheduledItems, error: scheduledItemsError } = await admin
     .from("learning_item_states")
     .select(
-      "item_key,exposure_count,attempt_count,successful_retrievals,last_outcome,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_succeeded_at",
+      "item_key,exposure_count,attempt_count,successful_retrievals,last_outcome,next_review_at,last_delayed_transfer_at,last_independent_at,transfer_attempted_at,transfer_succeeded_at",
     )
     .eq("owner_user_id", "133f314f-4bfd-46aa-8fc6-b6a33252232b")
     .eq("item_key", "a-member-of");
@@ -303,6 +303,10 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   // independent production means here, and it is the one thing in this row that
   // is a claim about capability rather than a count.
   expect(scheduledItems?.[0]?.last_independent_at).not.toBeNull();
+  // The learner ticked all three criteria this activity sets, so this is the
+  // positive half of the rule; the pgTAP case covers the negative one, where
+  // two of three ticks record an attempt and no success.
+  expect(scheduledItems?.[0]?.transfer_attempted_at).not.toBeNull();
   expect(scheduledItems?.[0]?.transfer_succeeded_at).not.toBeNull();
   expect(new Date(scheduledItems?.[0]?.next_review_at as string).getTime()).toBeGreaterThan(
     Date.now(),

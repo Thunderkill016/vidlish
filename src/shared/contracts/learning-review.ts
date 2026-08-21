@@ -56,6 +56,12 @@ export const learningReviewItemStateSchema = z
      * the learner can do it unaided.
      */
     lastIndependentAt: offsetDateTimeSchema.nullable(),
+    /**
+     * Attempting the changed-context task and meeting its criteria are separate
+     * facts. `transferSucceededAt` was once set by any self-check attempt,
+     * which recorded trying as succeeding.
+     */
+    transferAttemptedAt: offsetDateTimeSchema.nullable(),
     transferSucceededAt: offsetDateTimeSchema.nullable(),
     reviewState: persistedReviewStateSchema.nullable(),
   })
