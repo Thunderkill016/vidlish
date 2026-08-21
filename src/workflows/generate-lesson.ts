@@ -6,7 +6,6 @@ import {
   authorLearningLessonStep,
   diagnoseLearningLessonStep,
   checkOriginalEnglishStep,
-  generateLessonStep,
   loadFinalGenerationStateStep,
   resolveLanguageFailureStep,
   resolveLessonFailureStep,
@@ -54,36 +53,31 @@ export async function generateLessonWorkflow(
     await resolveTranscriptExhaustionStep(jobRef, languageOutcome);
   }
 
+  // The guided session is the lesson now. v1 no longer runs: it was fragile —
+  // production watched a job fail six times inside its quality gate — and for a
+  // long time it also stood in front of v2 as a gate.
+  //
+  // Two steps, one model call each. Together they overran a single step's
+  // budget once and the invocation was killed with no error handler ever
+  // running, which is why they stay separate.
   let lessonOutcome: string | undefined;
   if (languageOutcome === "eligible") {
     try {
-      lessonOutcome = (await generateLessonStep(jobRef)).kind;
-    } catch {
-      // Retries are exhausted. Leaving the job in `analyzing_video` would hold
-      // one of the learner's active-job slots until the watchdog notices, and
-      // tell them nothing in the meantime.
-      lessonOutcome = (await resolveLessonFailureStep(jobRef)).kind;
-    }
-  }
-
-  // Outside the v1 try block on purpose: losing the v2 lesson must not turn a
-  // finished job into a failure, and the steps swallow their own errors too —
-  // this is the second lock on the same door.
-  //
-  // Run regardless of how v1 went. v2 used to be gated on v1 publishing, and
-  // production showed what that costs: a job failed six times inside v1's
-  // quality gate and v2 was never attempted, even though the transcript it
-  // needs was ready the whole time. The two are siblings now, not a chain.
-  {
-    // Two steps, one model call each. Together they overran a single step's
-    // budget and the invocation was killed with no error handler ever running.
-    try {
       const diagnosed = await diagnoseLearningLessonStep(jobRef);
-      if (diagnosed.kind === "diagnosed") {
-        await authorLearningLessonStep(jobRef);
-      }
+      lessonOutcome =
+        diagnosed.kind === "diagnosed"
+          ? (await authorLearningLessonStep(jobRef)).kind
+          : diagnosed.kind;
     } catch {
-      // Deliberately silent here: each step already emitted its own failure.
+      lessonOutcome = "skipped";
+    }
+
+    // Nothing else completes a job now, so a job with no blueprint has to say
+    // so. It used to fall back to the v1 lesson silently; with v1 gone that
+    // silence would leave the learner on a page with nothing on it, and the job
+    // holding one of their active slots until a watchdog noticed.
+    if (lessonOutcome !== "published" && lessonOutcome !== "already_published") {
+      lessonOutcome = (await resolveLessonFailureStep(jobRef)).kind;
     }
   }
 

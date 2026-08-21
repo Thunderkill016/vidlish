@@ -256,6 +256,9 @@ describe("learning model v2 content provenance", () => {
   const PUBLISH_MIGRATIONS = [
     "20260819170000_publish_lesson_version.sql",
     "20260821080000_publish_lesson_version_for_job.sql",
+    // Replaces the job-scoped function so publishing a blueprint also completes
+    // the job — v1 used to be the only thing that could, and v1 no longer runs.
+    "20260821120000_complete_job_on_v2_publish.sql",
   ];
 
   it("writes lesson versions only from the publish functions", () => {
