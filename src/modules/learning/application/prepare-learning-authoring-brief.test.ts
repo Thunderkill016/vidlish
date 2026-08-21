@@ -4,6 +4,7 @@ import {
   assembleLearningGenerationContext,
   diagnoseLearningVideo,
   prepareLearningAuthoringBrief,
+  selectOfferedWindows,
 } from "@/modules/learning/application/prepare-learning-authoring-brief";
 import type { LanguageEligibilityReport } from "@/shared/contracts/language-eligibility";
 import type {
@@ -572,7 +573,9 @@ describe("windows the blueprint can actually hold", () => {
    */
   function denseWindows(count: number) {
     const segments = Array.from({ length: count }, (_, index) => ({
-      id: `seg_${String(index).padStart(2, "0")}${"a".repeat(30)}`,
+      // 32 hex characters, valid at any count — a two-digit prefix broke the
+      // format at index 100 and the schema caught it.
+      id: `seg_${index.toString(16).padStart(32, "0")}`,
       position: index,
       startMs: index * 900,
       endMs: index * 900 + 800,
@@ -620,11 +623,61 @@ describe("windows the blueprint can actually hold", () => {
     }
   });
 
-  it("still covers every segment", () => {
-    // Bounding the window must split the transcript, not drop part of it.
+  it("offers a bounded number of windows for a long video", () => {
+    // A session is five to twelve minutes, so a lesson never needs every window
+    // of an hour-long video. The profile schema accepts at most a hundred, and
+    // a lecture broke that outright — `diagnose_failed`, before a single model
+    // call. Bounding windows to eight segments each roughly doubled the count.
+    const { windows } = denseWindows(2000);
+
+    expect(windows.length).toBeLessThanOrEqual(24);
+  });
+
+  it("still covers every segment of a short video", () => {
+    // Bounding the window must split the transcript, not drop part of it. Only
+    // asserted below the offered-window cap, where nothing is sampled away.
     const { windows, segments } = denseWindows(40);
     const covered = windows.flatMap((window) => window.sourceSegmentIds);
 
     expect(covered).toEqual(segments.map((segment) => segment.id));
+  });
+});
+
+describe("selectOfferedWindows", () => {
+  /** More windows than the cap, numbered so the sampling is readable. */
+  const many = Array.from({ length: 250 }, (_, index) => ({
+    id: `window_${index.toString(16).padStart(8, "0")}_x`,
+    sourceSegmentIds: [`seg_${index.toString(16).padStart(32, "0")}`],
+    startMs: index * 7_200,
+    endMs: index * 7_200 + 7_000,
+    wordCount: 40,
+    evidenceConfidence: 0.9,
+  }));
+
+  it("keeps every window when there are few enough", () => {
+    const few = many.slice(0, 10);
+    expect(selectOfferedWindows(few)).toEqual(few);
+  });
+
+  it("caps what it offers", () => {
+    expect(selectOfferedWindows(many).length).toBeLessThanOrEqual(24);
+  });
+
+  it("reaches the end of the video, not just its opening", () => {
+    // Taking the first N would make every lesson from a long video come from
+    // its first few minutes — a worse lesson, and a hidden one: nothing in the
+    // output would say the rest was never considered.
+    const offered = selectOfferedWindows(many);
+    const last = offered[offered.length - 1]!;
+
+    expect(last.startMs).toBeGreaterThan(many[many.length - 1]!.startMs * 0.9);
+  });
+
+  it("keeps them in order and never repeats one", () => {
+    const offered = selectOfferedWindows(many);
+    const ids = offered.map((window) => window.id);
+
+    expect(new Set(ids).size).toBe(ids.length);
+    expect([...offered].sort((a, b) => a.startMs - b.startMs)).toEqual(offered);
   });
 });

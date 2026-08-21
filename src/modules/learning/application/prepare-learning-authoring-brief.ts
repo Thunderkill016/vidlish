@@ -107,7 +107,8 @@ export type PrepareLearningAuthoringBriefInput = {
   eligibility: LanguageEligibilityReport;
   learnerSnapshot: LearnerContextSnapshot;
   diagnosisProposal: ConstrainedDiagnosisProposal;
-  /** Injectable so a test can place the learner at a chosen point in time. */
+  
+/** Injectable so a test can place the learner at a chosen point in time. */
   now?: Date;
 };
 
@@ -201,6 +202,48 @@ function createWindowId(
   lastSegmentId: string,
 ): string {
   return `window_${firstSegmentId.slice(4, 12)}_${lastSegmentId.slice(4, 12)}`;
+}
+
+/**
+ * How many candidate windows a diagnosis is offered.
+ *
+ * A session is five to twelve minutes, so a lesson never needs every window of
+ * a long video — and offering them all has a cost the product paid twice. The
+ * profile schema accepts at most a hundred, and an hour-long lecture broke that
+ * outright: `diagnose_failed`, before a single model call. Bounding the windows
+ * to eight segments each (so a blueprint could hold them) roughly doubled the
+ * count and made it worse.
+ *
+ * Every window also lands in the diagnosis prompt, so the count is prompt size
+ * and cost as much as it is a schema limit.
+ */
+const MAX_OFFERED_WINDOWS = 24;
+
+/**
+ * Windows spread across the whole video, not just its opening.
+ *
+ * Taking the first N would make every lesson from a long video come from its
+ * first few minutes, which is a worse lesson and a hidden one: nothing in the
+ * output would say the rest of the video was never considered.
+ *
+ * Exported for its own test. Reaching it through `diagnoseLearningVideo` means
+ * going through topic selection first, which narrows a long video to one unit
+ * and can leave the sampler with nothing to do — a test that never runs the
+ * code it claims to cover.
+ */
+export function selectOfferedWindows(
+  windows: LearningWindowCandidate[],
+): LearningWindowCandidate[] {
+  // No early return for a short list: with fewer windows than the cap the step
+  // is below one and the dedup below hands every window back in order. A branch
+  // that cannot change the answer is a branch no test can hold.
+  const step = windows.length / MAX_OFFERED_WINDOWS;
+  const picked: LearningWindowCandidate[] = [];
+  for (let index = 0; index < MAX_OFFERED_WINDOWS; index += 1) {
+    const candidate = windows[Math.floor(index * step)];
+    if (candidate && candidate !== picked[picked.length - 1]) picked.push(candidate);
+  }
+  return picked;
 }
 
 function buildLearningWindows(
@@ -507,9 +550,11 @@ export function diagnoseLearningVideo(
       )
     : context.permittedSegments;
 
-  const candidateWindows = buildLearningWindows(
-    teachableSegments,
-    confidenceFromReport(context.eligibility),
+  const candidateWindows = selectOfferedWindows(
+    buildLearningWindows(
+      teachableSegments,
+      confidenceFromReport(context.eligibility),
+    ),
   );
 
   return videoLearningProfileV2Schema.parse({
