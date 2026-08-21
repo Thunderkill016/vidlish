@@ -74,6 +74,8 @@ export interface GenerationJobRepository {
     ownerUserId: string;
     jobId: string;
     outcome: LearningAuthoringOutcome;
+    /** Classification only — never a provider or model message. */
+    detail?: string;
   }): Promise<void>;
 
   updateStatus(

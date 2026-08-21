@@ -53,7 +53,7 @@ describe("learning authoring outcome", () => {
     );
     const recorded = new Set(
       steps
-        .match(/recordAuthoringOutcome\(jobRef, "([a-z_]+)"\)/g)
+        .match(/recordAuthoringOutcome\(jobRef, "([a-z_]+)"/g)
         ?.map((call) => call.split('"')[1]!) ?? [],
     );
 
