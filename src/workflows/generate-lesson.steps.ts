@@ -16,6 +16,7 @@ import {
 } from "@/platform/learning/create-learning-authoring-runtime";
 import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
 import { getServerConfig } from "@/platform/config/server";
+import type { LearningAuthoringOutcome } from "@/modules/generation/ports/generation-job-repository";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createOriginalEnglishGate } from "@/platform/language/create-language-runtime";
 import { createGenerateLesson } from "@/platform/lesson/create-lesson-runtime";
@@ -490,17 +491,43 @@ async function loadAuthoringContext(jobRef: GenerationWorkflowJobRef) {
  * can see cannot be fixed, so the work had to get smaller rather than the
  * timeouts larger.
  */
+/**
+ * Writes which branch the authoring path took, so the record answers what logs
+ * could not.
+ *
+ * Never throws. A diagnostic that can fail the job it describes is worse than
+ * no diagnostic at all.
+ */
+async function recordAuthoringOutcome(
+  jobRef: GenerationWorkflowJobRef,
+  outcome: LearningAuthoringOutcome,
+) {
+  try {
+    await createGenerationRepository().recordLearningAuthoringOutcome({
+      ownerUserId: jobRef.ownerUserId,
+      jobId: jobRef.jobId,
+      outcome,
+    });
+  } catch {
+    // Swallowed on purpose; see above.
+  }
+}
+
 export async function diagnoseLearningLessonStep(
   jobRef: GenerationWorkflowJobRef,
 ) {
   "use step";
 
   if (!learningAuthoringEnabled()) {
+    await recordAuthoringOutcome(jobRef, "disabled");
     return { kind: "skipped", reason: "disabled" } as const;
   }
 
   const loaded = await loadAuthoringContext(jobRef);
-  if (loaded.kind !== "ready") return loaded;
+  if (loaded.kind !== "ready") {
+    await recordAuthoringOutcome(jobRef, loaded.reason);
+    return loaded;
+  }
 
   emitGenerationEvent({
     level: "info",
@@ -532,6 +559,7 @@ export async function diagnoseLearningLessonStep(
       outcome: "diagnosed",
       elapsedMs: Date.now() - startedAt,
     });
+    await recordAuthoringOutcome(jobRef, "diagnosed");
     return { kind: "diagnosed" } as const;
   } catch {
     emitGenerationEvent({
@@ -543,6 +571,7 @@ export async function diagnoseLearningLessonStep(
       reason: "provider_failure",
       elapsedMs: Date.now() - startedAt,
     });
+    await recordAuthoringOutcome(jobRef, "diagnose_failed");
     return { kind: "skipped", reason: "diagnosis_failed" } as const;
   }
 }
@@ -605,6 +634,7 @@ export async function authorLearningLessonStep(
       outcome: result.created ? "published" : "already_published",
       elapsedMs: Date.now() - startedAt,
     });
+    await recordAuthoringOutcome(jobRef, "authored");
     return { kind: "published", created: result.created } as const;
   } catch {
     // Logged, not rethrown. The learner keeps the v1 lesson; losing the v2 one
@@ -618,6 +648,7 @@ export async function authorLearningLessonStep(
       reason: "provider_failure",
       elapsedMs: Date.now() - startedAt,
     });
+    await recordAuthoringOutcome(jobRef, "authoring_failed");
     return { kind: "skipped", reason: "authoring_failed" } as const;
   }
 }

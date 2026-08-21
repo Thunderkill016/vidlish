@@ -5,6 +5,7 @@ import type {
   CreateGenerationJobRecord,
   GenerationJobRepository,
   GenerationPolicySnapshot,
+  LearningAuthoringOutcome,
 } from "@/modules/generation/ports/generation-job-repository";
 import {
   activeGenerationJobStatuses,
@@ -31,6 +32,10 @@ export class InMemoryGenerationJobRepository
   implements GenerationJobRepository
 {
   private readonly jobs = new Map<string, GenerationJob>();
+  private readonly learningAuthoringOutcomes = new Map<
+    string,
+    LearningAuthoringOutcome
+  >();
   private readonly activeKeys = new Map<string, string>();
   private createQueue: Promise<void> = Promise.resolve();
 
@@ -197,6 +202,21 @@ export class InMemoryGenerationJobRepository
       dispatchStatus: status,
       updatedAt: nowIso(),
     });
+  }
+
+  async recordLearningAuthoringOutcome(input: {
+    ownerUserId: string;
+    jobId: string;
+    outcome: LearningAuthoringOutcome;
+  }) {
+    const job = this.jobs.get(input.jobId);
+    if (!job || job.ownerUserId !== input.ownerUserId) return;
+    this.learningAuthoringOutcomes.set(input.jobId, input.outcome);
+  }
+
+  /** Exposed for tests: the branch the authoring path reported for a job. */
+  learningAuthoringOutcomeFor(jobId: string) {
+    return this.learningAuthoringOutcomes.get(jobId) ?? null;
   }
 
   async updateStatus(
