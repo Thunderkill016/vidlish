@@ -26,6 +26,17 @@ export type CreateGenerationJobRecord = {
   pipelineVersion: GenerationJob["pipelineVersion"];
 };
 
+export type LearningAuthoringOutcome =
+  | "disabled"
+  | "job_missing"
+  | "transcript_missing"
+  | "not_eligible"
+  | "lesson_missing"
+  | "diagnosed"
+  | "authored"
+  | "diagnose_failed"
+  | "authoring_failed";
+
 export interface GenerationJobRepository {
   findActive(input: ActiveGenerationJobKey): Promise<GenerationJob | null>;
   /** Jobs still running, newest first. A learner who navigates away needs a
@@ -51,6 +62,20 @@ export interface GenerationJobRepository {
     jobId: string,
     status: "sent" | "failed",
   ): Promise<void>;
+  /**
+   * Records which branch the v2 authoring path took for this job.
+   *
+   * Diagnostic only. The authoring steps swallow their own failures so a lost
+   * v2 lesson cannot fail a learner's finished job, which also means nothing on
+   * the record distinguished "provider off" from "model call failed" — both
+   * leave the same absence. This makes the branch queryable.
+   */
+  recordLearningAuthoringOutcome(input: {
+    ownerUserId: string;
+    jobId: string;
+    outcome: LearningAuthoringOutcome;
+  }): Promise<void>;
+
   updateStatus(
     jobId: string,
     status: GenerationJobStatus,

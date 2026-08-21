@@ -8,6 +8,7 @@ import type {
   CreateGenerationJobRecord,
   GenerationJobRepository,
   GenerationPolicySnapshot,
+  LearningAuthoringOutcome,
 } from "@/modules/generation/ports/generation-job-repository";
 import {
   activeGenerationJobStatuses,
@@ -245,6 +246,24 @@ export class SupabaseGenerationJobRepository
       })
       .eq("id", jobId);
     if (result.error) throw result.error;
+  }
+
+  async recordLearningAuthoringOutcome(input: {
+    ownerUserId: string;
+    jobId: string;
+    outcome: LearningAuthoringOutcome;
+  }) {
+    const rpc = await this.client.rpc("record_learning_authoring_outcome", {
+      p_owner_user_id: input.ownerUserId,
+      p_job_id: input.jobId,
+      p_outcome: input.outcome,
+    });
+    // Diagnostic only, so a write failure must not take down the job it is
+    // describing — but it must not vanish either, or the field silently becomes
+    // as untrustworthy as the absence it replaced.
+    if (rpc.error) {
+      console.error("record_learning_authoring_outcome failed:", rpc.error.message);
+    }
   }
 
   async updateStatus(
