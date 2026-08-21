@@ -36,46 +36,43 @@ Integrated and reachable from a route or workflow:
 - Supabase RLS/RPC + pgTAP;
 - Chromium product journeys + durable Supabase Golden Session.
 
-### The blocker that outranks everything below
+### What is proven, and what is not
 
-**No production run has been observed producing a v2 blueprint yet.** Both
-halves of the path now exist. The database half:
-`publish_lesson_version` creates the row, owner-scoped and publish-once. The
-authoring half above it is built and wired —
-`src/workflows/generate-lesson.steps.ts` reaches
-`authorLearningLessonStep` → `createAuthorLearningLesson()` →
-`prepare-learning-authoring-brief.ts`, which no longer lacks a caller.
-`tests/integration/module-reachability.test.ts` holds the import graph and fails
-if any application module stops being reachable from a route or workflow; its
-unwired list is currently empty.
+**A production run authors and publishes v2 blueprints.** Confirmed 21/08/2026
+by driving the product's own API as a signed-in learner: six `lesson_versions`
+rows, each with `lesson_id` null — hanging off the job, not a v1 lesson — and
+activities in the order the authoring gate requires. `learning_authoring_outcome`
+reads `authored`.
 
-What is still missing is evidence, not code. `LEARNING_AUTHORING_PROVIDER`
-defaults to `off`, production rejects `fixture`
-(`src/platform/config/server.ts`), and no production job has yet been confirmed
-to have written a `lesson_versions` row. Outside CI the only rows anyone has
-verified still come from `supabase/fixtures/learning_model_v2_durable.sql`.
+v1 no longer runs. A job is completed by publishing a v2 blueprint, under the
+same rule v1 used: a job reports completed only when something readable exists
+behind it. When authoring produces nothing the job terminalizes and says so.
+The v1 tables and their rows are untouched; removing that data is its own step.
 
-So the v2 stack is reachable in code and **unproven in production**. Green CI
-does not close this: the durable journey seeds its own fixture first. The
-arbitrary-blueprint journey narrows it — it proves no layer depends on fixture
-identifiers — but it still runs on a seeded row, not on one a learner's video
-produced in production.
+What is still unproven is **reliability, and everything about learners**. Across
+fifteen authoring briefs production holds six published blueprints. Several
+failure shapes were found and fixed from the record —
+`learning_authoring_outcome` and `learning_authoring_detail` name the branch and
+the cause — but the rate has not been measured on a clean run of the current
+code, and the daily job quota bounds how fast that can be done.
 
-Until a production run is confirmed to have authored and published a blueprint,
-do not describe v2 learning behaviour as shipped, and do not read a passing
-durable journey as evidence that a learner has reached it.
+No learner other than the owner has opened one. Nothing here says a lesson
+taught anyone anything: that needs gates 5 and 6, not another green run.
+
+So: v2 is **reachable and shipping**, its **reliability is unmeasured**, and its
+**teaching value is unevidenced**. Do not collapse those three into "it works".
 
 ### Hard-gate sequence
 
-0. production authoring path that creates `lesson_versions` — **in progress**:
-   `publish_lesson_version` (database half) done; the authoring half is built,
-   wired and CI-proven, but no production run has been confirmed to have
-   published a blueprint;
+0. production authoring path that creates `lesson_versions` — **done**,
+   21/08/2026: six blueprints published by real production runs, v1 retired,
+   the learner routed to the guided session;
 1. first-session durable flow — done;
 2. CI failures fixed from real logs — done;
 3. support/replay server evidence — done;
 4. second-session varied/delayed review — done in code and proven on an
-   arbitrary blueprint in CI; still unreachable in production per gate 0;
+   arbitrary blueprint in CI; reachable in production now that gate 0 is
+   closed, but no learner has run one;
 5. analytics + moderated usability with 5 target users;
 6. 20–50 learner cohort + predeclared go/no-go thresholds;
 7. benchmark at most 3 temporary authoring models, select one production
