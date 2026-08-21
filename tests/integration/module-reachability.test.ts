@@ -34,9 +34,16 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
-  // Empty. Every application module is reachable from a route or a workflow,
-  // including the ones that render a learner's own v2 lesson. Anything added
-  // back here has to say why.
+  // The first rung of the A0 on-ramp: which words a learner starting from zero
+  // should meet next. Nothing routes to it because the beginner track has no
+  // route yet — the artifact and the ordering are the part that had to be right
+  // first, and getting the order of the first thousand words wrong costs more
+  // than any screen built on top of it.
+  //
+  // This list is self-cleaning: the entry has to leave the moment a route
+  // reaches it, so it cannot quietly describe a past that is over.
+  "src/modules/learning/application/select-next-vocabulary.ts":
+    "A0 beginner track — no route yet",
 };
 
 function listSourceFiles(dir: string): string[] {
