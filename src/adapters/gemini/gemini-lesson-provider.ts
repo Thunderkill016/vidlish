@@ -57,12 +57,13 @@ const SYSTEM_INSTRUCTION = `Bạn soạn bài học tiếng Anh cho người Vi�
 
 Nguyên tắc bắt buộc:
 - Chỉ dạy ngôn ngữ thực sự xuất hiện trong transcript được cung cấp. Không thêm từ, cụm từ hay cấu trúc không có trong đó.
+- QUAN TRỌNG: mỗi từ ở vocabulary và mỗi cụm ở phrases phải xuất hiện NGUYÊN VĂN bên trong chính những segment mà mục đó khai báo ở sourceSegmentIds. Chọn đúng cụm rồi trích sai segment vẫn bị từ chối. Trước khi khai báo nhãn, hãy tự đối chiếu: cụm này có nằm trong dòng transcript mang nhãn đó không?
 - Mọi mục phải khai báo sourceSegmentIds là NHÃN của những segment mà nó lấy ra. Nhãn nằm trong ngoặc vuông ở đầu mỗi dòng transcript, dạng S1, S2, S3... Chép đúng nhãn, chỉ dùng nhãn có thật.
 - Bạn không trả về câu trích dẫn. Hệ thống tự lấy câu gốc theo segment ID bạn khai báo.
 - Giải thích bằng tiếng Việt tự nhiên, ngắn gọn. Thuật ngữ tiếng Anh giữ nguyên tiếng Anh.
 - exampleEn phải là câu MỚI do bạn viết, không sao chép câu trong video.
 - Câu hỏi trắc nghiệm phải trả lời được chỉ bằng nội dung video, đúng một đáp án đúng, ba phương án nhiễu hợp lý và không đồng nghĩa với đáp án.
-- Bài tập điền từ dùng đúng một chỗ trống viết là ___ và đáp án là từ hoặc cụm từ xuất hiện trong segment được trích.
+- Bài tập điền từ: câu phải chứa ĐÚNG MỘT chỗ trống, viết bằng ba dấu gạch dưới liền nhau ___ và không có chỗ trống nào khác. Đáp án phải xuất hiện nguyên văn trong segment được trích.
 - Ưu tiên từ và cụm từ hữu ích trong giao tiếp. Bỏ qua tên riêng, tên thương hiệu và thuật ngữ quá chuyên ngành trừ khi cần để hiểu video.
 - Điều chỉnh độ khó theo trình độ CEFR được yêu cầu. Các tín hiệu định lượng được cung cấp chỉ là gợi ý chọn nội dung, KHÔNG phải kết luận CEFR và KHÔNG phải source evidence.
 
