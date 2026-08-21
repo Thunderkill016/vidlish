@@ -1,9 +1,10 @@
 import { redirect } from "next/navigation";
 
-import { studyCompletionPercent } from "@/modules/study/application/score-study-progress";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
+import { summariseCapabilityEvidence } from "@/modules/learning/application/summarise-capability-evidence";
+import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
 import { createStudyProgressRepository } from "@/platform/study/create-study-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 import { Card } from "@/shared/ui/card";
@@ -27,30 +28,16 @@ export default async function ProgressPage() {
     generationRepository,
     transcriptRuntime.repository,
   );
-  const [lessons, progressSummaries] = await Promise.all([
-    lessonRepository.listOwned(access.userId),
+  const [scheduledItems, progressSummaries] = await Promise.all([
+    createLearningReviewRepository().listScheduled(access.userId),
     createStudyProgressRepository(lessonRepository).listOwnedSummaries(access.userId),
   ]);
-  const progressByJobId = new Map(
-    progressSummaries.map((summary) => [summary.jobId, summary]),
-  );
-  const percentages = lessons.map((lesson) => {
-    const progress = progressByJobId.get(lesson.jobId);
-    return progress
-      ? studyCompletionPercent(
-          {
-            activityCount: lesson.activityCount,
-            vocabularyCount: lesson.vocabularyCount,
-          },
-          progress,
-        )
-      : 0;
-  });
-  const averageCompletion = percentages.length
-    ? Math.round(percentages.reduce((sum, value) => sum + value, 0) / percentages.length)
-    : 0;
+  const capability = summariseCapabilityEvidence(scheduledItems);
+
+  // Average completion and started-lesson counts are gone from the page. Both
+  // measure attendance, and this page's own headline rejects that; keeping them
+  // computed but unshown would be dead work.
   const completedLessons = progressSummaries.filter((summary) => summary.completedAt).length;
-  const startedLessons = percentages.filter((value) => value > 0).length;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
@@ -58,22 +45,63 @@ export default async function ProgressPage() {
         <p className="text-sm font-semibold text-[var(--accent)]">Tiến bộ</p>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Đo evidence, không cộng XP cho đẹp</h1>
         <p className="max-w-3xl text-[var(--muted-foreground)]">
-          Study Mode hiện cung cấp completion/progress thật. Các claim năng lực dài hạn bên dưới chỉ được mở khi Learning Model v2 có delayed evidence.
+          Con số bên dưới đếm thứ bạn đã TẠO RA, không phải số bài đã xem. Không
+          có mốc nào ở đây nói bạn đã thành thạo — nhớ lại được hôm nay và nhớ
+          được sau nhiều tuần là hai chuyện khác nhau.
         </p>
       </div>
 
+      {/*
+        What the learner has produced, not how many lessons they sat through.
+        `last_independent_at` was recorded on every item and shown to nobody,
+        while this page counted lesson completions — the "XP for looks" its own
+        headline rejects.
+      */}
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="space-y-1 p-5">
-          <p className="text-3xl font-bold">{startedLessons}</p>
-          <p className="text-sm text-[var(--muted-foreground)]">Bài đã bắt đầu học</p>
+          <p className="text-3xl font-bold">{capability.independent.length}</p>
+          <p className="text-sm font-semibold">Tự nói ra được, không cần trợ giúp</p>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Bạn đã tạo ra đúng cụm này ít nhất một lần khi không mở mức hỗ trợ
+            nào. Đây là bằng chứng gần nhất với dùng độc lập.
+          </p>
+        </Card>
+        <Card className="space-y-1 p-5">
+          <p className="text-3xl font-bold">{capability.supported.length}</p>
+          <p className="text-sm font-semibold">Nói ra được khi có trợ giúp</p>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Đúng, nhưng có mức hỗ trợ đang mở. Vidlish sẽ đưa lại để bạn thử
+            không cần chúng.
+          </p>
+        </Card>
+        <Card className="space-y-1 p-5">
+          <p className="text-3xl font-bold">{capability.encountered.length}</p>
+          <p className="text-sm font-semibold">Mới gặp, chưa tự nói ra</p>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Gặp một cụm trong bài không phải là dùng được nó. Đếm lượt gặp thành
+            năng lực chính là thứ trang này từ chối làm.
+          </p>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="space-y-1 p-5">
+          <p className="text-3xl font-bold">{capability.transferred.length}</p>
+          <p className="text-sm font-semibold">
+            Tự nói ra được VÀ dùng lại trong tình huống khác
+          </p>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Đòi cả hai. Dùng lại sau một lần nhớ có trợ giúp là tuyên bố yếu hơn,
+            và gộp chúng lại sẽ để nhãn mạnh kiếm được bằng đường yếu.
+          </p>
         </Card>
         <Card className="space-y-1 p-5">
           <p className="text-3xl font-bold">{completedLessons}</p>
-          <p className="text-sm text-[var(--muted-foreground)]">Bài Study Mode đã hoàn tất</p>
-        </Card>
-        <Card className="space-y-1 p-5">
-          <p className="text-3xl font-bold">{averageCompletion}%</p>
-          <p className="text-sm text-[var(--muted-foreground)]">Completion trung bình của thư viện</p>
+          <p className="text-sm font-semibold">Bài đã hoàn tất</p>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Để đối chiếu, không phải để khoe: hoàn tất một bài nghĩa là bạn đã đi
+            hết nó, không nói lên bạn nhớ được gì.
+          </p>
         </Card>
       </div>
 
