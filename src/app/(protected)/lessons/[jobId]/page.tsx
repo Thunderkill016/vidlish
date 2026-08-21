@@ -31,14 +31,6 @@ export default async function LessonPage({
     generationRepository,
     transcriptRuntime.repository,
   );
-  const lesson = await lessonRepository.findOwnedByJobId(
-    jobId.data,
-    access.userId,
-  );
-
-  // A job still generating has no lesson yet; send the learner back to the
-  // progress page rather than showing an empty shell.
-  if (!lesson) redirect(`/jobs/${jobId.data}`);
 
   // Only the segments the original-English gate permitted reach the listening
   // panel — the same allowlist the Lesson Engine was given, never the raw
@@ -47,6 +39,10 @@ export default async function LessonPage({
   // behind a banner the learner had to notice and choose; the reference lesson
   // below is the fallback for a video that has no session yet, and is reachable
   // from the session itself.
+  // Asked before anything else. With v1 retired most jobs have no v1 lesson
+  // row at all, and looking for one first sent every learner to the progress
+  // page — including the ones whose guided session was ready and waiting. The
+  // library links here, so that redirect was the whole product from their side.
   const { view } = await searchParams;
   const route = await resolveLearnerLessonRoute({
     ownerUserId: access.userId,
@@ -55,6 +51,16 @@ export default async function LessonPage({
   if (route.kind === "v2" && view !== "reference") {
     redirect(`/lessons/${jobId.data}/session`);
   }
+
+  const lesson = await lessonRepository.findOwnedByJobId(
+    jobId.data,
+    access.userId,
+  );
+
+  // No guided session and no reference lesson: the job is still running, or it
+  // ended without producing either. The progress page is the only honest place
+  // to send them.
+  if (!lesson) redirect(`/jobs/${jobId.data}`);
 
   const [transcript, progress] = await Promise.all([
     lessonRepository.listPermittedSegments(jobId.data, access.userId),

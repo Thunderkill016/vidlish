@@ -64,6 +64,23 @@ describe("resolveLearnerLessonRoute", () => {
     expect(route.kind).toBe("v1");
   });
 
+  it("answers without needing a v1 lesson to exist", async () => {
+    // The v1 page used to look for its own lesson row first and send the
+    // learner to the progress page when there was none. With v1 retired that is
+    // most jobs — including every one whose guided session was ready — and the
+    // library links straight at that page. Production answered 307 to `/jobs/…`
+    // for a job that had a published blueprint.
+    //
+    // This resolver must therefore be answerable from the blueprint and the
+    // transcript alone, with nothing asked of the v1 repository.
+    findForJob.mockResolvedValue({ blueprint: { schemaVersion: "lesson:v2" } });
+    findCanonicalForJob.mockResolvedValue({ videoId: "M7lc1UVf-VE" });
+
+    const route = await resolveLearnerLessonRoute(INPUT);
+
+    expect(route.kind).toBe("v2");
+  });
+
   it("scopes both lookups to the owner", async () => {
     findForJob.mockResolvedValue({ blueprint: {} });
     findCanonicalForJob.mockResolvedValue({});
