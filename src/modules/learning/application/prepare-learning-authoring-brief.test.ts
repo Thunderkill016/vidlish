@@ -10,7 +10,10 @@ import type {
   CandidateLanguageProposal,
   ConstrainedDiagnosisProposal,
 } from "@/shared/contracts/learning-generation-v2";
-import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
+import {
+  MAX_EVIDENCE_SEGMENTS,
+  type LearnerContextSnapshot,
+} from "@/shared/contracts/lesson-v2";
 import type { CanonicalTranscript } from "@/shared/contracts/transcript";
 
 const segA = `seg_${"a".repeat(32)}`;
@@ -556,5 +559,72 @@ describe("prepareLearningAuthoringBrief", () => {
         },
       }),
     ).toThrow(/diagnosis abstained/i);
+  });
+});
+
+describe("windows the blueprint can actually hold", () => {
+  /**
+   * A caption track of many short cues. Music videos look like this, and the
+   * duration and word-count bounds never fire — thirteen segments fitted inside
+   * thirty seconds, the model cited the window, and the hydrated blueprint was
+   * rejected at `activities.0.evidence.0.sourceSegmentIds` after both model
+   * calls had been paid for.
+   */
+  function denseWindows(count: number) {
+    const segments = Array.from({ length: count }, (_, index) => ({
+      id: `seg_${String(index).padStart(2, "0")}${"a".repeat(30)}`,
+      position: index,
+      startMs: index * 900,
+      endMs: index * 900 + 800,
+      text: "oh",
+    }));
+    const transcript: CanonicalTranscript = {
+      ...createTranscript(),
+      segments,
+      durationMs: segments[segments.length - 1]!.endMs,
+    };
+    const ids = segments.map((segment) => segment.id);
+    const base = createEligibility(ids);
+    const context = assembleLearningGenerationContext({
+      ...createInput(),
+      transcript,
+      eligibility: {
+        ...base,
+        // The English evidence has to name the same segments, or the context
+        // assembler refuses them — correctly, since a permitted segment with no
+        // English evidence behind it is exactly what that guard is for.
+        englishSegmentIds: ids,
+        windowEvidence: [
+          {
+            ...base.windowEvidence[0]!,
+            segmentIds: ids,
+            endMs: segments[segments.length - 1]!.endMs,
+          },
+        ],
+      },
+    });
+    return {
+      windows: diagnoseLearningVideo(context).candidateWindows,
+      segments,
+    };
+  }
+
+  it("never offers a window wider than an evidence range accepts", () => {
+    const { windows } = denseWindows(40);
+
+    expect(windows.length).toBeGreaterThan(1);
+    for (const window of windows) {
+      expect(window.sourceSegmentIds.length).toBeLessThanOrEqual(
+        MAX_EVIDENCE_SEGMENTS,
+      );
+    }
+  });
+
+  it("still covers every segment", () => {
+    // Bounding the window must split the transcript, not drop part of it.
+    const { windows, segments } = denseWindows(40);
+    const covered = windows.flatMap((window) => window.sourceSegmentIds);
+
+    expect(covered).toEqual(segments.map((segment) => segment.id));
   });
 });
