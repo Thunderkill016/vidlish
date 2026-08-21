@@ -27,10 +27,48 @@ describe("classifyAuthoringFailure", () => {
     ).toBe("provider_rejected");
   });
 
-  it("recognises a schema rejection", () => {
-    const parsed = z.object({ a: z.string() }).safeParse({ a: 1 });
+  it("names the field a schema rejection failed on", () => {
+    // `schema_rejected` on its own leaves you guessing which of the draft's
+    // forty fields was wrong — production returned exactly that.
+    const parsed = z
+      .object({ activities: z.array(z.object({ criteriaVi: z.array(z.string()).min(2) })) })
+      .safeParse({ activities: [{ criteriaVi: [] }, { criteriaVi: ["a"] }] });
+    expect(parsed.success).toBe(false);
+    expect(classifyAuthoringFailure(parsed.error)).toBe(
+      "schema_rejected:ACTIVITIES_0_CRITERIAVI",
+    );
+  });
+
+  it("falls back to the bare code when the issue carries no path", () => {
+    const parsed = z.string().safeParse(1);
     expect(parsed.success).toBe(false);
     expect(classifyAuthoringFailure(parsed.error)).toBe("schema_rejected");
+  });
+
+  it("truncates a long path to what the column allows", () => {
+    // The column caps the code at 60 characters. A deep path would otherwise
+    // fail the check constraint, the write would error, and the workflow would
+    // swallow it — leaving the field empty for the failure that needed it most.
+    const deep = "averyLongSegmentName".repeat(6);
+    const parsed = z
+      .object({ [deep]: z.string() })
+      .safeParse({ [deep]: 1 });
+    expect(parsed.success).toBe(false);
+
+    const detail = classifyAuthoringFailure(parsed.error);
+    expect(detail.split(":")[1]!.length).toBe(60);
+    expect(detail).toMatch(/^[a-z_]+(:[A-Z0-9_]{1,60})?$/);
+  });
+
+  it("keeps the detail inside what the database column accepts", () => {
+    // The column is constrained; a detail it rejects would make the write fail
+    // and the workflow swallow it, so the field goes quiet exactly when needed.
+    const COLUMN = /^[a-z_]+(:[A-Z0-9_]{1,60})?$/;
+    const parsed = z
+      .object({ "weird key!" : z.array(z.object({ "x-y": z.string() })) })
+      .safeParse({ "weird key!": [{ "x-y": 1 }] });
+    expect(parsed.success).toBe(false);
+    expect(classifyAuthoringFailure(parsed.error)).toMatch(COLUMN);
   });
 
   it("never returns a provider message", () => {
