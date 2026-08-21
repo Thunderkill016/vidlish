@@ -39,6 +39,34 @@ describe("classifyAuthoringFailure", () => {
     );
   });
 
+  it("carries what the schema wanted, when it is one of our own labels", () => {
+    // A path says which field. On a discriminated union the expected value also
+    // says which branch matched, which is what a bare path could not.
+    const parsed = z
+      .object({ activities: z.array(z.object({ phase: z.literal("retrieve") })) })
+      .safeParse({ activities: [{ phase: "notice" }] });
+    expect(parsed.success).toBe(false);
+    expect(classifyAuthoringFailure(parsed.error)).toBe(
+      "schema_rejected:ACTIVITIES_0_PHASE_WANTS_RETRIEVE",
+    );
+  });
+
+  it("never carries free text", () => {
+    // Model output can carry learner content. Only short lowercase identifiers
+    // — our own enum labels — are safe to store.
+    const secret = "PRIVATE-LEARNER-TEXT-91ac and more words";
+    const parsed = z
+      .object({ promptVi: z.literal("x") })
+      .safeParse({ promptVi: secret });
+    expect(parsed.success).toBe(false);
+
+    // What the schema *wanted* may be included; what arrived never is.
+    const detail = classifyAuthoringFailure(parsed.error);
+    expect(detail).not.toContain("PRIVATE");
+    expect(detail).not.toContain("LEARNER");
+    expect(detail).toMatch(/^[a-z_]+(:[A-Z0-9_]{1,60})?$/);
+  });
+
   it("falls back to the bare code when the issue carries no path", () => {
     const parsed = z.string().safeParse(1);
     expect(parsed.success).toBe(false);
