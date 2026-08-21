@@ -246,11 +246,30 @@ describe("reviewAuthoringDraft", () => {
         draft([
           gist("activity_gist", [B, long], "option_long"),
           meaning("activity_meaning", [C, long], "option_long"),
+          meaning("activity_meaning_two", [A, long], "option_long"),
           RECALL,
           TRANSFER,
         ]),
       ),
     ).toThrow(/longest one in every/i);
+  });
+
+  it("does not call two activities a habit", () => {
+    // "Every activity" is a claim about a habit, and two is not a sample: the
+    // pattern appears one time in four by chance. Since v1 was retired a
+    // rejection is not a downgrade to the reference lesson — it is the learner
+    // getting nothing — and production threw a whole lesson away on n=2.
+    const long = { id: "option_long", textVi: "Một câu trả lời rất dài và chi tiết" };
+    const reviewed = reviewAuthoringDraft(
+      draft([
+        gist("activity_gist", [B, long], "option_long"),
+        meaning("activity_meaning", [C, long], "option_long"),
+        RECALL,
+        TRANSFER,
+      ]),
+    );
+
+    expect(reviewed.draft.activities.length).toBeGreaterThan(0);
   });
 
   it("allows the correct option to be longest once", () => {
