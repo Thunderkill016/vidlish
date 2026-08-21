@@ -28,6 +28,26 @@ function firstIssuePath(error: unknown): string | null {
     .slice(0, 60);
 }
 
+/**
+ * What the schema expected, when it is one of our own enum labels.
+ *
+ * Zod reports the accepted values for a literal mismatch, not the value that
+ * arrived. On a discriminated union that is still the useful half: it names
+ * which branch matched, so `ACTIVITIES_3_PHASE_WANTS_RETRIEVE` says the
+ * discriminator picked `chunk_recall` and the phase beside it did not agree.
+ *
+ * Guarded to short lowercase identifiers so free text — which can carry model
+ * output, which can carry learner content — never reaches a diagnostic column.
+ */
+function firstIssueLabel(error: unknown): string | null {
+  const issues = (error as { issues?: readonly Record<string, unknown>[] }).issues;
+  const values = issues?.[0]?.values;
+  const expected = Array.isArray(values) && values.length === 1 ? values[0] : null;
+  if (typeof expected !== "string") return null;
+  if (!/^[a-z][a-z_]{0,31}$/.test(expected)) return null;
+  return expected.toUpperCase();
+}
+
 export function classifyAuthoringFailure(error: unknown): string {
   if (error instanceof AuthoringQualityError) {
     // The gate's own code, which names the rule the draft broke — the single
@@ -48,7 +68,14 @@ export function classifyAuthoringFailure(error: unknown): string {
     // returned exactly that and it named nothing actionable. A path is field
     // names the schema already defines, so it carries no model output.
     const path = firstIssuePath(error);
-    return path ? `schema_rejected:${path}` : "schema_rejected";
+    if (!path) return "schema_rejected";
+    // Plus what the schema wanted there. A path alone said which field, and
+    // production showed a field whose bindings looked identical in both
+    // schemas — the branch that matched is the piece that was missing.
+    const label = firstIssueLabel(error);
+    return label
+      ? `schema_rejected:${path}_WANTS_${label}`
+      : `schema_rejected:${path}`;
   }
   if (name) return `unexpected_error:${name.toUpperCase().replace(/[^A-Z_]/g, "_")}`;
   return "unexpected_error";
