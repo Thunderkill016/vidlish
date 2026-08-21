@@ -244,13 +244,25 @@ describe("learning model v2 content provenance", () => {
 
   const WRITE_PATTERN =
     /(?:insert\s+into|update|copy)\s+(?:public\.)?lesson_versions\b/i;
-  const PUBLISH_MIGRATION = "20260819170000_publish_lesson_version.sql";
+  /**
+   * Both publish functions, and nothing else.
+   *
+   * The lesson-scoped one came first; the job-scoped one exists because a v2
+   * blueprint hanging off a v1 lesson meant v2 could not run when v1 failed.
+   * Listing them by name keeps the guard's meaning — a blueprint is only ever
+   * written by a function that checks ownership and refuses to republish — and
+   * a third writer still fails here.
+   */
+  const PUBLISH_MIGRATIONS = [
+    "20260819170000_publish_lesson_version.sql",
+    "20260821080000_publish_lesson_version_for_job.sql",
+  ];
 
-  it("writes lesson versions only from the publish function", () => {
+  it("writes lesson versions only from the publish functions", () => {
     const writers = migrationFiles
       .filter(({ sql }) => WRITE_PATTERN.test(sql))
       .map(({ file }) => file);
-    expect(writers).toEqual([PUBLISH_MIGRATION]);
+    expect(writers.sort()).toEqual([...PUBLISH_MIGRATIONS].sort());
   });
 
   it("proves the pattern would catch a writer", () => {
@@ -264,13 +276,17 @@ describe("learning model v2 content provenance", () => {
     );
   });
 
-  it("keeps the publish path owner-scoped and publish-once", () => {
-    const publishSql = migrationFiles.find(
-      ({ file }) => file === PUBLISH_MIGRATION,
-    )!.sql;
-    // Two properties the pgTAP suite proves at runtime; asserted here too so a
-    // future rewrite of the function cannot drop them unnoticed.
-    expect(publishSql).toContain("owned lesson not found");
-    expect(publishSql).toContain("security definer");
+  it("keeps every publish path owner-scoped and publish-once", () => {
+    // Properties the pgTAP suite proves at runtime; asserted here too so a
+    // future rewrite cannot drop them unnoticed — and asserted for *both*
+    // functions, because a second publish path that skipped the ownership
+    // check would let anyone signed in attach a blueprint to someone else's
+    // job.
+    for (const name of PUBLISH_MIGRATIONS) {
+      const publishSql = migrationFiles.find(({ file }) => file === name)!.sql;
+      expect(publishSql).toContain("security definer");
+      expect(publishSql).toMatch(/owned (lesson|job) not found/);
+      expect(publishSql).toContain("schemaVersion");
+    }
   });
 });

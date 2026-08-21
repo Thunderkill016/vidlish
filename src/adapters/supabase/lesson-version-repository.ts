@@ -23,9 +23,16 @@ export class SupabaseLessonVersionRepository
 {
   constructor(private readonly client: SupabaseClient) {}
 
-  async findForJob(input: { ownerUserId: string; jobId: string }) {
-    // Joined through `lessons` because a lesson version hangs off a v1 lesson,
-    // and the job is what the learner's URL carries.
+  /**
+   * Blueprints published before `job_id` existed, reached through the v1 lesson.
+   *
+   * Kept so nothing already on a learner's account becomes unreachable when the
+   * parent changes. Nothing new writes this shape.
+   */
+  private async findLegacyForJob(input: {
+    ownerUserId: string;
+    jobId: string;
+  }) {
     const lesson = await this.client
       .from("lessons")
       .select("id")
@@ -43,9 +50,25 @@ export class SupabaseLessonVersionRepository
       .eq("schema_version", "lesson:v2")
       .maybeSingle();
     if (result.error) throw result.error;
-    if (!result.data) return null;
+    return result.data ?? null;
+  }
 
-    const row = result.data as { id: string; blueprint: unknown };
+  async findForJob(input: { ownerUserId: string; jobId: string }) {
+    // Read straight off the job. Blueprints published before this column
+    // existed still hang off a v1 lesson, so those are found through the
+    // fallback below rather than left unreachable.
+    const result = await this.client
+      .from("lesson_versions")
+      .select("id,blueprint")
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("job_id", input.jobId)
+      .eq("schema_version", "lesson:v2")
+      .maybeSingle();
+    if (result.error) throw result.error;
+    const found = result.data ?? (await this.findLegacyForJob(input));
+    if (!found) return null;
+
+    const row = found as { id: string; blueprint: unknown };
     return {
       lessonVersionId: row.id,
       blueprint: lessonBlueprintV2Schema.parse(row.blueprint),
@@ -79,9 +102,9 @@ export class SupabaseLessonVersionRepository
     // front of a learner mid-session instead of at publish time.
     const blueprint = lessonBlueprintV2Schema.parse(input.blueprint);
 
-    const rpc = await this.client.rpc("publish_lesson_version", {
+    const rpc = await this.client.rpc("publish_lesson_version_for_job", {
       p_owner_user_id: input.ownerUserId,
-      p_lesson_id: input.lessonId,
+      p_job_id: input.jobId,
       p_blueprint: blueprint,
     });
     if (rpc.error) throw rpc.error;

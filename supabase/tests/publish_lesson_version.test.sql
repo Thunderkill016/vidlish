@@ -1,7 +1,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(8);
+select plan(16);
 
 -- Không gì tạo ra một hàng `lesson_versions` ngoài fixture CI cho tới khi có
 -- hàm này. Đây là những khẳng định cho đường ghi đầu tiên của nội dung v2.
@@ -158,6 +158,76 @@ select throws_ok(
   'blueprint schema version must be lesson:v2',
   'blueprint hỏng bị từ chối kể cả khi bài học đã publish'
 );
+
+-- ---------------------------------------------------------------------------
+-- publish_lesson_version_for_job: v2 without a v1 lesson
+-- ---------------------------------------------------------------------------
+
+select has_column('public', 'lesson_versions', 'job_id', 'lesson_versions gắn được vào job');
+select is(
+  (select is_nullable from information_schema.columns
+    where table_schema = 'public' and table_name = 'lesson_versions' and column_name = 'lesson_id'),
+  'YES',
+  'lesson_id không còn bắt buộc, nên v2 tồn tại được khi v1 hỏng'
+);
+
+create temporary table job_published on commit drop as
+select * from public.publish_lesson_version_for_job(
+  '11111111-1111-4111-8111-111111111111',
+  '44444444-4444-4444-8444-444444444444',
+  '{
+    "schemaVersion":"lesson:v2",
+    "activities":[{"id":"activity_gist","phase":"gist"}]
+  }'::jsonb
+);
+
+select is((select created from job_published), true, 'publish theo job tạo bản mới');
+select is(
+  (select lesson_id is null from public.lesson_versions
+    where id = (select lesson_version_id from job_published)),
+  true,
+  'blueprint publish theo job không cần bài học v1 làm cha'
+);
+
+-- Publish-once, đúng như bản theo lesson: người học có thể đang chạy phiên trên
+-- blueprint này, và thay nó là đổi bài dưới chân họ.
+create temporary table job_republished on commit drop as
+select * from public.publish_lesson_version_for_job(
+  '11111111-1111-4111-8111-111111111111',
+  '44444444-4444-4444-8444-444444444444',
+  '{
+    "schemaVersion":"lesson:v2",
+    "activities":[{"id":"activity_other","phase":"gist"}]
+  }'::jsonb
+);
+
+select is((select created from job_republished), false, 'gọi lại trả về bản đã có');
+select is(
+  (select lesson_version_id from job_republished),
+  (select lesson_version_id from job_published),
+  'gọi lại không ghi đè blueprint đang được học'
+);
+
+select throws_ok(
+  $$select * from public.publish_lesson_version_for_job(
+    '22222222-2222-4222-8222-222222222222',
+    '44444444-4444-4444-8444-444444444444',
+    '{"schemaVersion":"lesson:v2","activities":[]}'::jsonb
+  )$$,
+  'owned job not found',
+  'người khác không gắn được blueprint vào job của mình'
+);
+
+select throws_ok(
+  $$select * from public.publish_lesson_version_for_job(
+    '11111111-1111-4111-8111-111111111111',
+    '44444444-4444-4444-8444-444444444444',
+    '{"schemaVersion":"lesson:v1","activities":[]}'::jsonb
+  )$$,
+  'blueprint schema version must be lesson:v2',
+  'blueprint sai schema bị từ chối kể cả khi job đã publish'
+);
+
 
 select * from finish();
 rollback;
