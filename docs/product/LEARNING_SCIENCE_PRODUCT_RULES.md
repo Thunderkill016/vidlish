@@ -86,3 +86,59 @@ These are experiments, not automatic dependencies:
 - **Slow playback support:** wire supported YouTube playback rates to the existing `slower_playback` support step without exposing it before unlock.
 
 None of these should be promoted as improving learning until cohort evidence shows a meaningful gain in delayed retrieval/transfer or a reduction in support needed for equivalent performance.
+
+## Where input comes from at zero
+
+The rules above assume a video exists that the learner can partly understand. Below A2 that assumption fails, and the source question has to be answered on its own terms. What follows is what the survey found, and what it changes.
+
+### Retrieve a real sentence before generating one
+
+A generated sentence is language a model invented, checked afterwards. A retrieved sentence is language a human wrote, checked the same way. Both pass the same i+1 gate; only one of them can be wrong in ways the gate cannot see — a sentence that is grammatical, uses only permitted words, and still is not something anyone would say.
+
+Tatoeba is a corpus of human-written sentences with translation links between languages, released under CC BY 2.0 FR. It carries English–Vietnamese links, so the Vietnamese support the first three hundred words need is already written by people rather than translated by us. Some sentences also carry recorded audio, licensed per contributor — an empty license field means the audio may not be reused outside Tatoeba, so the license field is a filter, not a footnote.
+
+Product consequence: the beginner path retrieves first and generates only when retrieval finds nothing at the learner's level. Generation stays as the fallback because coverage thins as the known set grows unusual, not because retrieval is worse. `composeBeginnerInput` already applies the same gate to both, so the fallback needs no separate quality story.
+
+This also answers a cost question directly: the majority of beginner sentences should cost nothing per learner.
+
+Reference: <https://tatoeba.org/en/downloads>, <https://en.wiki.tatoeba.org/articles/show/using-the-tatoeba-corpus>.
+
+### Order the first thousand words by spoken frequency
+
+`src/adapters/vocabulary/README.md` records a known weakness: CEFR-J carries level and part of speech but no frequency, so within a level the order falls back to a part-of-speech proxy. That proxy is defensible and it is not measurement.
+
+SUBTLEX-US is a frequency list built from 51 million words of film and television subtitles. For a product whose first skill is listening, a subtitle corpus is the better instrument, not merely an available one: written-corpus frequency over-weights words a beginner will not hear for a year.
+
+Licensing needs care. The convenient JSON packaging at `words/subtlex-word-frequencies` is ISC, but the underlying SUBTLEX-US data is CC BY-SA — ShareAlike reaches any ordering artifact derived from it, which is a stricter obligation than the CEFR-J artifact carries. Treat the data as CC BY-SA, attribute Brysbaert and New, and record the obligation in the artifact README beside the existing one.
+
+Product consequence: keep the part-of-speech rule as the tie-break it always was, and let measured spoken frequency decide the order within a level.
+
+Reference: <https://github.com/words/subtlex-word-frequencies>, <http://openlexicon.fr/datasets-info/SUBTLEX-US/README-SUBTLEXus.html>.
+
+### Check writing with a rule engine before asking a model
+
+Writing feedback from a model is fluent and unfalsifiable. LanguageTool is a rule and dictionary based checker under LGPL 2.1+, self-hostable, and it returns a span, a rule ID, and a suggestion — three things that can be logged, counted, and disputed.
+
+Product consequence: when the writing skill arrives, deterministic checks run first and their findings are what gets recorded as evidence. A model may explain a finding in Vietnamese; it may not be the thing that decides a learner was wrong.
+
+Reference: <https://github.com/languagetool-org/languagetool>, <https://languagetool.org/dev>.
+
+### Pronunciation scoring still has no Vietnamese ground truth
+
+`AGENTS.md` already says a score must be measured on Vietnamese speakers before it ships. The survey sharpened why that is hard rather than merely prudent.
+
+speechocean762 is the open corpus the pronunciation-assessment literature is benchmarked on: 5,000 utterances, five expert annotators, phoneme-level labels. Every one of its 250 speakers is a native Mandarin speaker. So the published accuracy numbers for GOP and its successors describe a population this product does not serve, and they cannot be assumed to carry over — Mandarin and Vietnamese differ in exactly the places English pronunciation is scored, final consonants and consonant clusters among them.
+
+L2-ARCTIC remains the usable ground truth: four Vietnamese speakers with phoneme-level annotation. Four speakers is enough to detect a scorer that is badly wrong and not enough to certify one that looks right.
+
+Product consequence: unchanged, and now with a reason that is specific. Report what is checkable — which words a listener could not make out — until a score has been measured on Vietnamese speech.
+
+Reference: <https://arxiv.org/abs/2104.01378>.
+
+### Text to speech has a cost floor worth knowing
+
+Kokoro is an Apache-2.0 text-to-speech model, 82M parameters, 54 voices, CPU-capable. It is not as good as a hosted model and it is good enough for single sentences of beginner English, which is the only thing the A0 path needs spoken.
+
+Product consequence: none yet — this is recorded so the choice is a choice. If per-sentence audio ever becomes the dominant cost of a session, the alternative already exists and its licence permits it.
+
+Reference: <https://github.com/hexgrad/kokoro>.
