@@ -33,7 +33,7 @@ import type { CanonicalTranscript } from "@/shared/contracts/transcript";
 
 export type AuthorLearningLessonInput = {
   readonly jobId: string;
-  readonly lessonId: string;
+
   readonly ownerUserId: string;
   readonly videoTitle: string;
   readonly channelName: string;
@@ -169,7 +169,7 @@ export class AuthorLearningLesson {
 
     const published = await this.repository.publish({
       ownerUserId: input.ownerUserId,
-      lessonId: input.lessonId,
+      jobId: input.jobId,
       blueprint,
     });
 

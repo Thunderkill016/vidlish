@@ -5,12 +5,12 @@ import { InMemoryLessonVersionRepository } from "./in-memory-lesson-version-repo
 
 const OWNER = "11111111-1111-4111-8111-111111111111";
 const STRANGER = "22222222-2222-4222-8222-222222222222";
-const LESSON = "66666666-6666-4666-8666-666666666666";
+const JOB = "66666666-6666-4666-8666-666666666666";
 
 function publishInput(overrides: Partial<{ ownerUserId: string }> = {}) {
   return {
     ownerUserId: overrides.ownerUserId ?? OWNER,
-    lessonId: LESSON,
+    jobId: JOB,
     blueprint: createFixtureLearningBlueprint(),
   };
 }
@@ -34,12 +34,12 @@ describe("InMemoryLessonVersionRepository", () => {
     expect(second.lessonVersionId).toBe(first.lessonVersionId);
   });
 
-  it("refuses a lesson owned by someone else", async () => {
+  it("refuses a job owned by someone else", async () => {
     const repository = new InMemoryLessonVersionRepository();
     await repository.publish(publishInput());
     await expect(
       repository.publish(publishInput({ ownerUserId: STRANGER })),
-    ).rejects.toThrow(/owned lesson not found/);
+    ).rejects.toThrow(/owned job not found/);
   });
 
   it("rejects a blueprint that does not parse", async () => {
@@ -53,7 +53,7 @@ describe("InMemoryLessonVersionRepository", () => {
     await expect(
       repository.publish({
         ownerUserId: OWNER,
-        lessonId: LESSON,
+        jobId: JOB,
         blueprint: broken,
       }),
     ).rejects.toThrow();

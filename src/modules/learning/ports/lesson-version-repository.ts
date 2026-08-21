@@ -2,8 +2,16 @@ import type { LessonBlueprintV2 } from "@/shared/contracts/lesson-v2";
 
 export type PublishLessonVersionInput = {
   ownerUserId: string;
-  /** The v1 lesson this blueprint belongs to. Ownership is checked against it. */
-  lessonId: string;
+  /**
+   * The job this blueprint came from. Ownership is checked against it.
+   *
+   * The job, not the v1 lesson: a blueprint used to hang off `lessons`, so v2
+   * could not exist unless v1 had published first — and production showed a job
+   * failing six times inside v1's quality gate, taking v2 down with it. The job
+   * owns the transcript and the learner's request; the v1 lesson is a sibling
+   * artefact, not a parent.
+   */
+  jobId: string;
   blueprint: LessonBlueprintV2;
 };
 

@@ -66,11 +66,15 @@ export async function generateLessonWorkflow(
     }
   }
 
-  // After the v1 lesson is saved, and outside its try block on purpose. The
-  // learner already has a lesson by now; losing the richer v2 one is a degraded
-  // result, but letting it turn their finished job into a failure is not. The
-  // step swallows its own errors too — this is the second lock on the same door.
-  if (lessonOutcome === "published" || lessonOutcome === "already_published") {
+  // Outside the v1 try block on purpose: losing the v2 lesson must not turn a
+  // finished job into a failure, and the steps swallow their own errors too —
+  // this is the second lock on the same door.
+  //
+  // Run regardless of how v1 went. v2 used to be gated on v1 publishing, and
+  // production showed what that costs: a job failed six times inside v1's
+  // quality gate and v2 was never attempted, even though the transcript it
+  // needs was ready the whole time. The two are siblings now, not a chain.
+  {
     // Two steps, one model call each. Together they overran a single step's
     // budget and the invocation was killed with no error handler ever running.
     try {

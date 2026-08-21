@@ -598,12 +598,9 @@ export async function authorLearningLessonStep(
   const loaded = await loadAuthoringContext(jobRef);
   if (loaded.kind !== "ready") return loaded;
 
-  const lesson = await createLessonRepository(
-    loaded.generationRepository,
-    loaded.transcriptRuntime.repository,
-  ).findOwnedByJobId(loaded.job.id, loaded.job.ownerUserId);
-  if (!lesson) return { kind: "skipped", reason: "lesson_missing" } as const;
-
+  // No v1 lesson lookup. A blueprint belongs to the job that produced it, and
+  // requiring the v1 lesson meant v2 could not run when v1's quality gate
+  // rejected the model — which is what production did, six attempts in a row.
   emitGenerationEvent({
     level: "info",
     jobId: jobRef.jobId,
@@ -617,7 +614,6 @@ export async function authorLearningLessonStep(
   try {
     const result = await createAuthorLearningLesson().execute({
       jobId: loaded.job.id,
-      lessonId: lesson.id,
       ownerUserId: loaded.job.ownerUserId,
       videoTitle: loaded.job.videoTitle,
       channelName: loaded.job.channelName,

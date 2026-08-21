@@ -24,14 +24,6 @@ export class InMemoryLessonVersionRepository implements LessonVersionRepository 
     }
   >();
 
-  /** Job → lesson, so a lookup by job can find what publish stored by lesson. */
-  private readonly lessonByJob = new Map<string, string>();
-
-  /** Test seam: the fake has no jobs table to join through. */
-  linkJobToLesson(jobId: string, lessonId: string): void {
-    this.lessonByJob.set(jobId, lessonId);
-  }
-
   async findByIdForOwner(input: {
     ownerUserId: string;
     lessonVersionId: string;
@@ -51,9 +43,9 @@ export class InMemoryLessonVersionRepository implements LessonVersionRepository 
   }
 
   async findForJob(input: { ownerUserId: string; jobId: string }) {
-    const lessonId = this.lessonByJob.get(input.jobId);
-    if (!lessonId) return null;
-    const entry = this.published.get(lessonId);
+    // Keyed by job now, so there is nothing to join through. The mapping this
+    // fake used to keep existed only because a blueprint hung off a v1 lesson.
+    const entry = this.published.get(input.jobId);
     if (!entry || entry.ownerUserId !== input.ownerUserId) return null;
     return {
       lessonVersionId: entry.lessonVersionId,
@@ -64,16 +56,16 @@ export class InMemoryLessonVersionRepository implements LessonVersionRepository 
   async publish(input: PublishLessonVersionInput) {
     lessonBlueprintV2Schema.parse(input.blueprint);
 
-    const existing = this.published.get(input.lessonId);
+    const existing = this.published.get(input.jobId);
     if (existing) {
       if (existing.ownerUserId !== input.ownerUserId) {
-        throw new Error("owned lesson not found");
+        throw new Error("owned job not found");
       }
       return { lessonVersionId: existing.lessonVersionId, created: false };
     }
 
     const lessonVersionId = crypto.randomUUID();
-    this.published.set(input.lessonId, {
+    this.published.set(input.jobId, {
       lessonVersionId,
       ownerUserId: input.ownerUserId,
       blueprint: input.blueprint,
