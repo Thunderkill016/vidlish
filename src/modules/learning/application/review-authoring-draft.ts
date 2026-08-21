@@ -213,10 +213,20 @@ export function reviewAuthoringDraft(
   }
 
   // A learner can score full marks by always picking the longest option without
-  // understanding a word. One activity landing that way is chance; every
-  // activity landing that way is the model's habit, and the lesson stops
-  // measuring comprehension.
-  if (choices.length >= 2) {
+  // understanding a word, so a model that always writes them that way has to be
+  // refused.
+  //
+  // But "every activity" is a claim about a habit, and a habit needs a sample.
+  // With two choice activities the pattern appears one time in four by chance
+  // alone — and since v1 was retired a rejection is not a downgrade to the
+  // reference lesson, it is the learner getting nothing at all. Production
+  // threw a whole lesson away on n=2.
+  //
+  // Three is still a weak sample (one time in eight) and the prompt already
+  // states the rule, so this stays a refusal rather than a repair: there is no
+  // way to lengthen a distractor without inventing content.
+  const MINIMUM_CHOICES_FOR_A_HABIT = 3;
+  if (choices.length >= MINIMUM_CHOICES_FOR_A_HABIT) {
     const alwaysLongest = choices.every((activity) => {
       const correct = activity.options.find(
         (option) => option.id === activity.correctOptionId,
