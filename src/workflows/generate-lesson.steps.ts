@@ -8,7 +8,6 @@ import {
   type LessonGenerationFailureKind,
 } from "@/modules/lesson/ports/lesson-generation-provider";
 import { createLanguageEligibilityRepository } from "@/platform/language/create-language-runtime";
-import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
 import {
   createAuthorLearningLesson,
   createDiagnoseLearningLesson,

@@ -102,6 +102,19 @@ export function hydrateLearningBlueprint(
     fail("Authoring brief permitted no source evidence.");
   }
 
+  /** The question must contain the phrase it asks about, verbatim. */
+  function namingThePhrase(promptVi: string, candidateId: string): string {
+    const item = itemByCandidateId.get(candidateId);
+    if (!item) return promptVi;
+    const asked = promptVi.toLocaleLowerCase("vi");
+    if (!asked.includes(item.surfaceForm.toLocaleLowerCase("en-US"))) {
+      fail(
+        `Activity asks about "${item.surfaceForm}" without naming it in the question.`,
+      );
+    }
+    return promptVi;
+  }
+
   function evidenceFor(
     windowIds: readonly string[],
     captionPolicy: EvidenceRef["captionPolicy"],
@@ -172,7 +185,12 @@ export function hydrateLearningBlueprint(
           activityType: activity.activityType,
           evidence: evidenceFor(activity.evidenceWindowIds, activity.captionPolicy),
           targetItemId: targetItemIdFor(activity.candidateId),
-          promptVi: activity.promptVi,
+          // Checked here because this is the only place that holds both the
+          // question and the phrase it is about. Production shipped "Cụm từ
+          // mục tiêu trong ngữ cảnh này có nghĩa là gì?" — a question that
+          // never names what it asks about, leaving the learner to guess from
+          // the options. That is not a comprehension item.
+          promptVi: namingThePhrase(activity.promptVi, activity.candidateId),
           options: activity.options,
           evaluation: {
             kind: "single_choice" as const,
