@@ -13,12 +13,11 @@ import { Card } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
 
 /**
- * One beginner session, in the order the four skills are actually acquired.
+ * One listening-first beginner session under the current conservative policy.
  *
- * Listen first, with nothing on screen. The sentence appears only after the
- * learner has asked for it, and asking is recorded: a word read before it was
- * heard is not evidence of anything, and the difference between "I heard it"
- * and "I saw it" is the whole measurement.
+ * The sentence appears only after the learner asks for it. Asking is recorded:
+ * reading support and unsupported listening/production are different evidence
+ * and must not collapse into the same claim.
  */
 
 type Phase = "idle" | "listening" | "revealed" | "saving" | "answered";
@@ -32,15 +31,11 @@ type SessionState =
   | { kind: "error"; message: string };
 
 function speak(text: string): void {
-  // The browser's own voice. It is not the best English a learner could hear,
-  // and it costs nothing and needs no network — which is the right trade while
-  // the corpus can supply almost no licensed human audio.
+  // The browser voice is a zero-cost bootstrap source, not a pronunciation
+  // reference or evidence that the audio is ideal for every learner.
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
   const utterance = new SpeechSynthesisUtterance(text);
   utterance.lang = "en-US";
-  // Slower than natural speech. A beginner is not failing to understand, they
-  // are failing to segment — the words run together before they know where one
-  // ends.
   utterance.rate = 0.75;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(utterance);
@@ -48,9 +43,9 @@ function speak(text: string): void {
 
 const EMPTY_MESSAGES: Record<string, string> = {
   catalogue_exhausted:
-    "Bạn đã đi hết danh sách từ A1–A2. Đây là lúc chuyển sang nguồn thật, không phải lúc học lại từ đầu.",
+    "Bạn đã đi hết danh sách từ A1–A2 hiện tại. Vidlish cần chọn nguồn học tiếp theo từ evidence của bạn, không tự coi đây là đã thành thạo.",
   no_usable_input:
-    "Chưa tìm được câu nào chỉ có đúng một từ mới cho từ tiếp theo. Thà không có câu còn hơn một câu bạn chưa đọc nổi.",
+    "Chưa tìm được batch câu nào đạt policy beginner hiện tại cho target tiếp theo. Vidlish dừng thay vì đưa input vượt khỏi evidence set đang dùng.",
 };
 
 export function BeginnerSession() {
@@ -70,6 +65,8 @@ export function BeginnerSession() {
     setState({ kind: "loading" });
     setPhase("idle");
     setUsedSupport(false);
+    setSaveFailed(false);
+    setResult(null);
     try {
       const response = await fetch("/api/beginner/session", { method: "POST" });
       const body = await response.json();
@@ -111,10 +108,8 @@ export function BeginnerSession() {
   ) {
     if (state.kind !== "ready" && state.kind !== "introduce") return;
 
-    // "Saving", not "saved". Claiming the word was recorded before the request
-    // has come back means a learner who closes the tab is told they made
-    // progress they did not make — and the next session, reading only what was
-    // actually stored, would look like it had forgotten them.
+    // "Saving", not "saved". UI must not claim progress until the durable
+    // server-authoritative write returns successfully.
     setPhase("saving");
     try {
       const body = dictated
@@ -149,9 +144,6 @@ export function BeginnerSession() {
       setResult(saved.success ? (saved.data.dictation ?? null) : null);
       setPhase("answered");
     } catch {
-      // Swallowing this would be the worst option available: the learner would
-      // be told their word was recorded, the next session would not know it,
-      // and the product would look like it had forgotten them.
       setSaveFailed(true);
       setPhase("answered");
     }
@@ -169,6 +161,7 @@ export function BeginnerSession() {
     setUsedSupport(false);
     setHeard("");
     setResult(null);
+    setSaveFailed(false);
     speak(state.session.sentences[index].text);
   }
 
@@ -176,8 +169,7 @@ export function BeginnerSession() {
     return (
       <Card className="flex flex-col items-start gap-4">
         <p className="text-sm">
-          Buổi học bắt đầu bằng nghe, không phải đọc. Chữ chỉ hiện ra khi bạn
-          xin.
+          Buổi học bắt đầu bằng nghe. Chữ là support và chỉ hiện khi bạn yêu cầu.
         </p>
         <Button onClick={startSession}>Bắt đầu nghe</Button>
       </Card>
@@ -203,12 +195,12 @@ export function BeginnerSession() {
       <Card className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
           <span className="text-sm text-[var(--muted-foreground)]">
-            Từ đầu tiên không đến trong một câu
+            Target đang được giới thiệu riêng
           </span>
           <p className="text-xs text-[var(--muted-foreground)]">
-            Một câu dễ hiểu là câu bạn biết hết chữ trừ một. Khi bạn chưa biết
-            chữ nào, câu ngắn nhất có thể có đúng một chữ — mà một chữ thì không
-            phải câu. Nên từ đầu tiên phải gặp một mình.
+            Theo policy beginner hiện tại, Vidlish chỉ dùng câu có một target nằm
+            ngoài independent evidence set. Khi chưa đủ evidence để tạo một batch
+            câu hợp lệ, target được giới thiệu riêng thay vì ép ra câu quá khó.
           </p>
         </div>
 
@@ -222,7 +214,7 @@ export function BeginnerSession() {
           <p className="text-sm text-[var(--muted-foreground)]">Đang lưu…</p>
         ) : phase !== "answered" ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm">Bạn nói lại được từ này chưa?</p>
+            <p className="text-sm">Bạn tự nói lại được từ này chưa?</p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => record(true)}>Nói được</Button>
               <Button variant="secondary" onClick={() => record(false)}>
@@ -234,10 +226,10 @@ export function BeginnerSession() {
           <div className="flex flex-col gap-3">
             <p className="text-sm text-[var(--muted-foreground)]">
               {saveFailed
-                ? "Chưa lưu được. Từ này sẽ quay lại lần sau — sản phẩm không nói dối rằng đã ghi."
-                : "Đã ghi lại. Từ sau sẽ đến cùng một câu, vì giờ đã có một chữ bạn biết để dựa vào."}
+                ? "Chưa lưu được evidence. Vidlish sẽ không giả rằng lần này đã được ghi."
+                : "Đã ghi independent evidence cho lần này. Nó dùng để chọn input tiếp theo, chưa phải bằng chứng rằng bạn nhớ lâu."}
             </p>
-            <Button onClick={startSession}>Từ tiếp theo</Button>
+            <Button onClick={startSession}>Tiếp tục học</Button>
           </div>
         )}
       </Card>
@@ -250,7 +242,7 @@ export function BeginnerSession() {
     <Card className="flex flex-col gap-5">
       <div className="flex items-baseline justify-between">
         <span className="text-sm text-[var(--muted-foreground)]">
-          Từ mới: <strong className="text-[var(--foreground)]">{state.session.target}</strong>
+          Target: <strong className="text-[var(--foreground)]">{state.session.target}</strong>
         </span>
         <span className="text-xs text-[var(--muted-foreground)] tabular-nums">
           Câu {state.index + 1}/{state.session.sentences.length}
@@ -263,7 +255,6 @@ export function BeginnerSession() {
           <Button
             variant="secondary"
             onClick={() => {
-              // Reading before hearing is support, and it is recorded as such.
               setUsedSupport(true);
               setPhase("revealed");
             }}
@@ -275,8 +266,8 @@ export function BeginnerSession() {
 
       {phase === "listening" ? (
         <p className="text-sm text-[var(--muted-foreground)]">
-          Nghe tới khi bạn nói lại được. Chưa nghe ra thì bấm nghe lại — nghe lại
-          không tính là trợ giúp, nhìn chữ thì có.
+          Thử nghe và gõ lại trước. Nghe lại không mở answer key; xem chữ được ghi
+          là support.
         </p>
       ) : (
         <p className="text-xl font-medium">{sentence.text}</p>
@@ -286,15 +277,15 @@ export function BeginnerSession() {
         <p className="text-sm text-[var(--muted-foreground)]">Đang lưu…</p>
       ) : phase !== "answered" ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm">Gõ lại đúng câu bạn vừa nghe.</p>
+          <p className="text-sm">Gõ lại câu bạn vừa nghe.</p>
           <Input
             aria-label="Câu bạn nghe được"
             value={heard}
             onChange={(event) => setHeard(event.target.value)}
           />
           <p className="text-xs text-[var(--muted-foreground)]">
-            Không tính hoa thường hay dấu câu. Sai một chữ là sai một chữ — đó là
-            lý do con số ở đây có nghĩa.
+            Scoring hiện bỏ qua hoa thường và dấu câu. Kết quả này là evidence của
+            attempt hiện tại, không phải điểm trình độ chung.
           </p>
           <Button
             onClick={() =>
@@ -315,8 +306,8 @@ export function BeginnerSession() {
           ) : null}
           <p className="text-sm text-[var(--muted-foreground)]">
             {saveFailed
-              ? "Chưa lưu được. Từ này sẽ quay lại lần sau — sản phẩm không nói dối rằng đã ghi."
-              : "Đã ghi lại. Từ này sẽ quay lại trong buổi học sau, không phải hôm nay."}
+              ? "Chưa lưu được evidence. Vidlish sẽ không giả rằng attempt này đã được ghi."
+              : "Đã ghi attempt hiện tại. Beginner cross-session delayed review chưa được nối, nên Vidlish chưa gọi đây là nhớ lâu."}
           </p>
           <Button onClick={nextSentence}>Câu tiếp theo</Button>
         </div>
