@@ -1,11 +1,17 @@
+import { EventEmitter } from "node:events";
+import { createServer as createHttpServer } from "node:http";
+import { createServer as createNetServer } from "node:net";
+
 import { describe, expect, it } from "vitest";
 
 import {
   GOLDEN_STUDY_CODE,
   GOLDEN_STUDY_EMAIL,
   GOLDEN_STUDY_LESSON_VERSION_ID,
+  assertStudyPortAvailable,
   buildGoldenStudyRuntimeEnv,
   parseSupabaseStatusEnv,
+  waitForStudyAppReady,
 } from "./golden-study-harness.mjs";
 
 const local = {
@@ -14,6 +20,48 @@ const local = {
   SERVICE_ROLE_KEY: "local-service",
   DB_URL: "postgresql://postgres:postgres@127.0.0.1:54322/postgres",
 };
+
+function listenOnLoopback(server) {
+  return new Promise((resolve, reject) => {
+    const onError = (error) => reject(error);
+    server.once("error", onError);
+    server.listen(0, "127.0.0.1", () => {
+      server.off("error", onError);
+      const address = server.address();
+      if (!address || typeof address === "string") {
+        reject(new Error("Expected a TCP port for the test server."));
+        return;
+      }
+      resolve(address.port);
+    });
+  });
+}
+
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+  });
+}
+
+async function reserveThenReleasePort() {
+  const server = createNetServer();
+  const port = await listenOnLoopback(server);
+  await closeServer(server);
+  return port;
+}
+
+function fakeChild() {
+  const child = new EventEmitter();
+  child.killed = false;
+  child.kill = () => {
+    child.killed = true;
+    return true;
+  };
+  return child;
+}
 
 describe("Golden study harness", () => {
   it("parses quoted Supabase status output without losing URL punctuation", () => {
@@ -103,5 +151,84 @@ DB_URL=${local.DB_URL}
     expect(env.TRANSCRIPT_NATIVE_ADAPTER).toBe("fixture");
     expect(env.LESSON_PROVIDER).toBe("fixture");
     expect(env.LEARNING_AUTHORING_PROVIDER).toBe("off");
+  });
+
+  it("refuses an already occupied study port", async () => {
+    const occupied = createNetServer();
+    const port = await listenOnLoopback(occupied);
+    try {
+      await expect(
+        assertStudyPortAvailable({ host: "127.0.0.1", port }),
+      ).rejects.toThrow(/already in use/);
+    } finally {
+      await closeServer(occupied);
+    }
+  });
+
+  it("accepts a port that can be exclusively bound", async () => {
+    const port = await reserveThenReleasePort();
+    await expect(
+      assertStudyPortAvailable({ host: "127.0.0.1", port }),
+    ).resolves.toBeUndefined();
+  });
+
+  it("waits until the app returns a successful HTTP response", async () => {
+    let requests = 0;
+    const server = createHttpServer((_request, response) => {
+      requests += 1;
+      response.statusCode = requests === 1 ? 503 : 200;
+      response.end(requests === 1 ? "booting" : "ready");
+    });
+    const port = await listenOnLoopback(server);
+    const child = fakeChild();
+
+    try {
+      await expect(
+        waitForStudyAppReady(child, {
+          origin: `http://127.0.0.1:${port}`,
+          timeoutMs: 1_000,
+          pollIntervalMs: 10,
+          requestTimeoutMs: 100,
+        }),
+      ).resolves.toBeUndefined();
+      expect(requests).toBeGreaterThanOrEqual(2);
+      expect(child.listenerCount("exit")).toBe(0);
+      expect(child.listenerCount("error")).toBe(0);
+    } finally {
+      await closeServer(server);
+    }
+  });
+
+  it("fails closed when the child exits before becoming ready", async () => {
+    const port = await reserveThenReleasePort();
+    const child = fakeChild();
+    setTimeout(() => child.emit("exit", 1, null), 20);
+
+    await expect(
+      waitForStudyAppReady(child, {
+        origin: `http://127.0.0.1:${port}`,
+        timeoutMs: 500,
+        pollIntervalMs: 10,
+        requestTimeoutMs: 50,
+      }),
+    ).rejects.toThrow(/exited before becoming ready/);
+    expect(child.listenerCount("exit")).toBe(0);
+    expect(child.listenerCount("error")).toBe(0);
+  });
+
+  it("fails closed when readiness exceeds the bounded timeout", async () => {
+    const port = await reserveThenReleasePort();
+    const child = fakeChild();
+
+    await expect(
+      waitForStudyAppReady(child, {
+        origin: `http://127.0.0.1:${port}`,
+        timeoutMs: 60,
+        pollIntervalMs: 5,
+        requestTimeoutMs: 15,
+      }),
+    ).rejects.toThrow(/did not become ready/);
+    expect(child.listenerCount("exit")).toBe(0);
+    expect(child.listenerCount("error")).toBe(0);
   });
 });
