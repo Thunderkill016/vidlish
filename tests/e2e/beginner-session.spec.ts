@@ -42,4 +42,19 @@ test("a learner starting from zero hears a sentence and their evidence is kept",
   await page.reload();
   await expect(known).toBeVisible();
   await expect(page.getByText("1", { exact: true }).first()).toBeVisible();
+
+  // With one word banked there is something real to ask about, so the check
+  // that makes self-reports mean anything becomes available.
+  await page.getByRole("button", { name: "Làm kiểm tra" }).click();
+
+  // Say "biết" to everything, including the words that do not exist. The
+  // product must refuse to bank that rather than reward it.
+  for (let index = 0; index < 4; index += 1) {
+    await expect(page.getByTestId("calibration-question")).toBeVisible();
+    await page.getByRole("button", { name: "Biết", exact: true }).click();
+  }
+
+  await expect(page.getByTestId("calibration-result")).toContainText(
+    "Hôm nay chưa ghi được bằng chứng độc lập",
+  );
 });

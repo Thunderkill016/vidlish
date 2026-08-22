@@ -49,6 +49,42 @@ export const beginnerAttemptResponseSchema = z.object({
   known: z.boolean(),
 });
 
+/**
+ * A check that the learner's "I know this" means something.
+ *
+ * The answers carry no claim about which items were real. The server knows, and
+ * a browser that could say so could clear every check it ever took.
+ */
+export const beginnerCalibrationRequestSchema = z.object({
+  answers: z
+    .array(
+      z.object({
+        item: z.string().min(1).max(64),
+        claimedKnown: z.boolean(),
+      }),
+    )
+    .min(4)
+    .max(24),
+});
+
+export const beginnerCalibrationResponseSchema = z.object({
+  reliable: z.boolean(),
+  falseAlarmRate: z.number().min(0).max(1),
+  /** Share of real words known once guessing is removed. */
+  corrected: z.number().min(0).max(1),
+});
+
+export const beginnerCalibrationItemsSchema = z.object({
+  items: z.array(z.string().min(1).max(64)).min(4).max(24),
+});
+
+export type BeginnerCalibrationItems = z.infer<
+  typeof beginnerCalibrationItemsSchema
+>;
+export type BeginnerCalibrationResponse = z.infer<
+  typeof beginnerCalibrationResponseSchema
+>;
+
 export type BeginnerSessionResponse = z.infer<
   typeof beginnerSessionResponseSchema
 >;
