@@ -100,10 +100,15 @@ export function buildGoldenStudyRuntimeEnv(baseEnv, localSupabase) {
 }
 
 function run(command, args, options = {}) {
+  const stdio = options.capture
+    ? ["ignore", "pipe", "pipe"]
+    : options.quiet
+      ? "ignore"
+      : "inherit";
   const result = spawnSync(command, args, {
     cwd: process.cwd(),
     encoding: "utf8",
-    stdio: options.capture ? ["ignore", "pipe", "pipe"] : "inherit",
+    stdio,
     env: options.env ?? process.env,
   });
   if (result.error) throw result.error;
@@ -135,7 +140,9 @@ function prepareLocalStudyDatabase() {
   assertCommand("psql", ["--version"]);
 
   console.log("[study:golden] Starting local Supabase...");
-  run("supabase", ["start"]);
+  // `supabase start` normally prints local API/service keys. They are local but
+  // still credentials, so the operator harness keeps that command quiet.
+  run("supabase", ["start"], { quiet: true });
 
   console.log("[study:golden] Resetting local database for one fresh participant...");
   run("supabase", ["db", "reset", "--local", "--yes", "--no-seed"]);
