@@ -5,6 +5,7 @@ import { createBeginnerProgressRepository } from "@/platform/learning/create-beg
 import { Card } from "@/shared/ui/card";
 
 import { BeginnerSession } from "./_components/beginner-session";
+import { CalibrationCheck } from "./_components/calibration-check";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,10 @@ export default async function StartPage() {
       </Card>
 
       <BeginnerSession />
+
+      {/* Only once there is something real to ask about: a check made entirely
+          of nonwords measures nothing. */}
+      {known.length > 0 ? <CalibrationCheck /> : null}
     </main>
   );
 }

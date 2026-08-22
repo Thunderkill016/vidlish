@@ -6,6 +6,7 @@ import { z } from "zod";
 import type {
   BeginnerProgressRepository,
   BeginnerWordEvidence,
+  CalibrationRecord,
 } from "@/modules/learning/ports/beginner-progress-repository";
 
 /**
@@ -23,10 +24,56 @@ const evidenceRowSchema = z.object({
   last_independent_at: z.string().nullable(),
 });
 
+const calibrationRowSchema = z.object({
+  checked_at: z.string(),
+  reliable: z.boolean(),
+});
+
 export class SupabaseBeginnerProgressRepository
   implements BeginnerProgressRepository
 {
   constructor(private readonly client: SupabaseClient) {}
+
+  async latestCalibration(
+    ownerUserId: string,
+  ): Promise<CalibrationRecord | null> {
+    const { data, error } = await this.client
+      .from("learner_calibrations")
+      .select("checked_at, reliable")
+      .eq("owner_user_id", ownerUserId)
+      .order("checked_at", { ascending: false })
+      .limit(1);
+    if (error) throw new Error(`Failed to read calibration: ${error.message}`);
+    const row = (data ?? [])[0];
+    if (!row) return null;
+    const parsed = calibrationRowSchema.parse(row);
+    return { checkedAt: parsed.checked_at, reliable: parsed.reliable };
+  }
+
+  async recordCalibration(input: {
+    ownerUserId: string;
+    wordTrials: number;
+    nonwordTrials: number;
+    hits: number;
+    falseAlarms: number;
+    reliable: boolean;
+  }): Promise<CalibrationRecord> {
+    const { data, error } = await this.client.rpc("record_learner_calibration", {
+      p_owner_user_id: input.ownerUserId,
+      p_word_trials: input.wordTrials,
+      p_nonword_trials: input.nonwordTrials,
+      p_hits: input.hits,
+      p_false_alarms: input.falseAlarms,
+      p_reliable: input.reliable,
+    });
+    if (error) {
+      throw new Error(`Failed to record calibration: ${error.message}`);
+    }
+    const parsed = calibrationRowSchema.parse(
+      Array.isArray(data) ? data[0] : data,
+    );
+    return { checkedAt: parsed.checked_at, reliable: parsed.reliable };
+  }
 
   async knownWords(ownerUserId: string): Promise<string[]> {
     const { data, error } = await this.client.rpc("learner_known_words", {

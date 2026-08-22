@@ -15,7 +15,24 @@ export type BeginnerWordEvidence = {
   readonly lastIndependentAt: string | null;
 };
 
+export type CalibrationRecord = {
+  readonly checkedAt: string;
+  readonly reliable: boolean;
+};
+
 export interface BeginnerProgressRepository {
+  /** The most recent check of whether this learner's self-reports mean anything. */
+  latestCalibration(ownerUserId: string): Promise<CalibrationRecord | null>;
+
+  recordCalibration(input: {
+    readonly ownerUserId: string;
+    readonly wordTrials: number;
+    readonly nonwordTrials: number;
+    readonly hits: number;
+    readonly falseAlarms: number;
+    readonly reliable: boolean;
+  }): Promise<CalibrationRecord>;
+
   knownWords(ownerUserId: string): Promise<string[]>;
 
   recordWordEvidence(input: {

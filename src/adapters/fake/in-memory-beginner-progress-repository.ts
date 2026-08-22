@@ -1,6 +1,7 @@
 import type {
   BeginnerProgressRepository,
   BeginnerWordEvidence,
+  CalibrationRecord,
 } from "@/modules/learning/ports/beginner-progress-repository";
 
 /**
@@ -15,6 +16,29 @@ export class InMemoryBeginnerProgressRepository
   implements BeginnerProgressRepository
 {
   private readonly rows = new Map<string, BeginnerWordEvidence>();
+  private readonly calibrations = new Map<string, CalibrationRecord>();
+
+  async latestCalibration(
+    ownerUserId: string,
+  ): Promise<CalibrationRecord | null> {
+    return this.calibrations.get(ownerUserId) ?? null;
+  }
+
+  async recordCalibration(input: {
+    ownerUserId: string;
+    wordTrials: number;
+    nonwordTrials: number;
+    hits: number;
+    falseAlarms: number;
+    reliable: boolean;
+  }): Promise<CalibrationRecord> {
+    const record = {
+      checkedAt: new Date().toISOString(),
+      reliable: input.reliable,
+    };
+    this.calibrations.set(input.ownerUserId, record);
+    return record;
+  }
 
   private key(ownerUserId: string, word: string): string {
     return `${ownerUserId}::${word.toLocaleLowerCase("en-US")}`;

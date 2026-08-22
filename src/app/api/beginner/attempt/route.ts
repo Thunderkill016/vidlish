@@ -30,13 +30,21 @@ export async function POST(request: NextRequest) {
     );
     if (!parsed.success) throw authErrors.rejected();
 
-    const evidence = await createBeginnerProgressRepository().recordWordEvidence(
-      {
-        ownerUserId: access.userId,
-        word: parsed.data.word.toLocaleLowerCase("en-US"),
-        independent: parsed.data.independent,
-      },
-    );
+    const progress = createBeginnerProgressRepository();
+
+    // A learner whose last check showed they say yes to words that do not exist
+    // has told the product their self-reports cannot be banked. The attempt is
+    // still recorded — attendance is real — but it cannot claim independence,
+    // because independence is the one thing the database will never let anyone
+    // take back.
+    const calibration = await progress.latestCalibration(access.userId);
+    const trusted = calibration === null || calibration.reliable;
+
+    const evidence = await progress.recordWordEvidence({
+      ownerUserId: access.userId,
+      word: parsed.data.word.toLocaleLowerCase("en-US"),
+      independent: parsed.data.independent && trusted,
+    });
 
     const payload = beginnerAttemptResponseSchema.parse({
       word: evidence.word,
