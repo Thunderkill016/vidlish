@@ -4,11 +4,6 @@ import type {
   LessonSession,
 } from "@/shared/contracts/lesson-v2";
 import type {
-  LearningProductEventKind,
-  LearningRuntimeErrorKind,
-  PrivacySafeLearningProductEvent,
-} from "@/shared/contracts/learning-product-events";
-import type {
   PersistedLearningSupportStep,
   PrivacySafeActivityAttempt,
   PrivacySafeActivityResponse,
@@ -53,22 +48,6 @@ export type RecordLearningSupportEventInput = {
   | {
       eventKind: "support_opened";
       supportStep: PersistedLearningSupportStep;
-    }
-);
-
-export type RecordLearningProductEventInput = {
-  ownerUserId: string;
-  sessionId: string;
-  activityId: string;
-  idempotencyKey: string;
-} & (
-  | {
-      eventKind: Exclude<LearningProductEventKind, "runtime_error">;
-      detailKind?: never;
-    }
-  | {
-      eventKind: "runtime_error";
-      detailKind: LearningRuntimeErrorKind;
     }
 );
 
@@ -136,20 +115,4 @@ export interface LearningSessionRepository {
     event: PrivacySafeLearningSupportEvent;
     created: boolean;
   }>;
-
-  /**
-   * Product-observation evidence that cannot be reconstructed from attempts,
-   * support rows or session state. These rows never update learning capability.
-   */
-  recordProductEvent(
-    input: RecordLearningProductEventInput,
-  ): Promise<{
-    event: PrivacySafeLearningProductEvent;
-    created: boolean;
-  }>;
-
-  listProductEvents(input: {
-    ownerUserId: string;
-    sessionId: string;
-  }): Promise<readonly PrivacySafeLearningProductEvent[]>;
 }
