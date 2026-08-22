@@ -110,9 +110,11 @@ test("internal usability evaluator rejects arbitrary notes and reports the prede
   const textarea = page.getByLabel("Study JSON");
   await textarea.fill(JSON.stringify(invalidStudy));
   await page.getByRole("button", { name: "Đánh giá 5 phiên" }).click();
-  await expect(page.getByText(/Không thể đánh giá\./)).toContainText(
-    "Unrecognized key",
-  );
+  const validationAlert = page
+    .getByRole("alert")
+    .filter({ hasText: "Unrecognized key" });
+  await expect(validationAlert).toContainText("Không thể đánh giá");
+  await expect(validationAlert).toContainText("Unrecognized key");
 
   await textarea.fill(JSON.stringify(validStudy));
   await page.getByRole("button", { name: "Đánh giá 5 phiên" }).click();
