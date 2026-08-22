@@ -18,9 +18,6 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:db": "supabase test db",
-    "bmad:install": "npx --yes bmad-method@6.10.0 install --directory . --modules bmm --tools codex --yes --communication-language Vietnamese --document-output-language Vietnamese --output-folder _bmad-output",
-    "bmad:tools": "npx --yes bmad-method@6.10.0 install --list-tools",
-    "bmad:update": "npx --yes bmad-method@6.10.0 install --directory . --action quick-update --yes",
     "db:local": "node scripts/local-schema.mjs"
   },
   "dependencies": {

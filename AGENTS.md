@@ -49,11 +49,12 @@ Before changing product behavior, read these in order:
 
 1. `docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`
 2. `docs/product/learning-model-v2/golden-session-validation.md`
-3. current PR/issue acceptance criteria
-4. code + tests on the branch being changed
-5. older BMAD artifacts only when they do not conflict with the product documents above
+3. `.specify/memory/constitution.md`
+4. the current feature's `spec.md`, `plan.md`, `tasks.md` and explicit PR/issue acceptance criteria
+5. code + tests on the branch being changed
+6. `docs/archive/bmad/` only for historical context
 
-Do not treat old sprint/story metadata as current authority.
+Archived sprint/story/readiness metadata is never current authority. If an archived decision is still required, restate it in current product docs, the constitution, or an active feature specification.
 
 ## Current program state
 
@@ -233,20 +234,23 @@ Database changes are not complete until pgTAP passes. Learning-flow changes are 
 
 Never weaken tests, add forced browser clicks, or loosen security constraints just to make CI green. Diagnose from the failing job/log and fix the product behavior or test contract deliberately.
 
-## Agent execution protocol
+## Spec Kit execution protocol
 
-Use agents for bounded vertical slices, not vague “improve everything” prompts.
+Use Spec Kit for bounded vertical slices, not vague “improve everything” prompts. The constitution is read live from `.specify/memory/constitution.md`; do not copy it into agent-specific templates.
 
-For every implementation task:
+For every implementation task with material scope:
 
-1. state the acceptance boundary and invariants;
-2. inspect current code/tests before editing;
-3. choose the smallest vertical slice that can be verified end-to-end;
-4. keep unrelated refactors out;
-5. add/adjust tests with the implementation;
-6. run focused tests, then full required gates;
-7. inspect the diff for privacy, grounding, ownership and misleading capability claims;
-8. open a draft PR until all required CI jobs are green.
+1. state the acceptance boundary and invariants in `specs/<feature>/spec.md`;
+2. clarify material ambiguity before choosing architecture;
+3. inspect current code/tests before writing `plan.md`;
+4. choose the smallest vertical slices and verification in `tasks.md`;
+5. keep unrelated refactors out;
+6. implement with tests, then run focused checks and the full required gates;
+7. analyze the diff/spec/plan/tasks for privacy, grounding, ownership and misleading capability claims;
+8. converge artifacts only when implementation and verification agree;
+9. merge only the exact reviewed head after all required CI jobs are green.
+
+Small mechanical fixes may use a lightweight spec/PR acceptance boundary, but they still obey the constitution and verification rules.
 
 Parallel agents should work on separate branches/worktrees and non-overlapping scopes. One agent may implement while another reviews threat/privacy/test gaps. Do not have several agents edit the same files concurrently without an explicit integration plan.
 
@@ -257,9 +261,9 @@ This repository is intentionally compatible with multiple development agents whi
 - Primary implement/refactor/CI agent: use the strongest available coding agent with full repo + terminal context.
 - Independent reviewer: use a different frontier coding model/agent for adversarial review of correctness, privacy, RLS, race conditions and test gaps.
 - Large-context/research agent: use for docs/API changes and cross-checking current external platform behavior; verify against primary sources.
-- GitHub coding/review agents: consume `AGENTS.md`, repository instructions and path-specific instructions.
+- GitHub coding/review agents: consume `AGENTS.md`, `.specify/memory/constitution.md`, active feature artifacts and path-specific instructions.
 
-Do not paste separate contradictory project rules into each agent. Update this file or the product authority documents instead.
+Do not paste separate contradictory project rules into each agent. Update the constitution, this file, or the product authority documents instead.
 
 ## Communication
 
