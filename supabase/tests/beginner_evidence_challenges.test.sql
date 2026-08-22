@@ -6,7 +6,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(14);
+select plan(16);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
@@ -84,6 +84,26 @@ select is(
   ),
   true,
   'the server service-role boundary can commit challenge evidence'
+);
+
+select is(
+  has_function_privilege(
+    'service_role',
+    'public.record_learner_calibration(uuid,integer,integer,integer,integer,boolean)',
+    'EXECUTE'
+  ),
+  true,
+  'the server service-role boundary can persist a calculated calibration verdict'
+);
+
+-- No request.jwt.claim.sub is set in this test. The application repository uses
+-- the admin/secret client, so persistence must not depend on a user JWT after
+-- browser EXECUTE has been revoked.
+select is(
+  (public.record_learner_calibration(
+    'd1111111-1111-4111-8111-111111111111', 1, 3, 1, 0, true)).reliable,
+  true,
+  'server-side calibration persistence does not require auth.uid()'
 );
 
 insert into public.beginner_evidence_challenges (
