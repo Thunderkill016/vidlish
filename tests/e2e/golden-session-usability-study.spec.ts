@@ -1,9 +1,8 @@
 import { expect, test, type Page } from "@playwright/test";
 
 async function login(page: Page) {
-  const learnerEmail = `usability-${test.info().project.name}@example.com`;
   await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(learnerEmail);
+  await page.getByLabel("Email được mời").fill("invited@example.com");
   await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
   await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
   await page.getByRole("button", { name: "Đăng nhập" }).click();
