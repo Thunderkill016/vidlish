@@ -1,23 +1,22 @@
 # Bàn giao Vidlish — operational state hiện tại
 
-Cập nhật: **2026-08-22**, sau khi beginner evidence authority và Gate 5 operator evidence path được harden qua PR #130, #132 và #133.
+Cập nhật: **2026-08-22**, sau khi product owner chuyển chương trình sang **personal-first learning** và technical evidence path đã được harden qua Features 006–009.
 
-File này giữ **operational handover và những bẫy đã trả giá để học được**. Nó không đứng trên product authority hay active feature specs.
+File này giữ operational state và các bẫy kỹ thuật đã được kiểm chứng. Nó không đứng trên Product Master Plan, constitution hay active feature spec.
 
 ## 0. Thứ tự nguồn sự thật
 
 Trước khi đổi product behavior, đọc theo thứ tự:
 
 1. `docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`
-2. `docs/product/learning-model-v2/golden-session-validation.md`
-3. `.specify/memory/constitution.md`
-4. active `specs/<feature>/spec.md`, `plan.md`, `tasks.md` và acceptance criteria của PR/issue hiện tại
-5. code + tests trên branch đang thay đổi
-6. `AGENTS.md` cho mission, program state và execution protocol
-7. `HANDOVER.md` này cho operational traps và recent verified state
-8. `docs/archive/bmad/` chỉ để tra lịch sử
+2. `.specify/memory/constitution.md`
+3. active `specs/<feature>/spec.md`, `plan.md`, `tasks.md` + PR acceptance criteria
+4. code + tests trên branch đang thay đổi
+5. `AGENTS.md` và `HANDOVER.md` cho program state / operational traps
+6. `docs/product/learning-model-v2/golden-session-validation.md` khi task liên quan **deferred external-user Golden Session study**
+7. `docs/archive/bmad/` chỉ để tra lịch sử
 
-**BMAD không còn là methodology đang hoạt động.** Artifact BMAD đã archive và không được dùng để ghi đè product docs, constitution, active specs hay code/tests hiện tại.
+**BMAD không còn là methodology đang hoạt động.**
 
 Luôn kiểm tra `main`, PR và GitHub Actions thật thay vì tin số PR/CI từ trí nhớ.
 
@@ -25,9 +24,9 @@ Luôn kiểm tra `main`, PR và GitHub Actions thật thay vì tin số PR/CI t�
 
 ## 1. Sản phẩm hiện là gì
 
-Vidlish không còn được tổ chức quanh lời hứa “dán YouTube URL → AI tạo lesson”.
+Vidlish được build trước hết để **product owner tự học tiếng Anh thật**.
 
-Mission hiện tại là đưa một người Việt từ **không biết tiếng Anh** đến sử dụng được tiếng Anh — listening, speaking, reading, writing — bằng một learning loop có evidence:
+Mission:
 
 ```text
 comprehensible input
@@ -47,173 +46,173 @@ comprehensible input at the learner's level
 + progressively less support
 ```
 
+### Active loop
+
+```text
+owner học thật trong Vidlish
+→ server ghi durable evidence
+→ /progress chỉ hiển thị claim evidence support được
+→ learner làm next evidence-bearing action
+→ friction / missing evidence trở thành bounded feature tiếp theo
+```
+
+Không cần tuyển 5 người khác để tiếp tục build cho personal use.
+
 ### Video là nguồn, không phải trung tâm
 
-- Người bắt đầu từ zero dùng beginner input ngắn, có bounded support và comprehensibility gate.
-- YouTube/canonical transcript là một nguồn input nâng cao khi learner đã đủ khả năng sử dụng authentic media.
-- Không lên roadmap như thể “đến được video path” là đích cuối.
+- `/start` là entry chính khi authentic English còn quá khó.
+- YouTube/canonical transcript là nguồn nâng cao khi learner đã đủ khả năng dùng authentic media.
+- Không để dashboard/roadmap biến “tạo video lesson” thành default learning action.
 
 ---
 
-## 2. Trạng thái chương trình đã kiểm chứng
+## 2. Trạng thái kỹ thuật đã kiểm chứng
 
 Learning Model v2 đã nằm trên `main` từ PR #44. Không còn integration branch riêng.
 
-Đã có trong code/runtime:
+Đã có trong runtime:
 
 - learner-first shell;
-- `/start` beginner path cho zero/very-low evidence;
-- durable learning sessions;
-- owner-bound privacy-safe attempts/evidence;
-- server-confirmed support/replay evidence;
-- changed-context transfer;
-- delayed review + application-layer scheduling;
-- capability-oriented progress views;
-- source-grounded YouTube generation path;
+- `/start` beginner path;
+- server-bound beginner evidence challenge;
+- durable source-lesson sessions;
+- owner-bound attempts/evidence;
+- support/replay evidence;
+- source changed-context transfer;
+- source delayed review + FSRS schedule;
+- capability-oriented progress;
+- source-grounded YouTube authoring;
 - Supabase RLS/RPC + pgTAP;
-- Chromium product journeys;
-- durable Supabase Golden Session journey.
+- Chromium + durable Supabase journeys.
 
-Production đã chứng minh v2 authoring có thể tạo/publish `lesson_versions`. Điều đó chứng minh **reachability**, không chứng minh reliability hay teaching value.
+Production-shaped v2 authoring đã publish được `lesson_versions`. Đây là reachability evidence, không phải teaching/retention evidence.
 
-### Hard gate hiện tại: Gate 5
+### Gap học tập quan trọng nhất hiện tại
 
-Gate 5 = analytics + moderated usability với **5 target users**.
+Beginner path hiện có:
 
-Feature 004 tạo evaluator + predeclared thresholds + runbook. Feature 005/PR #128 làm study runnable local mà không cần DevTools, production Supabase hay paid provider.
+- narrow independent word evidence;
+- within-session sentence reuse;
+- calibration chống self-report false positives;
+- server-authoritative challenge binding.
 
-PR #128 exact head:
+Nhưng beginner path **chưa có durable changed-context + cross-session delayed-review chain riêng** tương đương source-lesson review state.
 
-```text
-51c4ff44bb85fca8cee4f8b39a7e90297fe43d69
-```
+Vì vậy:
 
-CI #474 / run `32571811299` trên exact head đó đã pass:
+- không gọi một beginner word “retained/mastered” chỉ vì learner nói/gõ đúng một lần;
+- `/progress` chỉ được claim independent evidence ở beginner stage;
+- next personal-learning slice hợp lệ là nối beginner evidence qua changed context và delayed review thật.
 
-- typecheck + lint;
-- unit tests;
-- production build;
-- Supabase migration + RLS/pgTAP;
-- Chromium product journeys;
-- durable Supabase learning journey;
-- owner-crossing measurement rejection;
-- aggregate CI gate.
+---
 
-PR #128 được squash-merge vào `main` thành:
+## 3. External five-person Gate 5: giữ lại nhưng deferred
 
-```text
-fdbee37bd3b1eca473b3c25f65eece772251d987
-```
+Feature 004–005 tạo five-person Golden Session evaluator + study harness. Feature 007–009 harden capture/readiness/test proof.
 
-**Gate 5 vẫn chưa PASS.** Không có quyền biến fixture/browser CI thành “5 learner evidence”. Cần 5 phiên người thật đúng protocol.
+**External Gate 5 vẫn chưa PASS.** Chưa có 5 genuine participant records.
 
-Runbook:
+Nhưng nó **không còn là active blocker** cho personal-first development.
+
+Chỉ re-activate khi owner muốn validate Vidlish cho người khác hoặc thương mại hóa.
+
+Khi đó dùng nguyên protocol/threshold đã predeclare tại:
 
 ```text
+docs/product/learning-model-v2/golden-session-validation.md
 docs/product/learning-model-v2/golden-session-usability-runbook.md
 ```
 
-Local operator harness:
+và harness:
 
 ```bash
 pnpm study:golden
 ```
 
-Nguyên tắc của harness:
+Không fabricate participant records và không dùng CI fixture thay learner evidence.
 
-- một real participant mỗi clean DB/browser cycle;
-- local Supabase + durable fixture;
-- paid/provider credentials bị strip khỏi child runtime;
-- capture page tự lấy Golden session pointer, không cho moderator gõ UUID;
-- measurement endpoint vẫn owner-scoped server authority;
-- moderator observations bounded và mặc định unset;
-- không suy diễn positive observation từ telemetry;
-- participant JSON không được tự persist lên server;
-- reset chỉ xóa Golden browser-state key;
-- phải có 5 genuine records rồi mới evaluate Gate 5.
+### Operator hardening đã merge
 
-Không tuyển được 5 người thật không phải lý do để tạo synthetic records.
+Feature 007 / PR #132:
 
-### Gate 5 operator evidence hardening sau Features 007–008
+- đổi moderator observation sau khi build participant JSON làm stale JSON bị invalidate;
+- final exact-head CI #488 xanh;
+- merge `c45ac2a8c6baafd16bb19ac7b240560ea92a5da1`.
 
-Feature 007/PR #132 sửa defect ở capture UI: sau khi moderator build participant JSON, đổi một observation trước đây không làm record cũ biến mất. UI có thể hiển thị observation mới trong khi JSON copy ra vẫn chứa observation cũ. Boundary hiện tại:
+Feature 008 / PR #133:
 
-- mọi moderator observation change làm built participant JSON + copy state bị invalidate;
-- rebuild dùng observation hiện tại;
-- scoped Golden browser-state reset vẫn giữ record đã build để moderator copy trước khi dừng cycle;
-- không persist participant record mới lên browser/server;
-- không đổi participant schema, evaluator hoặc Gate 5 thresholds.
+- study port phải free trước DB reset và được check lại trước spawn;
+- chỉ báo ready sau khi fresh child trả HTTP ở `/sign-in`;
+- child exit/timeout fail closed; timeout child bị terminate;
+- merge `9946df6b799346a9e1470a1c100515c1298fb684`.
 
-Verification Feature 007:
+Feature 009 / PR #135:
 
-- final exact head `40c58b2589e96b2e9c1e1c1075700e16e869a058` pass full CI #488 / run `32576493806`;
-- PR #132 squash-merge vào `main` thành `c45ac2a8c6baafd16bb19ac7b240560ea92a5da1`.
+- post-merge audit phát hiện `scripts/golden-study-harness.test.mjs` từng nằm ngoài Vitest discovery;
+- `vitest.config.ts` đã include chính xác file này;
+- CI #495 unit log chứng minh `scripts/golden-study-harness.test.mjs (9 tests)` pass;
+- toàn CI #495 xanh;
+- merge `1b34f9faae82a92d8bf377be334f80a6d2b119f0`.
 
-Feature 008/PR #133 sửa defect ở `pnpm study:golden`: harness trước đây có thể in “ready” trước khi `next dev` thực sự chạy và không chứng minh port 3200 thuộc fresh participant cycle. Boundary hiện tại:
+Bài học: **test file tồn tại không có nghĩa CI đã chạy nó**. Khi proof phụ thuộc một test cụ thể, kiểm exact CI log/discovery thay vì chỉ nhìn aggregate green.
 
-- check loopback study port trước khi reset participant DB; port đang bị process cũ chiếm thì fail closed trước khi mutate cycle;
-- sau khi clean fixture được load, check port lần nữa ngay trước spawn để thu hẹp startup race;
-- chỉ in operator URLs sau khi chính child app trả successful HTTP response ở `/sign-in`;
-- child exit/error trước readiness thì fail closed;
-- readiness timeout bị bounded và timed-out child bị terminate;
-- signal forwarding, local Supabase isolation và no-paid-provider boundary được giữ nguyên.
+---
 
-Verification Feature 008:
+## 4. Beginner evidence authority sau Feature 006
 
-- implementation head `47ae2920a92a68a6a542c8815d7322ad168d7192` pass full CI #490 / run `32577783623`;
-- final exact head `ddebb888278d6f751647a909334d94f9327a32be` pass full CI #491 / run `32577961401`;
-- PR #133 squash-merge vào `main` thành `9946df6b799346a9e1470a1c100515c1298fb684` bằng `expected_head_sha`.
-
-Features 007–008 là **operator/evidence-integrity hardening**, không phải 5-person learner evidence. Chúng không thay đổi và không pass Gate 5.
-
-### Beginner evidence authority sau Feature 006
-
-PR #130 sửa một defect thật: trước đó browser có thể gửi chính `word` và dictation answer-key `sentence` cho attempt route, trong khi một số `SECURITY DEFINER` RPC ghi/đọc evidence còn executable bởi `authenticated`. Điều đó làm server-side scoring trông có authority nhưng canonical fact vẫn do client lựa chọn.
+PR #130 sửa browser-controlled evidence truth.
 
 Boundary hiện tại:
 
-- `/api/beginner/session` phát opaque challenge ID cho item server đã chọn;
-- challenge row giữ owner, kind, target word, authoritative sentence khi cần dictation, expiry và consumed state;
-- `/api/beginner/attempt` chỉ nhận challenge ID + learner action; browser không gửi canonical target hay answer key;
-- route đọc challenge theo owner rồi score `heard` với sentence server lưu;
-- DB RPC derive item key từ challenge và consume challenge atomically với evidence upsert;
-- challenge sai owner, hết hạn, ngẫu nhiên hoặc đã consume đều fail closed;
-- calibration POST phải khớp **đúng tập item deterministic hiện tại của server**; missing/extra/duplicate/substituted item bị reject;
-- browser không có `EXECUTE` trên legacy arbitrary-word evidence RPC, calibration persistence RPC, arbitrary-owner `learner_known_words(uuid)`, hay challenge mutation RPC;
-- challenge table không mở browser policy; runtime persistence dùng server/service-role boundary;
-- direct learning-table writes của browser vẫn bị khóa; owner relationships của lesson/review paths còn được giữ bằng composite foreign keys, không chỉ route checks.
+- `/api/beginner/session` phát opaque challenge ID cho target server đã chọn;
+- challenge row giữ owner, kind, target word, authoritative sentence nếu cần, expiry và consumed state;
+- `/api/beginner/attempt` nhận learner action, không nhận canonical target/answer key từ browser;
+- route resolve challenge theo owner rồi score với server-owned fact;
+- DB consume challenge atomically với evidence write;
+- wrong-owner, expired, random hoặc consumed challenge fail closed;
+- calibration POST phải khớp exact deterministic item set server hiện tại;
+- browser không có `EXECUTE` trên arbitrary evidence/calibration/owner-read primitives;
+- challenge table không mở browser mutation policy;
+- direct table write vẫn bị khóa.
 
-Verification của Feature 006:
+Verification:
 
-- implementation head `3952f461fda3a42e60fe94dce97ae6396219c58a` pass full CI #482 / run `32574866979`;
-- final exact head `dc044508a9010ad0153f4e9400694478f68916c2` pass full CI #483 / run `32575040768`;
-- PR #130 squash-merge vào `main` thành `21a6b5f070c0544e0f7049b1c65871be70c8f5de`.
+- final exact head `dc044508a9010ad0153f4e9400694478f68916c2` pass CI #483;
+- PR #130 merge `21a6b5f070c0544e0f7049b1c65871be70c8f5de`.
 
-Sau merge, audit lại lesson session/attempt, support events, delayed review, lesson progress và product-observation RPC không tìm thấy cùng class browser-executable evidence bypass: các mutation path đó đang service-role-only và có ownership binding phù hợp. Đây là kết quả audit hiện tại, không phải lời khẳng định không bao giờ có bug mới.
+### `SECURITY DEFINER` trap
 
-Feature 006 là security/evidence-integrity proof, **không phải learner evidence**. Nó không thay đổi hay pass Gate 5.
+Không đủ để test browser không `INSERT` table nếu browser vẫn có thể `EXECUTE` một `SECURITY DEFINER` function ghi table đó.
+
+Khi thêm/đổi RPC evidence:
+
+- audit `has_function_privilege` cho `anon`, `authenticated`, `service_role`;
+- kiểm arbitrary-owner read/write;
+- nếu app dùng admin client, đừng dựa vào user `auth.uid()` trong service-only primitive;
+- canonical target/answer/evaluation fact phải đến từ server-owned state hoặc immutable blueprint;
+- single-use claim phải atomic consume + write;
+- route ownership check không thay structural FK/RLS/function privilege proof.
 
 ---
 
-## 3. Learning invariants không được phá
+## 5. Learning invariants không được phá
 
-- Comprehensibility là gate; policy `i+1` hiện tại là policy auditable, không phải định luật khoa học bất biến.
-- Receptive và productive evidence là các loại evidence khác nhau.
+- Comprehensibility là gate; one-new-target beginner rule hiện tại là auditable policy, không phải định luật khoa học.
+- Receptive và productive evidence là hai loại khác nhau.
 - Supported success và independent success không được gộp.
 - Completion != mastery.
-- Scheduler state quyết định khi nào item quay lại, không tự chứng minh independent capability.
+- Scheduler state chỉ quyết định timing, không chứng minh capability.
 - Reading correction không phải completion nếu policy yêu cầu retry.
-- Changed-context transfer phải thay context/input, không chỉ lặp lại source sentence.
-- Immediate transfer và delayed transfer được claim/store riêng.
-- UI-local state không được trở thành authority cho durable learning evidence.
+- Changed-context transfer phải đổi context/input.
+- Immediate và delayed transfer claim/store riêng.
+- Stronger checkpoint phải giữ đủ prerequisite yếu hơn; timestamp mâu thuẫn phải fail closed.
+- UI-local state không được làm durable authority.
 - Solved và revealed là hai trạng thái khác nhau.
-- Evidence/provenance styling chỉ dùng khi thực sự mang nghĩa evidence.
-
-Product owner đã cho phép lưu learner writing và recording learner speech khi đó là chức năng cần thiết cho writing/speaking. Không biến quyền đó thành lý do cho listening attempt mang free text/audio không liên quan.
+- Writing/speaking có thể lưu learner writing/audio khi đó là chức năng cần thiết; task khác không được piggyback raw content.
 
 ---
 
-## 4. Source-grounded path: grounding promise
+## 6. Source-grounded path
 
 Với bài học dựa trên video:
 
@@ -221,18 +220,10 @@ Với bài học dựa trên video:
 
 Boundary:
 
-- model/provider đề xuất IDs/labels;
-- server ánh xạ/hydrate exact text + timestamps;
-- evidence ngoài allowlist bị reject;
-- quality/grounding gate nằm trước publish;
-- không thêm đường cho model tự viết quote rồi coi là grounded.
-
-Pipeline production-shaped hiện tại:
-
 ```text
 YouTube metadata
 → durable lesson job
-→ native transcript acquisition
+→ transcript acquisition
 → canonical transcript persistence
 → original-English eligibility
 → permitted segment allowlist
@@ -240,149 +231,64 @@ YouTube metadata
 → deterministic gate + grounding
 → quality pass
 → v2 lesson_version publish
-→ guided learning session
+→ guided session
 ```
 
-v1 authoring flow đã bị loại khỏi current workflow. Không phục hồi v1 như một shortcut để làm test xanh.
+Model/provider chỉ đề xuất bounded output/IDs. Server hydrate canonical text/timestamp và reject evidence ngoài allowlist.
+
+Không phục hồi v1 authoring như shortcut.
 
 ---
 
-## 5. Kiến trúc
+## 7. Production/provider traps đã biết
 
-Dependency direction:
+### Gemini wire schema
 
-```text
-app / route handlers
-→ application
-→ ports
-← adapters
-```
+Full JSON schema quá phức tạp từng bị Gemini từ chối (`too many states for serving`). Adapter phải strip unsupported/high-state wire constraints; server Zod/domain validation vẫn là authority.
 
-Key areas:
+### Model IDs
 
-- `src/shared/contracts/`: runtime/domain contracts;
-- `src/modules/learning/application/`: authoritative learning behavior;
-- `src/modules/learning/ports/`: repository/provider boundaries;
-- `src/adapters/fake/`: deterministic local/test adapters;
-- `src/adapters/supabase/`: durable persistence;
-- `src/platform/`: composition/config;
-- `src/workflows/`: Vercel Workflow durable orchestration;
-- `supabase/migrations/`: DB invariants/RPC/RLS;
-- `supabase/tests/`: pgTAP;
-- `tests/e2e/`: user/browser evidence.
+Không bắt model sao chép canonical ID dài. Dùng short label trong prompt rồi server map về canonical IDs.
 
-Inngest đã bị loại từ kiến trúc cũ. Không tạo Inngest app, event key hay endpoint cũ.
+### Thinking/sampling
 
----
+Không đổi Gemini thinking/sampling theo cảm giác. Đọc current adapter + provider docs trước.
 
-## 6. Production/provider safety
+### Supabase Data API row cap
 
-Ordinary local/CI work dùng fixture/fake/local Supabase.
+Với owner-wide sets có thể vượt cap:
 
-Không gọi production Supabase, Gemini, Supadata hoặc paid provider khác nếu task không cho phép rõ ràng việc đó.
-
-Không bao giờ đưa service/provider keys vào:
-
-- client bundle;
-- logs;
-- screenshot;
-- prompts;
-- tests;
-- repository files.
-
-Production chỉ dùng một enabled provider/model/key theo current configuration. Benchmark model tạm thời không tự đổi production routing.
-
----
-
-## 7. Những bẫy production đã từng làm hỏng hệ thống
-
-### 7.1 Gemini wire schema quá phức tạp
-
-Gemini từng từ chối full JSON schema với lỗi dạng:
-
-```text
-400 The specified schema produces a constraint that has too many states for serving
-```
-
-Wire schema phải strip đúng các unsupported/high-state keywords đã được adapter hiện tại xử lý. Server-side Zod/domain validation vẫn là authority. Không “fix” bằng cách xóa field nghiệp vụ hay nới contract.
-
-### 7.2 Không bắt model sao chép ID dài
-
-Model từng làm rơi prefix của segment ID dù phần hex còn đúng. Dùng short labels trong prompt và server map về canonical IDs trước validation.
-
-### 7.3 Thinking/sampling
-
-Provider config đã từng hỏng vì truyền thinking level sai kiểu hoặc tự chỉnh sampling không phù hợp Gemini 3.x.
-
-Không đổi thinking/sampling theo cảm giác. Đọc adapter + current provider docs trước khi thay.
-
-### 7.4 Supabase Data API row cap
-
-`api.max_rows` có thể giới hạn response dù query thành công.
-
-Với tập có thể vượt limit:
-
-- lọc nghiệp vụ trong Postgres;
+- filter business rule trong Postgres;
 - deterministic order;
 - `count: "exact"` + `range()`;
-- tiến offset theo số row server thật trả;
-- fail closed nếu exact count nói còn row nhưng page kế tiếp rỗng.
+- advance offset theo số row server trả;
+- fail closed nếu exact count nói còn row nhưng page tiếp theo rỗng.
 
-Không tải owner-wide rồi `.filter()` trong Node để giả làm business query.
+### Workflow terminalization
 
-### 7.5 Workflow phải terminalize hữu hạn
+Workflow không được kết thúc mà durable job vẫn active. Retry exhaustion phải terminalize và trả active slot.
 
-Không được để workflow kết thúc mà job vẫn ở active state.
+### PostgreSQL timestamps
 
-- retry exhaustion phải terminalize;
-- active slot phải được trả;
-- workflow boundary fail closed nếu final state vẫn active;
-- watchdog là last-resort safety net, không phải primary completion mechanism.
+`timestamptz` có thể serialize `+00:00`, không chỉ `Z`.
 
-### 7.6 Supabase timestamp có offset
+### YouTube segment playback
 
-`timestamptz` có thể serialize dạng `+00:00`, không chỉ `Z`. Contract đọc DB phải chấp nhận offset-aware datetime.
+Iframe segment player phải có bounded stop/timer; không dựa polling `currentTime` như authority duy nhất.
 
-### 7.7 YouTube segment playback phải tự dừng
+### pgTAP / PLpgSQL
 
-Iframe player dùng `enablejsapi=1` và timer ở segment end. Không dựa vào polling `currentTime` làm authority duy nhất; message chậm không được để clip chạy quá đoạn learner cần nghe. Timer phải clear khi phát đoạn mới và khi unmount.
+Đã từng gặp:
 
-### 7.8 CI xanh có thể xanh sai lý do
+- fixture vi phạm unique/active invariant;
+- output variable trùng column làm SQL ambiguous;
+- `CHECK (expr = value)` fail-open khi `expr` NULL.
 
-Fixture tests đã từng xanh trong lúc provider thật thất bại. In-memory/unit tests cũng không chứng minh SQL thực thi được.
-
-- DB change cần pgTAP.
-- learning-flow change cần Chromium.
-- persistence change cần durable Supabase journey.
-- provider change chỉ có real-provider evidence khi task cho phép dùng key/quota.
-- không weaken test, force click hoặc nới RLS chỉ để CI xanh.
-
-### 7.9 pgTAP/PLpgSQL traps đã gặp
-
-Ba lớp lỗi từng chỉ lộ khi SQL thực sự chạy:
-
-- fixture dựng trạng thái vi phạm unique/active-job invariant;
-- output parameter trùng tên column làm `on conflict` ambiguous;
-- `CHECK (expr = value)` fail open khi `expr` là NULL.
-
-Đừng coi regex-on-migration-text là database proof.
-
-### 7.10 `SECURITY DEFINER` + `EXECUTE` mới là quyền ghi thật
-
-Không đủ để nói “browser không INSERT được table” nếu browser vẫn có thể gọi một `SECURITY DEFINER` function ghi table đó. Feature 006 tồn tại vì test cũ từng chứng minh direct table INSERT bị cấm nhưng bỏ sót function privilege.
-
-Khi thêm/đổi RPC liên quan evidence:
-
-- audit `has_function_privilege` cho `anon`, `authenticated`, `service_role`;
-- kiểm tra function nhận owner ID có thể trở thành arbitrary-owner read/write hay không;
-- nếu application dùng admin/secret client, đừng dựa vào user `auth.uid()` ở service-only persistence primitive;
-- canonical target/answer/evaluation fact phải đến từ server-owned state hoặc immutable blueprint, không từ field browser có thể tự chọn;
-- single-use claims cần atomic consume + write, không phải “GET rồi UPDATE” tách rời dễ race/replay;
-- route ownership check không thay structural FK/RLS/function privilege proof.
+Đừng coi regex trên migration text là DB proof.
 
 ---
 
-## 8. Local SQL / verification
+## 8. Verification
 
 Canonical checks:
 
@@ -395,70 +301,51 @@ supabase test db
 pnpm test:e2e
 ```
 
-Có thể dùng PGlite helper để bắt lỗi migration/fixture syntax/schema nhanh trước CI:
+PGlite helper:
 
 ```bash
 pnpm db:local
 pnpm db:local supabase/fixtures/a.sql b.sql
 ```
 
-Nó không thay pgTAP/RLS proof.
+PGlite bắt schema/SQL errors nhanh nhưng không thay pgTAP/RLS proof.
 
-Full required CI trên exact PR head mới là merge evidence.
+Full required CI trên **exact final PR head** mới là merge evidence.
 
----
-
-## 9. Measurement cũ: dùng như historical evidence, không dùng làm current roadmap
-
-Những phép đo provider/pipeline cũ vẫn có ích để tránh đo lại vô ích, nhưng không được coi là current product priority.
-
-Ví dụ historical measurement từng ghi nhận cho một video 3m34s / 61 segments:
-
-| Bước | Thời gian | Tỉ trọng |
-|---|---:|---:|
-| Gemini authoring | ~13,6s | 68% |
-| Supadata + normalization | ~5,9s | 30% |
-| YouTube metadata | ~0,4s | 2% |
-| language detection | ~0,03s | 0,1% |
-
-Chỉ đo lại nếu có hypothesis mới hoặc provider/runtime đã thay đổi đủ để phép đo cũ mất ý nghĩa.
+Không weaken test, force click hoặc nới RLS chỉ để xanh.
 
 ---
 
-## 10. Việc tiếp theo theo gate, không theo feature hype
+## 9. Việc tiếp theo — personal-first
 
-Hiện tại không có technical feature nào được phép tự tuyên bố Gate 5 hoàn tất.
+Không còn task “recruit 5 target users” trong active product loop.
 
-Next product evidence:
+Next learning-system work:
 
-1. recruit 5 target users theo runbook;
-2. một participant mỗi clean harness cycle;
-3. capture bounded moderator observation + owner-scoped durable measurement;
-4. giữ 5 genuine participant JSON records;
-5. evaluate đúng predeclared thresholds;
-6. chỉ khi Gate 5 có evidence mới quyết định Gate 6 / 20–50 learner cohort.
+1. owner dùng `/start` như learner thật;
+2. `/progress` phải cho thấy independent evidence hiện có mà không phóng đại;
+3. nối beginner independent evidence vào **changed-context cross-session delayed review**;
+4. dùng delayed evidence để xem thứ đã học có sống qua thời gian hay không;
+5. sửa các friction learner thật gặp: input quá khó/dễ, audio, support, correction, review timing, speaking/writing gap;
+6. chỉ giảm support khi evidence cho thấy learner làm được với ít trợ giúp hơn.
 
-Trong lúc chưa có người thật, chỉ nên làm technical work nếu nó:
-
-- sửa defect quan sát được;
-- làm protocol hiện tại thực sự runnable/safer;
-- bảo vệ evidence/ownership/privacy;
-- hoặc sửa governance/source-of-truth đang kéo development sai hướng.
+External market validation chỉ quay lại khi owner explicitly muốn validate cho người khác/business.
 
 Không thêm gamification, payment, social, multi-language hay model-routing complexity chỉ để có thứ để code.
 
 ---
 
-## 11. Quy tắc làm việc
+## 10. Quy tắc làm việc
 
 - Work from `main`.
 - Dùng Spec Kit cho material bounded slices.
-- Trace UI/API → application → port → adapter → DB → tests trước khi sửa persistence/evidence.
+- Trace UI/API → application → port → adapter → DB → tests trước persistence/evidence changes.
 - Server authority trước, UI projection sau.
-- Implement smallest slice tạo durable evidence.
-- Focused checks trước, full exact-head CI sau.
-- Review diff theo hướng privacy, grounding, ownership, NULL semantics, race/provider/test gaps.
+- Implement smallest slice tạo hoặc bảo vệ durable evidence.
+- Focused tests trước, full exact-head CI sau.
+- Review privacy, grounding, ownership, NULL semantics, race/provider/test gaps và misleading learning claims.
 - Không merge nếu required CI trên exact reviewed head chưa xanh.
 - Không coi merge/build/CI là learner evidence.
-- Không ghi production hoặc tiêu provider quota nếu task chưa authorize.
+- Không ghi production hoặc tiêu paid provider quota nếu task chưa authorize.
+- Personal-first không có nghĩa hardcode owner ID hay bỏ auth/security.
 - Báo rõ cái gì verified và cái gì chỉ inferred.
