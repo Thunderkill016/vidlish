@@ -1,6 +1,6 @@
 # Bàn giao Vidlish — operational state hiện tại
 
-Cập nhật: **2026-08-22**, sau khi beginner evidence authority được khóa bằng server-owned challenges qua PR #130.
+Cập nhật: **2026-08-22**, sau khi beginner evidence authority và Gate 5 operator evidence path được harden qua PR #130, #132 và #133.
 
 File này giữ **operational handover và những bẫy đã trả giá để học được**. Nó không đứng trên product authority hay active feature specs.
 
@@ -133,6 +133,38 @@ Nguyên tắc của harness:
 - phải có 5 genuine records rồi mới evaluate Gate 5.
 
 Không tuyển được 5 người thật không phải lý do để tạo synthetic records.
+
+### Gate 5 operator evidence hardening sau Features 007–008
+
+Feature 007/PR #132 sửa defect ở capture UI: sau khi moderator build participant JSON, đổi một observation trước đây không làm record cũ biến mất. UI có thể hiển thị observation mới trong khi JSON copy ra vẫn chứa observation cũ. Boundary hiện tại:
+
+- mọi moderator observation change làm built participant JSON + copy state bị invalidate;
+- rebuild dùng observation hiện tại;
+- scoped Golden browser-state reset vẫn giữ record đã build để moderator copy trước khi dừng cycle;
+- không persist participant record mới lên browser/server;
+- không đổi participant schema, evaluator hoặc Gate 5 thresholds.
+
+Verification Feature 007:
+
+- final exact head `40c58b2589e96b2e9c1e1c1075700e16e869a058` pass full CI #488 / run `32576493806`;
+- PR #132 squash-merge vào `main` thành `c45ac2a8c6baafd16bb19ac7b240560ea92a5da1`.
+
+Feature 008/PR #133 sửa defect ở `pnpm study:golden`: harness trước đây có thể in “ready” trước khi `next dev` thực sự chạy và không chứng minh port 3200 thuộc fresh participant cycle. Boundary hiện tại:
+
+- check loopback study port trước khi reset participant DB; port đang bị process cũ chiếm thì fail closed trước khi mutate cycle;
+- sau khi clean fixture được load, check port lần nữa ngay trước spawn để thu hẹp startup race;
+- chỉ in operator URLs sau khi chính child app trả successful HTTP response ở `/sign-in`;
+- child exit/error trước readiness thì fail closed;
+- readiness timeout bị bounded và timed-out child bị terminate;
+- signal forwarding, local Supabase isolation và no-paid-provider boundary được giữ nguyên.
+
+Verification Feature 008:
+
+- implementation head `47ae2920a92a68a6a542c8815d7322ad168d7192` pass full CI #490 / run `32577783623`;
+- final exact head `ddebb888278d6f751647a909334d94f9327a32be` pass full CI #491 / run `32577961401`;
+- PR #133 squash-merge vào `main` thành `9946df6b799346a9e1470a1c100515c1298fb684` bằng `expected_head_sha`.
+
+Features 007–008 là **operator/evidence-integrity hardening**, không phải 5-person learner evidence. Chúng không thay đổi và không pass Gate 5.
 
 ### Beginner evidence authority sau Feature 006
 
