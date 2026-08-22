@@ -8,8 +8,8 @@
 
 ## Slice B — Make proof reachable
 
-- [ ] B1 Add only `scripts/golden-study-harness.test.mjs` to the canonical Vitest include list.
-- [ ] B2 Correct Feature 008 tracker language so CI #490/#491 is not presented as having executed the excluded harness tests.
+- [x] B1 Add only `scripts/golden-study-harness.test.mjs` to the canonical Vitest include list.
+- [x] B2 Correct Feature 008 tracker language so CI #490/#491 is not presented as having executed the excluded harness tests.
 
 ## Slice C — Evidence
 
