@@ -11,6 +11,8 @@ import { z } from "zod";
 
 export const beginnerSentenceSchema = z.object({
   text: z.string().min(1).max(200),
+  /** Opaque server authority for the attempt on this exact sentence. */
+  challengeId: z.string().uuid(),
   /** Present only where a human translation exists. Most sentences have none. */
   vi: z.string().min(1).max(400).optional(),
 });
@@ -25,30 +27,43 @@ export const beginnerSessionResponseSchema = z.object({
 
 /**
  * The first words of a language cannot arrive inside a sentence, because at
- * zero known words no sentence can satisfy i+1. They arrive on their own.
+ * zero known words no sentence can satisfy the current one-new-word policy.
+ * They arrive on their own but still receive a server-owned evidence challenge.
  */
 export const beginnerWordIntroductionSchema = z.object({
   kind: z.literal("introduce_word"),
   target: z.string().min(1).max(64),
+  challengeId: z.string().uuid(),
   knownWordCount: z.number().int().min(0),
 });
 
-export const beginnerAttemptRequestSchema = z.object({
-  word: z.string().min(1).max(64),
+const beginnerAttemptBase = {
+  challengeId: z.string().uuid(),
   /** True when the learner opened any support before answering. */
   usedSupport: z.boolean(),
-  /**
-   * The sentence that was played and what the learner wrote down.
-   *
-   * When both are present the server scores the answer and decides
-   * independence itself. When they are absent — the very first words, which
-   * arrive alone and cannot be dictated — the learner's own report is all
-   * there is, and the nonword check is what keeps it honest.
-   */
-  sentence: z.string().min(1).max(200).optional(),
-  heard: z.string().max(400).optional(),
-  claimedIndependent: z.boolean().optional(),
-});
+};
+
+/**
+ * A browser reports learner action only. It never sends the word receiving
+ * evidence or the authoritative dictation sentence; both live on the server
+ * challenge identified by `challengeId`.
+ */
+export const beginnerAttemptRequestSchema = z.discriminatedUnion("kind", [
+  z
+    .object({
+      ...beginnerAttemptBase,
+      kind: z.literal("dictation"),
+      heard: z.string().max(400),
+    })
+    .strict(),
+  z
+    .object({
+      ...beginnerAttemptBase,
+      kind: z.literal("introduce_word"),
+      claimedIndependent: z.boolean(),
+    })
+    .strict(),
+]);
 
 export const beginnerAttemptResponseSchema = z.object({
   word: z.string(),
@@ -68,8 +83,8 @@ export const beginnerAttemptResponseSchema = z.object({
 /**
  * A check that the learner's "I know this" means something.
  *
- * The answers carry no claim about which items were real. The server knows, and
- * a browser that could say so could clear every check it ever took.
+ * The answers carry no claim about which items were real. POST independently
+ * reconstructs the exact current item set before classifying any answer.
  */
 export const beginnerCalibrationRequestSchema = z.object({
   answers: z

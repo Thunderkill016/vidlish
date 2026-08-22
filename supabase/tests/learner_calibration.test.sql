@@ -1,10 +1,11 @@
 -- A self-report is only evidence once it has been checked against words that do
--- not exist. These are the rules that make the check impossible to fake.
+-- not exist. The browser reports answers; application code calculates the
+-- verdict; only the server service-role persistence boundary may store it.
 
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(5);
+select plan(6);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
@@ -17,13 +18,13 @@ insert into auth.users (
   '{"provider":"email","providers":["email"]}', '{}', now(), now()
 );
 
-set local "request.jwt.claim.sub" = 'c1111111-1111-4111-8111-111111111111';
-
+-- Deliberately no request.jwt.claim.sub: the runtime repository uses the
+-- admin/secret client after browser EXECUTE is revoked.
 select is(
   (public.record_learner_calibration(
     'c1111111-1111-4111-8111-111111111111', 7, 3, 5, 0, true)).reliable,
   true,
-  'a checked self-report is stored with its verdict'
+  'a server-calculated self-report verdict is stored'
 );
 
 select is(
@@ -40,20 +41,30 @@ select throws_ok(
   'there cannot be more false alarms than there were nonwords'
 );
 
-select throws_ok(
-  $$select public.record_learner_calibration(
-      'c2222222-2222-4222-8222-222222222222', 7, 3, 5, 0, true)$$,
-  'P0001',
-  'calibration must be recorded by its owner',
-  'a verdict cannot be recorded on behalf of another learner'
+select is(
+  has_function_privilege(
+    'authenticated',
+    'public.record_learner_calibration(uuid,integer,integer,integer,integer,boolean)',
+    'EXECUTE'
+  ),
+  false,
+  'the browser cannot call the verdict persistence function directly'
 );
 
--- The browser reports answers; the server decides what they mean. A learner who
--- could insert directly could write themselves a reliable verdict.
+select is(
+  has_function_privilege(
+    'service_role',
+    'public.record_learner_calibration(uuid,integer,integer,integer,integer,boolean)',
+    'EXECUTE'
+  ),
+  true,
+  'the server service role can persist the calculated verdict'
+);
+
 select is(
   has_table_privilege('authenticated', 'public.learner_calibrations', 'insert'),
   false,
-  'the browser cannot write its own verdict'
+  'the browser cannot insert its own verdict directly'
 );
 
 select * from finish();

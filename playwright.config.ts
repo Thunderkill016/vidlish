@@ -29,6 +29,12 @@ const DEFAULT_BETA_EMAILS = [
   "measurement-mobile-chromium@example.com",
   "beginner-chromium@example.com",
   "beginner-mobile-chromium@example.com",
+  // The adversarial beginner-evidence journey needs a clean owner distinct
+  // from the happy-path beginner test because the in-memory progress store is
+  // shared by the serial suite. Reusing the first learner would start this test
+  // with already-banked evidence and stop proving the zero-state challenge.
+  "beginner-challenge-chromium@example.com",
+  "beginner-challenge-mobile-chromium@example.com",
 ];
 
 const configuredBetaEmails = [
