@@ -16,15 +16,15 @@
 
 ## Slice C — Proof
 
-- [x] C1 Unit-test occupied and free port preflight.
-- [x] C2 Unit-test HTTP readiness, child-exit failure and timeout failure, including timeout child termination and success-path non-termination.
-- [x] C3 Full PR CI #490 passed on implementation head `47ae2920a92a68a6a542c8815d7322ad168d7192`: typecheck/lint, unit tests, production build, Supabase migration/RLS tests, Chromium product journeys, durable Supabase-backed learning journey, and aggregate CI gate all succeeded.
+- [x] C1 Added occupied/free-port test cases in `scripts/golden-study-harness.test.mjs`.
+- [x] C2 Added HTTP-readiness, child-exit and timeout test cases, including timeout child termination and success-path non-termination.
+- [x] C3 CI #490 and final CI #491 both passed the repository's then-configured suite. Post-merge audit found `vitest.config.ts` did **not** discover `scripts/golden-study-harness.test.mjs`, so those runs must not be cited as proof that C1/C2 executed. Feature 009 exists specifically to close this CI-discovery proof gap.
 
 ## Slice D — Review and merge
 
 - [x] D1 Adversarial review startup races, leaked listeners/processes, credential output, DB-reset ordering and Gate 5 scope. Review added a second pre-spawn port check and direct timeout-kill proof.
 - [x] D2 Draft PR #133 opened with the bounded acceptance boundary.
-- [x] D3 Final exact head `ddebb888278d6f751647a909334d94f9327a32be` passed full CI #491 / run `32577961401`; PR #133 was marked ready and squash-merged into `main` as `9946df6b799346a9e1470a1c100515c1298fb684` using `expected_head_sha`.
+- [x] D3 Final exact head `ddebb888278d6f751647a909334d94f9327a32be` passed full configured CI #491 / run `32577961401`; PR #133 was marked ready and squash-merged into `main` as `9946df6b799346a9e1470a1c100515c1298fb684` using `expected_head_sha`. The later Feature 009 discovery correction does not change this merge fact.
 
 ## Explicitly deferred
 
