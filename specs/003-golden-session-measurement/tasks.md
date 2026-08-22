@@ -21,7 +21,7 @@
 - [x] C2 Add pgTAP coverage for RLS, grants, ownership, event shape and idempotency.
 - [x] C3 Implement fake repository support.
 - [x] C4 Implement Supabase repository support and strict result mapping.
-- [ ] C5 Run local schema verification where available, then database CI.
+- [x] C5 Run local schema verification where available, then database CI. PR #126 exact-head CI run #464 passed Supabase migration/RLS tests and the durable Supabase learning journey.
 
 ## Slice D — Add authenticated API
 
@@ -48,8 +48,8 @@
 - [x] G1 Review for answer leakage, raw text/audio/transcript/PII, arbitrary JSON, ownership drift and service-role exposure.
 - [x] G2 Review that measurement events never update capability/mastery state.
 - [x] G3 Review that `playback` and `source_play_completed` remain distinct semantics.
-- [ ] G4 Run typecheck, lint, unit, build, pgTAP, Chromium and durable Supabase journey.
-- [ ] G5 Open draft PR; merge only exact reviewed head after all required jobs are green.
+- [x] G4 Run typecheck, lint, unit, build, pgTAP, Chromium and durable Supabase journey. PR #126 exact-head CI run #464 passed every required job and the final CI gate.
+- [x] G5 Open PR and merge only exact reviewed head after all required jobs are green. PR #126 merged to `main` as `068a62bc1615c66d8708e05a2cef9c2703227fff`.
 
 ## Explicitly deferred
 
