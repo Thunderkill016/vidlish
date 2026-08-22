@@ -4,15 +4,15 @@ import type {
   LearningProductEventRepository,
   RecordLearningProductEventInput,
 } from "@/modules/learning/ports/learning-product-event-repository";
-import { privacySafeLearningProductEventSchema } from "@/shared/contracts/learning-product-events";
+import {
+  privacySafeLearningProductEventSchema,
+  type PrivacySafeLearningProductEvent,
+} from "@/shared/contracts/learning-product-events";
 
 export class InMemoryLearningProductEventRepository
   implements LearningProductEventRepository
 {
-  private readonly events = new Map<
-    string,
-    ReturnType<typeof privacySafeLearningProductEventSchema.parse>
-  >();
+  private readonly events = new Map<string, PrivacySafeLearningProductEvent>();
   private readonly eventIdsByIdempotency = new Map<string, string>();
   private readonly ownerByEventId = new Map<string, string>();
 
