@@ -18,7 +18,7 @@
 
 ## Slice D — Review and merge
 
-- [ ] D1 Adversarial review for unintended test-discovery expansion or runtime/product changes.
+- [x] D1 Adversarial diff review confirms discovery expands by exactly one named test file; no harness runtime, product runtime, provider configuration, participant/evaluator contract or Gate 5 threshold changes.
 - [ ] D2 Merge only with green final exact-head CI and unchanged PR head.
 
 ## Explicitly deferred
