@@ -3,9 +3,9 @@ import { describe, expect, it } from "vitest";
 import { createGoldenSessionLearningBlueprint } from "@/adapters/fake/fixture-golden-learning-blueprint";
 import { InMemoryLearningProductEventRepository } from "@/adapters/fake/in-memory-learning-product-event-repository";
 import { InMemoryLearningSessionRepository } from "@/adapters/fake/in-memory-learning-session-repository";
+import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import { RecordLearningProductEvent } from "@/modules/learning/application/record-learning-product-event";
 import { SubmitLearningActivityAttempt } from "@/modules/learning/application/submit-learning-activity-attempt";
-import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import {
   privacySafeLearningProductEventSchema,
   recordLearningProductEventRequestSchema,
@@ -101,7 +101,7 @@ describe("RecordLearningProductEvent", () => {
     ).toHaveLength(1);
   });
 
-  it("requires a persisted attempt before correction_shown", async () => {
+  it("requires durable attempt evidence and uses the incorrect attempt id for correction idempotency", async () => {
     const { sessions, session, record } = await started();
 
     await expect(
@@ -115,7 +115,7 @@ describe("RecordLearningProductEvent", () => {
       }),
     ).rejects.toThrow(/persisted attempt/i);
 
-    await new SubmitLearningActivityAttempt(sessions).execute({
+    const submitted = await new SubmitLearningActivityAttempt(sessions).execute({
       ownerUserId,
       sessionId: session.id,
       blueprint,
@@ -124,16 +124,23 @@ describe("RecordLearningProductEvent", () => {
       idempotencyKey: "63333333-3333-4333-8333-333333333333",
       response: { kind: "choice", optionId: "option_camera_hardware" },
     });
+    expect(submitted.attempt.evaluation.verdict).toBe("incorrect");
 
+    // The production RPC additionally verifies that this key is the immutable
+    // id of the matching incorrect attempt, which prevents a crafted client
+    // from claiming correction after a correct/unrelated attempt.
     const result = await record.execute({
       ownerUserId,
       sessionId: session.id,
       blueprint,
       activityId: "activity_gist",
-      idempotencyKey: "64444444-4444-4444-8444-444444444444",
+      idempotencyKey: submitted.attempt.id,
       eventKind: "correction_shown",
     });
-    expect(result.event.eventKind).toBe("correction_shown");
+    expect(result.event).toMatchObject({
+      eventKind: "correction_shown",
+      idempotencyKey: submitted.attempt.id,
+    });
   });
 
   it("rejects non-owned sessions and non-blueprint activities", async () => {
