@@ -14,7 +14,7 @@ The product promise is not “AI generates a lesson.” The durable value is:
 
 This project began as a YouTube product for A2–B2 learners who already watched
 English video. That is no longer the mission. A learner starting from zero
-cannot use authentic video at all: it is not i+1 for them, it is i+10.
+cannot use authentic video at all: it is not suitable beginner input for them.
 
 The video pipeline stays, and it is good — it is what a learner graduates *to*
 once they can use it. But it is one source of input among several, and no longer
@@ -23,23 +23,38 @@ the video path is the destination.
 
 ### What the mission implies, and what it costs
 
-- **Input before output.** The evidence is consistent: listening and reading
-  first, speaking once listening is comfortable, writing once reading is. Four
-  skills taught at once from zero is how this fails.
-- **i+1 is a gate, not a slogan.** A sentence is usable input when every word is
-  already known except at most one
-  (`src/modules/learning/application/check-comprehensible-input.ts`). "Known"
-  means the learner produced it with no support open, never self-report.
-- **The first thousand words carry the product.** They are roughly 75% of
-  written English and 80% of speech; the next thousand add about seven points.
-  Their order matters more than almost anything else here.
-- **Vietnamese support is itself a scaffold.** It carries the first few hundred
-  words and then tapers — the same "progressively less support" the engine
-  already measures, applied to the explanation language.
+- **Input-led, not input-only.** Beginner work starts from language the learner
+  can understand with bounded support. Retrieval, production, interaction and
+  corrective feedback may enter as soon as the task is comprehensible enough
+  to attempt; receptive and productive outcomes are different capability
+  evidence and must not be collapsed into one `known` claim.
+- **Comprehensibility is a gate; the current `i+1` implementation is a policy.**
+  The beginner generator currently fails closed by allowing at most one new
+  target word by default (`src/modules/learning/application/check-comprehensible-input.ts`).
+  The lexical set available to that gate comes from unsupported independent
+  production because that is the durable evidence the current system has. This
+  is a conservative, auditable product policy — not a universal definition of
+  Krashen's `i+1`, lexical comprehension, or everything the learner knows.
+  Widening it requires an explicit feature, tests and learner evidence; higher
+  generation acceptance is not enough.
+- **High-frequency vocabulary carries coverage, not the whole curriculum.**
+  Frequency should be a strong prior because common words recur often, but
+  target order also needs communicative usefulness, prerequisites, learner
+  need, learnability and opportunities for reuse. Do not turn an approximate
+  first-thousand vocabulary target into a scientifically fixed course order.
+- **Vietnamese support is itself a scaffold.** It should carry the earliest
+  learning when English-only support is not enough and then taper as evidence
+  shows the learner can succeed with less help. An approximate “first few
+  hundred words” boundary is a product hypothesis, not a scientifically fixed
+  cutoff.
+
+The evidence basis and limitations for these distinctions are recorded in
+`specs/002-calibrate-learning-policy/research.md`. Do not replace one slogan
+with another; context-dependent research remains context-dependent.
 
 Three decisions the product owner has made, which earlier invariants forbade:
 storing what the learner writes, recording what they say, and keeping Vietnamese
-explanations for roughly the first three hundred words. Where an older rule in
+explanations for early learning where they are needed. Where an older rule in
 this file conflicts with those, the decision wins and the rule needs rewriting —
 say so rather than quietly following the stale one.
 
@@ -147,11 +162,10 @@ Do not skip gates because CI is green.
 In scope:
 
 - English target language, one learner, from zero;
-- Vietnamese guidance for roughly the first three hundred words, then tapering;
+- Vietnamese guidance for early learning, tapering as evidence shows less support is sufficient;
 - short sessions;
-- **generated i+1 sentences** for a learner below A2, **YouTube source** once they
-  are past it — both bounded, both gated;
-- input before output: listening and reading, then writing, then speaking;
+- **generated comprehensible sentences** for a learner below authentic-media readiness, **YouTube source** once they are ready — both bounded, both gated;
+- input-led progression: listening/reading supply understandable language, while bounded retrieval, writing and speaking tasks enter when the learner can attempt them; receptive and productive capability evidence stay separate;
 - the same loop at every level: input → notice → retrieval → changed-context use
   → delayed review → less support;
 - desktop + mobile web.

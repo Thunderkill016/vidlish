@@ -1,7 +1,8 @@
 # Vidlish Constitution
 
-Version: 1.0.0
+Version: 1.1.0
 Ratified: 2026-08-22
+Amended: 2026-08-22
 
 This constitution is the durable engineering and product-governance contract for Vidlish. Feature specifications may narrow these rules; they may not silently weaken them.
 
@@ -15,11 +16,13 @@ Completion is not mastery. Scheduler state is not proof of independent capabilit
 
 Claims such as production-ready, retained, mastered, paid-validated, or teaching-effective require corresponding evidence. Green CI is necessary engineering evidence, not learner-outcome evidence.
 
-## II. Comprehensible input is a gate
+## II. Comprehensible input is a gate; its policy must be explicit
 
-For beginner-generated material, a sentence is eligible only when the learner evidence makes it comprehensible under the current i+1 policy. "Known" is based on demonstrated production without opened support, not self-report.
+Beginner-generated material must pass an explicit comprehensibility policy before it reaches the learner. The current runtime deliberately uses a conservative, auditable lexical policy: by default a generated sentence may introduce at most one new target word, using independently produced language as the lexical evidence available to that gate. This is a fail-closed product policy, not a universal definition of `i+1` or of everything a learner can understand.
 
-Vietnamese guidance is an intentional scaffold for the earliest vocabulary and must taper as evidence grows. Authentic YouTube input is a later source, not the organizing center for a zero-beginner.
+Receptive recognition/comprehension and productive recall/use are different capability evidence. Future features may use additional evidence dimensions or difficulty signals, but they must not infer evidence that was never observed. Any widening of the current beginner gate requires an explicit specification, tests, and learner evidence; generation success alone is not sufficient justification.
+
+Vietnamese guidance is an intentional early scaffold. It must taper as the learner demonstrates they can succeed with less support, but an approximate vocabulary count is a product hypothesis rather than a scientifically fixed cutoff. Authentic YouTube input is a later source, not the organizing center for a zero-beginner.
 
 ## III. Grounding and reveal boundaries are server-owned
 

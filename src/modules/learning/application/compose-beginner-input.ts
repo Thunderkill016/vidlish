@@ -4,23 +4,22 @@ import {
 } from "./check-comprehensible-input";
 
 /**
- * Turns drafted sentences into input a beginner can actually learn from.
+ * Turns drafted sentences into input that passes the current beginner policy.
  *
- * The gate in `check-comprehensible-input` answers one question about one
- * sentence: is at most one word new? That is necessary and not sufficient. A
- * sentence can pass it while introducing the wrong new word — the model reached
- * for `often` when the batch exists to teach `water` — and a learner who meets
- * `often` has met a word nothing else in their session will reinforce, and the
- * evidence recorded against the batch would name a word they never practised.
+ * `check-comprehensible-input` applies the current conservative lexical-novelty
+ * gate. Passing that gate is necessary for this generator and still not enough:
+ * a draft can remain wrong for the batch if the permitted new item is not the
+ * target we deliberately selected — the model reached for `often` when the
+ * batch exists to teach `water`.
  *
- * So this asks the stricter question: is the one new word the word we set out
- * to teach? Anything else is discarded rather than repaired. Repairing a
- * sentence would mean writing language on the model's behalf and then
- * attributing it to a checked source, which is the failure the whole grounding
- * design exists to prevent.
+ * So this asks the stricter authoring question: is the permitted new lexical
+ * item the target we set out to teach? Anything else is discarded rather than
+ * repaired. This protects target identity and keeps model wandering from
+ * silently becoming curriculum.
  *
  * Discarding is cheap because the provider is asked for more sentences than are
- * needed. What is not cheap is a learner meeting a word they cannot yet hold.
+ * needed. What is not acceptable is widening or changing the learning target
+ * just to increase generation success.
  */
 
 export type RejectedDraft = {
@@ -54,9 +53,9 @@ export function composeBeginnerInput(input: {
     const sentence = draft.trim();
     if (sentence.length === 0) continue;
 
-    // Two sentences that differ only in spacing or case are one sentence to a
-    // learner, and serving both would inflate the practice count without
-    // adding a single repetition of the target in a new context.
+    // Two sentences that differ only in spacing or case are one sentence for
+    // this practice-selection purpose; serving both would inflate repetition
+    // without adding a new context for the target.
     const fingerprint = tokenise(sentence).join(" ");
     if (seen.has(fingerprint)) {
       rejected.push({ sentence, reason: "duplicate" });
@@ -74,10 +73,10 @@ export function composeBeginnerInput(input: {
       continue;
     }
     if (verdict.kind === "nothing_new") {
-      // Every word already known — so the target is known too, and this batch
-      // should never have been requested. Named separately from a sentence
-      // that teaches the wrong word, because the two have different causes:
-      // one is a stale known-set, the other is a wandering model.
+      // Every token is already in the lexical set used by this gate, so the
+      // batch would not introduce the selected target under the current policy.
+      // This is named separately from model wandering because the two failures
+      // require different diagnosis.
       rejected.push({ sentence, reason: "nothing_new" });
       continue;
     }
@@ -101,11 +100,13 @@ export function composeBeginnerInput(input: {
 }
 
 /**
- * Whether asking for this batch makes sense at all.
+ * Whether asking for this batch makes sense under the current lexical policy.
  *
- * Requesting sentences for a word the learner already produces independently
- * burns a model call and, worse, spends a session slot on nothing. Caught here
- * rather than after generation so the cost is never paid.
+ * Requesting sentences for an item already present in the gate's productive-
+ * independent set burns a model call and spends a target-teaching slot on an
+ * item this policy does not classify as new. A future multidimensional learner
+ * model may make a more specific decision; this function must not invent that
+ * evidence in advance.
  */
 export function beginnerInputBatchIsWorthAsking(input: {
   readonly target: string;
