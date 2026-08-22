@@ -1,583 +1,552 @@
 # Vidlish Product & Business Master Plan
 
-**Status:** priority override  
+**Status:** priority source of truth  
 **Owner direction:** focus only on Vidlish; AtoEnglish is read-only knowledge  
-**Date:** 2026-08-06  
+**Updated:** 2026-08-22  
 **Applies to:** product, learning, AI, infrastructure, security, legal, billing, pricing, rollout
 
 ---
 
 ## 1. Why this document exists
 
-Vidlish has accumulated substantial technical and learning-design work before four business-critical questions have been answered:
+Vidlish has accumulated substantial technical and learning-design work. The point of this document is to stop architecture, provider, billing, and feature expansion from outrunning evidence that the product actually helps learners and can become a viable business.
 
-1. Does the target learner complete a first lesson and feel a real learning gain?
-2. Do they return for a second lesson and delayed review?
+Four business-critical questions remain:
+
+1. Does the target learner complete a first session and show a real, observable learning gain?
+2. Do they return for another session and delayed review?
 3. Will they pay and remain paid after the novelty of AI generation disappears?
 4. Can each paid learner be served with safe, predictable gross margin and acceptable legal risk?
 
-No additional architecture, provider integration, multilingual expansion, payment integration, or production rollout should bypass these questions.
+No architecture layer, provider integration, media expansion, billing feature, or rollout milestone may bypass these questions.
 
-This file is the current priority source of truth. Detailed Learning Model v2 documents remain valid within this product boundary, but they do not override the business gates below.
-
----
-
-## 2. Current verified project state
-
-### Repository
-
-- Repository: `Thunderkill016/vidlish`
-- Current `main`: `71f287b7317338df00c490293c57fa593cbbbb26`
-- `main` contains the two Shorts/weak-transcript terminalization fixes.
-- Learning Model v2 PR: `#44`
-- PR #44 head before this document: `721486a1cf55698585c4c0d09d948ed94e3d7310`
-- PR #44 is draft, open, mergeable, 50 commits ahead and 2 commits behind `main`.
-- PR #44 adds about 7,956 lines across 35 files.
-- CI run #211 passed typecheck, lint, 225 unit tests, build, Supabase/RLS tests, Chromium journeys, and the final CI gate.
-
-### Production
-
-- Production domain: `https://vidlish.vercel.app`
-- Current production deployment still runs `main@a1b28f09dbde24cc30df99b7e50aa53e347be21f`.
-- Therefore the application code from merged Shorts fixes is not yet the production runtime.
-- A production database compatibility trigger prevents insufficient-evidence jobs from returning to an endless active state.
-- Production currently avoids the infinite loading incident, but it can still show the older generic failure experience.
-
-### Learning Model v2
-
-Implemented as foundation, not as production-ready behavior:
-
-- grounded `lesson:v2` contract;
-- learner-safe DTO without answer keys before attempt;
-- deterministic closed-task evaluation;
-- one-task-at-a-time fixture learning lab;
-- real YouTube evidence player bound to canonical segments;
-- additive session, attempt, and review-state persistence foundation;
-- AtoEnglish knowledge audit and reuse policy;
-- constrained diagnosis/candidate/authoring foundations;
-- runtime policy contract for progressive support, retry, transfer, and evidence.
-
-Not yet complete:
-
-- runtime does not fully consume the new learning policy;
-- provider-backed v2 workflow is not connected;
-- preview Supabase is not isolated and operational;
-- no two-video live provider benchmark exists;
-- no learner cohort evidence exists;
-- no willingness-to-pay evidence exists;
-- no legal clearance exists for a commercial arbitrary-YouTube workflow;
-- no billing, tax, refund, or support operation exists.
+This file is the current product/business priority source of truth. Detailed learning-model documents remain valid inside this boundary, but they do not override the gates below.
 
 ---
 
-## 3. Product thesis and initial customer
+## 2. Product mission
 
-### Product thesis
+Vidlish is not fundamentally “AI turns a YouTube URL into a lesson.” That is a replaceable mechanism with weak durable value.
 
-Vidlish should not sell “AI turns a YouTube URL into a lesson.” That is a reproducible feature with weak retention.
+The product mission is:
 
-The durable product is:
-
-> Vidlish helps Vietnamese learners turn English videos they already care about into measurable listening and communication ability, then remembers their gaps and brings the right material back for review.
+> Help one Vietnamese learner progress from no usable English toward listening, speaking, reading, and writing ability through comprehensible input, capability evidence, changed-context use, delayed review, and progressively less support.
 
 The compounding value is:
 
 ```text
-user-owned interest
-+ grounded learning activity
+comprehensible input at the learner's level
 + personal capability evidence
 + varied delayed review
 + progressively less support
 ```
 
-### Initial target customer
+### Video is a source, not the centre
 
-MVP targets:
+Vidlish began as a YouTube-first product for A2–B2 learners. That source-grounded path remains valuable and is already technically strong.
 
-- Vietnamese adults;
-- approximately A2–B2;
-- already watch English YouTube content;
-- depend on subtitles or understand passively but cannot retain/use the language;
-- willing to spend 5–12 minutes per learning session.
+But a zero beginner cannot use authentic English video as the first learning source. The product therefore supports a broader source strategy:
 
-MVP does not target all learners, children, exam preparation, every language pair, or every media source.
+- generated or curated beginner input when authentic media is not yet comprehensible;
+- source-grounded YouTube input when the learner is ready for it;
+- the same learning loop and evidence principles across both.
+
+Do not organize the roadmap as though reaching the video path is the final destination.
 
 ---
 
-## 4. Scope decisions
+## 3. Current verified project state
 
-### In scope for the first commercial validation
+### Repository and program
 
-- English-language YouTube videos;
-- Vietnamese learner guidance;
-- one lesson from one bounded source selection;
-- 5–12 minute sessions;
-- one or two meaningful learning windows;
-- first-listen comprehension;
-- progressive support;
-- one or two useful targets;
-- productive retrieval;
-- correction with retry;
+Learning Model v2 is merged into `main`; the former integration branch is historical.
+
+Current integrated foundations include:
+
+- learner-first product shell;
+- beginner `/start` flow for zero/very-low lexical evidence;
+- durable learning sessions and privacy-safe attempt evidence;
+- server-confirmed support/replay evidence;
 - changed-context transfer;
-- delayed review;
-- desktop and mobile web.
+- delayed review scheduling;
+- capability-oriented progress views;
+- source-grounded YouTube generation path;
+- Supabase RLS/RPC + pgTAP;
+- Chromium product journeys;
+- durable Supabase Golden Session journey.
 
-### Explicitly deferred
+### Production authoring
 
-- Vietnamese video to English lesson;
-- Chinese video or arbitrary language pairs;
-- TikTok, podcasts, Spotify, PDF, websites, meetings, uploads;
-- automatic processing of an entire multi-hour video;
-- realtime AI speaking conversation;
-- pronunciation scoring from transcript text;
-- creator marketplace;
-- public user-generated lesson catalog;
-- unlimited plans;
-- multi-provider production routing;
-- children and classroom administration.
+The production-shaped v2 path is reachable and has produced/published `lesson_versions`.
 
-These may remain architecturally possible, but they are not current product commitments.
+That proves reachability. It does **not** prove:
 
-### Video-length policy hypothesis
+- authoring reliability at an acceptable rate;
+- that a learner can use the session without help;
+- that the session teaches anything durable;
+- retention;
+- willingness to pay;
+- legal/commercial readiness.
 
-- Shorts/micro video: eligible only when learning-evidence density is sufficient; otherwise refuse honestly.
-- Standard video: select bounded windows rather than teach the whole video.
-- Long video: use chapters or require the learner to choose a range/topic.
-- Multi-hour video: never send the whole transcript/media to an authoring model; treat it as a source container.
+Do not collapse “shipped”, “reachable”, “reliable”, “teaches”, and “viable business” into one claim.
 
-Thresholds are hypotheses and must be benchmarked. Do not lower evidence requirements merely to increase generation success.
+### Current hard gate
+
+The active product gate is **Gate 5 — moderated usability with five target users**.
+
+Feature 004 defined the predeclared study contract and evaluator. Feature 005/PR #128 made the study runnable locally with durable Supabase-backed measurement, bounded moderator observations, scoped reset, and owner-bound evidence.
+
+PR #128 exact head `51c4ff44bb85fca8cee4f8b39a7e90297fe43d69` passed CI #474 / run `32571811299` and was squash-merged as `fdbee37bd3b1eca473b3c25f65eece772251d987`.
+
+**Gate 5 is still unpassed.** Technical CI and fixture journeys are not substitutes for five genuine participant sessions.
 
 ---
 
-## 5. First-session product experience
+## 4. Validation persona versus full product mission
 
-The first free lesson must create a clear before/after result:
+The current Golden Session protocol intentionally uses a narrow B1 persona and one grounded YouTube fixture.
+
+That is a **validation instrument**, not the definition of the whole product.
+
+Why keep it:
+
+- the protocol and thresholds were declared before running the five-person study;
+- the source and target language item are already canonical and deterministic;
+- changing the persona/source after implementation would make the Gate 5 result harder to interpret;
+- it isolates whether the core learning loop is understandable and measurable.
+
+Therefore:
+
+- do not rewrite Gate 5 into a zero-beginner study midstream;
+- do not infer from a successful B1 Golden Session that the zero-beginner path is validated;
+- later learner studies may validate the beginner path separately using the same evidence discipline.
+
+---
+
+## 5. Core learning loop
+
+Every serious learner-facing path should strengthen the same small primitive:
 
 ```text
-cannot understand a selected moment
-→ attempts first listen
-→ opens support progressively
-→ notices a useful communicative item
-→ retrieves it without the answer
-→ uses it in a changed context
-→ hears the source again with improved recognition
+understandable input
+→ notice what matters
+→ retrieve / produce before reveal
+→ use it in a changed context
+→ receive bounded correction when needed
+→ retry where policy requires it
+→ meet it again after delay
+→ require less support as evidence strengthens
 ```
 
-The learner should leave with:
+The product should not overwhelm a first session with summary, vocabulary lists, grammar sections, quizzes, gamification, and unrelated generated content.
 
-- one observable listening gain;
-- one or two retrievable language items;
-- one successful changed-context use;
-- an honest next review time.
-
-The product must not overwhelm the first session with summary, vocabulary lists, grammar sections, quizzes, and unrelated generated content.
+A short session should leave the learner with an observable change, not a pile of completed UI states.
 
 ---
 
-## 6. Website and lesson UX direction
+## 6. Learning evidence policy
+
+Track evidence dimensions separately. At minimum the product distinguishes:
+
+- comprehension / recognition;
+- productive recall;
+- interactional or task use;
+- changed-context transfer;
+- delayed transfer;
+- support level required.
+
+Rules:
+
+- completion != mastery;
+- scheduler state != independent capability;
+- reading a correction != successful retry;
+- reveal/assistance must remain distinguishable from independent success;
+- changed-context transfer must actually change context/input;
+- delayed transfer must remain separate from immediate transfer;
+- UI-local state cannot become authority for durable capability evidence.
+
+The current beginner lexical `i+1` implementation is a conservative runtime policy, not a universal SLA law. Changing it requires a bounded feature and learner evidence, not a higher generation acceptance rate.
+
+Vietnamese support is a scaffold and should taper from evidence, not from a scientifically invented fixed word count.
+
+The product owner permits storing learner writing and recording learner speech when those are necessary for writing/speaking functionality. That does not authorize unrelated raw text/audio collection elsewhere.
+
+---
+
+## 7. Source-grounded content policy
+
+For YouTube/source-grounded lessons:
+
+**Every source quote must come from canonical permitted transcript evidence.**
+
+Boundary:
+
+- deterministic code selects/limits evidence;
+- model/provider proposes bounded diagnosis/authoring output and IDs/labels;
+- server maps labels to canonical IDs;
+- server hydrates exact text/timestamps;
+- evidence outside the allowlist is rejected;
+- quality/grounding gates run before publish.
+
+The model must not invent a quote and have the system call it grounded.
+
+### Source-length policy hypothesis
+
+- Shorts/micro video: eligible only when learning-evidence density is sufficient; otherwise refuse honestly.
+- Standard video: teach bounded windows rather than the whole source.
+- Long video: use chapters/ranges or learner choice.
+- Multi-hour source: treat as a source container; never send the whole source blindly to an authoring model.
+
+Thresholds are hypotheses. Do not lower evidence requirements just to improve generation success rate.
+
+---
+
+## 8. Product scope guardrails
+
+### In scope
+
+- English target language;
+- Vietnamese learner guidance where useful;
+- one learner account and personal capability history;
+- short desktop/mobile web sessions;
+- beginner comprehensible input below authentic-media readiness;
+- grounded YouTube input once appropriate;
+- retrieval, bounded production, correction, retry, transfer, delayed review;
+- progressively less support based on evidence.
+
+### Explicitly deferred until current gates justify expansion
+
+- additional target languages;
+- arbitrary language-pair translation products;
+- classroom or multi-tenant school administration;
+- TikTok/Spotify/PDF/website/meeting/file-source expansion;
+- public lesson marketplace/catalog;
+- several payment gateways;
+- automatic multi-provider production routing;
+- true unlimited generation;
+- broad social/gamification layers;
+- commercial rollout before learning, retention, economics, and legal gates pass.
+
+Pronunciation scoring requires Vietnamese-accent validation before learner-facing scores are trusted.
+
+---
+
+## 9. Product surfaces
 
 ### Landing page
 
-Sell the learner outcome, not the generation mechanism.
+Sell learner outcome, not generation mechanics.
 
-Primary promise:
+The landing page should explain:
 
-> Hear what previously required subtitles, using videos you already want to watch.
+- what capability changes;
+- how the learning loop works;
+- how beginner and authentic-source paths fit together;
+- what evidence/progress means and does not mean;
+- supported-source truth;
+- privacy/source-grounding truth;
+- pricing only after willingness-to-pay evidence exists;
+- learner claims only after real learner evidence exists.
 
-Primary CTA:
+### Learner home/dashboard
 
-> Learn free from your video
+Priority should be capability/workflow driven:
 
-Required sections:
-
-- interactive before/after demonstration;
-- how Vidlish works in three steps;
-- who it is for;
-- supported-video truth;
-- privacy and copyright explanation;
-- pricing after the business test exists;
-- real learner evidence only after a cohort produces it.
-
-### Dashboard
-
-Priority order:
-
-1. continue current lesson;
+1. continue an active learning session;
 2. complete due review;
-3. create from a new video;
-4. inspect learning history and usage.
+3. start appropriate new input;
+4. inspect capability/evidence history.
 
-### Create flow
+Do not let “create another AI lesson” dominate over due learning work.
 
-```text
-URL
-→ metadata preview
-→ supported-language/evidence preflight
-→ choose learning goal and 5/10/15-minute budget
-→ show bounded processing scope and estimated usage
-→ confirm
-→ truthful queued/processing state
-```
+### Learning surface
 
-### Lesson layout
-
-Desktop:
-
-- source media and replay controls on the left;
-- one current task and feedback on the right.
-
-Mobile:
-
-- video;
-- task;
-- submit;
-- feedback;
-- next.
-
-The lesson surface must be environment/communication-first, not a long document.
+One current task at a time. Input and communication first; feedback immediately after the learner action; support progressively revealed rather than dumped upfront.
 
 ---
 
-## 7. Learning evidence policy
-
-Track separate evidence dimensions:
-
-- comprehension;
-- productive recall;
-- interactional use;
-- changed-context transfer;
-- delayed transfer.
-
-Completion means required activity flow finished. It does not mean mastery.
-
-FSRS or another scheduler may decide when an item returns. It cannot independently prove transfer or interactional ability.
-
-Store only data required to continue learning:
-
-- attempts and outcomes;
-- support level used;
-- retry state;
-- transfer state;
-- item review state;
-- timestamps and version/provenance.
-
-Do not store raw audio or unrestricted personal free text by default.
-
----
-
-## 8. AI provider decision
+## 10. AI/provider decision
 
 ### Production rule
 
-MVP production uses:
+Production uses:
 
 ```text
-one provider
+one enabled provider
 + one production model
 + one production project/key
 + server-only calls
 ```
 
-No automatic multi-provider fallback.
+No automatic multi-provider fallback in the current product.
 
-The code may expose a provider-neutral port so the vendor can be replaced later, but only one adapter is enabled in production at a time.
+A provider-neutral port is fine for replaceability; production routing complexity is not a product goal.
 
-### Selection method
+### Model selection method
 
-Benchmark at most three candidates offline/temporarily:
+When Gate 7 is reached, benchmark at most three temporary candidates:
 
 1. one low-cost candidate;
 2. one balanced candidate;
 3. one stronger reference candidate.
 
-Use the same golden source set and contract. Revoke or disable non-selected keys after the benchmark.
+The decisive metric is **cost per accepted lesson**, not token price alone.
 
-The decisive metric is:
+An accepted lesson must satisfy the relevant grounding, schema, learning-quality, latency, and human-acceptance criteria.
 
-```text
-cost per accepted lesson
-```
+Revoke/disable non-selected credentials after the benchmark.
 
-An accepted lesson must pass:
+### Deterministic/provider boundary
 
-- grounding and timestamp checks;
-- schema validation;
-- pedagogical rubric;
-- Vietnamese explanation quality;
-- meaningful transfer;
-- latency target;
-- human acceptance on the benchmark sample.
+Deterministic code handles:
 
-Do not select on token price alone.
+- source parsing/metadata;
+- cache/deduplication;
+- evidence selection and allowlists;
+- transcript boundaries;
+- grounding/timestamp hydration;
+- rate limits and budgets;
+- closed-task evaluation;
+- durable persistence and ownership.
 
-### Provider use boundary
-
-Deterministic code handles URL parsing, metadata, cache lookup, transcript boundaries, grounding, timestamp hydration, rate limits, budgets, closed-task evaluation, and persistence.
-
-The model is limited to bounded diagnosis and authoring tasks after deterministic evidence selection.
+Models are bounded proposal/authoring components, not authority for learner evidence or grounding truth.
 
 ---
 
-## 9. API-key and cost safety
+## 11. API-key and cost safety
 
 ### Environment policy
 
-- Local: fixture by default; no production key.
-- CI: fixture; no provider key.
-- Preview: fixture or separate low-budget test project only.
-- Production: one dedicated project/key available only to server/worker runtime.
+- Local: fixture/fake/local Supabase by default; no production key.
+- CI: fixture/fake/local Supabase; no paid provider key.
+- Preview: fixture or isolated, budget-capped test project only when explicitly required.
+- Production: dedicated server/worker-only keys.
 
-No key in `NEXT_PUBLIC_*`, browser code, repository, logs, error payloads, prompt artifacts, or ordinary GitHub Actions.
+No provider/service key in `NEXT_PUBLIC_*`, browser code, repository, logs, screenshots, prompt artifacts, or ordinary Actions output.
 
-### Request gates
+### Before paid beta expands
 
-Every paid provider call requires:
+Required controls include:
 
-```text
-authentication
-→ request rate limit
-→ active-job limit
-→ canonical deduplication/cache check
-→ source/evidence preflight
-→ token/cost estimate
-→ atomic budget reservation
-→ queued execution
-```
-
-### Required controls before paid beta
-
-- one active generation per free user;
-- rolling minute/hour/day generation limits;
-- input/output token caps;
+- active-job limits;
+- rolling request limits;
 - bounded retries;
-- global daily and monthly spend caps;
-- generation kill switch;
-- usage ledger;
-- credit/entitlement ledger;
-- cache by source/transcript/pipeline version;
-- circuit breaker for quota/provider incidents;
-- immediate key rotation runbook.
+- input/output token caps;
+- global spend caps/kill switch;
+- usage/entitlement ledger;
+- cache/deduplication;
+- incident/key-rotation runbook.
 
-Budget alerts are not sufficient if the provider does not hard-stop charges. The application must enforce its own hard limit.
+Budget alerts alone are insufficient if the application can continue spending after the alert.
 
 ---
 
-## 10. Business model hypothesis
+## 12. Business model hypothesis
 
-Do not monetize the first lesson before the learner experiences the core result.
+Do not monetize the first learning experience before the learner has a chance to experience the core result.
 
 ### Free hypothesis
 
-- first lesson complete;
-- small recurring generation allowance;
-- bounded source duration;
-- one active job;
-- basic review.
+A free tier may provide:
+
+- an initial complete learning experience;
+- bounded recurring usage;
+- due/basic review;
+- a strict active-work limit.
 
 ### Paid hypothesis
 
-Subscription pays for the compounding learning system:
+A subscription should pay for the compounding learning system, not merely more AI calls:
 
-- more generation allowance;
 - persistent learner model;
-- adaptive lessons;
-- complete review queue;
-- progress/evidence history;
-- higher bounded source scope;
-- priority processing when viable.
+- adaptive input selection;
+- richer review queue;
+- capability/evidence history;
+- larger bounded source/input allowance;
+- priority processing where economically viable.
 
-High-variable-cost features may use add-on credits:
-
-- ASR when no usable caption exists;
-- unusually long-source analysis;
-- additional lessons from the same source;
-- future audio-heavy features.
-
-Do not offer true unlimited generation.
+High-variable-cost functionality may require add-on credits later. Do not promise true unlimited generation.
 
 ### Price test
 
-Initial prices are hypotheses, not commitments. Run a real paywall experiment across a small range only after the first-session experience works.
-
-Important metrics:
-
-- paid conversion;
-- month-two paid retention;
-- refund rate;
-- gross margin per paying learner;
-- provider cost per accepted lesson;
-- support cost per learner.
-
-Target provider/transcript/infrastructure variable cost should remain a minority of revenue; a working initial planning range is no more than roughly 15–20%, subject to real benchmarks.
-
----
-
-## 11. Product validation gates
-
-### Gate A — activation
-
-Use 20–50 learners from the exact target segment.
-
-Measure:
-
-- lesson generation success;
-- first-lesson completion;
-- before/after listening recognition;
-- retrieval and transfer completion;
-- lesson defect rate;
-- time to first value.
-
-### Gate B — retention
-
-Measure:
-
-- second lesson within 7 days;
-- delayed-review return;
-- week-two active learning;
-- support level falling over time;
-- whether the system selects material the learner considers useful.
-
-### Gate C — willingness to pay
-
-Use a real paywall and real payment intent. Do not rely on survey answers.
+Pricing is a hypothesis until real payment behavior exists.
 
 Measure:
 
 - checkout start;
 - completed payment;
-- continued use after payment;
-- renewal/month-two retention;
-- cancellation reason.
+- paid conversion;
+- continued learning after payment;
+- month-two retention/renewal;
+- cancellation/refund reasons;
+- gross margin;
+- provider cost per accepted learning experience;
+- support cost.
 
-### Gate D — economics
-
-Before scaling, establish:
-
-- actual transcript cost;
-- actual model token cost;
-- retry/repair rate;
-- cache savings;
-- cost per accepted lesson;
-- cost per active free learner;
-- gross margin per paid plan.
-
-If learners generate lessons but do not study, review, return, or pay, stop expanding the platform and correct the product thesis.
+A rough planning target that variable provider/transcript/infrastructure cost remains a minority of revenue may be used for modeling, but only real measurements can set the plan.
 
 ---
 
-## 12. Legal and commercial gates
+## 13. Validation sequence
 
-Legal review is required before commercial arbitrary-YouTube scale.
+The current execution sequence is intentionally hard-gated.
 
-### Initial content boundary
+### Gate 0 — production v2 authoring reachability
 
-For arbitrary user-selected YouTube content, prefer a private companion experience:
+**Done.** Production-shaped workflow can publish readable v2 `lesson_versions`.
+
+### Gate 1 — first-session durable flow
+
+**Done in code/tests.**
+
+### Gate 2 — CI failures fixed from real logs
+
+**Done for the current technical slice.**
+
+### Gate 3 — support/replay server evidence
+
+**Done in code/tests.**
+
+### Gate 4 — changed-context + delayed review
+
+**Done in code/tests**, including arbitrary-blueprint and durable Supabase evidence where covered.
+
+### Gate 5 — five-person moderated usability
+
+**Current gate. Not passed.**
+
+Use the existing Golden Session protocol and local harness. Require five genuine participant records. Do not fabricate records or reinterpret fixture CI as learner evidence.
+
+Measure the predeclared outcomes, including completion without moderator instruction, changed-context attempt/use, before/after recognition, elapsed time, blocking defects, and severe grounding/mastery defects.
+
+### Gate 6 — 20–50 learner cohort
+
+Only after Gate 5 passes or produces a clear correction plan that is implemented and revalidated.
+
+Measure activation and return behavior, including:
+
+- first-session completion;
+- observable learning evidence;
+- second session within the declared window;
+- delayed-review return;
+- week-two activity;
+- support requirements over time;
+- defect rate and time to value.
+
+### Gate 7 — authoring-model economics benchmark
+
+Only after the learning experience is worth optimizing.
+
+Benchmark at most three candidates and select one production model by cost per accepted lesson/experience.
+
+### Gate 8 — payment, retention, legal, and operations validation
+
+Use real payment intent/transactions and actual continuing usage. Complete legal/commercial requirements before broad paid launch.
+
+### Gate 9 — rollout
+
+Only after learning quality, retention, payment, economics, legal, security, and operational gates pass.
+
+Do not skip gates because a PR merged or CI is green.
+
+---
+
+## 14. Legal and commercial gates
+
+Commercial arbitrary-YouTube scale requires legal review.
+
+For arbitrary user-selected sources, prefer a private companion experience:
 
 - use official embed/player behavior;
-- do not download or rehost video;
-- do not create a public lesson catalog from arbitrary videos;
+- do not download/rehost video without a valid basis;
+- do not create a public lesson catalog from arbitrary sources;
 - keep transcript-derived storage bounded and purpose-limited;
-- provide copyright reporting/takedown paths;
-- expose source attribution and AI-generated-content disclosure.
+- expose source attribution and AI-generated-content disclosure where required;
+- provide copyright/takedown paths.
 
-Public curated content requires compatible ownership, public-domain status, licence, or creator permission.
-
-### Required documents/processes before paid public launch
+Before paid public launch, complete the appropriate versions of:
 
 - Terms of Service;
 - Privacy Policy;
-- Copyright/takedown policy;
+- copyright/takedown policy;
 - Acceptable Use Policy;
-- refund and cancellation policy;
+- refund/cancellation policy;
 - data retention/deletion process;
 - subprocessor list;
 - incident response;
-- legal assessment of transcript and derivative lesson handling;
+- legal assessment of transcript/derivative lesson handling;
 - Vietnam e-commerce notification/registration determination;
-- company/accounting/e-invoice/tax setup appropriate to the final entity and payment flow.
+- accounting/e-invoice/tax setup for the final entity/payment flow.
 
 ### Payments
 
 Do not integrate several gateways at once.
 
-Validate demand first. Then select one initial Vietnam-compatible recurring payment route and keep billing behind an internal adapter with verified, idempotent webhooks.
-
-International Merchant-of-Record or card processing is a later decision after the Vietnam launch model and entity are clear.
+Validate demand first, then choose one initial payment route and keep billing behind an internal adapter with verified, idempotent webhook handling.
 
 ---
 
-## 13. Execution priority
+## 15. Execution priority now
 
-### P0 — stop uncontrolled expansion and prove product value
+### P0 — finish Gate 5 with real evidence
 
-1. Freeze new media types, languages, provider integrations, billing, and infrastructure expansion.
-2. Keep PR #44 draft and unmerged.
-3. Define one golden learner journey using one supported English video and fixture/provider-independent runtime.
-4. Make progressive support, retry, transfer, and honest completion work end to end.
-5. Create an operator-run usability protocol for 5 internal/manual testers, then a 20–50 learner cohort.
-6. Define analytics and acceptance criteria before the cohort.
+1. Use `pnpm study:golden` in the safe local harness.
+2. Recruit five people matching the Golden Session validation persona as closely as practical.
+3. Run one participant per clean DB/browser cycle.
+4. Capture bounded moderator observations plus owner-scoped durable measurement.
+5. Keep five genuine participant records.
+6. Evaluate exactly the predeclared thresholds.
+7. If a threshold fails, fix the smallest observed cause and rerun the relevant evidence rather than broadening scope.
 
-### P0 — production reliability
+### P0 — protect source of truth and evidence integrity
 
-1. Resolve the deployment drift between production `a1b28f0` and current `main@71f287b`.
-2. Preserve the production DB compatibility guard until a compatible application runtime is live.
-3. Verify the original Shorts incident class no longer creates endless polling.
-4. Add a production generation kill switch before paid provider usage expands.
+- Keep product docs, constitution, active specs, code/tests, and handover aligned.
+- Do not let archived BMAD or stale PR state become planning authority.
+- Do not let UI-local state, model output, or moderator assumptions manufacture learner capability evidence.
 
-### P1 — model economics
+### P1 — Gate 6 cohort, only after Gate 5
 
-1. Build a 30–50-source golden benchmark representing Shorts, structured video, interview, podcast, entertainment, slang, difficult transcript, and long source.
-2. Benchmark no more than three candidate models with temporary budget-capped keys.
-3. Select one provider/model based on cost per accepted lesson.
-4. Revoke all non-selected credentials.
+Build only the instrumentation/operational support needed for the predeclared 20–50 learner cohort.
 
-### P2 — closed beta learning evidence
+### P2 — economics/provider benchmark, only after learner value
 
-1. Isolated preview Supabase.
-2. End-to-end session/attempt/support/retry/transfer persistence.
-3. Delayed review.
-4. Small cohort.
-5. Analyze activation and week-one retention.
+Optimize authoring cost/reliability only after the learning loop has learner evidence.
 
-### P3 — willingness to pay and commercial viability
+### P3 — payment/legal/operations
 
-1. Real pricing/paywall experiment.
-2. Month-two retention test.
-3. Unit economics.
-4. Legal review.
-5. Initial company, accounting, payment, refund, and support setup.
+Real willingness-to-pay, retention, gross margin, legal review, billing, refund, support, and compliance work.
 
-### P4 — production rollout
+### P4 — rollout
 
-Only after learning quality, retention, payment, economics, legal, security, and operational gates pass.
+Only after all preceding evidence gates justify it.
 
 ---
 
-## 14. Do not do next
+## 16. Do not do next
 
 Do not immediately:
 
-- connect multiple AI providers;
-- add Vietnamese/Chinese source translation modes;
-- add arbitrary file uploads;
-- support complete 10-hour processing;
-- lower evidence gates merely to accept Shorts;
-- build a sophisticated pricing dashboard;
+- add more target languages;
+- add arbitrary media/file types;
+- add several AI providers or automatic fallback routing;
+- build gamification/social layers to create activity metrics;
 - add several payment gateways;
-- publish AI lessons publicly;
-- merge PR #44 because CI is green;
-- connect preview to production Supabase;
-- claim mastery from immediate completion;
-- claim business viability from signups or generation count.
+- publish arbitrary AI lessons publicly;
+- connect local/preview work to production Supabase casually;
+- lower evidence gates to improve generation acceptance;
+- claim mastery from completion;
+- claim learning from fixture CI;
+- claim business viability from signups, generation count, or one-time curiosity;
+- move to the 20–50 cohort before the five-person Gate 5 evidence is evaluated.
 
 ---
 
-## 15. Next deliverable
+## 17. Next deliverable
 
-The next implementation deliverable is not another architecture layer.
+The next product deliverable is not another architecture layer.
 
 It is:
 
-> One complete, understandable, measurable Vidlish learning session on a grounded source, with progressive support, retrieval, bounded feedback, mandatory retry, changed-context transfer, honest completion, and privacy-safe evidence—ready for a small learner test.
+> Five genuine moderated Golden Session records, evaluated against the predeclared Gate 5 thresholds, with any observed blocker traced to the smallest product cause.
 
-All work must be evaluated by whether it advances this deliverable and its validation cohort.
+Everything else must justify why it advances that evidence rather than merely making Vidlish look larger.
