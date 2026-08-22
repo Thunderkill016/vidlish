@@ -2,11 +2,11 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { classifyLearningReviewQueue } from "@/modules/learning/application/classify-learning-review-queue";
-import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-plan";
 import { studyCompletionPercent } from "@/modules/study/application/score-study-progress";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
+import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-plan";
 import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
 import { createStudyProgressRepository } from "@/platform/study/create-study-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
@@ -79,14 +79,16 @@ export default async function DashboardPage() {
             Học tiếp từ nơi bạn dừng lại
           </h1>
           <p className="max-w-2xl text-[var(--muted-foreground)]">
-            Một nơi cho bài đang học, video mới, ôn tập và bằng chứng tiến bộ — không biến việc học thành một bảng điểm giả.
+            Bắt đầu từ input vừa sức, làm review khi đến hạn và chỉ tăng claim
+            khi bạn tạo ra evidence thật. Video là một nguồn học nâng cao, không
+            phải cửa vào bắt buộc.
           </p>
         </div>
         <Link
-          href="/create"
+          href="/start"
           className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
         >
-          + Tạo bài từ video
+          Học ngay
         </Link>
       </div>
 
@@ -96,8 +98,8 @@ export default async function DashboardPage() {
             <div className="border-b border-[var(--border)] bg-[var(--primary-wash)] px-6 py-5">
               <p className="text-xs font-bold uppercase tracking-[0.18em] text-[var(--primary)]">
                 {continueRow.percent > 0
-                  ? "Tiếp tục bài học"
-                  : "Bài học gần nhất"}
+                  ? "Tiếp tục bài nguồn"
+                  : "Bài nguồn gần nhất"}
               </p>
               <h2 className="mt-2 text-2xl font-bold">
                 {continueRow.lesson.titleVi}
@@ -126,7 +128,7 @@ export default async function DashboardPage() {
                   href={`/lessons/${continueRow.lesson.jobId}`}
                   className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
                 >
-                  {continueRow.percent > 0 ? "Học tiếp" : "Bắt đầu bài học"}
+                  {continueRow.percent > 0 ? "Học tiếp" : "Bắt đầu bài nguồn"}
                 </Link>
                 <Link
                   href="/library"
@@ -141,18 +143,22 @@ export default async function DashboardPage() {
           <Card className="flex min-h-72 flex-col justify-between bg-[var(--primary-wash)]">
             <div>
               <p className="text-sm font-semibold text-[var(--primary)]">
-                Bắt đầu từ một đoạn bạn thật sự muốn hiểu
+                Bắt đầu từ trình độ hiện tại
               </p>
-              <h2 className="mt-2 text-2xl font-bold">Chưa có bài học nào</h2>
+              <h2 className="mt-2 text-2xl font-bold">
+                Chưa có bài nguồn — không sao
+              </h2>
               <p className="mt-3 max-w-xl text-[var(--muted-foreground)]">
-                Dán một video tiếng Anh. Vidlish sẽ kiểm tra nguồn, chọn evidence hợp lệ rồi mới tạo hoạt động học.
+                Nếu tiếng Anh thật còn quá khó, Vidlish bắt đầu bằng input ngắn
+                và support tiếng Việt. Khi evidence đủ mạnh, video thật mới trở
+                thành nguồn học hợp lý.
               </p>
             </div>
             <Link
-              href="/create"
+              href="/start"
               className="mt-6 inline-flex min-h-11 w-fit items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
             >
-              Tạo bài học đầu tiên
+              Bắt đầu học
             </Link>
           </Card>
         )}
@@ -184,10 +190,10 @@ export default async function DashboardPage() {
             </div>
             <p className="text-sm text-[var(--muted-foreground)]">
               {dueReviews.length > 0
-                ? "Queue được tính từ next_review_at thật. Phiên thứ hai sẽ kiểm tra recall rồi changed-context transfer."
+                ? "Queue được tính từ next_review_at thật. Phiên sau kiểm tra recall rồi changed-context transfer."
                 : upcomingReview?.nextReviewAt
                   ? `Lượt gần nhất: ${formatReviewTime(upcomingReview.nextReviewAt)}. Scheduler không phải mastery evidence.`
-                  : "Hoàn tất Golden Session v2 để target item được tạo lịch ôn đầu tiên."}
+                  : "Source-lesson item sẽ xuất hiện ở đây khi có lịch review. Beginner delayed review chưa được nối vào queue này."}
             </p>
             <Link
               href="/review"
@@ -200,7 +206,7 @@ export default async function DashboardPage() {
           {activeJobs.length > 0 ? (
             <Card className="space-y-3 border-dashed">
               <p className="text-sm font-semibold text-[var(--accent)]">
-                Đang tạo
+                Đang tạo nguồn video
               </p>
               <h2 className="text-lg font-bold">{activeJobs[0].videoTitle}</h2>
               <p className="text-sm text-[var(--muted-foreground)]">
@@ -216,17 +222,18 @@ export default async function DashboardPage() {
           ) : (
             <Card className="space-y-3">
               <p className="text-sm font-semibold text-[var(--accent)]">
-                Nguồn mới
+                Nguồn nâng cao
               </p>
               <h2 className="text-lg font-bold">Có video muốn hiểu kỹ hơn?</h2>
               <p className="text-sm text-[var(--muted-foreground)]">
-                Tạo một lesson ngắn thay vì cố “học hết” cả video dài.
+                YouTube vẫn ở đây khi authentic English đã đủ vừa sức. Nó là một
+                nguồn input, không phải việc bắt buộc phải làm mỗi ngày.
               </p>
               <Link
                 href="/create"
                 className="inline-flex min-h-10 items-center text-sm font-semibold text-[var(--primary)]"
               >
-                Dán URL YouTube →
+                Tạo bài từ YouTube →
               </Link>
             </Card>
           )}
@@ -260,7 +267,7 @@ export default async function DashboardPage() {
           <Card className="space-y-1 p-5">
             <p className="text-3xl font-bold">{lessons.length}</p>
             <p className="text-sm text-[var(--muted-foreground)]">
-              Bài học đã lưu
+              Bài nguồn đã lưu
             </p>
           </Card>
           <Card className="space-y-1 p-5">
@@ -272,7 +279,7 @@ export default async function DashboardPage() {
           <Card className="space-y-1 p-5">
             <p className="text-3xl font-bold">{activeJobs.length}</p>
             <p className="text-sm text-[var(--muted-foreground)]">
-              Job đang xử lý
+              Job nguồn đang xử lý
             </p>
           </Card>
         </div>
