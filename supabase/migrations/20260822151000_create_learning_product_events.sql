@@ -161,15 +161,22 @@ begin
     raise exception 'source completion requires bounded source evidence';
   end if;
 
+  -- The UI deliberately uses the incorrect attempt's immutable row id as this
+  -- event's idempotency key. Binding the two here means a crafted client cannot
+  -- claim that correction was displayed after a correct/unrelated attempt.
+  -- Reading a correction is still product-observation evidence only; this check
+  -- never mutates the attempt or upgrades learning state.
   if p_event_kind = 'correction_shown'
     and not exists (
       select 1
       from public.activity_attempts attempt
-      where attempt.owner_user_id = p_owner_user_id
+      where attempt.id = p_idempotency_key
+        and attempt.owner_user_id = p_owner_user_id
         and attempt.session_id = p_session_id
         and attempt.activity_id = p_activity_id
+        and attempt.evaluation ->> 'verdict' = 'incorrect'
     ) then
-    raise exception 'correction display requires a persisted attempt';
+    raise exception 'correction display requires the matching incorrect attempt';
   end if;
 
   insert into public.learning_product_events (
