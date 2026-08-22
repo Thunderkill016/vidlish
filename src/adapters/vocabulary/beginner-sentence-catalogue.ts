@@ -1,3 +1,5 @@
+import { measureKnownCoverage } from "@/modules/learning/application/measure-known-coverage";
+
 import catalogue from "./tatoeba-beginner-sentences.json";
 
 /**
@@ -43,6 +45,23 @@ export function beginnerSentencesFor(target: string): readonly BeginnerSentence[
 
 export function allBeginnerSentences(): readonly BeginnerSentence[] {
   return SENTENCES;
+}
+
+/**
+ * How many corpus sentences the learner could read with nothing unknown in
+ * them. This is a reading measure taken from evidence rather than from an
+ * assumed level, and it moves only when the learner learns something.
+ */
+export function readableSentenceCount(known: ReadonlySet<string>): number {
+  let readable = 0;
+  for (const sentence of SENTENCES) {
+    if (
+      measureKnownCoverage({ text: sentence.text, known }).unknown.length === 0
+    ) {
+      readable += 1;
+    }
+  }
+  return readable;
 }
 
 export function beginnerSentenceCatalogueSize(): number {
