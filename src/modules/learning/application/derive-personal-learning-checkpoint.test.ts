@@ -53,7 +53,7 @@ describe("derivePersonalLearningCheckpoint", () => {
     const result = derive([], 3);
 
     expect(result.stage).toBe("independent_retrieval");
-    expect(result.nextAction).toBe("use_changed_context");
+    expect(result.nextAction).toBe("continue_beginner_learning");
     expect(result.independentCount).toBe(3);
   });
 
