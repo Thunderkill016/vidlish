@@ -10,15 +10,34 @@ const port = 3100;
  * twice as one person therefore has the second run pick up the first run's
  * support ladder, which is the product behaving properly and the test lying.
  */
-const configuredBetaEmails =
-  process.env.TEST_BETA_EMAILS ??
-  [
-    "invited@example.com",
-    "fresh@example.com",
-    "learning-preview@example.com",
-    "v2lab-chromium@example.com",
-    "v2lab-mobile-chromium@example.com",
-  ].join(",");
+/**
+ * Every learner the suite signs in as.
+ *
+ * Unioned with `TEST_BETA_EMAILS` rather than replaced by it. The env var used
+ * to win outright, and CI sets its own copy of this list — so adding a learner
+ * here passed locally and failed in CI with a sign-in that silently bounced,
+ * which reads like a broken feature rather than a stale list in a second file.
+ * Two places holding the same list will drift; a union cannot.
+ */
+const DEFAULT_BETA_EMAILS = [
+  "invited@example.com",
+  "fresh@example.com",
+  "learning-preview@example.com",
+  "v2lab-chromium@example.com",
+  "v2lab-mobile-chromium@example.com",
+  "beginner-chromium@example.com",
+  "beginner-mobile-chromium@example.com",
+];
+
+const configuredBetaEmails = [
+  ...new Set([
+    ...DEFAULT_BETA_EMAILS,
+    ...(process.env.TEST_BETA_EMAILS ?? "")
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  ]),
+].join(",");
 
 export default defineConfig({
   testDir: "./tests/e2e",

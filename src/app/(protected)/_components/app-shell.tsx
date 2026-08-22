@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Tổng quan", glyph: "home", match: ["/dashboard"] },
+  { href: "/start", label: "Từ số 0", glyph: "review", match: ["/start"] },
   { href: "/create", label: "Tạo bài", glyph: "plus", match: ["/create", "/jobs"] },
   { href: "/library", label: "Thư viện", glyph: "library", match: ["/library", "/lessons"] },
   { href: "/review", label: "Ôn tập", glyph: "review", match: ["/review", "/learning-lab/v2"] },

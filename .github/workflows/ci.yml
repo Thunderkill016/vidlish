@@ -25,7 +25,6 @@ env:
   SUPABASE_SECRET_KEY: test-secret-key
   AUTH_ADAPTER: fake
   AUTH_FAKE_CODE: "123456"
-  TEST_BETA_EMAILS: invited@example.com,fresh@example.com,learning-preview@example.com,v2lab-chromium@example.com,v2lab-mobile-chromium@example.com
   VIDEO_METADATA_ADAPTER: fixture
   YOUTUBE_VIEWER_REGION: VN
   YOUTUBE_METADATA_TIMEOUT_MS: "1000"
