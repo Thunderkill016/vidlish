@@ -188,6 +188,7 @@ export async function waitForStudyAppReady(
     }
 
     if (childFailure) throw childFailure;
+    if (!child.killed) child.kill("SIGTERM");
     throw new Error(
       `Vidlish did not become ready at ${origin} within ${timeoutMs}ms. The participant cycle was not declared ready.`,
     );
@@ -297,6 +298,12 @@ export async function main() {
 
     const status = prepareLocalStudyDatabase();
     const childEnv = buildGoldenStudyRuntimeEnv(process.env, status);
+
+    // Database preparation can take long enough for another local process to
+    // claim the port after the first preflight. Re-check immediately before
+    // spawn so a newly occupied port also fails closed instead of serving the
+    // wrong process under the printed study URL.
+    await assertStudyPortAvailable();
 
     console.log("[study:golden] Starting Vidlish and waiting for readiness...");
     child = spawn(
