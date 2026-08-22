@@ -95,3 +95,61 @@ filter is ever relaxed.
 **Vietnamese.** 721 of 18,127 sentences have a human Vietnamese translation.
 That is too thin to carry the first three hundred words, so Vietnamese support
 has to come from somewhere else and be checked there.
+
+---
+
+# Vietnamese gloss artifact
+
+`vietnamese-glosses.json` — Vietnamese senses for 1,838 of the 2,214 catalogue
+words, at most three each. Rebuild with `node scripts/build-vietnamese-glosses.mjs`.
+
+## Where it comes from
+
+English Wiktionary, through the MediaWiki API. Content is CC BY-SA 4.0 and GFDL;
+attribution is by page title, which is the headword itself.
+
+Translations live in two places: inline for short entries, and on a
+`<word>/translations` subpage once the table grows. Both are read, because
+taking only the inline one returns the wrong sense — `water` inline gives
+`tưới`, the verb, while the noun everyone means sits on the subpage.
+
+## Why not a model
+
+The first words a learner meets are the ones they have no way to check. A wrong
+gloss there is not a small error: it becomes a belief every later sentence
+quietly reinforces, and the learner has no evidence with which to catch it.
+Wiktionary glosses were written and revised by people and carry an edit history.
+
+## What was measured
+
+Coverage against the catalogue's teaching order:
+
+| Words taught | Glossed |
+| ------------ | ------- |
+| first 50     | 36 (72%) |
+| first 100    | 83 (83%) |
+| first 300    | 262 (87%) |
+| first 1000   | 908 (90%) |
+| all 2214     | 1838 (83%) |
+
+The gaps are **not random, and they are worst where it matters most**. Missing
+from the first hundred: `the`, `you`, `him`, `her`, `us`, `them`, `its`, `an`,
+`any`, `these`, `whose`. Vietnamese has no article and no case-marked pronoun,
+so there is nothing for those to translate to — Wiktionary marks several of
+them `{{not used|vi}}`, which is information rather than an omission.
+
+Product consequence: a missing gloss is shown as a missing gloss, and the word
+is taught through use. Filling those cells with an invented equivalent would
+teach a word that does not do the job.
+
+## What was filtered
+
+308 senses in a non-Latin script were dropped. Wiktionary carries Chữ Nôm for
+some entries, and a learner shown `每𠊛` for "everyone" has been handed a
+different writing system, not a translation. A test fails if any survives.
+
+## Politeness
+
+Wikimedia answered `429` immediately at a 200 ms interval. The run is paced at
+1.2 s with backoff and a contact in the user agent, because this is their
+infrastructure paying for our artifact.

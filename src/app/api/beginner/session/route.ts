@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { vietnameseGlossFor } from "@/adapters/vocabulary/vietnamese-glosses";
 import { compileUnitActivity } from "@/modules/curriculum/application/compile-unit-activity";
 import { foundationUnitById } from "@/modules/curriculum/content";
 import { startBeginnerSession } from "@/modules/learning/application/start-beginner-session";
@@ -102,9 +103,11 @@ export async function POST(request: NextRequest) {
         word: outcome.target,
         sentence: null,
       });
+      const gloss = vietnameseGlossFor(outcome.target);
       const payload = beginnerWordIntroductionSchema.parse({
         ...outcome,
         challengeId: challenge.id,
+        ...(gloss ? { gloss: [...gloss] } : {}),
       });
       return NextResponse.json(payload, {
         status: 200,
