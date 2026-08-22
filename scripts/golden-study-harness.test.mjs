@@ -192,6 +192,7 @@ DB_URL=${local.DB_URL}
         }),
       ).resolves.toBeUndefined();
       expect(requests).toBeGreaterThanOrEqual(2);
+      expect(child.killed).toBe(false);
       expect(child.listenerCount("exit")).toBe(0);
       expect(child.listenerCount("error")).toBe(0);
     } finally {
@@ -216,7 +217,7 @@ DB_URL=${local.DB_URL}
     expect(child.listenerCount("error")).toBe(0);
   });
 
-  it("fails closed when readiness exceeds the bounded timeout", async () => {
+  it("fails closed and terminates the child when readiness exceeds the bounded timeout", async () => {
     const port = await reserveThenReleasePort();
     const child = fakeChild();
 
@@ -228,6 +229,7 @@ DB_URL=${local.DB_URL}
         requestTimeoutMs: 15,
       }),
     ).rejects.toThrow(/did not become ready/);
+    expect(child.killed).toBe(true);
     expect(child.listenerCount("exit")).toBe(0);
     expect(child.listenerCount("error")).toBe(0);
   });
