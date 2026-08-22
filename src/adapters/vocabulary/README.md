@@ -153,3 +153,45 @@ different writing system, not a translation. A test fails if any survives.
 Wikimedia answered `429` immediately at a 200 ms interval. The run is paced at
 1.2 s with backoff and a contact in the user agent, because this is their
 infrastructure paying for our artifact.
+
+---
+
+# Spoken frequency artifact
+
+`spoken-frequency.json` — how often each of 2,204 catalogue words appears in
+spoken English. Rebuild with `node scripts/build-spoken-frequency.mjs`.
+
+## Where it comes from
+
+**SUBTLEX-US**, 51 million words of film and television subtitles, via the
+[`words/subtlex-word-frequencies`](https://github.com/words/subtlex-word-frequencies)
+packaging.
+
+The JSON packaging is ISC. The underlying data is **CC BY-SA**, and ShareAlike
+reaches this derived file — a stricter obligation than the CEFR-J artifact
+carries. Attribution: Brysbaert & New, Ghent University.
+
+Subtitles rather than books, deliberately. The first skill here is listening,
+and written-corpus frequency over-weights words nobody says out loud.
+
+## What it fixed
+
+The CEFR-J README recorded the weakness: no frequency, so order within a level
+fell back to part of speech and then the alphabet. Measured against the same
+catalogue, the two rules disagree about **more than half** of the first hundred
+words:
+
+| Rule | First twenty words |
+| --- | --- |
+| part of speech, then alphabet | `a, all, an, another, any, anybody, anyone, anything, each, every, everybody, everyone, everything, he, her, hers, him, his, it, its` |
+| spoken frequency | `you, the, to, a, it, that, and, of, what, in, me, is, we, this, he, on, for, my, your, have` |
+
+Only **44 of the first 100** words are the same under both. The old first fifty
+was a dictionary; the new one is a language.
+
+Part of speech survives as a tie-break, for words the corpus counted equally.
+Level still comes first: an A2 word is not offered while A1 words remain.
+
+10 catalogue words carry no spoken count. They sort last within their level,
+because a word the subtitle corpus never recorded anyone saying is not a word to
+teach early.
