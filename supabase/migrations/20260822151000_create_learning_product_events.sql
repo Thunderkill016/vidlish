@@ -121,10 +121,10 @@ begin
   -- Idempotency is checked before any mutable activity/session-stage condition.
   -- A response retry can arrive after the learner advanced; the same request
   -- must still return the event it already created rather than fail differently.
-  select * into v_existing
-  from public.learning_product_events
-  where owner_user_id = p_owner_user_id
-    and idempotency_key = p_idempotency_key;
+  select existing.* into v_existing
+  from public.learning_product_events as existing
+  where existing.owner_user_id = p_owner_user_id
+    and existing.idempotency_key = p_idempotency_key;
 
   if v_existing.id is not null then
     if v_existing.session_id <> p_session_id
