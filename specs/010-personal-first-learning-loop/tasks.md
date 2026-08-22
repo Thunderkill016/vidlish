@@ -2,30 +2,30 @@
 
 ## Slice A — Product authority
 
-- [ ] A1 Replace active five-person blocker language in Master Plan with the personal owner-learning loop; keep five-person study as deferred market validation.
-- [ ] A2 Update `AGENTS.md` hard-gate/current-state language to match.
-- [ ] A3 Update Golden Session protocol status/purpose metadata so it remains valid but deferred, without changing its persona/source/thresholds.
-- [ ] A4 Update HANDOVER operational next step to owner dogfooding rather than recruiting five participants.
+- [x] A1 Replace active five-person blocker language in Master Plan with the personal owner-learning loop; keep five-person study as deferred market validation.
+- [x] A2 Update `AGENTS.md` hard-gate/current-state language to match.
+- [x] A3 Update Golden Session protocol status/purpose metadata so it remains valid but deferred, without changing its persona/source/thresholds.
+- [x] A4 Update HANDOVER operational next step to owner dogfooding rather than recruiting five participants.
 
 ## Slice B — Personal evidence projection
 
-- [ ] B1 Add pure `derivePersonalLearningCheckpoint` application function.
-- [ ] B2 Require durable independent evidence before independent checkpoint.
-- [ ] B3 Require independent + changed-context success before transfer checkpoint.
-- [ ] B4 Require delayed-transfer timestamp before delayed checkpoint.
-- [ ] B5 Add anti-upgrade tests for completion/scheduling/exposure/support-only evidence.
+- [x] B1 Add pure `derivePersonalLearningCheckpoint` application function.
+- [x] B2 Require durable independent evidence before independent checkpoint.
+- [x] B3 Require independent + changed-context success before transfer checkpoint.
+- [x] B4 Require delayed-transfer timestamp before delayed checkpoint.
+- [x] B5 Add anti-upgrade tests for completion/scheduling/exposure/support-only evidence.
 
 ## Slice C — Learner surfaces
 
-- [ ] C1 Make `/start` the dashboard primary learning CTA.
-- [ ] C2 Keep YouTube lesson creation reachable as a secondary source path.
-- [ ] C3 Change empty dashboard beginner copy away from YouTube-first onboarding.
-- [ ] C4 Add personal learning checkpoint to `/progress` with truthful next action.
-- [ ] C5 Rewrite `/start` one-new-word explanation as current product policy, not universal science.
+- [x] C1 Make `/start` the dashboard primary learning CTA.
+- [x] C2 Keep YouTube lesson creation reachable as a secondary source path.
+- [x] C3 Change empty dashboard beginner copy away from YouTube-first onboarding.
+- [x] C4 Add personal learning checkpoint to `/progress` with truthful next action.
+- [x] C5 Rewrite `/start` one-new-word explanation as current product policy, not universal science; remove the false promise that beginner delayed review already exists.
 
 ## Slice D — Verification
 
-- [ ] D1 Add/update focused learner-surface tests using existing test conventions.
+- [x] D1 Add/update focused learner-surface tests using existing test conventions: checkpoint unit cases plus desktop/mobile Playwright coverage for dashboard → `/start` → `/progress`.
 - [ ] D2 Run exact-head full CI and inspect failures from logs.
 - [ ] D3 Adversarial review for misleading capability claims, hardcoded owner identity, accidental Gate 5 threshold drift, and source-path regression.
 - [ ] D4 Merge only after final exact-head CI is fully green.
@@ -37,4 +37,5 @@
 - payments/retention/business rollout;
 - model/provider benchmark;
 - changing the beginner lexical gate itself;
+- beginner cross-session delayed-review persistence (next personal-learning slice);
 - declaring mastery or scientific effectiveness from owner-only evidence.
