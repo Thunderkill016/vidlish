@@ -45,7 +45,7 @@ const EMPTY_MESSAGES: Record<string, string> = {
   catalogue_exhausted:
     "Bạn đã đi hết danh sách từ A1–A2 hiện tại. Vidlish cần chọn nguồn học tiếp theo từ evidence của bạn, không tự coi đây là đã thành thạo.",
   no_usable_input:
-    "Chưa tìm được batch câu nào đạt policy beginner hiện tại cho target tiếp theo. Vidlish dừng thay vì đưa input vượt khỏi evidence set đang dùng.",
+    "Chưa tìm được batch câu nào đạt policy beginner hiện tại cho target tiếp theo. Vidlish dừng thay vì đưa input vượt khỏi lexical gate set đang dùng.",
 };
 
 export function BeginnerSession() {
@@ -108,8 +108,6 @@ export function BeginnerSession() {
   ) {
     if (state.kind !== "ready" && state.kind !== "introduce") return;
 
-    // "Saving", not "saved". UI must not claim progress until the durable
-    // server-authoritative write returns successfully.
     setPhase("saving");
     try {
       const body = dictated
@@ -199,8 +197,8 @@ export function BeginnerSession() {
           </span>
           <p className="text-xs text-[var(--muted-foreground)]">
             Theo policy beginner hiện tại, Vidlish chỉ dùng câu có một target nằm
-            ngoài independent evidence set. Khi chưa đủ evidence để tạo một batch
-            câu hợp lệ, target được giới thiệu riêng thay vì ép ra câu quá khó.
+            ngoài lexical gate set. Khi chưa đủ evidence để tạo một batch câu hợp
+            lệ, target được giới thiệu riêng thay vì ép ra câu quá khó.
           </p>
         </div>
 
@@ -214,7 +212,9 @@ export function BeginnerSession() {
           <p className="text-sm text-[var(--muted-foreground)]">Đang lưu…</p>
         ) : phase !== "answered" ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm">Bạn tự nói lại được từ này chưa?</p>
+            <p className="text-sm">
+              Bạn tự đánh giá là mình nói lại được từ này chưa?
+            </p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => record(true)}>Nói được</Button>
               <Button variant="secondary" onClick={() => record(false)}>
@@ -227,7 +227,7 @@ export function BeginnerSession() {
             <p className="text-sm text-[var(--muted-foreground)]">
               {saveFailed
                 ? "Chưa lưu được evidence. Vidlish sẽ không giả rằng lần này đã được ghi."
-                : "Đã ghi independent evidence cho lần này. Nó dùng để chọn input tiếp theo, chưa phải bằng chứng rằng bạn nhớ lâu."}
+                : "Đã ghi bootstrap lexical-gate evidence. Lần này là self-report đã được server bind vào đúng target; nó chưa phải verified capability hay bằng chứng nhớ lâu."}
             </p>
             <Button onClick={startSession}>Tiếp tục học</Button>
           </div>
@@ -242,7 +242,10 @@ export function BeginnerSession() {
     <Card className="flex flex-col gap-5">
       <div className="flex items-baseline justify-between">
         <span className="text-sm text-[var(--muted-foreground)]">
-          Target: <strong className="text-[var(--foreground)]">{state.session.target}</strong>
+          Target:{" "}
+          <strong className="text-[var(--foreground)]">
+            {state.session.target}
+          </strong>
         </span>
         <span className="text-xs text-[var(--muted-foreground)] tabular-nums">
           Câu {state.index + 1}/{state.session.sentences.length}
