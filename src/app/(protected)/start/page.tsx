@@ -30,8 +30,10 @@ export default async function StartPage() {
       <header className="flex flex-col gap-2">
         <h1 className="text-2xl font-semibold">Bắt đầu từ số 0</h1>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Mỗi câu ở đây chỉ có đúng một từ bạn chưa gặp. Không phải vì dễ hơn —
-          mà vì một câu có hai từ mới thì bạn đoán, và đoán thì không để lại gì.
+          Vidlish hiện dùng một policy bảo thủ: câu beginner chỉ chứa một target
+          chưa có independent evidence, còn các từ khác phải nằm trong tập đã
+          biết. Đây là cách giữ input đầu vào dễ audit ở giai đoạn này, không
+          phải định nghĩa duy nhất của “comprehensible input”.
         </p>
       </header>
 
@@ -43,14 +45,14 @@ export default async function StartPage() {
           {known.length}
         </span>
         <span className="text-xs text-[var(--muted-foreground)]">
-          Đây là con số quyết định câu tiếp theo bạn gặp. Không phải số buổi
-          học, không phải chuỗi ngày liên tiếp.
+          Đây là evidence set mà policy beginner hiện tại dùng để quyết định câu
+          tiếp theo. Nó không phải toàn bộ những gì bạn có thể nhận ra hoặc hiểu.
         </span>
       </Card>
 
       <Card className="flex flex-col gap-1">
         <span className="text-sm text-[var(--muted-foreground)]">
-          Số câu bạn đọc được trọn vẹn, không có chữ nào lạ
+          Số câu bạn đọc được trọn vẹn theo evidence set hiện tại
         </span>
         <span className="text-3xl font-semibold tabular-nums">
           {readable.toLocaleString("vi-VN")}
@@ -60,8 +62,8 @@ export default async function StartPage() {
           </span>
         </span>
         <span className="text-xs text-[var(--muted-foreground)]">
-          Đếm trên kho câu do người viết. Con số này chỉ nhúc nhích khi bạn học
-          được thêm, nên nó không tự đẹp lên vì bạn mở ứng dụng nhiều hơn.
+          Đếm trên kho câu do người viết bằng policy hiện tại. Con số này chỉ
+          tăng khi independent evidence tăng; nó không phải điểm trình độ chung.
         </span>
       </Card>
 
