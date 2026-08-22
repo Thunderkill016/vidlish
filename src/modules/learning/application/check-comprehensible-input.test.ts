@@ -18,8 +18,9 @@ describe("checkComprehensibleInput", () => {
   });
 
   it("refuses a sentence with more new words than the budget", () => {
-    // Two unknown words is not i+1, it is i+2 — and at zero that is the
-    // difference between learning a word and guessing at a fog.
+    // The current beginner policy defaults to one new lexical item. This test
+    // protects that fail-closed default; it does not claim two unknown words
+    // are universally incomprehensible in every learning context.
     const verdict = checkComprehensibleInput({
       sentence: "I have a green pen.",
       known,
@@ -30,8 +31,9 @@ describe("checkComprehensibleInput", () => {
   });
 
   it("refuses a sentence that teaches nothing", () => {
-    // Comprehensible, but the learner ends where they started and there is no
-    // evidence to record either way.
+    // This generator is target-teaching infrastructure. A zero-novelty draft
+    // may be valid language exposure elsewhere, but it does not introduce the
+    // target this batch exists to teach.
     const verdict = checkComprehensibleInput({
       sentence: "The book is red.",
       known,
@@ -50,15 +52,15 @@ describe("checkComprehensibleInput", () => {
   });
 
   it("ignores case and punctuation the learner never hears", () => {
-    // "Book," and "book" are the same word to someone listening.
+    // "Book," and "book" are the same lexical item for this gate.
     expect(
       checkComprehensibleInput({ sentence: "  BOOK, book!  ", known }),
     ).toEqual({ kind: "nothing_new" });
   });
 
   it("lets the budget widen deliberately, never by accident", () => {
-    // A learner further along can take two new words. The default stays one so
-    // widening is always a decision someone made.
+    // A later policy may explicitly permit two new lexical items. The default
+    // stays one so widening is always a versioned product decision.
     expect(
       checkComprehensibleInput({
         sentence: "I have a green pen.",
@@ -71,7 +73,7 @@ describe("checkComprehensibleInput", () => {
 
 describe("tokenise", () => {
   it("keeps contractions whole", () => {
-    // "don't" is one word a learner meets, not "don" and "t".
+    // "don't" is one lexical token for this gate, not "don" and "t".
     expect(tokenise("I don't know")).toEqual(["i", "don't", "know"]);
   });
 
