@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { z } from "zod";
 
 import { goldenSessionUsabilityParticipantSchema } from "@/shared/contracts/golden-session-usability";
@@ -10,7 +10,6 @@ import {
 } from "@/shared/contracts/learning-measurement";
 
 const STORED_LAB_VERSION = 4;
-
 const storedSessionPointerSchema = z
   .object({
     version: z.literal(STORED_LAB_VERSION),
@@ -45,11 +44,11 @@ type BooleanChoice = "" | "yes" | "no";
 type RecognitionChoice = "" | (typeof recognitionLevels)[number];
 type BlockKindChoice = "" | (typeof blockKinds)[number];
 type SevereDefectChoice = "" | "none" | (typeof severeDefectKinds)[number];
+type SelectOption = { value: string; label: string };
 
 function storageKey(blueprintId: string): string {
-  // Must mirror LearningSessionLab's versioned key. The version check below
-  // fails closed if that browser contract changes instead of guessing at old
-  // state.
+  // Must mirror LearningSessionLab's versioned key. The schema above fails
+  // closed if the browser contract changes rather than guessing at old state.
   return `vidlish:learning-lab:v${STORED_LAB_VERSION}:${blueprintId}`;
 }
 
@@ -64,10 +63,7 @@ function measurementFacts(measurement: LearningMeasurementSummary) {
     ["Session", measurement.sessionId],
     ["Trạng thái durable", measurement.status],
     ["Hoàn tất durable", measurement.completed ? "yes" : "no"],
-    [
-      "Changed-context attempts",
-      String(measurement.transfer.attemptCount),
-    ],
+    ["Changed-context attempts", String(measurement.transfer.attemptCount)],
     [
       "Elapsed",
       measurement.observedElapsedSeconds === null
@@ -77,6 +73,70 @@ function measurementFacts(measurement: LearningMeasurementSummary) {
     ["Runtime errors", String(measurement.runtimeErrors.length)],
   ] as const;
 }
+
+function SelectField({
+  label,
+  ariaLabel,
+  value,
+  onChange,
+  options,
+  disabled = false,
+  emptyLabel = "Chưa chọn",
+  wide = false,
+}: {
+  label: string;
+  ariaLabel: string;
+  value: string;
+  onChange(value: string): void;
+  options: readonly SelectOption[];
+  disabled?: boolean;
+  emptyLabel?: string;
+  wide?: boolean;
+}) {
+  return (
+    <label
+      className={`space-y-2 text-sm font-semibold${wide ? " sm:col-span-2" : ""}`}
+    >
+      <span>{label}</span>
+      <select
+        aria-label={ariaLabel}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+        className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal disabled:opacity-50"
+      >
+        <option value="">{emptyLabel}</option>
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
+          </option>
+        ))}
+      </select>
+    </label>
+  );
+}
+
+const yesNoOptions: readonly SelectOption[] = [
+  { value: "yes", label: "Có" },
+  { value: "no", label: "Không" },
+];
+const participantOptions = participantCodes.map((value) => ({
+  value,
+  label: value,
+}));
+const platformOptions: readonly SelectOption[] = [
+  { value: "desktop", label: "desktop" },
+  { value: "mobile", label: "mobile" },
+];
+const recognitionOptions = recognitionLevels.map((value) => ({
+  value,
+  label: value,
+}));
+const blockOptions = blockKinds.map((value) => ({ value, label: value }));
+const severeOptions: readonly SelectOption[] = [
+  { value: "none", label: "Không có" },
+  ...severeDefectKinds.map((value) => ({ value, label: value })),
+];
 
 export function GoldenSessionParticipantCapture({
   blueprintId,
@@ -88,7 +148,9 @@ export function GoldenSessionParticipantCapture({
   const [measurementError, setMeasurementError] = useState<string | null>(null);
   const [loadingMeasurement, setLoadingMeasurement] = useState(false);
 
-  const [participantCode, setParticipantCode] = useState<"" | (typeof participantCodes)[number]>("");
+  const [participantCode, setParticipantCode] = useState<
+    "" | (typeof participantCodes)[number]
+  >("");
   const [platform, setPlatform] = useState<"" | "desktop" | "mobile">("");
   const [completedWithoutInstruction, setCompletedWithoutInstruction] =
     useState<BooleanChoice>("");
@@ -104,7 +166,9 @@ export function GoldenSessionParticipantCapture({
 
   const [buildError, setBuildError] = useState<string | null>(null);
   const [participantJson, setParticipantJson] = useState<string | null>(null);
-  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
+    "idle",
+  );
   const [browserStateCleared, setBrowserStateCleared] = useState(false);
 
   async function loadMeasurement() {
@@ -173,19 +237,15 @@ export function GoldenSessionParticipantCapture({
     }
   }
 
-  useEffect(() => {
-    void loadMeasurement();
-    // The blueprint id is the complete identity of the local browser record.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [blueprintId]);
-
   function buildParticipant() {
     setBuildError(null);
     setParticipantJson(null);
     setCopyState("idle");
 
     if (!measurement) {
-      setBuildError("Chưa có durable measurement hợp lệ để ghép participant record.");
+      setBuildError(
+        "Chưa có durable measurement hợp lệ để ghép participant record.",
+      );
       return;
     }
 
@@ -265,9 +325,9 @@ export function GoldenSessionParticipantCapture({
             Lấy đúng session của participant hiện tại
           </h2>
           <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-            Trang tự đọc session pointer của Golden Session trong browser và gọi
-            endpoint owner-scoped. Không có ô nhập session ID để tránh lấy nhầm
-            hoặc đọc session của người khác.
+            Bấm tải để trang tự đọc session pointer của Golden Session trong
+            browser và gọi endpoint owner-scoped. Không có ô nhập session ID để
+            tránh lấy nhầm hoặc đọc session của người khác.
           </p>
         </div>
 
@@ -277,7 +337,7 @@ export function GoldenSessionParticipantCapture({
           disabled={loadingMeasurement}
           className="inline-flex min-h-11 items-center justify-center rounded-full border border-[var(--border)] px-5 text-sm font-semibold disabled:opacity-60"
         >
-          {loadingMeasurement ? "Đang đọc measurement…" : "Tải measurement lại"}
+          {loadingMeasurement ? "Đang đọc measurement…" : "Tải measurement"}
         </button>
 
         {measurementError ? (
@@ -292,7 +352,10 @@ export function GoldenSessionParticipantCapture({
         {measurement ? (
           <dl className="grid gap-3 sm:grid-cols-2">
             {measurementFacts(measurement).map(([label, value]) => (
-              <div key={label} className="rounded-2xl border border-[var(--border)] p-3">
+              <div
+                key={label}
+                className="rounded-2xl border border-[var(--border)] p-3"
+              >
                 <dt className="text-xs font-semibold text-[var(--muted-foreground)]">
                   {label}
                 </dt>
@@ -318,160 +381,90 @@ export function GoldenSessionParticipantCapture({
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2">
-          <label className="space-y-2 text-sm font-semibold">
-            <span>Participant code</span>
-            <select
-              aria-label="Participant code"
-              value={participantCode}
-              onChange={(event) =>
-                setParticipantCode(
-                  event.target.value as "" | (typeof participantCodes)[number],
-                )
-              }
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal"
-            >
-              <option value="">Chưa chọn</option>
-              {participantCodes.map((code) => (
-                <option key={code} value={code}>{code}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold">
-            <span>Platform</span>
-            <select
-              aria-label="Platform"
-              value={platform}
-              onChange={(event) =>
-                setPlatform(event.target.value as "" | "desktop" | "mobile")
-              }
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal"
-            >
-              <option value="">Chưa chọn</option>
-              <option value="desktop">desktop</option>
-              <option value="mobile">mobile</option>
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold">
-            <span>Hoàn thành không cần moderator chỉ dẫn?</span>
-            <select
-              aria-label="Completed without moderator instruction"
-              value={completedWithoutInstruction}
-              onChange={(event) =>
-                setCompletedWithoutInstruction(event.target.value as BooleanChoice)
-              }
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal"
-            >
-              <option value="">Chưa chọn</option>
-              <option value="yes">Có</option>
-              <option value="no">Không</option>
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold">
-            <span>Participant tự nhắc lại được mục tiêu bài?</span>
-            <select
-              aria-label="Lesson goal restated"
-              value={lessonGoalRestated}
-              onChange={(event) =>
-                setLessonGoalRestated(event.target.value as BooleanChoice)
-              }
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal"
-            >
-              <option value="">Chưa chọn</option>
-              <option value="yes">Có</option>
-              <option value="no">Không</option>
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold">
-            <span>Recognition trước phiên</span>
-            <select
-              aria-label="Before target recognition"
-              value={beforeRecognition}
-              onChange={(event) =>
-                setBeforeRecognition(event.target.value as RecognitionChoice)
-              }
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal"
-            >
-              <option value="">Chưa chọn</option>
-              {recognitionLevels.map((level) => (
-                <option key={level} value={level}>{level}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold">
-            <span>Recognition sau phiên</span>
-            <select
-              aria-label="After target recognition"
-              value={afterRecognition}
-              onChange={(event) =>
-                setAfterRecognition(event.target.value as RecognitionChoice)
-              }
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal"
-            >
-              <option value="">Chưa chọn</option>
-              {recognitionLevels.map((level) => (
-                <option key={level} value={level}>{level}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold">
-            <span>Participant bị blocked?</span>
-            <select
-              aria-label="Participant blocked"
-              value={blocked}
-              onChange={(event) => {
-                const next = event.target.value as BooleanChoice;
-                setBlocked(next);
-                if (next !== "yes") setBlockKind("");
-              }}
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal"
-            >
-              <option value="">Chưa chọn</option>
-              <option value="yes">Có</option>
-              <option value="no">Không</option>
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold">
-            <span>Block kind</span>
-            <select
-              aria-label="Block kind"
-              value={blockKind}
-              disabled={blocked !== "yes"}
-              onChange={(event) =>
-                setBlockKind(event.target.value as BlockKindChoice)
-              }
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal disabled:opacity-50"
-            >
-              <option value="">{blocked === "yes" ? "Chưa chọn" : "Không áp dụng"}</option>
-              {blockKinds.map((kind) => (
-                <option key={kind} value={kind}>{kind}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className="space-y-2 text-sm font-semibold sm:col-span-2">
-            <span>Severe evidence/reveal/mastery defect</span>
-            <select
-              aria-label="Severe defect"
-              value={severeDefect}
-              onChange={(event) =>
-                setSevereDefect(event.target.value as SevereDefectChoice)
-              }
-              className="min-h-11 w-full rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 font-normal"
-            >
-              <option value="">Chưa chọn</option>
-              <option value="none">Không có</option>
-              {severeDefectKinds.map((kind) => (
-                <option key={kind} value={kind}>{kind}</option>
-              ))}
-            </select>
-          </label>
+          <SelectField
+            label="Participant code"
+            ariaLabel="Participant code"
+            value={participantCode}
+            options={participantOptions}
+            onChange={(value) =>
+              setParticipantCode(
+                value as "" | (typeof participantCodes)[number],
+              )
+            }
+          />
+          <SelectField
+            label="Platform"
+            ariaLabel="Platform"
+            value={platform}
+            options={platformOptions}
+            onChange={(value) =>
+              setPlatform(value as "" | "desktop" | "mobile")
+            }
+          />
+          <SelectField
+            label="Hoàn thành không cần moderator chỉ dẫn?"
+            ariaLabel="Completed without moderator instruction"
+            value={completedWithoutInstruction}
+            options={yesNoOptions}
+            onChange={(value) =>
+              setCompletedWithoutInstruction(value as BooleanChoice)
+            }
+          />
+          <SelectField
+            label="Participant tự nhắc lại được mục tiêu bài?"
+            ariaLabel="Lesson goal restated"
+            value={lessonGoalRestated}
+            options={yesNoOptions}
+            onChange={(value) => setLessonGoalRestated(value as BooleanChoice)}
+          />
+          <SelectField
+            label="Recognition trước phiên"
+            ariaLabel="Before target recognition"
+            value={beforeRecognition}
+            options={recognitionOptions}
+            onChange={(value) =>
+              setBeforeRecognition(value as RecognitionChoice)
+            }
+          />
+          <SelectField
+            label="Recognition sau phiên"
+            ariaLabel="After target recognition"
+            value={afterRecognition}
+            options={recognitionOptions}
+            onChange={(value) =>
+              setAfterRecognition(value as RecognitionChoice)
+            }
+          />
+          <SelectField
+            label="Participant bị blocked?"
+            ariaLabel="Participant blocked"
+            value={blocked}
+            options={yesNoOptions}
+            onChange={(value) => {
+              const next = value as BooleanChoice;
+              setBlocked(next);
+              if (next !== "yes") setBlockKind("");
+            }}
+          />
+          <SelectField
+            label="Block kind"
+            ariaLabel="Block kind"
+            value={blockKind}
+            options={blockOptions}
+            disabled={blocked !== "yes"}
+            emptyLabel={blocked === "yes" ? "Chưa chọn" : "Không áp dụng"}
+            onChange={(value) => setBlockKind(value as BlockKindChoice)}
+          />
+          <SelectField
+            label="Severe evidence/reveal/mastery defect"
+            ariaLabel="Severe defect"
+            value={severeDefect}
+            options={severeOptions}
+            wide
+            onChange={(value) =>
+              setSevereDefect(value as SevereDefectChoice)
+            }
+          />
         </div>
 
         <button
@@ -483,7 +476,10 @@ export function GoldenSessionParticipantCapture({
         </button>
 
         {buildError ? (
-          <div role="alert" className="rounded-2xl border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 p-4 text-sm">
+          <div
+            role="alert"
+            className="rounded-2xl border border-[var(--destructive)]/30 bg-[var(--destructive)]/5 p-4 text-sm"
+          >
             {buildError}
           </div>
         ) : null}
@@ -500,7 +496,8 @@ export function GoldenSessionParticipantCapture({
             </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
               Record này chỉ nằm trong browser. Sau khi đủ năm record thật, ghép
-              chúng vào evaluator Gate 5. Không dùng record mẫu/synthetic thay người test.
+              chúng vào evaluator Gate 5. Không dùng record mẫu/synthetic thay
+              người test.
             </p>
           </div>
 
@@ -540,10 +537,14 @@ export function GoldenSessionParticipantCapture({
             </p>
           ) : null}
           {browserStateCleared ? (
-            <div role="status" className="rounded-2xl border border-[var(--border)] p-4 text-sm leading-6">
+            <div
+              role="status"
+              className="rounded-2xl border border-[var(--border)] p-4 text-sm leading-6"
+            >
               Golden browser state đã được xóa. Bây giờ dừng server và chạy lại
               <code className="mx-1">pnpm study:golden</code>
-              để reset local database trước participant tiếp theo. Participant JSON phía trên vẫn còn để bạn lưu lại.
+              để reset local database trước participant tiếp theo. Participant
+              JSON phía trên vẫn còn để lưu lại.
             </div>
           ) : null}
         </section>
