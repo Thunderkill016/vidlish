@@ -1,6 +1,6 @@
 # Golden Session Validation Protocol
 
-**Status:** P0 Gate 5 product-validation contract — technically runnable, learner evidence pending  
+**Status:** deferred external-user market-validation contract — technically runnable, five-person learner evidence pending  
 **Current branch:** `main`  
 **Related:** `docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`, `docs/product/learning-model-v2/golden-session-usability-runbook.md`, specs 004–005
 
@@ -8,17 +8,19 @@
 
 ## 1. Purpose
 
-This protocol defines the smallest source-grounded Vidlish experience that must be tested with real learners before the product advances to the larger learner cohort, provider economics, billing, or rollout gates.
+This protocol defines a narrow source-grounded Vidlish experience for a future external-user validation phase.
 
-It is intentionally a **narrow validation instrument**. The overall Vidlish mission now includes a learner starting from zero and beginner comprehensible input; this protocol does not redefine that mission. It keeps one predeclared B1 source-grounded journey stable so the five-person Gate 5 result remains interpretable.
+The active Vidlish program is currently **personal-first**: the product owner is the first learner, and personal learning work is not blocked on this five-person study. The Product & Business Master Plan is the higher authority for that decision.
 
-The purpose is not to prove durable language acquisition from one five-minute lesson. It is to verify that the product can create a clear, understandable first-session learning gain and a reason to return.
+This file is intentionally retained unchanged in its persona, source, task journey and thresholds so that if market validation is reactivated later, the original five-person experiment remains interpretable rather than being rewritten to match whatever the product has become.
+
+The purpose is not to prove durable language acquisition from one five-minute lesson. It is to test whether a B1 external learner can get a clear first-session learning gain from the source-grounded loop and understand why they would return.
 
 The tested promise is:
 
 > A Vietnamese B1 learner who normally depends on English captions can use Vidlish to understand one real source moment, retrieve one useful expression, use it in a changed context, and know what will be reviewed next.
 
-Do not change the persona, source, target item, or thresholds merely to make the current Gate 5 easier to pass.
+Do not change the persona, source, target item, or thresholds merely to make a future market-validation run easier to pass.
 
 ---
 
@@ -186,7 +188,7 @@ Do not display `mastered`, `fluent`, or a percentage implying durable ability.
 
 ## 6. Required measurable meanings
 
-Names may evolve, but the system/protocol must be able to distinguish the meanings needed for Gate 5, including:
+Names may evolve, but the system/protocol must be able to distinguish the meanings needed if this deferred five-person study is run, including:
 
 - session viewed/started;
 - first source play;
@@ -200,22 +202,22 @@ Names may evolve, but the system/protocol must be able to distinguish the meanin
 - elapsed time where the measurement contract supports it;
 - player/transcript/runtime error.
 
-The automated Gate 5 evaluator does **not** infer moderator-only observations from telemetry.
+The automated five-person evaluator does **not** infer moderator-only observations from telemetry.
 
 Privacy boundary for study/evaluation data:
 
 - no email or direct identity in participant records;
 - no source transcript text copied into analytics/study records merely for convenience;
-- no raw open learner response or raw audio in the bounded Gate 5 evaluator payload;
+- no raw open learner response or raw audio in the bounded evaluator payload;
 - use pseudonymous participant codes, IDs, bounded enums, counts, timings, and outcome categories.
 
-Product-level permission to store learner writing/speech for future writing/speaking functionality does not broaden this specific Gate 5 study contract.
+Product-level permission to store learner writing/speech for personal learning functionality does not broaden this specific external-study contract.
 
 ---
 
-## 7. Internal five-person usability protocol
+## 7. Deferred five-person usability protocol
 
-Recruit five people matching the persona as closely as practical. Avoid explaining the intended flow before they use it.
+When external market validation is explicitly reactivated, recruit five people matching the persona as closely as practical. Avoid explaining the intended flow before they use it.
 
 ### Moderator introduction
 
@@ -223,7 +225,7 @@ Recruit five people matching the persona as closely as practical. Avoid explaini
 
 ### Observe without helping unless blocked
 
-Record bounded observations required by the current evaluator/runbook, including:
+Record bounded observations required by the evaluator/runbook, including:
 
 - whether the learner understands the initial promise;
 - whether the learner can complete without moderator instruction;
@@ -252,7 +254,7 @@ Behavior-focused prompts may include:
 
 Do not treat positive verbal intent as payment evidence.
 
-Operational details for running/capturing each participant live in:
+Operational details live in:
 
 ```text
 docs/product/learning-model-v2/golden-session-usability-runbook.md
@@ -260,9 +262,9 @@ docs/product/learning-model-v2/golden-session-usability-runbook.md
 
 ---
 
-## 8. Predeclared Gate 5 acceptance thresholds
+## 8. Predeclared external Gate 5 acceptance thresholds
 
-These are internal hypotheses to force a decision, not industry benchmarks or claims of language-learning effectiveness.
+These are internal hypotheses to force a future market decision, not industry benchmarks or claims of language-learning effectiveness.
 
 For the five-person usability pass:
 
@@ -276,9 +278,7 @@ For the five-person usability pass:
 
 The current evaluator is fail-closed where its contract requires durable measurement and moderator observation. Missing evidence is not converted into a pass.
 
-Failure means fix the observed journey before adding provider/product complexity.
-
-For the later 20–50 learner cohort, define thresholds before launch for:
+For a later 20–50 learner cohort, define thresholds before launch for:
 
 - first-session completion;
 - before/after recognition gain;
@@ -293,7 +293,7 @@ Do not use generation count or signup count as primary learning success evidence
 
 ## 9. What this protocol does not prove
 
-A successful five-person study does not prove:
+A successful five-person study would not prove:
 
 - long-term retention;
 - transfer to real conversation broadly;
@@ -304,15 +304,13 @@ A successful five-person study does not prove:
 - authoring-model reliability across broad source distributions;
 - support for Shorts, long videos, multilingual sources, or noisy entertainment content.
 
-Those require separate gates in the Product & Business Master Plan.
+It also says nothing about whether the owner may continue improving Vidlish for personal use before this study runs. The Master Plan explicitly allows that.
 
 ---
 
-## 10. Technical readiness and current gate state
+## 10. Technical readiness and deferred study state
 
-The technical readiness conditions previously listed for this protocol are now implemented and have exact-head CI evidence through specs 003–005.
-
-In particular, PR #128 exact head `51c4ff44bb85fca8cee4f8b39a7e90297fe43d69` passed CI #474 / run `32571811299`, including durable Supabase and Chromium coverage for the local participant capture/ownership boundary, and was squash-merged as `fdbee37bd3b1eca473b3c25f65eece772251d987`.
+The technical readiness conditions for this protocol are implemented through specs 003–005 plus later operator hardening.
 
 The internal study can be run with:
 
@@ -320,10 +318,14 @@ The internal study can be run with:
 pnpm study:golden
 ```
 
-Technical readiness is **not** the product result.
+The harness/evaluator remain maintained because they are useful if external validation returns.
 
-Current next evidence:
+Current market-study state:
 
-> Run five genuine participants through the unchanged protocol, capture one bounded record per clean cycle, then evaluate the five records against the predeclared thresholds.
+> Five genuine participant records have not been collected, so the external five-person Gate 5 remains unpassed and deferred.
 
-Do not fabricate participant records, substitute fixture journeys, or declare Gate 5 passed from CI.
+Current product-development state:
+
+> Personal-first owner learning is active and does not wait for those five records.
+
+Do not fabricate participant records, substitute fixture journeys, or declare the external market gate passed from CI.
