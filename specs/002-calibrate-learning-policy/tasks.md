@@ -11,20 +11,20 @@
 
 ## Slice B — Correct active governance language without changing behavior
 
-- [ ] B1 Update `AGENTS.md` so `input-led` is not read as `input-only`.
-- [ ] B2 Update `AGENTS.md` so one-new-word `i+1` is explicitly the current conservative lexical policy.
-- [ ] B3 Update `AGENTS.md` so productive-independent evidence is not presented as universal lexical knowledge.
-- [ ] B4 Update `AGENTS.md` so the approximate Vietnamese scaffold word count is a policy hypothesis, not a scientific threshold.
-- [ ] B5 Amend Constitution Principle II consistently and bump the constitution version.
+- [x] B1 Update `AGENTS.md` so `input-led` is not read as `input-only`.
+- [x] B2 Update `AGENTS.md` so one-new-word `i+1` is explicitly the current conservative lexical policy.
+- [x] B3 Update `AGENTS.md` so productive-independent evidence is not presented as universal lexical knowledge.
+- [x] B4 Update `AGENTS.md` so the approximate Vietnamese scaffold word count is a policy hypothesis, not a scientific threshold.
+- [x] B5 Amend Constitution Principle II consistently and bump the constitution version.
 
 **Verification:** active authority still preserves grounding, reveal, retry, transfer, delayed evidence, privacy, architecture and exact-head CI invariants.
 
 ## Slice C — Correct executable-file documentation without changing execution
 
-- [ ] C1 Rewrite `check-comprehensible-input.ts` comments to describe a deterministic lexical-novelty policy rather than the definition of Krashen's theory.
-- [ ] C2 Rewrite misleading test comments while preserving every assertion.
-- [ ] C3 Review `compose-beginner-input.ts` comments for the same distinction.
-- [ ] C4 Search active non-archive paths for stale absolute claims (`i+1`, `input before output`, `300`, universal `known`) and update only the explanatory text that conflicts with this feature.
+- [x] C1 Rewrite `check-comprehensible-input.ts` comments to describe a deterministic lexical-novelty policy rather than the definition of Krashen's theory.
+- [x] C2 Rewrite misleading test comments while preserving every assertion.
+- [x] C3 Review `compose-beginner-input.ts` comments for the same distinction.
+- [x] C4 Search/review active authority and relevant learning paths for stale absolute claims (`i+1`, `input before output`, approximate vocabulary cutoffs, universal `known`) and update the explanatory text in scope for this feature. GitHub code search did not surface additional indexed hits; the next implementation slice must repeat the audit against its checkout before changing behavior.
 
 **Focused verification:**
 
@@ -33,13 +33,15 @@ pnpm exec vitest run src/modules/learning/application/check-comprehensible-input
 pnpm exec vitest run src/modules/learning/application/compose-beginner-input.test.ts
 ```
 
+Local execution was not available in the research environment, so these checks remain to be proven by the PR CI head rather than marked green from inspection alone.
+
 ## Slice D — Adversarial consistency review
 
-- [ ] D1 Confirm runtime diff contains no learner-visible logic change.
-- [ ] D2 Confirm no DB/schema/RLS/provider/config change exists.
-- [ ] D3 Confirm no wording implies receptive evidence has already been implemented.
-- [ ] D4 Confirm no wording weakens answer-hidden, retry, transfer or delayed-review evidence.
-- [ ] D5 Confirm model research does not authorize production multi-model routing or paid benchmarks before the existing gate.
+- [x] D1 Compare branch to `main`: executable-file changes are comments only; no learner-visible logic change is intended.
+- [x] D2 Compare branch to `main`: no DB/schema/RLS/provider/config file is changed.
+- [x] D3 Confirm wording explicitly says receptive evidence is a future capability and is not inferred from existing records.
+- [x] D4 Confirm answer-hidden, retry, changed-context transfer and delayed-review evidence remain non-negotiable invariants.
+- [x] D5 Confirm Gemini research preserves one production model and does not authorize paid/model benchmarking before the existing gate.
 
 ## Slice E — Required merge gate
 
