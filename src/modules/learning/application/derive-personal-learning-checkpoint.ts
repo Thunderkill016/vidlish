@@ -8,6 +8,7 @@ export type PersonalLearningCheckpointStage =
 
 export type PersonalLearningNextAction =
   | "start_learning"
+  | "continue_beginner_learning"
   | "retrieve_without_support"
   | "use_changed_context"
   | "complete_delayed_review"
@@ -85,10 +86,25 @@ export function derivePersonalLearningCheckpoint(input: {
     };
   }
 
-  if (independentCount > 0) {
+  if (independentItems.length > 0) {
     return {
       stage: "independent_retrieval",
       nextAction: "use_changed_context",
+      itemCount: input.items.length,
+      independentCount,
+      transferredCount: 0,
+      delayedTransferCount: 0,
+    };
+  }
+
+  if (input.beginnerIndependentCount > 0) {
+    return {
+      stage: "independent_retrieval",
+      // The beginner path currently banks narrow independent word evidence but
+      // does not yet create the source-review item needed for the stronger
+      // changed-context/delayed chain. Keep the UI honest instead of routing to
+      // a review task the learner cannot actually perform yet.
+      nextAction: "continue_beginner_learning",
       itemCount: input.items.length,
       independentCount,
       transferredCount: 0,
