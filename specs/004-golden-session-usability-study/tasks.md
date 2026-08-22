@@ -8,32 +8,32 @@
 
 ## Slice B — Add privacy-safe study input
 
-- [ ] B1 Add strict participant/moderator Zod schemas with bounded enums only.
-- [ ] B2 Require exactly five unique participant codes and unique session IDs.
-- [ ] B3 Add schema tests for duplicates, malformed input and privacy boundary.
+- [x] B1 Add strict participant/moderator Zod schemas with bounded enums only.
+- [x] B2 Require exactly five unique participant codes and unique session IDs.
+- [x] B3 Add schema tests for duplicates, malformed input and privacy boundary.
 
 ## Slice C — Evaluate predeclared Gate 5 thresholds
 
-- [ ] C1 Add pure deterministic evaluator with one result per threshold.
-- [ ] C2 Require durable completion plus no-instruction observation for completion threshold.
-- [ ] C3 Derive changed-context attempt only from durable transfer attempts.
-- [ ] C4 Compute recognition improvement only from bounded moderator before/after levels.
-- [ ] C5 Compute five-session median elapsed time and fail closed on missing timing.
-- [ ] C6 Add pass/fail unit tests including independent threshold failures.
+- [x] C1 Add pure deterministic evaluator with one result per threshold.
+- [x] C2 Require durable completion plus no-instruction observation for completion threshold.
+- [x] C3 Derive changed-context attempt only from durable transfer attempts.
+- [x] C4 Compute recognition improvement only from bounded moderator before/after levels.
+- [x] C5 Compute five-session median elapsed time and fail closed on missing timing.
+- [x] C6 Add pass/fail unit tests including independent threshold failures.
 
 ## Slice D — Make the real study runnable
 
-- [ ] D1 Add moderator runbook for recruitment, collection and interpretation.
-- [ ] D2 Document exactly how owner-scoped measurement summaries are captured per participant.
-- [ ] D3 Keep qualitative notes outside the automated evaluator and warn against unnecessary PII.
+- [x] D1 Add moderator runbook for recruitment, collection and interpretation plus a protected in-browser evaluator page.
+- [x] D2 Document exactly how owner-scoped measurement summaries are captured per participant.
+- [x] D3 Keep qualitative notes outside the automated evaluator and warn against unnecessary PII.
 
 ## Slice E — Converge previous measurement artifact
 
-- [ ] E1 Mark feature 003 local/database/full-CI/merge tasks complete using PR #126 exact-head evidence.
+- [x] E1 Mark feature 003 local/database/full-CI/merge tasks complete using PR #126 exact-head evidence.
 
 ## Slice F — Verification and merge gate
 
-- [ ] F1 Adversarial review for PII, raw content, threshold drift and misleading learning/payment claims.
+- [x] F1 Adversarial review for PII, raw content, threshold drift and misleading learning/payment claims.
 - [ ] F2 Run typecheck, lint, unit tests and build; rely on full repository PR CI for final gate.
 - [ ] F3 Open PR and merge only the exact reviewed head after every required job is green.
 
