@@ -24,7 +24,7 @@
 
 - [x] D1 Adversarial review startup races, leaked listeners/processes, credential output, DB-reset ordering and Gate 5 scope. Review added a second pre-spawn port check and direct timeout-kill proof.
 - [x] D2 Draft PR #133 opened with the bounded acceptance boundary.
-- [ ] D3 Merge protocol: after this tracker-convergence commit, require all required CI jobs green on the new final exact PR head; verify the head has not moved, mark ready, then squash-merge with `expected_head_sha`.
+- [x] D3 Final exact head `ddebb888278d6f751647a909334d94f9327a32be` passed full CI #491 / run `32577961401`; PR #133 was marked ready and squash-merged into `main` as `9946df6b799346a9e1470a1c100515c1298fb684` using `expected_head_sha`.
 
 ## Explicitly deferred
 
