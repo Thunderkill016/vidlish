@@ -1,82 +1,154 @@
 # Vidlish
 
-Vidlish biến video YouTube có đủ lời nói tiếng Anh gốc thành bài học tiếng Anh cá nhân hóa, có căn cứ từ video.
+Vidlish là một hệ thống học tiếng Anh cho người Việt, được tổ chức quanh **năng lực người học** thay vì quanh việc “AI tạo một bài học”.
 
-> **Any English video. Your English lesson.**
+Mục tiêu dài hạn là đưa một người từ **chưa biết tiếng Anh** đến nghe, nói, đọc và viết được bằng một vòng lặp nhất quán:
 
-## Trạng thái
+```text
+comprehensible input
+→ notice
+→ retrieval / production
+→ changed-context use
+→ delayed review
+→ less support as evidence strengthens
+```
 
-Vidlish đang chạy private beta trên Vercel với Supabase production.
+Giá trị bền vững của sản phẩm là:
 
-Luồng hiện tại:
+> **comprehensible input at the learner's level + personal capability evidence + varied delayed review + progressively less support**
+
+## Video là một nguồn, không phải trung tâm
+
+Vidlish bắt đầu như một sản phẩm “dán YouTube URL → AI tạo lesson”. Pipeline đó vẫn tồn tại và là một nguồn input quan trọng khi người học đã đủ khả năng dùng nội dung thật.
+
+Nhưng người bắt đầu từ zero không thể học hiệu quả bằng authentic video ngay. Vì vậy sản phẩm hiện có hai lớp nguồn input:
+
+- **beginner path**: input ngắn, comprehensible, được kiểm soát theo evidence hiện có của người học;
+- **source-grounded path**: YouTube/canonical transcript → allowlist → lesson authoring → guided learning session.
+
+Không coi việc “đến được video” là đích cuối của sản phẩm.
+
+## Trạng thái hiện tại
+
+Learning Model v2 đã nằm trên `main`. Luồng sản phẩm hiện có:
+
+- learner-first shell;
+- beginner `/start` flow cho người có rất ít hoặc chưa có lexical evidence;
+- durable learning sessions và privacy-safe evidence;
+- support/replay evidence do server xác nhận;
+- changed-context transfer;
+- delayed review được schedule ở application layer;
+- capability-oriented progress views;
+- source-grounded YouTube generation pipeline;
+- Supabase RLS/RPC + pgTAP;
+- Chromium product journeys + durable Supabase learning journey.
+
+Production đã chứng minh v2 authoring có thể tạo và publish `lesson_versions`. Điều **chưa được chứng minh** là teaching value trên người học thật.
+
+### Gate đang hoạt động
+
+Hard gate hiện tại là **Gate 5 — analytics + moderated usability với 5 target users**.
+
+PR #128 đã merge local study harness để moderator có thể chạy một participant bằng local Supabase, capture owner-scoped durable measurement và bounded observations mà không dùng DevTools, production DB hay paid provider.
+
+Điều đó chỉ chứng minh harness kỹ thuật chạy đúng. **Gate 5 chưa PASS** cho tới khi có đủ 5 phiên người học thật theo protocol đã khai báo.
+
+Runbook:
+
+- `docs/product/learning-model-v2/golden-session-usability-runbook.md`
+
+Local harness:
+
+```bash
+pnpm study:golden
+```
+
+## Đọc trước khi phát triển
+
+Thứ tự authority hiện tại:
+
+1. [`docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`](./docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md)
+2. [`docs/product/learning-model-v2/golden-session-validation.md`](./docs/product/learning-model-v2/golden-session-validation.md)
+3. [`.specify/memory/constitution.md`](./.specify/memory/constitution.md)
+4. active `specs/<feature>/spec.md`, `plan.md`, `tasks.md`
+5. code + tests trên branch đang thay đổi
+6. [`docs/archive/bmad/`](./docs/archive/bmad/) chỉ để tra lịch sử
+
+Ngoài ra:
+
+- [`AGENTS.md`](./AGENTS.md) — mission, current program state, invariant và execution protocol;
+- [`HANDOVER.md`](./HANDOVER.md) — operational handover, production traps và verified recent state.
+
+BMAD đã archive. Không dùng artifact BMAD cũ để ghi đè product docs, constitution, active specs hoặc code/tests hiện tại.
+
+## Learning invariants quan trọng
+
+- Comprehensibility là gate; policy hiện tại không phải chân lý khoa học bất biến.
+- Completion không đồng nghĩa mastery.
+- Scheduler quyết định khi nào item quay lại; nó không tự chứng minh independent capability.
+- Reading a correction không phải completion nếu policy yêu cầu retry.
+- Changed-context transfer phải thực sự đổi context/input.
+- Delayed transfer được lưu và diễn giải riêng khỏi immediate transfer.
+- Supported success và independent success không được gộp thành một claim.
+- Durable learning evidence thuộc server/database authority; UI-local state không được tự phong mastery.
+
+Với source-grounded lessons:
+
+- citation phải là lời thoại thật từ canonical permitted transcript segments;
+- model chỉ đề xuất IDs/labels;
+- server hydrate text/timestamp và reject evidence ngoài allowlist;
+- không cho model tự viết “quote” rồi coi là grounded.
+
+## Kiến trúc
+
+Dependency direction:
+
+```text
+app / route handlers
+→ application
+→ ports
+← adapters
+```
+
+Các khu vực chính:
+
+- `src/shared/contracts/`: runtime/domain contracts và privacy-safe schemas;
+- `src/modules/learning/application/`: authoritative learning behavior;
+- `src/modules/learning/ports/`: repository/provider interfaces;
+- `src/adapters/fake/`: deterministic local/test adapters;
+- `src/adapters/supabase/`: durable persistence;
+- `src/platform/`: composition/config;
+- `src/workflows/`: durable generation orchestration;
+- `supabase/migrations/`: DB invariants/RPC/RLS;
+- `supabase/tests/`: pgTAP;
+- `tests/e2e/`: browser evidence.
+
+## Source-grounded YouTube pipeline
+
+Pipeline production-shaped vẫn là:
 
 ```text
 YouTube metadata
-→ Vercel Workflow durable job
-→ Supadata native caption
+→ durable generation job
+→ native transcript acquisition
+→ canonical transcript persistence
 → original-English eligibility gate
-→ Gemini lesson generation
-→ server-side citation grounding
-→ atomic publish
-→ study workspace + library
+→ permitted segment allowlist
+→ bounded lesson diagnosis / authoring
+→ deterministic grounding + quality gate
+→ v2 lesson_version publish
+→ guided learning session
 ```
 
-Các phần đã hoạt động production:
-
-- Google OAuth/email OTP private beta;
-- YouTube metadata và availability validation;
-- durable generation job, idempotency và quota boundary;
-- canonical transcript persistence;
-- original-English eligibility + permitted-segment allowlist;
-- Gemini Lesson Engine;
-- citation text/timestamp hydrate từ Supabase;
-- lesson viewer, library và active-job recovery;
-- study workspace: nghe từng câu trong trang, làm bài tập có chấm, flashcard, lưu tiến độ;
-- structured generation telemetry;
-- watchdog pg_cron mỗi 2 phút, dọn job active quá 5 phút.
-
-PR #42 đã thêm pagination đầy đủ cho transcript và permitted-segment reads vượt giới hạn
-1.000 rows của Supabase Data API. Full CI xanh và production deployment READY.
-
-Đọc trước khi phát triển:
-
-- [`AGENTS.md`](./AGENTS.md) — trạng thái chương trình, invariant và protocol làm việc;
-- [`.specify/memory/constitution.md`](./.specify/memory/constitution.md) — luật bền vững của sản phẩm/kỹ thuật;
-- [`HANDOVER.md`](./HANDOVER.md) — invariant, bẫy production và kiến thức đắt tiền;
-- [`docs/archive/bmad/`](./docs/archive/bmad/) — artifact BMAD cũ, chỉ dùng để tra lịch sử.
-
-## Học như thế nào
-
-Một bài học là chỗ để luyện, không phải trang để đọc:
-
-- **Video nhúng** đứng cạnh nội dung; mọi timestamp phát đúng câu đó rồi tự dừng, có tốc
-  độ 0.5x/0.75x/1x và nút ẩn video để nghe trước khi nhìn.
-- **Từ vựng** có hai chế độ: danh sách kèm câu gốc, và flashcard hiện nghĩa sau khi tự nhớ.
-- **Kiểm tra hiểu nội dung** chấm ngay khi chọn đáp án, mỗi câu trả lời một lần, kèm giải
-  thích và câu gốc trong video.
-- **Điền từ** yêu cầu gõ đáp án. Tự làm đúng và xem đáp án được ghi lại tách biệt.
-- **Luyện nghe** phát từng câu của toàn bộ lời thoại tiếng Anh đủ điều kiện, có chế độ ẩn
-  chữ để nghe trước rồi mới đối chiếu.
-- **Tiến độ** tự lưu theo từng thao tác; thư viện hiển thị phần trăm đã học và bài đã hoàn
-  thành. Tải lại trang không mất kết quả.
-
-Tiến độ học nằm ở bảng riêng `lesson_progress`. Nó là dữ liệu của người học và không bao
-giờ được ghi vào bài học đã publish.
-
-## Lời hứa dữ liệu
-
-**Mọi citation trong bài học phải là lời thoại thật của video.**
-
-Model không trả văn bản trích dẫn. Model chỉ trả segment labels/IDs; server ánh xạ về
-segment thật, hydrate text/timestamp từ database và từ chối ID ngoài allowlist trước khi publish.
+Native transcript fast path hiện dùng Supadata `mode=native`. Inngest không còn thuộc kiến trúc; durable orchestration dùng Vercel Workflow.
 
 ## Chạy ứng dụng cục bộ
 
-Yêu cầu:
+Yêu cầu chính:
 
 - Node.js 24 LTS;
 - Corepack + pnpm 10.15.0;
-- Docker-compatible runtime khi chạy Supabase local.
+- Docker-compatible runtime khi chạy Supabase local đầy đủ.
 
 ```bash
 corepack enable
@@ -87,9 +159,11 @@ supabase start
 pnpm dev
 ```
 
-Email OTP local dùng `supabase/templates/magic_link.html` với `{{ .Token }}`.
+### Fixture/local mode
 
-### Chế độ fixture cho local/CI
+Ordinary local/CI work không được gọi paid provider hoặc production Supabase.
+
+Ví dụ fixture selectors:
 
 ```bash
 AUTH_ADAPTER=fake
@@ -102,11 +176,12 @@ GENERATION_DISPATCHER=inline
 TRANSCRIPT_NATIVE_ADAPTER=fixture
 TRANSCRIPT_REPOSITORY=fake
 LESSON_PROVIDER=fixture
+LEARNING_AUTHORING_PROVIDER=fixture
 ```
 
-Adapter giả bị từ chối trong production.
+Fixture/fake adapter bị chặn ở production theo config boundary tương ứng.
 
-### Cấu hình hosted
+### Hosted/provider configuration
 
 ```bash
 AUTH_ADAPTER=supabase
@@ -122,27 +197,11 @@ TRANSCRIPT_REPOSITORY=supabase
 SUPADATA_API_KEY=replace-with-server-only-key
 
 LESSON_PROVIDER=gemini
+LEARNING_AUTHORING_PROVIDER=gemini
 GEMINI_API_KEY=replace-with-server-only-key
 ```
 
-`GENERATION_DISPATCHER=workflow` dùng Vercel Workflow DevKit. Inngest không còn thuộc
-kiến trúc hiện tại.
-
-Có thể mở dashboard workflow local:
-
-```bash
-pnpm exec workflow web
-```
-
-## Native caption và language gate
-
-Supadata fast path gọi transcript với `mode=native`; không dùng AI generation cho tầng này.
-Candidate được validate, normalize deterministic và persist atomically trước khi chuyển sang
-`checking_language`.
-
-Language gate dùng `franc-min` trên coherent windows. Metadata language và provider-declared
-language chỉ là evidence, không phải quyết định cuối. Chỉ reliable English segment IDs được ghi
-vào allowlist cho Lesson Engine.
+Không log hoặc commit provider/service keys.
 
 ## Supabase Data API
 
@@ -151,7 +210,8 @@ Mỗi response có thể bị giới hạn ở 1.000 rows dù query thành công
 - lọc nghiệp vụ trong Postgres;
 - deterministic order;
 - `count: "exact"` + `range()`;
-- fail closed nếu pagination kết thúc trước exact count.
+- tiến offset theo số row server thực trả;
+- fail closed nếu exact count báo còn dữ liệu nhưng page tiếp theo rỗng.
 
 Không tải owner-wide rồi lọc nghiệp vụ trong Node.
 
@@ -166,27 +226,27 @@ supabase test db
 pnpm test:e2e
 ```
 
-CI chạy typecheck/lint, unit, production build, Supabase migrations/RLS, Chromium product
-journeys và CI gate. Fixtures không chứng minh provider thật; thay đổi provider phải dùng
-`tests/integration/full-real-path.test.ts` khi có key và quyền tiêu quota.
+DB changes chưa hoàn tất cho tới khi pgTAP xanh. Learning-flow changes chưa hoàn tất cho tới khi Chromium xanh. Persistence changes chưa hoàn tất cho tới khi durable Supabase journey chứng minh rows và privacy boundary mong đợi.
 
-Local `pnpm build` cần `CI=true` cùng các biến env trong `.github/workflows/ci.yml`.
+Fixtures không chứng minh provider thật. Chỉ gọi integration path với key/provider thật khi task cho phép rõ ràng việc tiêu quota.
 
-## Spec Kit cho phát triển
+## Spec Kit
 
-Vidlish dùng Spec Kit làm workflow phát triển đang hoạt động. Luật bền vững nằm ở
-`.specify/memory/constitution.md`; mỗi thay đổi có scope đáng kể dùng artifact dưới
-`specs/<feature>/`.
+Vidlish dùng Spec Kit làm workflow phát triển đang hoạt động.
 
-Luồng mặc định:
+Với material scope:
 
 ```text
-constitution → specify → clarify → plan → checklist → tasks → analyze → implement → converge
+constitution
+→ specify
+→ clarify
+→ plan
+→ tasks
+→ implement
+→ focused verification
+→ adversarial analysis
+→ exact-head PR CI
+→ merge
 ```
 
-Không copy constitution vào từng template/agent. Agent đọc constitution hiện tại trực tiếp,
-rồi đọc spec/plan/tasks của feature đang làm và `AGENTS.md`.
-
-Artifact BMAD trước đây được lưu nguyên dưới `docs/archive/bmad/` để tra lịch sử. Chúng không
-còn là source of truth và không được dùng để ghi đè product docs, constitution, feature spec hay
-code/tests hiện tại.
+Không merge chỉ vì “build chạy”. Không bỏ qua learner/product gates chỉ vì CI xanh.

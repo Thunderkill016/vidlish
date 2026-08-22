@@ -1,290 +1,392 @@
-# Bàn giao Vidlish — đọc file này trước khi làm bất cứ điều gì
+# Bàn giao Vidlish — operational state hiện tại
 
-Cập nhật: **2026-08-18**, sau lớp Study Mode (M3, phần activities/completion).
+Cập nhật: **2026-08-22**, sau khi Golden Session local study harness được squash-merge qua PR #128.
 
-Tài liệu này giữ những kiến thức đắt tiền và trạng thái thực tế mà đọc code đơn thuần
-không đủ để biết. Thứ tự nguồn sự thật khi tiếp quản:
+File này giữ **operational handover và những bẫy đã trả giá để học được**. Nó không đứng trên product authority hay active feature specs.
 
-1. `HANDOVER.md` — invariant, bẫy production và quy tắc không được phá.
-2. `_bmad-output/planning-artifacts/continuous-development-plan.md` — việc đang làm và backlog sống.
-3. `main`, PR, GitHub Actions, Vercel deployment và Supabase production — trạng thái thực tế cuối cùng.
-4. `project-context.md` và `sprint-status.yaml` — tracker BMAD; chỉ dùng sau khi đối chiếu ba nguồn trên.
+## 0. Thứ tự nguồn sự thật
+
+Trước khi đổi product behavior, đọc theo thứ tự:
+
+1. `docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`
+2. `docs/product/learning-model-v2/golden-session-validation.md`
+3. `.specify/memory/constitution.md`
+4. active `specs/<feature>/spec.md`, `plan.md`, `tasks.md` và acceptance criteria của PR/issue hiện tại
+5. code + tests trên branch đang thay đổi
+6. `AGENTS.md` cho mission, program state và execution protocol
+7. `HANDOVER.md` này cho operational traps và recent verified state
+8. `docs/archive/bmad/` chỉ để tra lịch sử
+
+**BMAD không còn là methodology đang hoạt động.** Artifact BMAD đã archive và không được dùng để ghi đè product docs, constitution, active specs hay code/tests hiện tại.
+
+Luôn kiểm tra `main`, PR và GitHub Actions thật thay vì tin số PR/CI từ trí nhớ.
 
 ---
 
-## 1. Sản phẩm là gì
+## 1. Sản phẩm hiện là gì
 
-Dán link YouTube công khai → lấy lời thoại thật → xác minh phần tiếng Anh đủ điều kiện
-→ AI soạn bài học tiếng Anh từ đúng nội dung video → người dùng mở lại và học.
+Vidlish không còn được tổ chức quanh lời hứa “dán YouTube URL → AI tạo lesson”.
 
-Người dùng là người Việt tự học tiếng Anh. Giao diện tiếng Việt, nội dung dạy là tiếng Anh.
-Không mở rộng MVP sang tutor chat, thanh toán, gamification, mobile native hoặc chia sẻ
-công khai khi luồng cốt lõi chưa ổn định.
-
-## 2. Lời hứa cốt lõi và cách nó được bảo vệ
-
-**Mọi câu trích dẫn trong bài học phải là lời thoại có thật trong video.**
-
-Cơ chế bảo vệ:
-
-- `lessonDraftSchema` không cho model trả văn bản trích dẫn; model chỉ trả segment labels/IDs.
-- Prompt dùng nhãn ngắn `[S1]`, `[S2]` thay vì bắt model sao chép ID dài.
-- Server ánh xạ nhãn về ID thật, hydrate text/timestamp từ `transcript_segments`.
-- `hydrateLessonCitations` từ chối mọi ID ngoài allowlist bằng `LessonGroundingError`.
-- Bài chỉ được publish sau khi grounding pass; không được “sửa nhẹ” để chấp nhận citation không hợp lệ.
-
-Khi sửa gần Lesson Engine, tuyệt đối không thêm trường để model tự viết câu trích dẫn.
-
-## 2b. Lời hứa học tập và ranh giới của Study Mode
-
-Bài học không còn là một trang để đọc. Người học nghe từng câu ngay trong trang, trả lời
-bài tập và được chấm, đánh dấu từ đã thuộc, và tiến độ được lưu lại.
-
-Ranh giới bắt buộc:
-
-- **Study progress là dữ liệu của người học, không phải output của model.** Nó nằm ở bảng
-  riêng `lesson_progress`, không bao giờ ghi vào `lessons.draft` hay `lessons.citations`.
-- Không có đường nào từ tiến độ học quay ngược lại grounding gate. Sửa gần Study Mode
-  không được đụng vào `hydrate-lesson-citations` hay `lessonDraftSchema`.
-- Panel "Luyện nghe" chỉ hiển thị `listPermittedSegments` — đúng allowlist đã đưa cho
-  Lesson Engine, không phải transcript thô.
-- Câu trả lời được đánh địa chỉ bằng vị trí trong mảng draft. Điều này chỉ an toàn vì một
-  lesson là bất biến (`unique (job_id, pipeline_version)`). Nếu sau này lesson được phép
-  soạn lại tại chỗ, phải đổi cách đánh địa chỉ trước.
-- `save_lesson_progress` phân giải chủ sở hữu **từ lesson**, không tin `job_id` client gửi —
-  cùng nguyên tắc với `publish_lesson`.
-- Điểm số được tính từ draft ở phía đọc, không lưu số điểm; một payload trỏ quá cuối mảng
-  bị bỏ qua chứ không được tính.
-- Xem đáp án (`revealed`) và tự làm đúng (`solved`) là hai trường khác nhau. Không gộp
-  chúng để làm đẹp phần trăm.
-
-## 3. Kiến trúc và production hiện tại
-
-Kiến trúc hexagonal:
-
-- `src/modules/*/ports`: interface;
-- `src/modules/*/application`: use case;
-- `src/adapters/*`: Supabase, YouTube, Supadata, Gemini;
-- `src/platform/*`: composition root;
-- `src/workflows/*`: Vercel Workflow durable orchestration và retryable steps.
-
-Luồng dữ liệu:
+Mission hiện tại là đưa một người Việt từ **không biết tiếng Anh** đến sử dụng được tiếng Anh — listening, speaking, reading, writing — bằng một learning loop có evidence:
 
 ```text
-video
-→ lesson_jobs
-→ transcripts + transcript_segments
-→ language_eligibility_reports + language_eligible_segments
-→ lessons
-→ lesson_progress
+comprehensible input
+→ notice
+→ retrieval / production
+→ changed-context use
+→ delayed review
+→ progressively less support
 ```
 
-Production hiện dùng:
+Giá trị bền vững:
 
 ```text
-AUTH_ADAPTER=supabase
-VIDEO_METADATA_ADAPTER=youtube
-GENERATION_REPOSITORY=supabase
-GENERATION_DISPATCHER=workflow
-TRANSCRIPT_NATIVE_ADAPTER=supadata
-TRANSCRIPT_REPOSITORY=supabase
-LESSON_PROVIDER=gemini
+comprehensible input at the learner's level
++ personal capability evidence
++ varied delayed review
++ progressively less support
 ```
 
-**Inngest đã bị loại khỏi kiến trúc từ PR #21.** Không tạo Inngest app, không thêm
-`INNGEST_EVENT_KEY`, không chạy Inngest Dev Server và không phục hồi endpoint Inngest cũ.
+### Video là nguồn, không phải trung tâm
 
-Vidlish đã deploy production trên Vercel. Runtime qua PR #42 đã READY và alias
-`vidlish.vercel.app` trả HTTP 200. Không còn trạng thái “chưa deploy”.
+- Người bắt đầu từ zero dùng beginner input ngắn, có bounded support và comprehensibility gate.
+- YouTube/canonical transcript là một nguồn input nâng cao khi learner đã đủ khả năng sử dụng authentic media.
+- Không lên roadmap như thể “đến được video path” là đích cuối.
 
-## 4. Trạng thái sản phẩm đã kiểm chứng
+---
 
-Đã chạy thật trên production:
+## 2. Trạng thái chương trình đã kiểm chứng
 
-- private-beta auth bằng Google/email OTP;
-- YouTube metadata và playability;
-- durable generation job bằng Vercel Workflow;
-- Supadata native transcript và canonical persistence;
-- original-English eligibility gate;
-- Gemini lesson generation;
-- atomic lesson publish, viewer và library;
-- structured generation telemetry;
-- watchdog Supabase quét mỗi 2 phút, dọn job active quá 5 phút.
+Learning Model v2 đã nằm trên `main` từ PR #44. Không còn integration branch riêng.
 
-Production acceptance sau sự cố `analyzing_video`:
+Đã có trong code/runtime:
 
-- 339 permitted segments;
-- Gemini Standard, `gemini-3.5-flash-lite`;
-- lesson completed trong khoảng 17,6 giây;
-- 16/16 citation thuộc canonical transcript và allowlist;
-- 16/16 citation khớp text, start và end trong database;
-- một lesson row duy nhất, không publish trùng.
+- learner-first shell;
+- `/start` beginner path cho zero/very-low evidence;
+- durable learning sessions;
+- owner-bound privacy-safe attempts/evidence;
+- server-confirmed support/replay evidence;
+- changed-context transfer;
+- delayed review + application-layer scheduling;
+- capability-oriented progress views;
+- source-grounded YouTube generation path;
+- Supabase RLS/RPC + pgTAP;
+- Chromium product journeys;
+- durable Supabase Golden Session journey.
 
-Milestone M0 vẫn mới đạt **1/3 lượt trên 1/2 video**. Hai lượt production còn lại cần
-quyền ghi dữ liệu và tiêu provider quota cho từng đợt; không tự chạy chỉ để “cho đủ số”.
+Production đã chứng minh v2 authoring có thể tạo/publish `lesson_versions`. Điều đó chứng minh **reachability**, không chứng minh reliability hay teaching value.
 
-## 5. Những cái bẫy đã làm hỏng sản phẩm
+### Hard gate hiện tại: Gate 5
 
-### 5.1 Gemini từ chối schema JSON đầy đủ
+Gate 5 = analytics + moderated usability với **5 target users**.
 
-Gemini từng trả:
+Feature 004 tạo evaluator + predeclared thresholds + runbook. Feature 005/PR #128 làm study runnable local mà không cần DevTools, production Supabase hay paid provider.
+
+PR #128 exact head:
+
+```text
+51c4ff44bb85fca8cee4f8b39a7e90297fe43d69
+```
+
+CI #474 / run `32571811299` trên exact head đó đã pass:
+
+- typecheck + lint;
+- unit tests;
+- production build;
+- Supabase migration + RLS/pgTAP;
+- Chromium product journeys;
+- durable Supabase learning journey;
+- owner-crossing measurement rejection;
+- aggregate CI gate.
+
+PR #128 được squash-merge vào `main` thành:
+
+```text
+fdbee37bd3b1eca473b3c25f65eece772251d987
+```
+
+**Gate 5 vẫn chưa PASS.** Không có quyền biến fixture/browser CI thành “5 learner evidence”. Cần 5 phiên người thật đúng protocol.
+
+Runbook:
+
+```text
+docs/product/learning-model-v2/golden-session-usability-runbook.md
+```
+
+Local operator harness:
+
+```bash
+pnpm study:golden
+```
+
+Nguyên tắc của harness:
+
+- một real participant mỗi clean DB/browser cycle;
+- local Supabase + durable fixture;
+- paid/provider credentials bị strip khỏi child runtime;
+- capture page tự lấy Golden session pointer, không cho moderator gõ UUID;
+- measurement endpoint vẫn owner-scoped server authority;
+- moderator observations bounded và mặc định unset;
+- không suy diễn positive observation từ telemetry;
+- participant JSON không được tự persist lên server;
+- reset chỉ xóa Golden browser-state key;
+- phải có 5 genuine records rồi mới evaluate Gate 5.
+
+Không tuyển được 5 người thật không phải lý do để tạo synthetic records.
+
+---
+
+## 3. Learning invariants không được phá
+
+- Comprehensibility là gate; policy `i+1` hiện tại là policy auditable, không phải định luật khoa học bất biến.
+- Receptive và productive evidence là các loại evidence khác nhau.
+- Supported success và independent success không được gộp.
+- Completion != mastery.
+- Scheduler state quyết định khi nào item quay lại, không tự chứng minh independent capability.
+- Reading correction không phải completion nếu policy yêu cầu retry.
+- Changed-context transfer phải thay context/input, không chỉ lặp lại source sentence.
+- Immediate transfer và delayed transfer được claim/store riêng.
+- UI-local state không được trở thành authority cho durable learning evidence.
+- Solved và revealed là hai trạng thái khác nhau.
+- Evidence/provenance styling chỉ dùng khi thực sự mang nghĩa evidence.
+
+Product owner đã cho phép lưu learner writing và recording learner speech khi đó là chức năng cần thiết cho writing/speaking. Không biến quyền đó thành lý do cho listening attempt mang free text/audio không liên quan.
+
+---
+
+## 4. Source-grounded path: grounding promise
+
+Với bài học dựa trên video:
+
+**Mọi source quote phải là lời thoại thật từ canonical permitted transcript segments.**
+
+Boundary:
+
+- model/provider đề xuất IDs/labels;
+- server ánh xạ/hydrate exact text + timestamps;
+- evidence ngoài allowlist bị reject;
+- quality/grounding gate nằm trước publish;
+- không thêm đường cho model tự viết quote rồi coi là grounded.
+
+Pipeline production-shaped hiện tại:
+
+```text
+YouTube metadata
+→ durable lesson job
+→ native transcript acquisition
+→ canonical transcript persistence
+→ original-English eligibility
+→ permitted segment allowlist
+→ bounded diagnosis / authoring
+→ deterministic gate + grounding
+→ quality pass
+→ v2 lesson_version publish
+→ guided learning session
+```
+
+v1 authoring flow đã bị loại khỏi current workflow. Không phục hồi v1 như một shortcut để làm test xanh.
+
+---
+
+## 5. Kiến trúc
+
+Dependency direction:
+
+```text
+app / route handlers
+→ application
+→ ports
+← adapters
+```
+
+Key areas:
+
+- `src/shared/contracts/`: runtime/domain contracts;
+- `src/modules/learning/application/`: authoritative learning behavior;
+- `src/modules/learning/ports/`: repository/provider boundaries;
+- `src/adapters/fake/`: deterministic local/test adapters;
+- `src/adapters/supabase/`: durable persistence;
+- `src/platform/`: composition/config;
+- `src/workflows/`: Vercel Workflow durable orchestration;
+- `supabase/migrations/`: DB invariants/RPC/RLS;
+- `supabase/tests/`: pgTAP;
+- `tests/e2e/`: user/browser evidence.
+
+Inngest đã bị loại từ kiến trúc cũ. Không tạo Inngest app, event key hay endpoint cũ.
+
+---
+
+## 6. Production/provider safety
+
+Ordinary local/CI work dùng fixture/fake/local Supabase.
+
+Không gọi production Supabase, Gemini, Supadata hoặc paid provider khác nếu task không cho phép rõ ràng việc đó.
+
+Không bao giờ đưa service/provider keys vào:
+
+- client bundle;
+- logs;
+- screenshot;
+- prompts;
+- tests;
+- repository files.
+
+Production chỉ dùng một enabled provider/model/key theo current configuration. Benchmark model tạm thời không tự đổi production routing.
+
+---
+
+## 7. Những bẫy production đã từng làm hỏng hệ thống
+
+### 7.1 Gemini wire schema quá phức tạp
+
+Gemini từng từ chối full JSON schema với lỗi dạng:
 
 ```text
 400 The specified schema produces a constraint that has too many states for serving
 ```
 
-Trước khi gửi wire schema phải lược đúng sáu keyword:
+Wire schema phải strip đúng các unsupported/high-state keywords đã được adapter hiện tại xử lý. Server-side Zod/domain validation vẫn là authority. Không “fix” bằng cách xóa field nghiệp vụ hay nới contract.
 
-```text
-$schema, pattern, minLength, maxLength, minItems, maxItems
+### 7.2 Không bắt model sao chép ID dài
+
+Model từng làm rơi prefix của segment ID dù phần hex còn đúng. Dùng short labels trong prompt và server map về canonical IDs trước validation.
+
+### 7.3 Thinking/sampling
+
+Provider config đã từng hỏng vì truyền thinking level sai kiểu hoặc tự chỉnh sampling không phù hợp Gemini 3.x.
+
+Không đổi thinking/sampling theo cảm giác. Đọc adapter + current provider docs trước khi thay.
+
+### 7.4 Supabase Data API row cap
+
+`api.max_rows` có thể giới hạn response dù query thành công.
+
+Với tập có thể vượt limit:
+
+- lọc nghiệp vụ trong Postgres;
+- deterministic order;
+- `count: "exact"` + `range()`;
+- tiến offset theo số row server thật trả;
+- fail closed nếu exact count nói còn row nhưng page kế tiếp rỗng.
+
+Không tải owner-wide rồi `.filter()` trong Node để giả làm business query.
+
+### 7.5 Workflow phải terminalize hữu hạn
+
+Không được để workflow kết thúc mà job vẫn ở active state.
+
+- retry exhaustion phải terminalize;
+- active slot phải được trả;
+- workflow boundary fail closed nếu final state vẫn active;
+- watchdog là last-resort safety net, không phải primary completion mechanism.
+
+### 7.6 Supabase timestamp có offset
+
+`timestamptz` có thể serialize dạng `+00:00`, không chỉ `Z`. Contract đọc DB phải chấp nhận offset-aware datetime.
+
+### 7.7 YouTube segment playback phải tự dừng
+
+Iframe player dùng `enablejsapi=1` và timer ở segment end. Không dựa vào polling `currentTime` làm authority duy nhất; message chậm không được để clip chạy quá đoạn learner cần nghe. Timer phải clear khi phát đoạn mới và khi unmount.
+
+### 7.8 CI xanh có thể xanh sai lý do
+
+Fixture tests đã từng xanh trong lúc provider thật thất bại. In-memory/unit tests cũng không chứng minh SQL thực thi được.
+
+- DB change cần pgTAP.
+- learning-flow change cần Chromium.
+- persistence change cần durable Supabase journey.
+- provider change chỉ có real-provider evidence khi task cho phép dùng key/quota.
+- không weaken test, force click hoặc nới RLS chỉ để CI xanh.
+
+### 7.9 pgTAP/PLpgSQL traps đã gặp
+
+Ba lớp lỗi từng chỉ lộ khi SQL thực sự chạy:
+
+- fixture dựng trạng thái vi phạm unique/active-job invariant;
+- output parameter trùng tên column làm `on conflict` ambiguous;
+- `CHECK (expr = value)` fail open khi `expr` là NULL.
+
+Đừng coi regex-on-migration-text là database proof.
+
+---
+
+## 8. Local SQL / verification
+
+Canonical checks:
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+supabase test db
+pnpm test:e2e
 ```
 
-Validation đầy đủ vẫn chạy phía server bằng `lessonDraftSchema`. Chỉ lược keyword ở tầng
-schema, không xóa field có tên `pattern` trong `properties`.
+Có thể dùng PGlite helper để bắt lỗi migration/fixture syntax/schema nhanh trước CI:
 
-### 5.2 Không bắt model sao chép ID dài
+```bash
+pnpm db:local
+pnpm db:local supabase/fixtures/a.sql b.sql
+```
 
-`gemini-3.5-flash-lite` từng trả đúng 32 ký tự hex nhưng làm rơi tiền tố `seg_`, khiến
-mọi bài fail validation. Luôn dùng nhãn ngắn và ánh xạ về ID thật trước validation.
+Nó không thay pgTAP/RLS proof.
 
-### 5.3 Thinking level và sampling
+Full required CI trên exact PR head mới là merge evidence.
 
-- Bước soạn bài dùng `ThinkingLevel.HIGH` từ enum của SDK.
-- Không dùng chuỗi `"high"`.
-- Không chỉnh `temperature`, `top_p` hoặc `top_k` trên Gemini 3.x.
-- Không chẻ một bài thành hai lời gọi song song: đo được nhanh hơn 29% nhưng tốn thêm
-  22% output token và làm hai nửa mất mạch nội dung.
+---
 
-### 5.4 Supabase Data API có giới hạn mỗi response
+## 9. Measurement cũ: dùng như historical evidence, không dùng làm current roadmap
 
-`supabase/config.toml` đặt `api.max_rows = 1000`. Query có thể thành công nhưng âm thầm
-trả thiếu dữ liệu.
+Những phép đo provider/pipeline cũ vẫn có ích để tránh đo lại vô ích, nhưng không được coi là current product priority.
 
-Quy tắc bắt buộc:
-
-- lọc nghiệp vụ trong Postgres, không tải owner-wide rồi `.filter()` trong Node;
-- với tập có thể vượt 1.000 rows, dùng deterministic order + `count: "exact"` + `range()`;
-- tiến offset theo số row server thực trả, không theo range yêu cầu;
-- fail closed nếu exact count báo còn row nhưng trang kế tiếp rỗng.
-
-PR #39 sửa allowlist bị che bởi 1.000 row cũ. PR #42 thêm pagination đầy đủ cho
-`transcript_segments` và permitted-segment hydration, gồm regression 1.149/1.001 rows.
-
-### 5.5 Workflow phải kết thúc hữu hạn
-
-Một workflow kết thúc không được để job ở trạng thái active như `acquiring_transcript`,
-`checking_language` hoặc `analyzing_video`.
-
-- Step cạn retry phải terminalize job và trả active slot.
-- Workflow boundary phải fail closed nếu trạng thái cuối vẫn active.
-- Watchdog pg_cron là lưới cuối, không phải cơ chế chính.
-- Không dùng Gemini Flex cho UX đang chờ theo giây; production dùng Standard tier.
-
-### 5.6 Timestamp Supabase có offset
-
-Supabase serialize `timestamptz` dạng `+00:00`, không chỉ dạng `Z`. Contract datetime
-đọc dữ liệu Supabase phải chấp nhận offset (`z.string().datetime({ offset: true })`).
-
-### 5.7 Nhúng player YouTube phải tự dừng đúng chỗ
-
-`LessonPlayer` điều khiển iframe bằng `postMessage` với `enablejsapi=1`, không tải script
-ngoài. Điểm dừng cuối segment là một timer đặt ngay lúc phát, không phải vòng lặp đọc
-`currentTime`: một message chậm không được để video chạy quá câu người học muốn nghe.
-Timer luôn được clear trước lần phát kế tiếp và khi component unmount.
-
-### 5.8 Test và build có thể xanh sai lý do
-
-- Fixtures từng cho 156 unit và 28 e2e xanh trong khi provider thật không tạo được bài.
-- Thay đổi provider phải chạy `tests/integration/full-real-path.test.ts` với key thật khi được phép.
-- Playwright dùng chung beta user; quota test phải rộng trong `webServer.env`.
-- `plan(N)` của pgTAP phải khớp chính xác số assertion; đếm bằng máy.
-- Local `pnpm build` cần `CI=true` và đủ env trong `.github/workflows/ci.yml`.
-
-## 6. Số liệu và giới hạn đã đo — không đo lại nếu không có giả thuyết mới
-
-Một bài video 3m34s, 61 segments:
+Ví dụ historical measurement từng ghi nhận cho một video 3m34s / 61 segments:
 
 | Bước | Thời gian | Tỉ trọng |
 |---|---:|---:|
-| Gemini soạn bài | ~13,6s | 68% |
-| Supadata + chuẩn hóa | ~5,9s | 30% |
-| YouTube Data API | ~0,4s | 2% |
-| franc | ~0,03s | 0,1% |
+| Gemini authoring | ~13,6s | 68% |
+| Supadata + normalization | ~5,9s | 30% |
+| YouTube metadata | ~0,4s | 2% |
+| language detection | ~0,03s | 0,1% |
 
-Supadata Free:
+Chỉ đo lại nếu có hypothesis mới hoặc provider/runtime đã thay đổi đủ để phép đo cũ mất ý nghĩa.
 
-- 100 credit/tháng;
-- `mode=native`: 1 credit;
-- `mode=generate`: 2 credit mỗi phút video;
-- không dùng `mode=generate` ở gói Free.
+---
 
-Transcript fallback ưu tiên sau M0/M1:
+## 10. Việc tiếp theo theo gate, không theo feature hype
 
-1. YouTube metadata chặn sớm;
-2. Supadata native caption;
-3. Gemini đọc public YouTube URL với `videoMetadata: { fps: 0.2 }` và
-   `sourceType=generated`.
+Hiện tại không có technical feature nào được phép tự tuyên bố Gate 5 hoàn tất.
 
-Gemini URL với `fps: 0.2` đã đo khoảng 38 token/giây video; `mediaResolution: LOW`
-không giảm token trong phép đo này.
+Next product evidence:
 
-## 6b. Study Mode: đã làm gì trong vòng lặp này
+1. recruit 5 target users theo runbook;
+2. một participant mỗi clean harness cycle;
+3. capture bounded moderator observation + owner-scoped durable measurement;
+4. giữ 5 genuine participant JSON records;
+5. evaluate đúng predeclared thresholds;
+6. chỉ khi Gate 5 có evidence mới quyết định Gate 6 / 20–50 learner cohort.
 
-- `lesson_progress` + `save_lesson_progress` (RLS, service_role only, một row mỗi lesson);
-- `PUT /api/lessons/[jobId]/progress` (same-origin, giới hạn 8 KiB, validate contract);
-- lesson viewer đổi thành workspace: player nhúng, phát đúng segment, tốc độ 0.5/0.75/1x,
-  ẩn video, quiz chấm ngay, cloze gõ đáp án, flashcard, panel luyện nghe, thanh tiến độ;
-- thư viện hiển thị phần trăm đã học và trạng thái hoàn thành.
+Trong lúc chưa có người thật, chỉ nên làm technical work nếu nó:
 
-### Ba lỗi thật mà chỉ `supabase test db` bắt được (PR #54)
+- sửa defect quan sát được;
+- làm protocol hiện tại thực sự runnable/safer;
+- bảo vệ evidence/ownership/privacy;
+- hoặc sửa governance/source-of-truth đang kéo development sai hướng.
 
-Migration `lesson_progress` từng qua typecheck, lint, 222 unit test, production build và
-cả hai bộ Chromium journey mà vẫn hỏng. Lần đầu chạy được pgTAP trên CI, nó lộ ra ba lỗi:
+Không thêm gamification, payment, social, multi-language hay model-routing complexity chỉ để có thứ để code.
 
-1. **Fixture dựng trạng thái sản phẩm không cho phép.** Hai job cùng
-   `(owner, video, cefr_level, pipeline_version)` cùng ở trạng thái hoạt động, vi phạm
-   `lesson_jobs_one_active_generation`. Test thoát sớm sau 8/20 assertion.
-2. **`save_lesson_progress` không chạy được một lần nào.**
-   `ERROR: column reference "lesson_id" is ambiguous`. Hàm khai báo
-   `returns table (lesson_id uuid, ...)`, nên `lesson_id` vừa là cột vừa là biến output, và
-   PL/pgSQL phân giải cả inference target của `on conflict (lesson_id)` theo biến. Cách
-   chữa: đặt tên constraint rồi `on conflict on constraint`. **Đừng đặt tên tham số output
-   của `returns table` trùng tên cột mà upsert phải suy luận.**
-3. **Guard phiên bản fail open.** `check (state ->> 'version' = 'study-progress:v1')` không
-   chặn payload thiếu khoá `version`: `NULL = '...'` là NULL và CHECK coi NULL là thoả mãn.
-   Phải dùng `is not distinct from`. Đã rà toàn bộ migration, không còn chỗ nào cùng dạng.
+---
 
-Vì sao mọi gate khác xanh: unit test dùng repository in-memory nên không chạm SQL, còn
-`tests/integration/sql-contract.test.ts` chỉ so regex trên **văn bản** file migration — nó
-xanh mà không cần một dòng SQL nào được thực thi. Với thay đổi database, chỉ
-`supabase test db` mới là bằng chứng.
+## 11. Quy tắc làm việc
 
-Môi trường phát triển hiện tại không có Docker daemon lẫn Postgres cục bộ, nên không chạy
-được `supabase test db` tại chỗ; CI là nơi kiểm chứng. Không áp migration lên production
-trước khi job `database` xanh.
-
-## 7. Việc hiện tại và thứ tự tiếp theo
-
-Nguồn chi tiết là `continuous-development-plan.md`. Tóm tắt sau PR #42:
-
-1. **Đồng bộ nguồn ngữ cảnh**: HANDOVER, README, kế hoạch sống và BMAD tracker.
-2. **Điều tra flaky unavailable-video journey** từ workflow history/log; không thêm retry mù.
-3. Khi được cho phép riêng, chạy hai production acceptance còn lại để đóng M0.
-4. Sau M0/M1 mới làm Gemini public-URL transcript fallback.
-5. Sau core stability mới tiếp tục activities, completion/retrieval và delete lifecycle.
-
-Audit Supabase row-cap hiện đã hoàn thành cho các repository đang dùng trong core path;
-không tiếp tục sửa chỉ vì thấy query owner-scoped nếu nó là equality, count/head hoặc có
-explicit product limit.
-
-## 8. Quy tắc làm việc
-
-- Đọc `HANDOVER.md` và kế hoạch sống trước khi chọn task.
-- Luôn kiểm tra trạng thái thật của `main`, PR và CI; không tin số PR từ trí nhớ.
-- Không làm lại task đã merge.
-- Không ghi production hoặc tiêu provider quota nếu chưa có quyền rõ cho đợt đó.
-- Thay đổi nhỏ nhất giải quyết nguyên nhân, có regression test đúng tầng.
-- Không log API key, OTP, email, transcript text, provider response hoặc lesson draft.
-- Chạy đủ gate liên quan: typecheck, lint, unit, production build, Supabase/RLS và Chromium journeys.
-- Repo dùng squash merge, lịch sử `main` tuyến tính.
-- Sau mỗi thay đổi runtime/production, cập nhật `HANDOVER.md` và kế hoạch sống trong cùng vòng lặp.
+- Work from `main`.
+- Dùng Spec Kit cho material bounded slices.
+- Trace UI/API → application → port → adapter → DB → tests trước khi sửa persistence/evidence.
+- Server authority trước, UI projection sau.
+- Implement smallest slice tạo durable evidence.
+- Focused checks trước, full exact-head CI sau.
+- Review diff theo hướng privacy, grounding, ownership, NULL semantics, race/provider/test gaps.
+- Không merge nếu required CI trên exact reviewed head chưa xanh.
+- Không coi merge/build/CI là learner evidence.
+- Không ghi production hoặc tiêu provider quota nếu task chưa authorize.
+- Báo rõ cái gì verified và cái gì chỉ inferred.

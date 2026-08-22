@@ -37,10 +37,10 @@
 
 ## Slice F — Verification and merge
 
-- [ ] F1 Run focused unit/durable browser checks where available.
+- [x] F1 Run focused unit/durable browser checks where available. PR #128 exact head `51c4ff44bb85fca8cee4f8b39a7e90297fe43d69` passed the focused harness/unit coverage and durable Supabase browser journey in CI #474.
 - [x] F2 Adversarial review for credential leakage, ownership bypass, raw content, fabricated observation and broad browser reset.
-- [ ] F3 Open draft PR and run full required CI on the exact reviewed head.
-- [ ] F4 Merge only after every required exact-head job is green.
+- [x] F3 Open draft PR and run full required CI on the exact reviewed head. PR #128 CI #474 / run `32571811299` passed typecheck/lint, unit tests, production build, Supabase migration/RLS, Chromium product journeys, durable Supabase learning journey and the aggregate CI gate on exact head `51c4ff44bb85fca8cee4f8b39a7e90297fe43d69`.
+- [x] F4 Merge only after every required exact-head job is green. PR #128 was squash-merged to `main` as `fdbee37bd3b1eca473b3c25f65eece772251d987` after CI #474 succeeded on that exact reviewed head.
 
 ## Explicitly deferred
 
