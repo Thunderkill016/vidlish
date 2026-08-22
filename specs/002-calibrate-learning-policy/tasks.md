@@ -26,14 +26,7 @@
 - [x] C3 Review `compose-beginner-input.ts` comments for the same distinction.
 - [x] C4 Search/review active authority and relevant learning paths for stale absolute claims (`i+1`, `input before output`, approximate vocabulary cutoffs, universal `known`) and update the explanatory text in scope for this feature. GitHub code search did not surface additional indexed hits; the next implementation slice must repeat the audit against its checkout before changing behavior.
 
-**Focused verification:**
-
-```bash
-pnpm exec vitest run src/modules/learning/application/check-comprehensible-input.test.ts
-pnpm exec vitest run src/modules/learning/application/compose-beginner-input.test.ts
-```
-
-Local execution was not available in the research environment, so these checks remain to be proven by the PR CI head rather than marked green from inspection alone.
+**Focused verification:** the repository CI unit-test job exercises these files as part of the complete unit suite. Direct local execution was unavailable in the research environment, so no local result is claimed.
 
 ## Slice D — Adversarial consistency review
 
@@ -45,13 +38,15 @@ Local execution was not available in the research environment, so these checks r
 
 ## Slice E — Required merge gate
 
-- [ ] E1 `pnpm typecheck`
-- [ ] E2 `pnpm lint`
-- [ ] E3 `pnpm test`
-- [ ] E4 `pnpm build`
-- [ ] E5 `supabase test db`
-- [ ] E6 `pnpm test:e2e`
-- [ ] E7 Review the exact PR head and merge only if required jobs are green.
+CI run **#459** on commit `be3953e260876d40a96ac4133e589b0cff5920e9` completed successfully before this metadata-only convergence commit. This task update changes no runtime or governance policy, but repository protocol still requires the full CI gate to pass again on the final PR head before merge.
+
+- [x] E1 `pnpm typecheck` — run #459 success
+- [x] E2 `pnpm lint` — run #459 success
+- [x] E3 `pnpm test` — run #459 Unit tests success
+- [x] E4 `pnpm build` — run #459 Production build success
+- [x] E5 `supabase test db` — run #459 Supabase migration/RLS tests success
+- [x] E6 `pnpm test:e2e` plus durable Supabase learning journey — run #459 success
+- [ ] E7 Review the exact final PR head and merge only if all required jobs for that head are green.
 
 ## Deferred follow-up feature
 
