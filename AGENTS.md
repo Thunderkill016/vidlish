@@ -2,11 +2,46 @@
 
 ## Mission
 
-Build Vidlish as a grounded English-learning product for Vietnamese adults A2–B2 who already watch English YouTube but rely on subtitles or passive understanding.
+Take one Vietnamese adult from **no English at all** to using it — listening,
+speaking, reading, writing — the way a language is actually acquired rather than
+studied.
 
 The product promise is not “AI generates a lesson.” The durable value is:
 
-`user-owned interest + grounded learning activity + personal capability evidence + varied delayed review + progressively less support`
+`comprehensible input at the learner's level + personal capability evidence + varied delayed review + progressively less support`
+
+### Video is a source, not the centre
+
+This project began as a YouTube product for A2–B2 learners who already watched
+English video. That is no longer the mission. A learner starting from zero
+cannot use authentic video at all: it is not i+1 for them, it is i+10.
+
+The video pipeline stays, and it is good — it is what a learner graduates *to*
+once they can use it. But it is one source of input among several, and no longer
+the thing the product is organised around. Do not plan work as though reaching
+the video path is the destination.
+
+### What the mission implies, and what it costs
+
+- **Input before output.** The evidence is consistent: listening and reading
+  first, speaking once listening is comfortable, writing once reading is. Four
+  skills taught at once from zero is how this fails.
+- **i+1 is a gate, not a slogan.** A sentence is usable input when every word is
+  already known except at most one
+  (`src/modules/learning/application/check-comprehensible-input.ts`). "Known"
+  means the learner produced it with no support open, never self-report.
+- **The first thousand words carry the product.** They are roughly 75% of
+  written English and 80% of speech; the next thousand add about seven points.
+  Their order matters more than almost anything else here.
+- **Vietnamese support is itself a scaffold.** It carries the first few hundred
+  words and then tapers — the same "progressively less support" the engine
+  already measures, applied to the explanation language.
+
+Three decisions the product owner has made, which earlier invariants forbade:
+storing what the learner writes, recording what they say, and keeping Vietnamese
+explanations for roughly the first three hundred words. Where an older rule in
+this file conflicts with those, the decision wins and the rule needs rewriting —
+say so rather than quietly following the stale one.
 
 ## Authority order
 
@@ -97,22 +132,40 @@ Do not skip gates because CI is green.
 - Completion != mastery.
 - Scheduler state decides when an item returns; it does not prove independent capability.
 - Delayed transfer must be stored/claimed separately from immediate transfer.
-- Persist only bounded privacy-safe evidence; no raw learner audio or unrestricted open text by default.
+- Persist only bounded privacy-safe evidence. The product owner has since
+  authorised storing what the learner writes and recording what they say, for
+  their own account, to make writing feedback and speaking possible at all —
+  so "no raw audio, no open text" is no longer absolute. It still holds
+  everywhere those two are not the point: an attempt on a listening item has no
+  business carrying free text.
 - Provenance/source evidence uses semantic evidence styling; do not use it decoratively.
 - Solved and revealed are different states.
 
 ## Product scope guardrails
 
-In MVP:
+In scope:
 
-- English-language YouTube source;
-- Vietnamese learner guidance;
-- 5–12 minute sessions;
-- bounded source windows;
-- listening → progressive support → notice → retrieval → changed-context use → delayed review;
+- English target language, one learner, from zero;
+- Vietnamese guidance for roughly the first three hundred words, then tapering;
+- short sessions;
+- **generated i+1 sentences** for a learner below A2, **YouTube source** once they
+  are past it — both bounded, both gated;
+- input before output: listening and reading, then writing, then speaking;
+- the same loop at every level: input → notice → retrieval → changed-context use
+  → delayed review → less support;
 - desktop + mobile web.
 
-Do not expand to multilingual source modes, arbitrary uploads, classroom, public marketplace, realtime AI conversation, pronunciation scoring, several payment gateways, or multi-provider production routing unless the current product authority explicitly changes.
+Out of scope: other target languages, classroom or multi-tenant features, a
+public marketplace, several payment gateways, multi-provider production routing.
+
+**Pronunciation scoring is not out of scope any more, but it is not free to
+adopt.** Speech recognition is measurably worse on Vietnamese-accented English
+than on most other L1 groups, and every scoring product's accuracy rests on its
+transcription. A scorer that mishears correct speech and marks it wrong is worse
+than none for a beginner: they will fix a fault they do not have. Before
+shipping any score, measure it on Vietnamese speakers — `L2-ARCTIC` carries four,
+with human phoneme-level annotations. Until then, report what is checkable —
+which words a listener could not make out — and do not dress it as a score.
 
 ## Production/provider safety
 
