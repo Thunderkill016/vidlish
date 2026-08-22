@@ -32,11 +32,23 @@ function attemptMetric(
   return {
     activityId,
     attemptCount: matching.length,
-    latestVerdict: matching.at(-1)?.evaluation.verdict ?? null,
+    latestVerdict:
+      matching.length > 0
+        ? matching[matching.length - 1]?.evaluation.verdict ?? null
+        : null,
     correctCount: matching.filter(
       (attempt) => attempt.evaluation.verdict === "correct",
     ).length,
   };
+}
+
+function observedElapsedSeconds(session: LessonSession): number | null {
+  if (!session.startedAt) return null;
+  const end = session.completedAt ?? session.updatedAt;
+  return Math.max(
+    0,
+    Math.floor((new Date(end).getTime() - new Date(session.startedAt).getTime()) / 1000),
+  );
 }
 
 export function summariseLearningProductMeasurement(
@@ -45,6 +57,10 @@ export function summariseLearningProductMeasurement(
 ): LearningMeasurementSummary {
   const firstSourceActivity =
     blueprint.activities.find((activity) => activity.evidence.length > 0) ?? null;
+  const gistActivity =
+    blueprint.activities.find(
+      (activity) => activity.activityType === "gist_choice",
+    ) ?? null;
   const noticeActivity =
     blueprint.activities.find(
       (activity) => activity.activityType === "meaning_in_context",
@@ -80,12 +96,18 @@ export function summariseLearningProductMeasurement(
   );
   const completed = evidence.session.status === "completed";
   const sessionViewed = evidence.session.startedAt !== null;
+  const supportByActivity = evidence.progress.map((activity) => ({
+    activityId: activity.activityId,
+    playbackCount: activity.playbackCount,
+    openedSupportSteps: [...activity.openedSupportSteps],
+  }));
 
   return learningMeasurementSummarySchema.parse({
     sessionId: evidence.session.id,
     status: evidence.session.status,
     sessionViewed,
     completed,
+    observedElapsedSeconds: observedElapsedSeconds(evidence.session),
     lastKnownActivityId: evidence.session.currentActivityId,
     incompleteAtLastKnownActivity:
       sessionViewed && !completed ? evidence.session.currentActivityId : null,
@@ -102,12 +124,11 @@ export function summariseLearningProductMeasurement(
       ),
       replayed: (firstSourceProgress?.playbackCount ?? 0) >= 2,
     },
+    gist: attemptMetric(evidence.attempts, gistActivity?.id ?? null),
     targetNotice: {
       activityId: noticeActivity?.id ?? null,
-      attempted: attemptsFor(
-        evidence.attempts,
-        noticeActivity?.id ?? null,
-      ).length > 0,
+      attempted:
+        attemptsFor(evidence.attempts, noticeActivity?.id ?? null).length > 0,
     },
     correction: {
       incorrectAttemptCount,
@@ -122,7 +143,8 @@ export function summariseLearningProductMeasurement(
       evidence.attempts,
       afterListenActivity?.id ?? null,
     ),
-    totalSupportStepsOpened: evidence.progress.reduce(
+    supportByActivity,
+    totalSupportStepsOpened: supportByActivity.reduce(
       (total, activity) => total + activity.openedSupportSteps.length,
       0,
     ),
