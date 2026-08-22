@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(17);
 
 select has_table(
   'public',
@@ -204,11 +204,12 @@ select throws_ok(
     )$$,
     (select session_id from measurement_session)
   ),
-  'correction display requires a persisted attempt',
-  'correction cannot be claimed before an attempt exists'
+  'correction display requires the matching incorrect attempt',
+  'correction cannot be claimed before an incorrect attempt exists'
 );
 
 insert into public.activity_attempts (
+  id,
   session_id,
   owner_user_id,
   activity_id,
@@ -217,13 +218,30 @@ insert into public.activity_attempts (
   response,
   evaluation
 ) values (
+  'b8444444-4444-4444-8444-444444444444',
   (select session_id from measurement_session),
   'b1111111-1111-4111-8111-111111111111',
   'activity_gist',
   1,
-  'b8444444-4444-4444-8444-444444444444',
+  'b8999999-9999-4999-8999-999999999999',
   '{"kind":"choice","optionId":"option_wrong"}'::jsonb,
   '{"verdict":"incorrect"}'::jsonb
+);
+
+select throws_ok(
+  format(
+    $$select * from public.record_lesson_v2_product_event(
+      'b1111111-1111-4111-8111-111111111111',
+      %L::uuid,
+      'activity_gist',
+      'b8555555-5555-4555-8555-555555555555',
+      'correction_shown',
+      null
+    )$$,
+    (select session_id from measurement_session)
+  ),
+  'correction display requires the matching incorrect attempt',
+  'correction cannot be attached to an unrelated idempotency key'
 );
 
 create temporary table correction on commit drop as
@@ -231,11 +249,11 @@ select * from public.record_lesson_v2_product_event(
   'b1111111-1111-4111-8111-111111111111',
   (select session_id from measurement_session),
   'activity_gist',
-  'b8555555-5555-4555-8555-555555555555',
+  'b8444444-4444-4444-8444-444444444444',
   'correction_shown',
   null
 );
-select is((select created from correction), true, 'correction display is recorded after durable attempt');
+select is((select created from correction), true, 'correction display binds to its incorrect attempt id');
 
 select throws_ok(
   format(
