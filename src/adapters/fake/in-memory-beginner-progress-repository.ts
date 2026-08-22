@@ -16,8 +16,19 @@ import type {
  * learner, and one challenge can create evidence only once.
  */
 type StoredChallenge = BeginnerEvidenceChallenge & {
+  ownerUserId: string;
   consumedAt: string | null;
 };
+
+function publicChallenge(challenge: StoredChallenge): BeginnerEvidenceChallenge {
+  return {
+    id: challenge.id,
+    kind: challenge.kind,
+    word: challenge.word,
+    sentence: challenge.sentence,
+    expiresAt: challenge.expiresAt,
+  };
+}
 
 export class InMemoryBeginnerProgressRepository
   implements BeginnerProgressRepository
@@ -68,6 +79,7 @@ export class InMemoryBeginnerProgressRepository
   }): Promise<BeginnerEvidenceChallenge> {
     const challenge: StoredChallenge = {
       id: randomUUID(),
+      ownerUserId: input.ownerUserId,
       kind: input.kind,
       word: input.word.toLocaleLowerCase("en-US"),
       sentence: input.sentence,
@@ -75,7 +87,7 @@ export class InMemoryBeginnerProgressRepository
       consumedAt: null,
     };
     this.challenges.set(challenge.id, challenge);
-    return challenge;
+    return publicChallenge(challenge);
   }
 
   async evidenceChallenge(input: {
@@ -84,39 +96,32 @@ export class InMemoryBeginnerProgressRepository
   }): Promise<BeginnerEvidenceChallenge | null> {
     const challenge = this.challenges.get(input.challengeId);
     if (!challenge) return null;
+    if (challenge.ownerUserId !== input.ownerUserId) return null;
     if (challenge.consumedAt !== null) return null;
-    if (challenge.expiresAt <= new Date().toISOString()) return null;
-
-    const ownerPrefix = `${input.ownerUserId}::`;
-    const challengeOwnerKey = this.key(input.ownerUserId, challenge.word);
-    // The stored challenge does not expose owner publicly, so use a private
-    // marker map key below rather than letting the returned DTO carry identity.
-    if (!this.challengeOwners.has(`${input.challengeId}::${input.ownerUserId}`)) {
-      void ownerPrefix;
-      void challengeOwnerKey;
-      return null;
-    }
-    return challenge;
+    if (Date.parse(challenge.expiresAt) <= Date.now()) return null;
+    return publicChallenge(challenge);
   }
-
-  private readonly challengeOwners = new Set<string>();
 
   async recordChallengeEvidence(input: {
     ownerUserId: string;
     challengeId: string;
     independent: boolean;
   }): Promise<BeginnerWordEvidence> {
-    const challenge = await this.evidenceChallenge(input);
-    if (!challenge) {
+    const challenge = this.challenges.get(input.challengeId);
+    if (
+      !challenge ||
+      challenge.ownerUserId !== input.ownerUserId ||
+      challenge.consumedAt !== null ||
+      Date.parse(challenge.expiresAt) <= Date.now()
+    ) {
       throw new Error("Beginner evidence challenge is not available.");
     }
 
-    const stored = this.challenges.get(input.challengeId);
-    if (!stored) {
-      throw new Error("Beginner evidence challenge is not available.");
-    }
-    stored.consumedAt = new Date().toISOString();
-    this.challenges.set(stored.id, stored);
+    // Mark consumed before mutating evidence. JavaScript execution in this fake
+    // is single-process, so subsequent/re-entrant calls observe the consumed
+    // state just as the database row lock does in production.
+    challenge.consumedAt = new Date().toISOString();
+    this.challenges.set(challenge.id, challenge);
 
     return this.recordWordEvidence({
       ownerUserId: input.ownerUserId,
@@ -143,13 +148,5 @@ export class InMemoryBeginnerProgressRepository
     };
     this.rows.set(key, next);
     return next;
-  }
-
-  /**
-   * Associate a challenge owner without leaking owner identity in the public
-   * challenge DTO.
-   */
-  private rememberChallengeOwner(challengeId: string, ownerUserId: string): void {
-    this.challengeOwners.add(`${challengeId}::${ownerUserId}`);
   }
 }
