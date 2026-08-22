@@ -2,6 +2,8 @@
 
 **Purpose:** run hard gate 5 without moving thresholds after seeing results.  
 **Authority:** `golden-session-validation.md`  
+**Local harness:** `pnpm study:golden`  
+**Capture:** `/learning-lab/v2/usability/capture`  
 **Evaluator:** `/learning-lab/v2/usability`
 
 This runbook makes the five-person usability pass reproducible. It does **not**
@@ -22,24 +24,55 @@ Aim for the validation persona as closely as practical:
 Assign only local pseudonyms `p1` through `p5` in the automated study record.
 Do not put names, email addresses or phone numbers into the evaluator input.
 
-Use independent learner accounts/sessions for the five people. Reusing one
-learner account can contaminate later participants with earlier learning state.
+The local harness deliberately uses one owner-bound fixture account because the
+durable lesson version is structurally bound to its owner. **Do not run five
+people through one continuous learner state.** Instead run one real participant,
+capture their record, clear the Golden browser state, stop the app, then run
+`pnpm study:golden` again. The command resets local Supabase and reloads the
+fixture before the next real participant. This gives each person fresh learning
+state without weakening database ownership just for a study tool.
 
-## 2. Keep the test environment controlled
+The five saved study records must still have five unique session IDs. A clean DB
+reset creates a new session UUID; the capture page validates the participant
+record before you save it.
+
+## 2. Start a controlled local environment
+
+From the repository root, with local Supabase CLI and `psql` installed, run:
+
+```bash
+pnpm study:golden
+```
+
+The command:
+
+1. starts local Supabase without printing its local credentials;
+2. resets the local database with no ordinary seed;
+3. loads `supabase/fixtures/learning_model_v2_durable.sql`;
+4. starts Vidlish with fake auth, local Supabase persistence and fixture external
+   providers;
+5. strips inherited Gemini, Supadata, YouTube API and production-Supabase
+   credentials from the child app;
+6. prints the local sign-in, lesson, capture and evaluator URLs plus the fixture
+   email/OTP.
 
 Use the existing Golden Session fixture and normal product flow. The internal
 pass must not require a paid provider call or production Supabase.
 
-Cover both desktop and mobile across the five participants. Do not explain the
-intended interaction before they begin beyond the moderator introduction in the
-validation protocol.
+Cover both desktop and mobile experience across the five participants. If the
+operator environment cannot expose this local harness safely to a physical mobile
+device, do not silently label desktop emulation as a real-device result; record
+the actual platform used and arrange the remaining platform coverage separately.
+
+Do not explain the intended interaction before the learner begins beyond the
+moderator introduction in the validation protocol.
 
 ## 3. Before the learner starts
 
 Record in the moderator notebook only what the protocol needs:
 
 - participant code (`p1` … `p5`);
-- desktop or mobile;
+- desktop or mobile actually used;
 - target recognition before the session:
   - `not_recognized`;
   - `partial`;
@@ -47,6 +80,9 @@ Record in the moderator notebook only what the protocol needs:
 
 The recognition judgment is based on the moderated before-check, not the gist
 verdict. Keep optional/free-recall wording out of the automated study JSON.
+
+Sign in with the fixture credentials printed by `pnpm study:golden`, open the
+Golden Session URL, and hand control to the participant.
 
 ## 4. Observe without teaching the flow
 
@@ -85,54 +121,64 @@ Otherwise `severeDefectKind` is `null`.
 Detailed qualitative notes may stay in a local research notebook, but avoid
 unnecessary PII and do not paste free-form notes into the automated evaluator.
 
-## 5. Capture the privacy-safe measurement summary
+## 5. Capture one privacy-safe participant record
 
-After that participant's session, while still authenticated as the learner who
-owns the session, obtain:
+After that participant's session, **while still signed in to the same fixture
+owner and before resetting anything**, open:
 
-`GET /api/learning-lab/v2/measurement?sessionId=<session-uuid>`
+`/learning-lab/v2/usability/capture`
 
-Save only the returned `LearningMeasurementSummary` for the study record. The
-measurement API is owner-scoped, so capture it before switching to the next
-independent learner account.
+Do not copy a UUID from DevTools or the database. The capture page reads the
+versioned Golden Session pointer from that browser, takes its `sessionId`, and
+calls the existing owner-scoped measurement endpoint itself. Missing, stale,
+malformed or non-owned session state fails closed.
 
-The summary intentionally contains IDs, bounded outcomes/counts/timings and
-bounded runtime-error categories. It does not need raw answers, transcript text,
-audio, email, IP, user agent or provider error strings.
+The page shows only the privacy-safe `LearningMeasurementSummary`: bounded IDs,
+outcomes/counts/timing and runtime-error categories. It does not need raw answers,
+transcript text, audio, email, IP, user agent or provider error strings.
 
-## 6. Record moderator-only gate observations
+Then fill the bounded moderator controls. They intentionally start unset. The
+page must not infer any of these from telemetry:
 
-For each participant, add this bounded observation object beside the measurement
-summary:
-
-```json
-{
-  "participantCode": "p1",
-  "platform": "mobile",
-  "completedWithoutModeratorInstruction": true,
-  "lessonGoalRestated": true,
-  "beforeTargetRecognition": "not_recognized",
-  "afterTargetRecognition": "recognized",
-  "blocked": false,
-  "blockKind": null,
-  "severeDefectKind": null
-}
-```
+- participant code;
+- actual platform;
+- completed without moderator instruction;
+- lesson-goal restatement;
+- recognition before and after;
+- blocked status and bounded block kind;
+- severe defect kind.
 
 Recognition is ordered:
 
 `not_recognized < partial < recognized`
 
-The evaluator counts improvement only when the after level is strictly higher
-than the before level.
-
 Do **not** infer recognition improvement from `afterListen.latestVerdict`. The
 Golden Session exit ticket is `unscored`; it proves an after-check was attempted,
 not that the learner improved.
 
-## 7. Evaluate exactly five records
+Click **Tạo participant JSON**. Copy the generated JSON and save it locally with
+the other study records. The page does not POST or persist that record.
 
-Open:
+## 6. Reset before the next real participant
+
+Only after the participant JSON has been copied:
+
+1. click **Xóa Golden browser state** on the capture page;
+2. verify the JSON remains visible/copyable;
+3. stop the running `pnpm study:golden` process;
+4. run `pnpm study:golden` again;
+5. use the fresh session for the next real participant.
+
+The browser action deletes only the Golden Session's versioned localStorage key;
+it does not clear arbitrary application state. Restarting the harness is equally
+important because it resets durable server-side learning state in local Supabase.
+
+Do not reuse an earlier participant JSON, do not fabricate a missing record, and
+do not run two real participants against the same unreset session state.
+
+## 7. Evaluate exactly five genuine records
+
+After five real people have completed the procedure, open:
 
 `/learning-lab/v2/usability`
 
