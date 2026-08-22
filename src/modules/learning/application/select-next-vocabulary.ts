@@ -16,9 +16,17 @@
  *    hold together at all. A learner who knows fifty nouns and no determiners
  *    cannot read; one who knows the reverse can read a great deal.
  *
- * What this does *not* do is order by real frequency, because the CEFR-J
- * artifact does not carry it. Part of speech is a proxy for coverage, and a
- * weaker one than a frequency list would be — see the artifact's README.
+ * Frequency now comes from SUBTLEX-US, a corpus of film and television
+ * subtitles, and it decides the order within a level. Part of speech drops to a
+ * tie-break. The measured difference is not marginal: ordering by part of
+ * speech and then the alphabet produced a first fifty of `a, all, an, another,
+ * any, anybody, anyone, anything`, which is a dictionary rather than a
+ * language. Ordering by how often people say the word produces `you, the, to,
+ * a, it, that, and, of, what, in, me, is, we`. Only 44 of the first hundred
+ * words are the same under the two rules.
+ *
+ * Subtitles rather than books on purpose: the first skill here is listening,
+ * and written-corpus frequency over-weights words nobody says out loud.
  */
 
 export type VocabularyEntry = {
@@ -26,6 +34,28 @@ export type VocabularyEntry = {
   pos: string;
   cefr: string;
 };
+
+/**
+ * How often each word appears in spoken English. Words with no entry sort last
+ * within their level: a word the subtitle corpus never saw is not a word to
+ * teach early, and treating a missing count as zero says exactly that.
+ */
+export type SpokenFrequency = Readonly<Record<string, number>>;
+
+let spokenFrequency: SpokenFrequency = {};
+
+/**
+ * Injected rather than imported so the ordering rule stays free of an adapter,
+ * and so a test can state the frequencies it is asserting about instead of
+ * depending on whatever the shipped artifact happens to contain.
+ *
+ * Not named `useSpokenFrequency`: in this codebase a `use` prefix means a React
+ * hook, and calling it at module scope is an error the linter is right to
+ * raise.
+ */
+export function applySpokenFrequency(frequency: SpokenFrequency): void {
+  spokenFrequency = frequency;
+}
 
 /**
  * Lower sorts earlier. Grouped by what a sentence needs to exist, then by what
@@ -70,6 +100,15 @@ export function compareTeachingOrder(
     (LEVEL_ORDER[right.cefr] ?? UNRANKED_LEVEL);
   if (byLevel !== 0) return byLevel;
 
+  // Frequency first, and descending: the words a learner hears most are the
+  // words that unlock the most of what they hear.
+  const byFrequency =
+    (spokenFrequency[right.word] ?? 0) - (spokenFrequency[left.word] ?? 0);
+  if (byFrequency !== 0) return byFrequency;
+
+  // Part of speech survives only as a tie-break, for the words the corpus
+  // counted equally. Function words still come first among those, for the same
+  // reason they did before: a sentence cannot hold together without them.
   const byPos =
     (POS_PRIORITY[left.pos] ?? UNRANKED_POS) -
     (POS_PRIORITY[right.pos] ?? UNRANKED_POS);

@@ -95,3 +95,103 @@ filter is ever relaxed.
 **Vietnamese.** 721 of 18,127 sentences have a human Vietnamese translation.
 That is too thin to carry the first three hundred words, so Vietnamese support
 has to come from somewhere else and be checked there.
+
+---
+
+# Vietnamese gloss artifact
+
+`vietnamese-glosses.json` — Vietnamese senses for 1,838 of the 2,214 catalogue
+words, at most three each. Rebuild with `node scripts/build-vietnamese-glosses.mjs`.
+
+## Where it comes from
+
+English Wiktionary, through the MediaWiki API. Content is CC BY-SA 4.0 and GFDL;
+attribution is by page title, which is the headword itself.
+
+Translations live in two places: inline for short entries, and on a
+`<word>/translations` subpage once the table grows. Both are read, because
+taking only the inline one returns the wrong sense — `water` inline gives
+`tưới`, the verb, while the noun everyone means sits on the subpage.
+
+## Why not a model
+
+The first words a learner meets are the ones they have no way to check. A wrong
+gloss there is not a small error: it becomes a belief every later sentence
+quietly reinforces, and the learner has no evidence with which to catch it.
+Wiktionary glosses were written and revised by people and carry an edit history.
+
+## What was measured
+
+Coverage against the catalogue's teaching order:
+
+| Words taught | Glossed |
+| ------------ | ------- |
+| first 50     | 36 (72%) |
+| first 100    | 83 (83%) |
+| first 300    | 262 (87%) |
+| first 1000   | 908 (90%) |
+| all 2214     | 1838 (83%) |
+
+The gaps are **not random, and they are worst where it matters most**. Missing
+from the first hundred: `the`, `you`, `him`, `her`, `us`, `them`, `its`, `an`,
+`any`, `these`, `whose`. Vietnamese has no article and no case-marked pronoun,
+so there is nothing for those to translate to — Wiktionary marks several of
+them `{{not used|vi}}`, which is information rather than an omission.
+
+Product consequence: a missing gloss is shown as a missing gloss, and the word
+is taught through use. Filling those cells with an invented equivalent would
+teach a word that does not do the job.
+
+## What was filtered
+
+308 senses in a non-Latin script were dropped. Wiktionary carries Chữ Nôm for
+some entries, and a learner shown `每𠊛` for "everyone" has been handed a
+different writing system, not a translation. A test fails if any survives.
+
+## Politeness
+
+Wikimedia answered `429` immediately at a 200 ms interval. The run is paced at
+1.2 s with backoff and a contact in the user agent, because this is their
+infrastructure paying for our artifact.
+
+---
+
+# Spoken frequency artifact
+
+`spoken-frequency.json` — how often each of 2,204 catalogue words appears in
+spoken English. Rebuild with `node scripts/build-spoken-frequency.mjs`.
+
+## Where it comes from
+
+**SUBTLEX-US**, 51 million words of film and television subtitles, via the
+[`words/subtlex-word-frequencies`](https://github.com/words/subtlex-word-frequencies)
+packaging.
+
+The JSON packaging is ISC. The underlying data is **CC BY-SA**, and ShareAlike
+reaches this derived file — a stricter obligation than the CEFR-J artifact
+carries. Attribution: Brysbaert & New, Ghent University.
+
+Subtitles rather than books, deliberately. The first skill here is listening,
+and written-corpus frequency over-weights words nobody says out loud.
+
+## What it fixed
+
+The CEFR-J README recorded the weakness: no frequency, so order within a level
+fell back to part of speech and then the alphabet. Measured against the same
+catalogue, the two rules disagree about **more than half** of the first hundred
+words:
+
+| Rule | First twenty words |
+| --- | --- |
+| part of speech, then alphabet | `a, all, an, another, any, anybody, anyone, anything, each, every, everybody, everyone, everything, he, her, hers, him, his, it, its` |
+| spoken frequency | `you, the, to, a, it, that, and, of, what, in, me, is, we, this, he, on, for, my, your, have` |
+
+Only **44 of the first 100** words are the same under both. The old first fifty
+was a dictionary; the new one is a language.
+
+Part of speech survives as a tie-break, for words the corpus counted equally.
+Level still comes first: an A2 word is not offered while A1 words remain.
+
+10 catalogue words carry no spoken count. They sort last within their level,
+because a word the subtitle corpus never recorded anyone saying is not a word to
+teach early.

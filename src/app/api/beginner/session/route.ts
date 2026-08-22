@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { vietnameseGlossFor } from "@/adapters/vocabulary/vietnamese-glosses";
 import { startBeginnerSession } from "@/modules/learning/application/start-beginner-session";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
@@ -46,7 +47,11 @@ export async function POST(request: NextRequest) {
     });
 
     if (outcome.kind === "introduce_word") {
-      const payload = beginnerWordIntroductionSchema.parse(outcome);
+      const gloss = vietnameseGlossFor(outcome.target);
+      const payload = beginnerWordIntroductionSchema.parse({
+        ...outcome,
+        ...(gloss ? { gloss: [...gloss] } : {}),
+      });
       return NextResponse.json(payload, {
         status: 200,
         headers: { "Cache-Control": "private, no-store" },

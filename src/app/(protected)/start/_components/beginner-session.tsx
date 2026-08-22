@@ -27,7 +27,7 @@ type SessionState =
   | { kind: "none" }
   | { kind: "loading" }
   | { kind: "ready"; session: BeginnerSessionResponse; index: number }
-  | { kind: "introduce"; target: string }
+  | { kind: "introduce"; target: string; gloss?: string[] }
   | { kind: "empty"; reason: string }
   | { kind: "error"; message: string };
 
@@ -79,7 +79,11 @@ export function BeginnerSession() {
       }
       const introduction = beginnerWordIntroductionSchema.safeParse(body);
       if (introduction.success) {
-        setState({ kind: "introduce", target: introduction.data.target });
+        setState({
+          kind: "introduce",
+          target: introduction.data.target,
+          gloss: introduction.data.gloss,
+        });
         speak(introduction.data.target);
         return;
       }
@@ -204,6 +208,18 @@ export function BeginnerSession() {
         </div>
 
         <p className="text-4xl font-semibold">{state.target}</p>
+
+        {state.gloss ? (
+          <p className="text-lg" data-testid="word-gloss">
+            {state.gloss.join(", ")}
+          </p>
+        ) : (
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Từ này chưa có nghĩa tiếng Việt tương ứng. Thường là vì tiếng Việt
+            không có thứ đó — không có mạo từ, không có đại từ biến cách. Nó
+            phải học qua cách dùng trong câu, không qua một từ dịch.
+          </p>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => speak(state.target)}>Nghe lại</Button>

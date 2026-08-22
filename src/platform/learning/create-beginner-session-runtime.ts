@@ -1,10 +1,14 @@
 import "server-only";
 
 import catalogue from "@/adapters/vocabulary/cefrj-a1-a2.json";
+import spokenFrequency from "@/adapters/vocabulary/spoken-frequency.json";
 import { beginnerSentencesFor } from "@/adapters/vocabulary/beginner-sentence-catalogue";
 import { GeminiBeginnerInputProvider } from "@/adapters/gemini/gemini-beginner-input-provider";
 import type { BeginnerInputProvider } from "@/modules/learning/ports/beginner-input-provider";
-import type { VocabularyEntry } from "@/modules/learning/application/select-next-vocabulary";
+import {
+  applySpokenFrequency,
+  type VocabularyEntry,
+} from "@/modules/learning/application/select-next-vocabulary";
 import { getServerConfig } from "@/platform/config/server";
 
 /**
@@ -16,6 +20,11 @@ import { getServerConfig } from "@/platform/config/server";
  */
 
 export const BEGINNER_SENTENCES_PER_SESSION = 3;
+
+// Applied once at module load: the ordering rule lives in the application
+// layer and the numbers live in an artifact, so this is the one place the two
+// meet.
+applySpokenFrequency(spokenFrequency as Record<string, number>);
 
 export function beginnerVocabularyCatalogue(): readonly VocabularyEntry[] {
   return catalogue as readonly VocabularyEntry[];
