@@ -207,7 +207,7 @@ jobs:
     env:
       AUTH_ADAPTER: fake
       AUTH_FAKE_CODE: "123456"
-      TEST_BETA_EMAILS: learning-preview@example.com
+      TEST_BETA_EMAILS: learning-preview@example.com,golden-study-observer@example.com
       LEARNING_SESSION_REPOSITORY: supabase
       # The job exists to prove durable persistence, so every repository has to
       # be the durable one. Leaving these in memory meant a page could read the
@@ -300,6 +300,7 @@ jobs:
           pnpm exec playwright test
           tests/e2e/learning-model-v2-server-persistence.spec.ts
           tests/e2e/learning-model-v2-arbitrary.spec.ts
+          tests/e2e/golden-session-participant-capture.spec.ts
           --project=chromium
           --workers=1
           --retries=0
