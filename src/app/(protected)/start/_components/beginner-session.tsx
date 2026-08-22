@@ -27,7 +27,7 @@ type SessionState =
   | { kind: "none" }
   | { kind: "loading" }
   | { kind: "ready"; session: BeginnerSessionResponse; index: number }
-  | { kind: "introduce"; target: string }
+  | { kind: "introduce"; target: string; challengeId: string }
   | { kind: "empty"; reason: string }
   | { kind: "error"; message: string };
 
@@ -79,7 +79,11 @@ export function BeginnerSession() {
       }
       const introduction = beginnerWordIntroductionSchema.safeParse(body);
       if (introduction.success) {
-        setState({ kind: "introduce", target: introduction.data.target });
+        setState({
+          kind: "introduce",
+          target: introduction.data.target,
+          challengeId: introduction.data.challengeId,
+        });
         speak(introduction.data.target);
         return;
       }
@@ -103,30 +107,35 @@ export function BeginnerSession() {
 
   async function record(
     claimedIndependent: boolean,
-    dictated?: { sentence: string; heard: string },
+    dictated?: { challengeId: string; heard: string },
   ) {
-    const word =
-      state.kind === "ready"
-        ? state.session.target
-        : state.kind === "introduce"
-          ? state.target
-          : null;
-    if (!word) return;
+    if (state.kind !== "ready" && state.kind !== "introduce") return;
+
     // "Saving", not "saved". Claiming the word was recorded before the request
     // has come back means a learner who closes the tab is told they made
     // progress they did not make — and the next session, reading only what was
     // actually stored, would look like it had forgotten them.
     setPhase("saving");
     try {
+      const body = dictated
+        ? {
+            kind: "dictation" as const,
+            challengeId: dictated.challengeId,
+            usedSupport,
+            heard: dictated.heard,
+          }
+        : {
+            kind: "introduce_word" as const,
+            challengeId:
+              state.kind === "introduce" ? state.challengeId : "",
+            usedSupport,
+            claimedIndependent,
+          };
+
       const response = await fetch("/api/beginner/attempt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          word,
-          usedSupport,
-          claimedIndependent,
-          ...(dictated ?? {}),
-        }),
+        body: JSON.stringify(body),
       });
       if (!response.ok) {
         setSaveFailed(true);
@@ -288,7 +297,9 @@ export function BeginnerSession() {
             lý do con số ở đây có nghĩa.
           </p>
           <Button
-            onClick={() => record(false, { sentence: sentence.text, heard })}
+            onClick={() =>
+              record(false, { challengeId: sentence.challengeId, heard })
+            }
           >
             Kiểm tra
           </Button>
