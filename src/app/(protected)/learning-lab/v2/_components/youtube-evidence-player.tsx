@@ -123,7 +123,9 @@ export function YouTubeEvidencePlayer({
   captionControlAllowed,
   slowPlaybackAllowed,
   onPlay,
+  onEnded,
   onSlowPlaybackConfirmed,
+  onRuntimeError,
 }: {
   videoId: string;
   videoTitle: string;
@@ -131,7 +133,9 @@ export function YouTubeEvidencePlayer({
   captionControlAllowed: boolean;
   slowPlaybackAllowed: boolean;
   onPlay?: () => void;
+  onEnded?: () => void;
   onSlowPlaybackConfirmed?: (rate: number) => void;
+  onRuntimeError?: (kind: "youtube_api_load" | "youtube_player") => void;
 }) {
   const shellRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<YouTubePlayer | null>(null);
@@ -148,12 +152,20 @@ export function YouTubeEvidencePlayer({
   // Held so the rate can be reapplied after `loadVideoById`, which resets
   // playback speed back to normal.
   const requestedRateRef = useRef<number | null>(null);
-  // Held in a ref so the player effect does not tear down and rebuild the
-  // embed every time the parent re-renders with a new callback identity.
+  // Held in refs so the player effect does not tear down and rebuild the embed
+  // every time the parent re-renders with a new callback identity.
   const slowConfirmedRef = useRef(onSlowPlaybackConfirmed);
+  const endedRef = useRef(onEnded);
+  const runtimeErrorRef = useRef(onRuntimeError);
   useEffect(() => {
     slowConfirmedRef.current = onSlowPlaybackConfirmed;
   }, [onSlowPlaybackConfirmed]);
+  useEffect(() => {
+    endedRef.current = onEnded;
+  }, [onEnded]);
+  useEffect(() => {
+    runtimeErrorRef.current = onRuntimeError;
+  }, [onRuntimeError]);
 
   const startSeconds = evidence.startMs / 1000;
   const endSeconds = evidence.endMs / 1000;
@@ -212,6 +224,11 @@ export function YouTubeEvidencePlayer({
                 setStatus("Đã tạm dừng đoạn nguồn.");
               } else if (event.data === api.PlayerState.ENDED) {
                 setStatus("Đã phát xong đoạn nguồn.");
+                // This is intentionally separate from `onPlay`. Existing
+                // playback evidence means the learner started a play/replay;
+                // only the player's ENDED state proves the bounded range
+                // completed for the moderated measurement record.
+                endedRef.current?.();
               }
             },
             onPlaybackRateChange: (event) => {
@@ -231,6 +248,9 @@ export function YouTubeEvidencePlayer({
               if (disposed) return;
               setReady(false);
               setStatus(playerErrorMessage(event.data));
+              // Persist only the bounded category. YouTube's provider code and
+              // human-readable error copy stay local and are not analytics data.
+              runtimeErrorRef.current?.("youtube_player");
             },
             onAutoplayBlocked: () => {
               if (disposed) return;
@@ -243,6 +263,7 @@ export function YouTubeEvidencePlayer({
         if (disposed) return;
         setReady(false);
         setStatus("Không tải được YouTube IFrame API.");
+        runtimeErrorRef.current?.("youtube_api_load");
       });
 
     return () => {
