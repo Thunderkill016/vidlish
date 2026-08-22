@@ -1,3 +1,4 @@
+import type { LearningProductEventRepository } from "@/modules/learning/ports/learning-product-event-repository";
 import type { LearningSessionRepository } from "@/modules/learning/ports/learning-session-repository";
 import type { LessonBlueprintV2 } from "@/shared/contracts/lesson-v2";
 import type {
@@ -26,10 +27,13 @@ type ProductEventInput = {
 );
 
 export class RecordLearningProductEvent {
-  constructor(private readonly repository: LearningSessionRepository) {}
+  constructor(
+    private readonly sessions: LearningSessionRepository,
+    private readonly events: LearningProductEventRepository,
+  ) {}
 
   async execute(input: ProductEventInput) {
-    const session = await this.repository.findOwnedSession(
+    const session = await this.sessions.findOwnedSession(
       input.sessionId,
       input.ownerUserId,
     );
@@ -52,7 +56,7 @@ export class RecordLearningProductEvent {
           "Source completion requires a bounded source range.",
         );
       }
-      return this.repository.recordProductEvent({
+      return this.events.record({
         ownerUserId: input.ownerUserId,
         sessionId: input.sessionId,
         activityId: input.activityId,
@@ -62,7 +66,7 @@ export class RecordLearningProductEvent {
     }
 
     if (input.eventKind === "correction_shown") {
-      const attemptCount = await this.repository.countActivityAttempts({
+      const attemptCount = await this.sessions.countActivityAttempts({
         ownerUserId: input.ownerUserId,
         sessionId: input.sessionId,
         activityId: input.activityId,
@@ -72,7 +76,7 @@ export class RecordLearningProductEvent {
           "Correction display requires a persisted attempt first.",
         );
       }
-      return this.repository.recordProductEvent({
+      return this.events.record({
         ownerUserId: input.ownerUserId,
         sessionId: input.sessionId,
         activityId: input.activityId,
@@ -81,7 +85,7 @@ export class RecordLearningProductEvent {
       });
     }
 
-    return this.repository.recordProductEvent({
+    return this.events.record({
       ownerUserId: input.ownerUserId,
       sessionId: input.sessionId,
       activityId: input.activityId,
