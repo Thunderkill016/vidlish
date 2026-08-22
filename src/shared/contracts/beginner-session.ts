@@ -35,6 +35,13 @@ export const beginnerWordIntroductionSchema = z.object({
   target: z.string().min(1).max(64),
   challengeId: z.string().uuid(),
   knownWordCount: z.number().int().min(0),
+  /**
+   * Human-written Vietnamese senses, absent for the words that have none.
+   * Absent is a real answer: Vietnamese has no article, so `the` has nothing to
+   * translate to and offering something would teach a word that does not do the
+   * job.
+   */
+  gloss: z.array(z.string().min(1).max(80)).max(3).optional(),
 });
 
 const beginnerAttemptBase = {

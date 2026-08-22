@@ -49,7 +49,7 @@ type SessionState =
       step: number;
       served: number;
     }
-  | { kind: "introduce"; target: string; challengeId: string }
+  | { kind: "introduce"; target: string; challengeId: string; gloss?: string[] }
   | {
       kind: "unit_activity";
       activity: import("@/shared/contracts/beginner-session").BeginnerUnitActivity;
@@ -125,6 +125,7 @@ export function BeginnerSession() {
           kind: "introduce",
           target: introduction.data.target,
           challengeId: introduction.data.challengeId,
+          gloss: introduction.data.gloss,
         });
         // A standalone first word follows the same boundary as every later
         // sentence: sound first, text only after the learner explicitly asks.
@@ -346,6 +347,18 @@ export function BeginnerSession() {
               giúp trong lượt này.
             </p>
           </div>
+        )}
+
+        {state.gloss ? (
+          <p className="text-lg" data-testid="word-gloss">
+            {state.gloss.join(", ")}
+          </p>
+        ) : (
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Từ này chưa có nghĩa tiếng Việt tương ứng. Thường là vì tiếng Việt
+            không có thứ đó — không có mạo từ, không có đại từ biến cách. Nó
+            phải học qua cách dùng trong câu, không qua một từ dịch.
+          </p>
         )}
 
         <div className="flex flex-wrap gap-2">
