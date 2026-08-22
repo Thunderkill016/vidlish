@@ -33,3 +33,65 @@ coverage — the first hundred words are half of all written English — needs a
 frequency list such as [Kelly](https://ssharoff.github.io/kelly/) as a second
 artifact. Until then, ordering within a level is by part of speech, and that is
 a weaker claim.
+
+---
+
+# Tatoeba beginner sentence artifact
+
+`tatoeba-beginner-sentences.json` — 18,127 human-written English sentences of
+2–8 words, every word inside the CEFR-J catalogue above, covering 2,008 of its
+2,214 headwords. Rebuild with `node scripts/build-tatoeba-subset.mjs <export-dir>`.
+
+## Where it comes from
+
+[Tatoeba](https://tatoeba.org) public exports (`eng_sentences`, `eng-vie_links`,
+`vie_sentences`, `sentences_with_audio`). Tatoeba sentences are released under
+**CC BY 2.0 FR**; attribution is by sentence id, which every row keeps.
+
+## Why sentences are retrieved before they are generated
+
+A generated sentence can be grammatical, use only permitted words, pass every
+check this codebase can perform, and still be something no person would ever
+say. That failure is invisible to the i+1 gate. A retrieved sentence cannot fail
+that way, because a human already decided it was worth writing.
+
+## Why it is an artifact rather than a live query
+
+The sentences a learner meets in their first thousand words should be readable
+by a person before they ship. A live corpus call means nobody ever reads what
+gets served, and "a human wrote it" stops being a guarantee the moment nobody
+checks which human, or what.
+
+## What was measured
+
+Against the catalogue's teaching order, counting English sentences of 2–8 words
+where exactly one word is new:
+
+| Words known | Usable sentences | Next 50 targets covered |
+| ----------- | ---------------- | ----------------------- |
+| 25          | 1,884            | 5 / 50                  |
+| 50          | 6,159            | 26 / 50                 |
+| 100         | 11,721           | 47 / 50                 |
+| 200         | 31,154           | 47 / 50                 |
+| 800         | 126,187          | 44 / 50                 |
+
+So retrieval cannot cover the beginning. Generation is **required** for roughly
+the first fifty words and becomes the exception after that — it is not a rare
+fallback, and planning as though it were would leave a learner with nothing to
+read on their first day.
+
+## What it cannot supply
+
+**Audio.** 74 of 18,127 sentences carry a recording whose licence permits reuse
+outside Tatoeba. About nine in ten Tatoeba recordings are `CC BY-NC-ND 3.0` or
+`CC BY-NC 4.0`, and a further 74,041 rows carry no licence at all — those may
+not be used outside Tatoeba by anyone. Synthesized speech is therefore a
+**requirement** of the listening step, not a cost optimisation.
+
+The licence field is a filter, not a footnote. The build script drops every
+recording outside `CC BY 4.0` and `CC BY-SA 4.0`, and a test fails if that
+filter is ever relaxed.
+
+**Vietnamese.** 721 of 18,127 sentences have a human Vietnamese translation.
+That is too thin to carry the first three hundred words, so Vietnamese support
+has to come from somewhere else and be checked there.
