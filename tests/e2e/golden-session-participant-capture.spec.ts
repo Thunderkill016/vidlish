@@ -21,7 +21,7 @@ async function login(page: Page, email: string) {
 }
 
 async function logout(page: Page) {
-  await page.getByText("Tài khoản").click();
+  await page.getByText("Tài khoản", { exact: true }).click();
   await page.getByRole("button", { name: "Đăng xuất" }).click();
   await expect(page).toHaveURL(/\/sign-in$/);
 }
