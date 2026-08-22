@@ -38,44 +38,38 @@ async function postJson(
   );
 }
 
-test("a learner starting from zero hears input and their independent evidence is kept", async ({
+test("a learner starting from zero banks lexical-gate evidence without overstating capability", async ({
   page,
 }, testInfo) => {
-  // A per-project email, or the two Playwright projects share one learner and
-  // the second one starts with words the first taught.
   await login(page, `beginner-${testInfo.project.name}@example.com`);
 
   await page.goto("/start");
   await expect(page.getByRole("heading", { name: "Bắt đầu từ số 0" })).toBeVisible();
   await expect(page.getByText(/policy bảo thủ/)).toBeVisible();
 
-  // Nothing has been produced unaided yet, so the evidence set starts at zero.
-  const known = page.getByText("Số từ bạn đã tự nói ra được, không mở trợ giúp");
-  await expect(known).toBeVisible();
+  const gateCount = page.getByText("Số từ đang nằm trong beginner input gate");
+  await expect(gateCount).toBeVisible();
 
   await page.getByRole("button", { name: "Bắt đầu nghe" }).click();
 
-  // With no independent lexical evidence, the current conservative policy
-  // bootstraps a target rather than generating a sentence it would reject.
   await expect(
     page.getByText("Target đang được giới thiệu riêng"),
   ).toBeVisible({ timeout: 30_000 });
 
   await page.getByRole("button", { name: "Nói được", exact: true }).click();
-  await expect(page.getByText(/Đã ghi independent evidence/)).toBeVisible();
-  await expect(page.getByText(/chưa phải bằng chứng rằng bạn nhớ lâu/)).toBeVisible();
+  await expect(page.getByText(/bootstrap lexical-gate evidence/)).toBeVisible();
+  await expect(page.getByText(/chưa phải verified capability/)).toBeVisible();
 
-  // The evidence has to survive a reload, or it cannot drive later input.
+  // The lexical-gate evidence must survive a reload because it controls later
+  // input, even though the UI deliberately does not call it verified ability.
   await page.reload();
-  await expect(known).toBeVisible();
+  await expect(gateCount).toBeVisible();
   await expect(page.getByText("1", { exact: true }).first()).toBeVisible();
 
-  // With one durable word there is something real to calibrate self-report
-  // reliability against.
   await page.getByRole("button", { name: "Làm kiểm tra" }).click();
 
-  // Say "biết" to everything, including nonwords. The product must refuse to
-  // bank that claim rather than rewarding indiscriminate self-report.
+  // Say "biết" to everything, including nonwords. The calibration must reject
+  // indiscriminate self-report rather than strengthening it.
   for (let index = 0; index < 4; index += 1) {
     await expect(page.getByTestId("calibration-question")).toBeVisible();
     await page.getByRole("button", { name: "Biết", exact: true }).click();
