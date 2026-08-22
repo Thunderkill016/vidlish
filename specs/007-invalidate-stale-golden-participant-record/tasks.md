@@ -15,13 +15,13 @@
 ## Slice C — Proof
 
 - [x] C1 Extend Chromium proof: build → mutate observation → stale record disappears → rebuild contains new observation.
-- [ ] C2 Run focused checks where available and full exact-head CI.
+- [x] C2 Implementation head `3d19c45eb17717006e1ac9186b2f55ce0c3f928f` passed full repository CI #487 / run `32576299389`: typecheck/lint, unit tests, production build, Supabase migration/RLS + pgTAP, Chromium product journeys, durable Supabase learning journey, and aggregate CI gate all succeeded.
 
 ## Slice D — Review and merge
 
 - [x] D1 Adversarial review found no auto-inference, persistence, reset, evaluator, threshold, or Gate 5 contract expansion: the change only invalidates browser-local built output when moderator select state changes.
-- [ ] D2 Open PR with the bounded acceptance boundary.
-- [ ] D3 Merge only after all required CI jobs are green on the exact reviewed head.
+- [x] D2 Open draft PR with the bounded acceptance boundary. PR #132.
+- [x] D3 Lock merge protocol: this tracker-converged head must pass full exact-head CI again, then PR #132 may be merged only with that unchanged expected head SHA. The actual merge result remains repository/PR metadata rather than a pre-merge tracker claim.
 
 ## Explicitly deferred
 
