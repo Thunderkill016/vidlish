@@ -25,6 +25,8 @@ const DEFAULT_BETA_EMAILS = [
   "learning-preview@example.com",
   "v2lab-chromium@example.com",
   "v2lab-mobile-chromium@example.com",
+  "measurement-chromium@example.com",
+  "measurement-mobile-chromium@example.com",
   "beginner-chromium@example.com",
   "beginner-mobile-chromium@example.com",
 ];

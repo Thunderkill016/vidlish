@@ -1,14 +1,19 @@
 import "server-only";
 
+import { InMemoryLearningProductEventRepository } from "@/adapters/fake/in-memory-learning-product-event-repository";
 import { InMemoryLearningSessionRepository } from "@/adapters/fake/in-memory-learning-session-repository";
 import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
+import { SupabaseLearningProductEventRepository } from "@/adapters/supabase/learning-product-event-repository";
 import { SupabaseLearningSessionRepository } from "@/adapters/supabase/learning-session-repository";
+import type { LearningProductEventRepository } from "@/modules/learning/ports/learning-product-event-repository";
 import type { LearningReviewRepository } from "@/modules/learning/ports/learning-review-repository";
 import type { LearningSessionRepository } from "@/modules/learning/ports/learning-session-repository";
 
 type LearningRepositoryGlobal = typeof globalThis & {
   __vidlishFakeLearningSessionRepository?: InMemoryLearningSessionRepository;
   __vidlishSupabaseLearningSessionRepository?: SupabaseLearningSessionRepository;
+  __vidlishFakeLearningProductEventRepository?: InMemoryLearningProductEventRepository;
+  __vidlishSupabaseLearningProductEventRepository?: SupabaseLearningProductEventRepository;
 };
 
 const repositoryGlobal = globalThis as LearningRepositoryGlobal;
@@ -43,10 +48,28 @@ function supabaseRepository(): SupabaseLearningSessionRepository {
   return repositoryGlobal.__vidlishSupabaseLearningSessionRepository;
 }
 
+function fakeProductEventRepository(): InMemoryLearningProductEventRepository {
+  repositoryGlobal.__vidlishFakeLearningProductEventRepository ??=
+    new InMemoryLearningProductEventRepository();
+  return repositoryGlobal.__vidlishFakeLearningProductEventRepository;
+}
+
+function supabaseProductEventRepository(): SupabaseLearningProductEventRepository {
+  repositoryGlobal.__vidlishSupabaseLearningProductEventRepository ??=
+    new SupabaseLearningProductEventRepository(getAdminSupabaseClient());
+  return repositoryGlobal.__vidlishSupabaseLearningProductEventRepository;
+}
+
 export function createLearningSessionRepository(): LearningSessionRepository {
   return configuredRepository() === "fake" ? fakeRepository() : supabaseRepository();
 }
 
 export function createLearningReviewRepository(): LearningReviewRepository {
   return configuredRepository() === "fake" ? fakeRepository() : supabaseRepository();
+}
+
+export function createLearningProductEventRepository(): LearningProductEventRepository {
+  return configuredRepository() === "fake"
+    ? fakeProductEventRepository()
+    : supabaseProductEventRepository();
 }
