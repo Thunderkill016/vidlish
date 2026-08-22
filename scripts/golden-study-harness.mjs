@@ -1,11 +1,17 @@
 import { spawn, spawnSync } from "node:child_process";
+import { createServer } from "node:net";
 import process from "node:process";
 
 export const GOLDEN_STUDY_EMAIL = "learning-preview@example.com";
 export const GOLDEN_STUDY_CODE = "123456";
 export const GOLDEN_STUDY_LESSON_VERSION_ID =
   "77777777-7777-4777-8777-777777777777";
+export const GOLDEN_STUDY_HOST = "127.0.0.1";
 export const GOLDEN_STUDY_PORT = 3200;
+export const GOLDEN_STUDY_READY_TIMEOUT_MS = 30_000;
+
+const GOLDEN_STUDY_READY_POLL_MS = 100;
+const GOLDEN_STUDY_READY_REQUEST_TIMEOUT_MS = 1_000;
 
 const REQUIRED_LOCAL_SUPABASE_KEYS = [
   "API_URL",
@@ -37,6 +43,10 @@ function unquoteShellValue(value) {
     }
   }
   return trimmed;
+}
+
+function sleep(milliseconds) {
+  return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
 export function parseSupabaseStatusEnv(output) {
@@ -97,6 +107,94 @@ export function buildGoldenStudyRuntimeEnv(baseEnv, localSupabase) {
   delete env.NODE_ENV;
 
   return env;
+}
+
+export function assertStudyPortAvailable({
+  host = GOLDEN_STUDY_HOST,
+  port = GOLDEN_STUDY_PORT,
+} = {}) {
+  return new Promise((resolve, reject) => {
+    const probe = createServer();
+
+    probe.once("error", (error) => {
+      if (error && typeof error === "object" && error.code === "EADDRINUSE") {
+        reject(
+          new Error(
+            `Golden study port ${host}:${port} is already in use. Stop the old study/app process before starting a fresh participant cycle.`,
+          ),
+        );
+        return;
+      }
+      reject(error);
+    });
+
+    probe.listen({ host, port, exclusive: true }, () => {
+      probe.close((error) => {
+        if (error) reject(error);
+        else resolve();
+      });
+    });
+  });
+}
+
+export async function waitForStudyAppReady(
+  child,
+  {
+    origin = `http://${GOLDEN_STUDY_HOST}:${GOLDEN_STUDY_PORT}`,
+    timeoutMs = GOLDEN_STUDY_READY_TIMEOUT_MS,
+    pollIntervalMs = GOLDEN_STUDY_READY_POLL_MS,
+    requestTimeoutMs = GOLDEN_STUDY_READY_REQUEST_TIMEOUT_MS,
+    fetchImpl = globalThis.fetch,
+  } = {},
+) {
+  const deadline = Date.now() + timeoutMs;
+  let childFailure = null;
+
+  const onExit = (code, signal) => {
+    childFailure = new Error(
+      `Vidlish exited before becoming ready${signal ? ` from signal ${signal}` : ` with exit code ${code ?? "unknown"}`}.`,
+    );
+  };
+  const onError = (error) => {
+    childFailure = new Error(`Could not start Vidlish: ${error.message}`);
+  };
+
+  child.once("exit", onExit);
+  child.once("error", onError);
+
+  try {
+    while (Date.now() < deadline) {
+      if (childFailure) throw childFailure;
+
+      const remainingMs = deadline - Date.now();
+      try {
+        const response = await fetchImpl(`${origin}/sign-in`, {
+          cache: "no-store",
+          signal: AbortSignal.timeout(
+            Math.max(1, Math.min(requestTimeoutMs, remainingMs)),
+          ),
+        });
+        if (childFailure) throw childFailure;
+        if (response.ok) return;
+      } catch (error) {
+        if (childFailure) throw childFailure;
+        // Connection refusal/timeout is expected while Next.js is booting.
+        // The bounded outer deadline remains the authority for readiness.
+        void error;
+      }
+
+      const waitMs = Math.min(pollIntervalMs, deadline - Date.now());
+      if (waitMs > 0) await sleep(waitMs);
+    }
+
+    if (childFailure) throw childFailure;
+    throw new Error(
+      `Vidlish did not become ready at ${origin} within ${timeoutMs}ms. The participant cycle was not declared ready.`,
+    );
+  } finally {
+    child.off("exit", onExit);
+    child.off("error", onError);
+  }
 }
 
 function run(command, args, options = {}) {
@@ -168,7 +266,7 @@ function prepareLocalStudyDatabase() {
 }
 
 function printOperatorInstructions() {
-  const origin = `http://127.0.0.1:${GOLDEN_STUDY_PORT}`;
+  const origin = `http://${GOLDEN_STUDY_HOST}:${GOLDEN_STUDY_PORT}`;
   console.log("");
   console.log("Golden Session study harness is ready for ONE real participant.");
   console.log(`Sign in:  ${origin}/sign-in`);
@@ -188,15 +286,28 @@ function printOperatorInstructions() {
   console.log("");
 }
 
-export function main() {
+export async function main() {
+  let child = null;
+
   try {
+    // Refuse an ambiguous cycle before touching the participant database. If an
+    // old server still owns the study port, its UI must never be mistaken for
+    // the fresh cycle this command is about to create.
+    await assertStudyPortAvailable();
+
     const status = prepareLocalStudyDatabase();
     const childEnv = buildGoldenStudyRuntimeEnv(process.env, status);
-    printOperatorInstructions();
 
-    const child = spawn(
+    console.log("[study:golden] Starting Vidlish and waiting for readiness...");
+    child = spawn(
       "pnpm",
-      ["dev", "--hostname", "127.0.0.1", "--port", String(GOLDEN_STUDY_PORT)],
+      [
+        "dev",
+        "--hostname",
+        GOLDEN_STUDY_HOST,
+        "--port",
+        String(GOLDEN_STUDY_PORT),
+      ],
       {
         cwd: process.cwd(),
         env: childEnv,
@@ -218,11 +329,15 @@ export function main() {
       if (signal) process.exitCode = 1;
       else process.exitCode = code ?? 0;
     });
+
+    await waitForStudyAppReady(child);
+    printOperatorInstructions();
   } catch (error) {
+    if (child && !child.killed) child.kill("SIGTERM");
     const message = error instanceof Error ? error.message : String(error);
     console.error(`[study:golden] ${message}`);
     process.exitCode = 1;
   }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main();
+if (import.meta.url === `file://${process.argv[1]}`) void main();
