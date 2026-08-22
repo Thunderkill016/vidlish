@@ -48,6 +48,8 @@ const NOT_YET_WIRED: Record<string, string> = {
     "A0 beginner track — no route yet",
   "src/modules/learning/application/compose-beginner-input.ts":
     "A0 beginner track — no route yet",
+  "src/modules/learning/application/retrieve-beginner-input.ts":
+    "A0 beginner track — no route yet",
 };
 
 function listSourceFiles(dir: string): string[] {
