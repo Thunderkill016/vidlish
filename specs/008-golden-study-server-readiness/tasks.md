@@ -18,13 +18,13 @@
 
 - [x] C1 Unit-test occupied and free port preflight.
 - [x] C2 Unit-test HTTP readiness, child-exit failure and timeout failure, including timeout child termination and success-path non-termination.
-- [ ] C3 Run full exact-head CI.
+- [x] C3 Full PR CI #490 passed on implementation head `47ae2920a92a68a6a542c8815d7322ad168d7192`: typecheck/lint, unit tests, production build, Supabase migration/RLS tests, Chromium product journeys, durable Supabase-backed learning journey, and aggregate CI gate all succeeded.
 
 ## Slice D — Review and merge
 
 - [x] D1 Adversarial review startup races, leaked listeners/processes, credential output, DB-reset ordering and Gate 5 scope. Review added a second pre-spawn port check and direct timeout-kill proof.
-- [ ] D2 Open draft PR with bounded acceptance boundary.
-- [ ] D3 Merge only after all required CI jobs are green on the final exact head.
+- [x] D2 Draft PR #133 opened with the bounded acceptance boundary.
+- [ ] D3 Merge protocol: after this tracker-convergence commit, require all required CI jobs green on the new final exact PR head; verify the head has not moved, mark ready, then squash-merge with `expected_head_sha`.
 
 ## Explicitly deferred
 
