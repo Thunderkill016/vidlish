@@ -35,18 +35,34 @@ export const beginnerWordIntroductionSchema = z.object({
 
 export const beginnerAttemptRequestSchema = z.object({
   word: z.string().min(1).max(64),
+  /** True when the learner opened any support before answering. */
+  usedSupport: z.boolean(),
   /**
-   * Whether the learner produced it with every support closed. The client
-   * reports it; the server records nothing else as independence, and the
-   * database keeps proof of independence from ever being erased.
+   * The sentence that was played and what the learner wrote down.
+   *
+   * When both are present the server scores the answer and decides
+   * independence itself. When they are absent — the very first words, which
+   * arrive alone and cannot be dictated — the learner's own report is all
+   * there is, and the nonword check is what keeps it honest.
    */
-  independent: z.boolean(),
+  sentence: z.string().min(1).max(200).optional(),
+  heard: z.string().max(400).optional(),
+  claimedIndependent: z.boolean().optional(),
 });
 
 export const beginnerAttemptResponseSchema = z.object({
   word: z.string(),
   successfulRetrievals: z.number().int().min(0),
   known: z.boolean(),
+  /** Present when the answer was checked rather than reported. */
+  dictation: z
+    .object({
+      correct: z.number().int().min(0),
+      total: z.number().int().min(0),
+      missed: z.array(z.string()),
+      perfect: z.boolean(),
+    })
+    .optional(),
 });
 
 /**
