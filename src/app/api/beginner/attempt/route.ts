@@ -15,14 +15,13 @@ import { assertSameOrigin } from "@/shared/http/same-origin";
 /**
  * Records one attempt at producing a word.
  *
- * Independence is decided here, not reported. When the learner wrote down what
- * they heard, the server compares it to the sentence and only the whole
- * sentence, with no support opened, counts — a client that could simply claim
- * independence would be claiming the one thing the database will never let
- * anyone take back.
+ * The browser reports learner action only. The target word and, for dictation,
+ * the answer-key sentence come from a server-issued challenge. The final write
+ * consumes that challenge atomically with the evidence upsert so replay cannot
+ * manufacture retrieval counts.
  *
- * What the learner wrote is used and then dropped. The evidence kept is which
- * words came back, not the text they came in.
+ * What the learner wrote is used for scoring and then dropped. The evidence
+ * kept is which server-issued word came back, not the raw text it came in.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -36,31 +35,39 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) throw authErrors.rejected();
 
     const progress = createBeginnerProgressRepository();
+    const challenge = await progress.evidenceChallenge({
+      ownerUserId: access.userId,
+      challengeId: parsed.data.challengeId,
+    });
+    if (!challenge || challenge.kind !== parsed.data.kind) {
+      throw authErrors.rejected();
+    }
 
-    // A learner whose last check showed they say yes to words that do not exist
-    // has told the product their self-reports cannot be banked. The attempt is
-    // still recorded — attendance is real — but it cannot claim independence,
-    // because independence is the one thing the database will never let anyone
-    // take back.
     const calibration = await progress.latestCalibration(access.userId);
     const trusted = calibration === null || calibration.reliable;
 
-    const { sentence, heard } = parsed.data;
-    const dictation =
-      sentence !== undefined && heard !== undefined
-        ? scoreDictation({ target: sentence, heard })
-        : null;
+    let produced: boolean;
+    let dictation: ReturnType<typeof scoreDictation> | null = null;
+
+    if (parsed.data.kind === "dictation") {
+      if (challenge.sentence === null) throw authErrors.rejected();
+      dictation = scoreDictation({
+        target: challenge.sentence,
+        heard: parsed.data.heard,
+      });
+      produced = dictation.perfect;
+    } else {
+      if (challenge.sentence !== null) throw authErrors.rejected();
+      produced = parsed.data.claimedIndependent;
+    }
 
     // A checked answer outranks a reported one. Where there is nothing to check
-    // — the first words, which arrive alone — the report stands, and the
-    // nonword check is what keeps it honest.
-    const produced = dictation
-      ? dictation.perfect
-      : (parsed.data.claimedIndependent ?? false);
-
-    const evidence = await progress.recordWordEvidence({
+    // — the first standalone word — the report stands, and the nonword check is
+    // what keeps that self-report calibrated. Crucially, neither path can pick
+    // a word that the server did not issue.
+    const evidence = await progress.recordChallengeEvidence({
       ownerUserId: access.userId,
-      word: parsed.data.word.toLocaleLowerCase("en-US"),
+      challengeId: challenge.id,
       independent: produced && !parsed.data.usedSupport && trusted,
     });
 
