@@ -8,7 +8,6 @@ export type PersonalLearningCheckpointStage =
 
 export type PersonalLearningNextAction =
   | "start_learning"
-  | "continue_beginner_learning"
   | "retrieve_without_support"
   | "use_changed_context"
   | "complete_delayed_review"
@@ -24,52 +23,49 @@ export type PersonalLearningCheckpoint = {
 };
 
 /**
- * Projects the strongest personal learning claim the durable evidence can make.
+ * Projects the strongest personal capability claim supported by the durable
+ * review-item evidence chain.
  *
- * Beginner `knownWords()` is deliberately narrow in this codebase: it contains
- * only words the learner has independently produced with support closed. That
- * makes its count legitimate independent evidence, even before the learner has
- * any source-lesson review item.
+ * The beginner lexical gate is intentionally NOT an input here. Its current
+ * bootstrap path may bank a server-bound, calibrated learner self-report when
+ * there is not yet a sentence to score. That is useful evidence for choosing
+ * conservative input, but it is not the same as the system observing correct
+ * independent production. A personal capability checkpoint must not silently
+ * upgrade that weaker evidence.
  *
- * Everything stronger still requires the durable review-item chain. Exposure,
- * lesson completion, scheduler state, attempt count and supported success are
- * useful operational facts, but none of them upgrades the checkpoint.
+ * Exposure, lesson completion, scheduler state, attempt count and supported
+ * success likewise do not upgrade the checkpoint.
  *
  * The stages are monotonic in claim strength:
  *
- * independent beginner/source production
- *   -> independent source production + successful changed-context use
- *   -> the same source evidence chain survives a delayed transfer
+ * correct independent source production
+ *   -> independent production + successful changed-context use
+ *   -> the same evidence chain survives a delayed transfer
  *
- * A row with internally inconsistent timestamps is never allowed to skip a
- * weaker prerequisite just because a stronger-looking timestamp is present.
+ * An internally inconsistent stronger-looking timestamp cannot skip a weaker
+ * prerequisite.
  */
-export function derivePersonalLearningCheckpoint(input: {
-  readonly items: readonly LearningReviewItemState[];
-  readonly beginnerIndependentCount: number;
-}): PersonalLearningCheckpoint {
-  const independentItems = input.items.filter(
-    (item) => item.lastIndependentAt !== null,
-  );
-  const transferred = input.items.filter(
+export function derivePersonalLearningCheckpoint(
+  items: readonly LearningReviewItemState[],
+): PersonalLearningCheckpoint {
+  const independent = items.filter((item) => item.lastIndependentAt !== null);
+  const transferred = items.filter(
     (item) =>
       item.lastIndependentAt !== null && item.transferSucceededAt !== null,
   );
-  const delayedTransfer = input.items.filter(
+  const delayedTransfer = items.filter(
     (item) =>
       item.lastIndependentAt !== null &&
       item.transferSucceededAt !== null &&
       item.lastDelayedTransferAt !== null,
   );
-  const independentCount =
-    input.beginnerIndependentCount + independentItems.length;
 
   if (delayedTransfer.length > 0) {
     return {
       stage: "delayed_transfer",
       nextAction: "continue_learning",
-      itemCount: input.items.length,
-      independentCount,
+      itemCount: items.length,
+      independentCount: independent.length,
       transferredCount: transferred.length,
       delayedTransferCount: delayedTransfer.length,
     };
@@ -79,34 +75,19 @@ export function derivePersonalLearningCheckpoint(input: {
     return {
       stage: "changed_context_transfer",
       nextAction: "complete_delayed_review",
-      itemCount: input.items.length,
-      independentCount,
+      itemCount: items.length,
+      independentCount: independent.length,
       transferredCount: transferred.length,
       delayedTransferCount: 0,
     };
   }
 
-  if (independentItems.length > 0) {
+  if (independent.length > 0) {
     return {
       stage: "independent_retrieval",
       nextAction: "use_changed_context",
-      itemCount: input.items.length,
-      independentCount,
-      transferredCount: 0,
-      delayedTransferCount: 0,
-    };
-  }
-
-  if (input.beginnerIndependentCount > 0) {
-    return {
-      stage: "independent_retrieval",
-      // The beginner path currently banks narrow independent word evidence but
-      // does not yet create the source-review item needed for the stronger
-      // changed-context/delayed chain. Keep the UI honest instead of routing to
-      // a review task the learner cannot actually perform yet.
-      nextAction: "continue_beginner_learning",
-      itemCount: input.items.length,
-      independentCount,
+      itemCount: items.length,
+      independentCount: independent.length,
       transferredCount: 0,
       delayedTransferCount: 0,
     };
@@ -114,9 +95,8 @@ export function derivePersonalLearningCheckpoint(input: {
 
   return {
     stage: "building_evidence",
-    nextAction:
-      input.items.length > 0 ? "retrieve_without_support" : "start_learning",
-    itemCount: input.items.length,
+    nextAction: items.length > 0 ? "retrieve_without_support" : "start_learning",
+    itemCount: items.length,
     independentCount: 0,
     transferredCount: 0,
     delayedTransferCount: 0,
