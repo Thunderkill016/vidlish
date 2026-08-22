@@ -182,3 +182,48 @@ Product consequence: the first sentences a learner hears should avoid final clus
 Comprehensible-input practice discourages speaking until several hundred hours of listening have accumulated, on the argument that early output rehearses errors. The approved product decisions here include recording the learner's voice from early on.
 
 These can both be honoured, but only by being explicit about what the recording is for. Recording as **evidence** — did the learner produce this word unaided — is compatible with the input-first order and is what `last_independent_at` already means. Recording as **speaking practice**, drilled before listening is stable, is the thing the research warns about. The product should do the first and wait on the second, and should say which one it is doing.
+
+## Measuring progress that is real
+
+The product owner's requirement is that progress be real rather than manufactured. That is a measurement question before it is a teaching question, and it has a specific answer per skill. It also has an immediate consequence for what has already shipped.
+
+### What is currently self-reported, and therefore not evidence
+
+`/start` asks the learner whether they produced the word unaided and records the answer. Nothing checks it.
+
+That is the definition of manufactured progress: a learner who is tired, generous with themselves, or simply mistaken about what they heard produces the same evidence as one who genuinely said the word. The database is careful with that flag — independence can never be erased once recorded — which makes an unchecked flag worse, not better, because a wrong `true` is permanent.
+
+This is not an argument for removing the self-report. It is an argument for making it checkable, which the vocabulary-testing literature solved decades ago.
+
+### Nonwords make a self-report checkable
+
+Yes/no vocabulary tests ask whether the learner knows a word, and mix in **nonwords** — plausible English-looking strings that do not exist. Saying yes to a nonword is a false alarm, and the false-alarm rate is what turns a self-report into a score: correction formulas using false-alarm information have been developed and validated precisely because raw yes/no answers overstate knowledge.
+
+Product consequence: seed the beginner track with occasional nonword items, drawn to match English phonotactics. A learner who reports producing `blorf` as confidently as `water` has told the product that today's evidence is unreliable, and the product can discount the session rather than bank it. This costs one item in ten and it is the difference between a number that means something and a number that flatters.
+
+### Elicited imitation is the measure this product almost already has
+
+Elicited imitation asks the learner to listen to a sentence and repeat it back. It is one of the few short-cut measures of global L2 oral proficiency that has been validated against external criteria and shown to distinguish proficiency levels reliably, and it works because a sentence longer than raw echoic memory can only be reproduced by someone who parsed it.
+
+The A0 session already does listen-then-say-back. What it does not do is score the repetition, and scoring is what separates a measure from an activity.
+
+Product consequence: build elicited imitation as the progress instrument, not as another exercise type. It reuses the corpus, the audio and the recording permission that are already approved, and it produces a number that is comparable across weeks — which is what "am I actually getting better" requires and what a streak can never provide.
+
+### Speech recognition is usable for this shape and not for free speech
+
+The measured picture is consistent. Non-native word error rate on **clean read speech** can be as low as 5.4%. Spontaneous accented narrative runs 13–28%, and accented speech generally raises error rates two- to fourfold against native benchmarks; a large multi-accent corpus put a strong model at 19.7% WER against 2.7% on US English read speech.
+
+Elicited imitation is the good case: short, known-target, read-like speech. Free conversation is the bad case, and the errors there are not random — they cluster on exactly the L1 groups least represented in training data, which includes this learner.
+
+Product consequence: score repetition against a known target, where a recogniser's mistakes can be bounded by comparing against the sentence it was supposed to produce. Do not build free-conversation scoring, and do not report a fluency number derived from spontaneous speech, until it has been measured on Vietnamese speech.
+
+### One instrument per skill, and none of them is a streak
+
+| Skill | Instrument | Why it cannot be gamed |
+| --- | --- | --- |
+| Listening | dictation of a sentence built only from known words | a wrong word is a wrong word; nothing to interpret |
+| Speaking | elicited imitation, scored against the known target | requires parsing, not memory of the audio |
+| Reading | share of a text the learner's known set covers | computed from evidence already held, not asked |
+| Writing | deterministic checks first, model explanation second | a rule ID and a span can be counted and disputed |
+
+What none of these are: sessions completed, days in a row, items reviewed. Those measure attendance. A product that reports attendance to someone who asked for progress is answering a different question than the one it was asked.
