@@ -128,12 +128,52 @@ revoke all on function public.record_beginner_challenge_evidence(uuid, uuid, boo
 revoke all on function public.record_beginner_challenge_evidence(uuid, uuid, boolean) from authenticated;
 grant execute on function public.record_beginner_challenge_evidence(uuid, uuid, boolean) to service_role;
 
--- The legacy functions are retained for migration compatibility/internal
--- history, but the browser must never be able to call them. The application is
--- moved to the challenge-bound mutation above.
+-- Calibration used to be browser-executable and therefore defended itself with
+-- `auth.uid()`. The beginner repository, however, is intentionally composed
+-- with the server admin/secret client; once browser EXECUTE is revoked there is
+-- no user JWT at this boundary. Keep the verdict calculation in application
+-- code and make this persistence primitive service-only instead of depending on
+-- an auth claim the server client does not carry.
+create or replace function public.record_learner_calibration(
+  p_owner_user_id uuid,
+  p_word_trials integer,
+  p_nonword_trials integer,
+  p_hits integer,
+  p_false_alarms integer,
+  p_reliable boolean
+)
+returns public.learner_calibrations
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_row public.learner_calibrations;
+begin
+  if p_owner_user_id is null then
+    raise exception 'calibration owner is required';
+  end if;
+
+  insert into public.learner_calibrations (
+    owner_user_id, word_trials, nonword_trials, hits, false_alarms, reliable
+  ) values (
+    p_owner_user_id, p_word_trials, p_nonword_trials, p_hits, p_false_alarms,
+    p_reliable
+  )
+  returning * into v_row;
+
+  return v_row;
+end;
+$$;
+
+-- The legacy arbitrary-word evidence function is retained only for migration
+-- history/internal compatibility. No learner route uses it after this feature,
+-- and browser roles must not be able to call it.
 revoke execute on function public.record_beginner_word_evidence(uuid, text, boolean) from authenticated;
 grant execute on function public.record_beginner_word_evidence(uuid, text, boolean) to service_role;
 
+revoke execute on function public.record_learner_calibration(uuid, integer, integer, integer, integer, boolean) from public;
+revoke execute on function public.record_learner_calibration(uuid, integer, integer, integer, integer, boolean) from anon;
 revoke execute on function public.record_learner_calibration(uuid, integer, integer, integer, integer, boolean) from authenticated;
 grant execute on function public.record_learner_calibration(uuid, integer, integer, integer, integer, boolean) to service_role;
 
