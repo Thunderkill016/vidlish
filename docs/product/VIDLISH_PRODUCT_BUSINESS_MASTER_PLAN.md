@@ -1,32 +1,34 @@
 # Vidlish Product & Business Master Plan
 
 **Status:** priority source of truth  
-**Owner direction:** focus only on Vidlish; AtoEnglish is read-only knowledge  
+**Owner direction:** build Vidlish first as the owner's own English-learning system; external/commercial validation is deferred until explicitly reactivated  
 **Updated:** 2026-08-22  
-**Applies to:** product, learning, AI, infrastructure, security, legal, billing, pricing, rollout
+**Applies to:** product, learning, AI, infrastructure, security, future business validation and rollout
 
 ---
 
 ## 1. Why this document exists
 
-Vidlish has accumulated substantial technical and learning-design work. The point of this document is to stop architecture, provider, billing, and feature expansion from outrunning evidence that the product actually helps learners and can become a viable business.
+Vidlish has accumulated substantial technical and learning-design work. The current goal is simpler than the previous startup-validation roadmap:
 
-Four business-critical questions remain:
+> Make Vidlish good enough that its owner can use it as a real English-learning system, every day, and let durable learning evidence drive what gets built next.
 
-1. Does the target learner complete a first session and show a real, observable learning gain?
-2. Do they return for another session and delayed review?
-3. Will they pay and remain paid after the novelty of AI generation disappears?
-4. Can each paid learner be served with safe, predictable gross margin and acceptable legal risk?
+The active questions are therefore:
 
-No architecture layer, provider integration, media expansion, billing feature, or rollout milestone may bypass these questions.
+1. Can the learner start from the English they can actually handle now?
+2. Does Vidlish create durable evidence of independent recall rather than completion theatre?
+3. Can the learner use language in a changed context?
+4. Does that evidence survive a delayed review?
+5. Does support decrease as evidence strengthens?
+6. When the learner gets stuck or the evidence chain breaks, what is the smallest product cause to fix?
 
-This file is the current product/business priority source of truth. Detailed learning-model documents remain valid inside this boundary, but they do not override the gates below.
+Business questions — external usability, cohort retention, willingness to pay, unit economics, legal/commercial rollout — remain useful if Vidlish later becomes a product for other people. They are **not the current blocker** for improving the owner's learning system.
 
 ---
 
 ## 2. Product mission
 
-Vidlish is not fundamentally “AI turns a YouTube URL into a lesson.” That is a replaceable mechanism with weak durable value.
+Vidlish is not fundamentally “AI turns a YouTube URL into a lesson.” That is a replaceable mechanism.
 
 The product mission is:
 
@@ -43,21 +45,19 @@ comprehensible input at the learner's level
 
 ### Video is a source, not the centre
 
-Vidlish began as a YouTube-first product for A2–B2 learners. That source-grounded path remains valuable and is already technically strong.
+Vidlish began as a YouTube-first product for A2–B2 learners. That source-grounded path remains valuable and technically mature.
 
-But a zero beginner cannot use authentic English video as the first learning source. The product therefore supports a broader source strategy:
+But authentic English video is not the correct first input for a learner who cannot yet understand it. The source strategy is therefore:
 
-- generated or curated beginner input when authentic media is not yet comprehensible;
-- source-grounded YouTube input when the learner is ready for it;
-- the same learning loop and evidence principles across both.
+- generated or curated beginner input while authentic media is not yet comprehensible;
+- source-grounded YouTube input when the learner is ready;
+- the same evidence discipline across both.
 
-Do not organize the roadmap as though reaching the video path is the final destination.
+The dashboard, roadmap and progress model must not imply that creating a video lesson is the main daily job.
 
 ---
 
 ## 3. Current verified project state
-
-### Repository and program
 
 Learning Model v2 is merged into `main`; the former integration branch is historical.
 
@@ -65,65 +65,82 @@ Current integrated foundations include:
 
 - learner-first product shell;
 - beginner `/start` flow for zero/very-low lexical evidence;
+- server-bound beginner evidence challenges;
 - durable learning sessions and privacy-safe attempt evidence;
 - server-confirmed support/replay evidence;
-- changed-context transfer;
-- delayed review scheduling;
+- changed-context transfer for source lessons;
+- delayed review scheduling for source-lesson items;
 - capability-oriented progress views;
 - source-grounded YouTube generation path;
 - Supabase RLS/RPC + pgTAP;
 - Chromium product journeys;
 - durable Supabase Golden Session journey.
 
-### Production authoring
+Production-shaped v2 authoring has produced and published `lesson_versions`. That proves reachability; it does not prove authoring reliability, teaching effectiveness, retention, willingness to pay, or commercial readiness.
 
-The production-shaped v2 path is reachable and has produced/published `lesson_versions`.
+### Important current gap for the personal learner
 
-That proves reachability. It does **not** prove:
+The beginner path stores narrow independent word evidence and within-session reuse, but it does **not yet have its own durable changed-context + cross-session delayed-review chain** comparable to source-lesson review items.
 
-- authoring reliability at an acceptable rate;
-- that a learner can use the session without help;
-- that the session teaches anything durable;
-- retention;
-- willingness to pay;
-- legal/commercial readiness.
-
-Do not collapse “shipped”, “reachable”, “reliable”, “teaches”, and “viable business” into one claim.
-
-### Current hard gate
-
-The active product gate is **Gate 5 — moderated usability with five target users**.
-
-Feature 004 defined the predeclared study contract and evaluator. Feature 005/PR #128 made the study runnable locally with durable Supabase-backed measurement, bounded moderator observations, scoped reset, and owner-bound evidence.
-
-PR #128 exact head `51c4ff44bb85fca8cee4f8b39a7e90297fe43d69` passed CI #474 / run `32571811299` and was squash-merged as `fdbee37bd3b1eca473b3c25f65eece772251d987`.
-
-**Gate 5 is still unpassed.** Technical CI and fixture journeys are not substitutes for five genuine participant sessions.
+Do not hide this gap by treating a beginner word as retained merely because it was independently produced once. Closing this gap is a legitimate personal-learning priority.
 
 ---
 
-## 4. Validation persona versus full product mission
+## 4. Active development loop: owner dogfooding
 
-The current Golden Session protocol intentionally uses a narrow B1 persona and one grounded YouTube fixture.
+The active program is no longer blocked on recruiting five external participants.
 
-That is a **validation instrument**, not the definition of the whole product.
+Use this loop instead:
 
-Why keep it:
+```text
+owner learns in Vidlish
+→ durable evidence is written by server-authoritative paths
+→ progress UI projects only claims that evidence supports
+→ learner follows the next evidence-bearing action
+→ observed friction / missing evidence becomes a bounded feature
+→ repeat
+```
 
-- the protocol and thresholds were declared before running the five-person study;
-- the source and target language item are already canonical and deterministic;
-- changing the persona/source after implementation would make the Gate 5 result harder to interpret;
-- it isolates whether the core learning loop is understandable and measurable.
+Rules:
 
-Therefore:
-
-- do not rewrite Gate 5 into a zero-beginner study midstream;
-- do not infer from a successful B1 Golden Session that the zero-beginner path is validated;
-- later learner studies may validate the beginner path separately using the same evidence discipline.
+- the owner is the first real learner, not a synthetic fixture;
+- fixture/CI still proves software behavior, not learning;
+- one learner cannot prove population-level effectiveness, and the product must never say otherwise;
+- personal use is enough to decide what is useful to build **for the owner's own learning**;
+- external market-validation gates reactivate only when the owner explicitly wants to validate Vidlish for other users or commercial rollout.
 
 ---
 
-## 5. Core learning loop
+## 5. Personal learning checkpoint
+
+The personal progress surface should expose the strongest durable claim the system can currently make, not a level/XP score.
+
+Claim strength is monotonic:
+
+```text
+no independent evidence yet
+→ independent retrieval / production observed
+→ independent changed-context use observed
+→ delayed transfer observed
+```
+
+Evidence rules:
+
+- beginner `knownWords()` counts only independently produced words under the current narrow policy, so it can contribute to the independent stage;
+- support-only success does not count as independent;
+- exposure count, lesson completion, streaks and scheduler state do not upgrade capability;
+- changed-context requires independent evidence plus a successful changed-context attempt;
+- delayed-transfer claim requires the earlier prerequisites and a delayed-transfer timestamp;
+- one delayed-transfer item means one complete observed evidence loop, **not mastery or fluency**.
+
+The checkpoint exists to answer two learner questions:
+
+1. “What has Vidlish actually observed me doing?”
+2. “What should I do next to create stronger evidence?”
+
+---
+
+## 6. Core learning loop
 
 Every serious learner-facing path should strengthen the same small primitive:
 
@@ -138,13 +155,13 @@ understandable input
 → require less support as evidence strengthens
 ```
 
-The product should not overwhelm a first session with summary, vocabulary lists, grammar sections, quizzes, gamification, and unrelated generated content.
+The product should not overwhelm a session with summary, vocabulary lists, grammar sections, quizzes, gamification and unrelated generated content.
 
-A short session should leave the learner with an observable change, not a pile of completed UI states.
+A short session should leave the learner with an observable capability change or an honest indication of what still needs work.
 
 ---
 
-## 6. Learning evidence policy
+## 7. Learning evidence policy
 
 Track evidence dimensions separately. At minimum the product distinguishes:
 
@@ -165,15 +182,32 @@ Rules:
 - delayed transfer must remain separate from immediate transfer;
 - UI-local state cannot become authority for durable capability evidence.
 
-The current beginner lexical `i+1` implementation is a conservative runtime policy, not a universal SLA law. Changing it requires a bounded feature and learner evidence, not a higher generation acceptance rate.
+The current beginner one-new-target lexical gate is a conservative runtime policy, not a universal definition of i+1 or comprehensibility. Changing it requires a bounded feature and learner evidence.
 
-Vietnamese support is a scaffold and should taper from evidence, not from a scientifically invented fixed word count.
+Vietnamese support is a scaffold and should taper from evidence, not from an invented fixed word count.
 
-The product owner permits storing learner writing and recording learner speech when those are necessary for writing/speaking functionality. That does not authorize unrelated raw text/audio collection elsewhere.
+The owner permits storing learner writing and recording learner speech when those are necessary for writing/speaking functionality. That does not authorize unrelated raw text/audio collection elsewhere.
 
 ---
 
-## 7. Source-grounded content policy
+## 8. Beginner-first priority
+
+For the personal learner, `/start` is the default entry point whenever authentic English is still too difficult.
+
+Current priorities inside this path:
+
+1. serve input that satisfies the current conservative comprehensibility policy;
+2. collect independent evidence without letting the browser choose the answer key;
+3. reuse known material across varied contexts;
+4. add durable cross-session beginner review so independently produced words can be tested after delay;
+5. expand beyond lexical-only evidence as listening, reading, speaking and writing capabilities become measurable;
+6. reduce Vietnamese/support only when evidence says the learner succeeds without it.
+
+Do not rush the learner into YouTube just because the video pipeline already exists.
+
+---
+
+## 9. Source-grounded content policy
 
 For YouTube/source-grounded lessons:
 
@@ -190,84 +224,39 @@ Boundary:
 
 The model must not invent a quote and have the system call it grounded.
 
-### Source-length policy hypothesis
-
-- Shorts/micro video: eligible only when learning-evidence density is sufficient; otherwise refuse honestly.
-- Standard video: teach bounded windows rather than the whole source.
-- Long video: use chapters/ranges or learner choice.
-- Multi-hour source: treat as a source container; never send the whole source blindly to an authoring model.
-
-Thresholds are hypotheses. Do not lower evidence requirements just to improve generation success rate.
+YouTube stays available as a secondary source path when it is useful for the learner.
 
 ---
 
-## 8. Product scope guardrails
+## 10. Learner surfaces
 
-### In scope
+### Dashboard
 
-- English target language;
-- Vietnamese learner guidance where useful;
-- one learner account and personal capability history;
-- short desktop/mobile web sessions;
-- beginner comprehensible input below authentic-media readiness;
-- grounded YouTube input once appropriate;
-- retrieval, bounded production, correction, retry, transfer, delayed review;
-- progressively less support based on evidence.
+Priority order:
 
-### Explicitly deferred until current gates justify expansion
+1. start/continue learning at the learner's current level;
+2. complete genuinely due review;
+3. continue an active source lesson if one exists;
+4. inspect capability/evidence history;
+5. create a new YouTube lesson as an optional source path.
 
-- additional target languages;
-- arbitrary language-pair translation products;
-- classroom or multi-tenant school administration;
-- TikTok/Spotify/PDF/website/meeting/file-source expansion;
-- public lesson marketplace/catalog;
-- several payment gateways;
-- automatic multi-provider production routing;
-- true unlimited generation;
-- broad social/gamification layers;
-- commercial rollout before learning, retention, economics, and legal gates pass.
+### Progress
 
-Pronunciation scoring requires Vietnamese-accent validation before learner-facing scores are trusted.
+The page should show:
 
----
-
-## 9. Product surfaces
-
-### Landing page
-
-Sell learner outcome, not generation mechanics.
-
-The landing page should explain:
-
-- what capability changes;
-- how the learning loop works;
-- how beginner and authentic-source paths fit together;
-- what evidence/progress means and does not mean;
-- supported-source truth;
-- privacy/source-grounding truth;
-- pricing only after willingness-to-pay evidence exists;
-- learner claims only after real learner evidence exists.
-
-### Learner home/dashboard
-
-Priority should be capability/workflow driven:
-
-1. continue an active learning session;
-2. complete due review;
-3. start appropriate new input;
-4. inspect capability/evidence history.
-
-Do not let “create another AI lesson” dominate over due learning work.
+- narrow independent evidence;
+- changed-context evidence;
+- delayed-transfer evidence;
+- what does **not** count as capability;
+- one clear next evidence-bearing action.
 
 ### Learning surface
 
-One current task at a time. Input and communication first; feedback immediately after the learner action; support progressively revealed rather than dumped upfront.
+One current task at a time. Input first; learner action before reveal; bounded feedback after the action; support progressively revealed rather than dumped upfront.
 
 ---
 
-## 10. AI/provider decision
-
-### Production rule
+## 11. AI/provider decision
 
 Production uses:
 
@@ -278,275 +267,143 @@ one enabled provider
 + server-only calls
 ```
 
-No automatic multi-provider fallback in the current product.
+No automatic multi-provider fallback is needed for the personal-learning goal.
 
-A provider-neutral port is fine for replaceability; production routing complexity is not a product goal.
+Models are bounded proposal/authoring components, not authority for learner evidence, answer keys, grounding truth or progression.
 
-### Model selection method
-
-When Gate 7 is reached, benchmark at most three temporary candidates:
-
-1. one low-cost candidate;
-2. one balanced candidate;
-3. one stronger reference candidate.
-
-The decisive metric is **cost per accepted lesson**, not token price alone.
-
-An accepted lesson must satisfy the relevant grounding, schema, learning-quality, latency, and human-acceptance criteria.
-
-Revoke/disable non-selected credentials after the benchmark.
-
-### Deterministic/provider boundary
-
-Deterministic code handles:
-
-- source parsing/metadata;
-- cache/deduplication;
-- evidence selection and allowlists;
-- transcript boundaries;
-- grounding/timestamp hydration;
-- rate limits and budgets;
-- closed-task evaluation;
-- durable persistence and ownership.
-
-Models are bounded proposal/authoring components, not authority for learner evidence or grounding truth.
+Model benchmarking is deferred until a real personal-learning bottleneck justifies it. When needed, benchmark at most three candidates and evaluate cost per **accepted** learning artifact, not token price alone.
 
 ---
 
-## 11. API-key and cost safety
+## 12. API-key, privacy and security safety
 
-### Environment policy
+- Local/CI work uses fixtures, fakes and local Supabase by default.
+- Do not call production Supabase, Gemini, Supadata or another paid provider unless the task explicitly authorizes it.
+- Never expose service/provider keys in client code, logs, screenshots, prompts, tests or repository files.
+- Browser action must not be authority for canonical target/answer/evidence truth.
+- `SECURITY DEFINER` privilege is part of the write boundary; direct-table RLS alone is not enough.
+- Preserve owner scoping structurally where possible, not only in UI/routes.
 
-- Local: fixture/fake/local Supabase by default; no production key.
-- CI: fixture/fake/local Supabase; no paid provider key.
-- Preview: fixture or isolated, budget-capped test project only when explicitly required.
-- Production: dedicated server/worker-only keys.
-
-No provider/service key in `NEXT_PUBLIC_*`, browser code, repository, logs, screenshots, prompt artifacts, or ordinary Actions output.
-
-### Before paid beta expands
-
-Required controls include:
-
-- active-job limits;
-- rolling request limits;
-- bounded retries;
-- input/output token caps;
-- global spend caps/kill switch;
-- usage/entitlement ledger;
-- cache/deduplication;
-- incident/key-rotation runbook.
-
-Budget alerts alone are insufficient if the application can continue spending after the alert.
+Personal-first does not mean “security no longer matters”; the owner should be able to trust their own learning history.
 
 ---
 
-## 12. Business model hypothesis
+## 13. Deferred market-validation program
 
-Do not monetize the first learning experience before the learner has a chance to experience the core result.
+The existing five-person Golden Session protocol, evaluator and local study harness are retained unchanged as a **future external-user validation instrument**.
 
-### Free hypothesis
+Current state:
 
-A free tier may provide:
+- technical harness exists and is tested;
+- five genuine participant records have not been collected;
+- the old five-person Gate 5 therefore remains **unpassed**;
+- that unpassed state does not block personal-first development.
 
-- an initial complete learning experience;
-- bounded recurring usage;
-- due/basic review;
-- a strict active-work limit.
+If the owner later wants Vidlish to become a product for others, reactivate the market sequence deliberately:
 
-### Paid hypothesis
+1. five-person moderated usability using the predeclared Golden Session protocol;
+2. 20–50 learner cohort with predeclared retention/learning thresholds;
+3. authoring/provider economics benchmark;
+4. payment, retention, legal and operations validation;
+5. rollout.
 
-A subscription should pay for the compounding learning system, not merely more AI calls:
+Do not fabricate old Gate 5 records or retroactively call the market gate passed.
+
+The Golden Session files and `/learning-lab/v2/usability*` tooling remain useful for that future purpose but are not daily learner UX.
+
+---
+
+## 14. Future business model
+
+Commercialization is optional and deferred.
+
+If reactivated, the subscription should pay for the compounding learning system rather than merely more AI calls:
 
 - persistent learner model;
 - adaptive input selection;
 - richer review queue;
 - capability/evidence history;
-- larger bounded source/input allowance;
-- priority processing where economically viable.
+- larger bounded source allowance;
+- economically viable priority processing.
 
-High-variable-cost functionality may require add-on credits later. Do not promise true unlimited generation.
+Pricing, payment intent, retention, gross margin and legal readiness remain hypotheses until real external behavior exists.
 
-### Price test
-
-Pricing is a hypothesis until real payment behavior exists.
-
-Measure:
-
-- checkout start;
-- completed payment;
-- paid conversion;
-- continued learning after payment;
-- month-two retention/renewal;
-- cancellation/refund reasons;
-- gross margin;
-- provider cost per accepted learning experience;
-- support cost.
-
-A rough planning target that variable provider/transcript/infrastructure cost remains a minority of revenue may be used for modeling, but only real measurements can set the plan.
+Do not integrate multiple payment gateways, promise unlimited generation, or perform commercial rollout while the current goal is personal learning.
 
 ---
 
-## 13. Validation sequence
+## 15. Legal/commercial notes for later
 
-The current execution sequence is intentionally hard-gated.
+Commercial arbitrary-YouTube scale still requires legal review. If that phase returns:
 
-### Gate 0 — production v2 authoring reachability
-
-**Done.** Production-shaped workflow can publish readable v2 `lesson_versions`.
-
-### Gate 1 — first-session durable flow
-
-**Done in code/tests.**
-
-### Gate 2 — CI failures fixed from real logs
-
-**Done for the current technical slice.**
-
-### Gate 3 — support/replay server evidence
-
-**Done in code/tests.**
-
-### Gate 4 — changed-context + delayed review
-
-**Done in code/tests**, including arbitrary-blueprint and durable Supabase evidence where covered.
-
-### Gate 5 — five-person moderated usability
-
-**Current gate. Not passed.**
-
-Use the existing Golden Session protocol and local harness. Require five genuine participant records. Do not fabricate records or reinterpret fixture CI as learner evidence.
-
-Measure the predeclared outcomes, including completion without moderator instruction, changed-context attempt/use, before/after recognition, elapsed time, blocking defects, and severe grounding/mastery defects.
-
-### Gate 6 — 20–50 learner cohort
-
-Only after Gate 5 passes or produces a clear correction plan that is implemented and revalidated.
-
-Measure activation and return behavior, including:
-
-- first-session completion;
-- observable learning evidence;
-- second session within the declared window;
-- delayed-review return;
-- week-two activity;
-- support requirements over time;
-- defect rate and time to value.
-
-### Gate 7 — authoring-model economics benchmark
-
-Only after the learning experience is worth optimizing.
-
-Benchmark at most three candidates and select one production model by cost per accepted lesson/experience.
-
-### Gate 8 — payment, retention, legal, and operations validation
-
-Use real payment intent/transactions and actual continuing usage. Complete legal/commercial requirements before broad paid launch.
-
-### Gate 9 — rollout
-
-Only after learning quality, retention, payment, economics, legal, security, and operational gates pass.
-
-Do not skip gates because a PR merged or CI is green.
-
----
-
-## 14. Legal and commercial gates
-
-Commercial arbitrary-YouTube scale requires legal review.
-
-For arbitrary user-selected sources, prefer a private companion experience:
-
-- use official embed/player behavior;
+- prefer official embed/player behavior;
 - do not download/rehost video without a valid basis;
 - do not create a public lesson catalog from arbitrary sources;
 - keep transcript-derived storage bounded and purpose-limited;
-- expose source attribution and AI-generated-content disclosure where required;
-- provide copyright/takedown paths.
+- provide source attribution, disclosures and copyright/takedown paths as required;
+- complete privacy/terms/refund/retention/deletion/incident/tax/e-commerce requirements before broad paid rollout.
 
-Before paid public launch, complete the appropriate versions of:
-
-- Terms of Service;
-- Privacy Policy;
-- copyright/takedown policy;
-- Acceptable Use Policy;
-- refund/cancellation policy;
-- data retention/deletion process;
-- subprocessor list;
-- incident response;
-- legal assessment of transcript/derivative lesson handling;
-- Vietnam e-commerce notification/registration determination;
-- accounting/e-invoice/tax setup for the final entity/payment flow.
-
-### Payments
-
-Do not integrate several gateways at once.
-
-Validate demand first, then choose one initial payment route and keep billing behind an internal adapter with verified, idempotent webhook handling.
+These are not the active product blocker today.
 
 ---
 
-## 15. Execution priority now
+## 16. Execution priority now
 
-### P0 — finish Gate 5 with real evidence
+### P0 — make Vidlish useful for the owner's real learning
 
-1. Use `pnpm study:golden` in the safe local harness.
-2. Recruit five people matching the Golden Session validation persona as closely as practical.
-3. Run one participant per clean DB/browser cycle.
-4. Capture bounded moderator observations plus owner-scoped durable measurement.
-5. Keep five genuine participant records.
-6. Evaluate exactly the predeclared thresholds.
-7. If a threshold fails, fix the smallest observed cause and rerun the relevant evidence rather than broadening scope.
+- `/start` is the primary entry point below authentic-media readiness;
+- use Vidlish for genuine learning sessions rather than synthetic learner records;
+- inspect `/progress` for the strongest evidence actually earned;
+- follow the next evidence-bearing action;
+- record observed friction as bounded product work.
 
-### P0 — protect source of truth and evidence integrity
+### P0 — close the beginner delayed-review gap
 
-- Keep product docs, constitution, active specs, code/tests, and handover aligned.
-- Do not let archived BMAD or stale PR state become planning authority.
-- Do not let UI-local state, model output, or moderator assumptions manufacture learner capability evidence.
+The zero/very-low path currently cannot prove its independent word evidence survives across sessions. The next learning-system slice should connect beginner evidence to a durable, changed-context delayed review without manufacturing mastery claims.
 
-### P1 — Gate 6 cohort, only after Gate 5
+### P0 — protect evidence integrity
 
-Build only the instrumentation/operational support needed for the predeclared 20–50 learner cohort.
+- server authority before UI projection;
+- support/reveal remains distinct from independence;
+- no answer-key fields chosen by the browser;
+- no stale/local UI state promoted to durable capability;
+- no completion/streak/XP shortcut into stronger claims.
 
-### P2 — economics/provider benchmark, only after learner value
+### P1 — improve from observed personal friction
 
-Optimize authoring cost/reliability only after the learning loop has learner evidence.
+Examples include confusing instruction, input too hard/easy, missing listening support, poor audio quality, review timing, weak correction, inability to practice speaking/writing, or a progress claim that does not match the learner's actual ability.
 
-### P3 — payment/legal/operations
+Only build these from an observed need or a clearly traced learning-system gap.
 
-Real willingness-to-pay, retention, gross margin, legal review, billing, refund, support, and compliance work.
+### Deferred — external validation and business
 
-### P4 — rollout
-
-Only after all preceding evidence gates justify it.
+Five-person usability, cohorts, payment, economics, legal rollout and broad market work stay parked until explicitly reactivated.
 
 ---
 
-## 16. Do not do next
+## 17. Do not do next
 
 Do not immediately:
 
+- recruit five people merely to unblock personal development;
 - add more target languages;
 - add arbitrary media/file types;
 - add several AI providers or automatic fallback routing;
 - build gamification/social layers to create activity metrics;
-- add several payment gateways;
-- publish arbitrary AI lessons publicly;
-- connect local/preview work to production Supabase casually;
-- lower evidence gates to improve generation acceptance;
+- add payment gateways;
+- lower evidence gates to make progress numbers rise;
 - claim mastery from completion;
 - claim learning from fixture CI;
-- claim business viability from signups, generation count, or one-time curiosity;
-- move to the 20–50 cohort before the five-person Gate 5 evidence is evaluated.
+- hardcode the product to one account identity — “one learner first” is product scope, not an authorization bypass.
 
 ---
 
-## 17. Next deliverable
+## 18. Next deliverable
 
-The next product deliverable is not another architecture layer.
+The next product deliverable is not another market-validation artifact.
 
 It is:
 
-> Five genuine moderated Golden Session records, evaluated against the predeclared Gate 5 thresholds, with any observed blocker traced to the smallest product cause.
+> A personal learner can enter through `/start`, see honest independent evidence in `/progress`, and then take beginner material through a real cross-session changed-context delayed review so Vidlish can observe whether it was retained.
 
-Everything else must justify why it advances that evidence rather than merely making Vidlish look larger.
+That closes the largest current break in the personal learning loop.
