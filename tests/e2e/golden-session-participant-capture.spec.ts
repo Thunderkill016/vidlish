@@ -94,6 +94,24 @@ test("moderator captures the current owner's durable Golden session without typi
 
   const sessionId = participant.measurement.sessionId;
 
+  // A moderator correction makes the previously built JSON stale. It must stop
+  // being copyable until the record is explicitly rebuilt from current inputs.
+  await page.getByLabel("Lesson goal restated").selectOption("no");
+  await expect(page.getByLabel("Participant JSON")).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Sao chép participant JSON" }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Tạo participant JSON" }).click();
+  const rebuiltParticipantText = await page
+    .getByLabel("Participant JSON")
+    .inputValue();
+  const rebuiltParticipant = goldenSessionUsabilityParticipantSchema.parse(
+    JSON.parse(rebuiltParticipantText),
+  );
+  expect(rebuiltParticipant.measurement.sessionId).toBe(sessionId);
+  expect(rebuiltParticipant.observation.lessonGoalRestated).toBe(false);
+
   await page.getByRole("button", { name: "Xóa Golden browser state" }).click();
   await expect(page.getByText(/Golden browser state đã được xóa/)).toBeVisible();
   const storageAfterReset = await page.evaluate(() => ({
@@ -105,7 +123,9 @@ test("moderator captures the current owner's durable Golden session without typi
   expect(storageAfterReset.unrelated).toBe("keep-me");
   expect(storageAfterReset.goldenKeys).toEqual([]);
   // Captured output remains available after the scoped browser reset.
-  await expect(page.getByLabel("Participant JSON")).toHaveValue(participantText);
+  await expect(page.getByLabel("Participant JSON")).toHaveValue(
+    rebuiltParticipantText,
+  );
 
   await logout(page);
   await login(page, OTHER_EMAIL);
