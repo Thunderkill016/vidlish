@@ -142,3 +142,43 @@ Kokoro is an Apache-2.0 text-to-speech model, 82M parameters, 54 voices, CPU-cap
 Product consequence: none yet — this is recorded so the choice is a choice. If per-sentence audio ever becomes the dominant cost of a session, the alternative already exists and its licence permits it.
 
 Reference: <https://github.com/hexgrad/kokoro>.
+
+## What the products that work actually do
+
+Surveyed because the question was which product would teach one Vietnamese adult best, and the honest answer is that the mechanic matters more than the brand. Each of these is good at one thing and wrong about another, and the wrong part is what a product built for a Vietnamese beginner has to fix rather than copy.
+
+### Comprehensible input, as a whole curriculum
+
+Dreaming Spanish teaches only through video the learner can already mostly understand, ordered from absolute beginner upward, and publishes an hours roadmap: a patient speaker understood around 300 hours, normal native speech around 600, comfortable daily conversation around 1,000, practical use around 1,500.
+
+Two things to take. The first is that the ordering is the product — the videos are ordinary, and what makes them work is that each one sits just past where the learner is. The second is that hours are the unit that predicts progress, not lessons completed, so a product that reports lessons is reporting the wrong number.
+
+The thing not to take is the roadmap itself. Those hours were measured on English speakers learning Spanish, two closely related languages sharing script, phonology and a large shared vocabulary. Vietnamese to English shares none of that. Quoting 1,000 hours to a Vietnamese learner is borrowing a number from a population they are not in, and this product should say hours are unknown rather than publish a comforting one.
+
+### Sentences as the unit, not words
+
+Glossika drills whole sentences with audio and spaced repetition rather than word lists. This is the right unit and it is the unit the beginner corpus already uses: a word met inside a sentence arrives with its grammar, its collocations and its rhythm attached, and a word met on a card arrives with none of them.
+
+What it gets wrong for a beginner is that raw repetition with minimal instruction assumes the learner can already parse what they hear.
+
+### Recall at expanding intervals, inside the session
+
+Pimsleur's graduated interval recall asks for a phrase again after a minute, then five, then fifteen, then days. The review scheduler in this codebase already does the days. It does not do the minutes, and that is a real gap: within-session expanding recall is the part that makes a word survive to the first delayed review at all.
+
+Product consequence: worth building before any new activity type. It needs no model call and no new evidence shape.
+
+### Where all of them are silent
+
+None of these products knows the learner is Vietnamese.
+
+Vietnamese does not permit consonant clusters in onset position and allows only a small set in coda. English clusters are therefore highly marked, and the documented repair strategies are consistent: final clusters like `/-st/` and `/-nd/` get reduced or deleted, and vowels get inserted to break clusters apart. This is the single most predictable difficulty a Vietnamese learner of English has, and no general product orders its content around it.
+
+This product can, because the ordering is already ours and the filter is machine-checkable: CMUdict is a BSD-2-Clause pronunciation dictionary of over 134,000 English words in ARPAbet phonemes, so the coda shape of every word in the beginner corpus can be computed rather than guessed.
+
+Product consequence: the first sentences a learner hears should avoid final clusters, and clusters should then be introduced deliberately and named as the difficulty they are, rather than scattered by accident. Ordering by frequency alone would put `just`, `first` and `and` in the first fifty words with no warning that they are the hardest things in the list to say.
+
+### An open tension, for the product owner
+
+Comprehensible-input practice discourages speaking until several hundred hours of listening have accumulated, on the argument that early output rehearses errors. The approved product decisions here include recording the learner's voice from early on.
+
+These can both be honoured, but only by being explicit about what the recording is for. Recording as **evidence** — did the learner produce this word unaided — is compatible with the input-first order and is what `last_independent_at` already means. Recording as **speaking practice**, drilled before listening is stable, is the thing the research warns about. The product should do the first and wait on the second, and should say which one it is doing.
