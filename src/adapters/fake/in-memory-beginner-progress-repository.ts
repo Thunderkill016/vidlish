@@ -1,4 +1,8 @@
+import { randomUUID } from "node:crypto";
+
 import type {
+  BeginnerEvidenceChallenge,
+  BeginnerEvidenceChallengeKind,
   BeginnerProgressRepository,
   BeginnerWordEvidence,
   CalibrationRecord,
@@ -7,16 +11,20 @@ import type {
 /**
  * The beginner evidence store for development and CI.
  *
- * It reproduces the one rule that matters and is easy to lose: proof of
- * independence only moves forward. A fake that let a supported attempt clear
- * `lastIndependentAt` would make tests pass against behaviour the database
- * refuses, and the difference would only show up in production.
+ * It reproduces the rules that are easy to lose when the production adapter is
+ * unavailable: independence only moves forward, a challenge belongs to one
+ * learner, and one challenge can create evidence only once.
  */
+type StoredChallenge = BeginnerEvidenceChallenge & {
+  consumedAt: string | null;
+};
+
 export class InMemoryBeginnerProgressRepository
   implements BeginnerProgressRepository
 {
   private readonly rows = new Map<string, BeginnerWordEvidence>();
   private readonly calibrations = new Map<string, CalibrationRecord>();
+  private readonly challenges = new Map<string, StoredChallenge>();
 
   async latestCalibration(
     ownerUserId: string,
@@ -52,6 +60,71 @@ export class InMemoryBeginnerProgressRepository
       .sort();
   }
 
+  async createEvidenceChallenge(input: {
+    ownerUserId: string;
+    kind: BeginnerEvidenceChallengeKind;
+    word: string;
+    sentence: string | null;
+  }): Promise<BeginnerEvidenceChallenge> {
+    const challenge: StoredChallenge = {
+      id: randomUUID(),
+      kind: input.kind,
+      word: input.word.toLocaleLowerCase("en-US"),
+      sentence: input.sentence,
+      expiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
+      consumedAt: null,
+    };
+    this.challenges.set(challenge.id, challenge);
+    return challenge;
+  }
+
+  async evidenceChallenge(input: {
+    ownerUserId: string;
+    challengeId: string;
+  }): Promise<BeginnerEvidenceChallenge | null> {
+    const challenge = this.challenges.get(input.challengeId);
+    if (!challenge) return null;
+    if (challenge.consumedAt !== null) return null;
+    if (challenge.expiresAt <= new Date().toISOString()) return null;
+
+    const ownerPrefix = `${input.ownerUserId}::`;
+    const challengeOwnerKey = this.key(input.ownerUserId, challenge.word);
+    // The stored challenge does not expose owner publicly, so use a private
+    // marker map key below rather than letting the returned DTO carry identity.
+    if (!this.challengeOwners.has(`${input.challengeId}::${input.ownerUserId}`)) {
+      void ownerPrefix;
+      void challengeOwnerKey;
+      return null;
+    }
+    return challenge;
+  }
+
+  private readonly challengeOwners = new Set<string>();
+
+  async recordChallengeEvidence(input: {
+    ownerUserId: string;
+    challengeId: string;
+    independent: boolean;
+  }): Promise<BeginnerWordEvidence> {
+    const challenge = await this.evidenceChallenge(input);
+    if (!challenge) {
+      throw new Error("Beginner evidence challenge is not available.");
+    }
+
+    const stored = this.challenges.get(input.challengeId);
+    if (!stored) {
+      throw new Error("Beginner evidence challenge is not available.");
+    }
+    stored.consumedAt = new Date().toISOString();
+    this.challenges.set(stored.id, stored);
+
+    return this.recordWordEvidence({
+      ownerUserId: input.ownerUserId,
+      word: challenge.word,
+      independent: input.independent,
+    });
+  }
+
   async recordWordEvidence(input: {
     ownerUserId: string;
     word: string;
@@ -70,5 +143,13 @@ export class InMemoryBeginnerProgressRepository
     };
     this.rows.set(key, next);
     return next;
+  }
+
+  /**
+   * Associate a challenge owner without leaking owner identity in the public
+   * challenge DTO.
+   */
+  private rememberChallengeOwner(challengeId: string, ownerUserId: string): void {
+    this.challengeOwners.add(`${challengeId}::${ownerUserId}`);
   }
 }
