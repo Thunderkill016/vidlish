@@ -8,18 +8,18 @@
 
 ## Slice B — Invalidate stale record
 
-- [ ] B1 Invalidate built participant JSON and copy status when any moderator observation changes.
-- [ ] B2 Preserve the intentional behavior where scoped Golden browser-state reset keeps an already-built participant JSON available.
-- [ ] B3 Preserve measurement reload invalidation and all existing schema validation.
+- [x] B1 Invalidate built participant JSON and copy status when any moderator observation changes.
+- [x] B2 Preserve the intentional behavior where scoped Golden browser-state reset keeps an already-built participant JSON available.
+- [x] B3 Preserve measurement reload invalidation and all existing schema validation.
 
 ## Slice C — Proof
 
-- [ ] C1 Extend Chromium proof: build → mutate observation → stale record disappears → rebuild contains new observation.
+- [x] C1 Extend Chromium proof: build → mutate observation → stale record disappears → rebuild contains new observation.
 - [ ] C2 Run focused checks where available and full exact-head CI.
 
 ## Slice D — Review and merge
 
-- [ ] D1 Adversarial review for accidental auto-inference, persistence, reset regression, or Gate 5 contract changes.
+- [x] D1 Adversarial review found no auto-inference, persistence, reset, evaluator, threshold, or Gate 5 contract expansion: the change only invalidates browser-local built output when moderator select state changes.
 - [ ] D2 Open PR with the bounded acceptance boundary.
 - [ ] D3 Merge only after all required CI jobs are green on the exact reviewed head.
 
