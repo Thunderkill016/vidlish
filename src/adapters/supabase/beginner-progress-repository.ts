@@ -4,18 +4,17 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
 import type {
+  BeginnerEvidenceChallenge,
+  BeginnerEvidenceChallengeKind,
   BeginnerProgressRepository,
   BeginnerWordEvidence,
   CalibrationRecord,
 } from "@/modules/learning/ports/beginner-progress-repository";
 
 /**
- * Both calls go through database functions rather than table writes.
- *
- * The rules that matter here cannot be enforced from application code: proof of
- * independence must never move backwards, and evidence must never be recorded
- * on behalf of another learner. A function owns both, so a future script that
- * forgets them still cannot write a row that breaks them.
+ * Beginner progress uses an admin/server client. Browser roles do not receive
+ * EXECUTE access to evidence mutation RPCs or direct policies on challenge
+ * rows. The challenge-bound RPC owns the atomic consume + evidence write.
  */
 
 const evidenceRowSchema = z.object({
@@ -28,6 +27,24 @@ const calibrationRowSchema = z.object({
   checked_at: z.string(),
   reliable: z.boolean(),
 });
+
+const challengeRowSchema = z.object({
+  id: z.string().uuid(),
+  kind: z.enum(["introduce_word", "dictation"]),
+  target_word: z.string().min(1).max(64),
+  sentence_text: z.string().min(1).max(200).nullable(),
+  expires_at: z.string(),
+});
+
+function toChallenge(row: z.infer<typeof challengeRowSchema>): BeginnerEvidenceChallenge {
+  return {
+    id: row.id,
+    kind: row.kind,
+    word: row.target_word,
+    sentence: row.sentence_text,
+    expiresAt: row.expires_at,
+  };
+}
 
 export class SupabaseBeginnerProgressRepository
   implements BeginnerProgressRepository
@@ -85,6 +102,66 @@ export class SupabaseBeginnerProgressRepository
     );
   }
 
+  async createEvidenceChallenge(input: {
+    ownerUserId: string;
+    kind: BeginnerEvidenceChallengeKind;
+    word: string;
+    sentence: string | null;
+  }): Promise<BeginnerEvidenceChallenge> {
+    const { data, error } = await this.client
+      .from("beginner_evidence_challenges")
+      .insert({
+        owner_user_id: input.ownerUserId,
+        kind: input.kind,
+        target_word: input.word.toLocaleLowerCase("en-US"),
+        sentence_text: input.sentence,
+      })
+      .select("id, kind, target_word, sentence_text, expires_at")
+      .single();
+    if (error) {
+      throw new Error(`Failed to create beginner challenge: ${error.message}`);
+    }
+    return toChallenge(challengeRowSchema.parse(data));
+  }
+
+  async evidenceChallenge(input: {
+    ownerUserId: string;
+    challengeId: string;
+  }): Promise<BeginnerEvidenceChallenge | null> {
+    const { data, error } = await this.client
+      .from("beginner_evidence_challenges")
+      .select("id, kind, target_word, sentence_text, expires_at")
+      .eq("id", input.challengeId)
+      .eq("owner_user_id", input.ownerUserId)
+      .is("consumed_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .maybeSingle();
+    if (error) {
+      throw new Error(`Failed to read beginner challenge: ${error.message}`);
+    }
+    if (!data) return null;
+    return toChallenge(challengeRowSchema.parse(data));
+  }
+
+  async recordChallengeEvidence(input: {
+    ownerUserId: string;
+    challengeId: string;
+    independent: boolean;
+  }): Promise<BeginnerWordEvidence> {
+    const { data, error } = await this.client.rpc(
+      "record_beginner_challenge_evidence",
+      {
+        p_owner_user_id: input.ownerUserId,
+        p_challenge_id: input.challengeId,
+        p_independent: input.independent,
+      },
+    );
+    if (error) {
+      throw new Error(`Failed to record challenge evidence: ${error.message}`);
+    }
+    return this.toEvidence(data);
+  }
+
   async recordWordEvidence(input: {
     ownerUserId: string;
     word: string;
@@ -101,7 +178,10 @@ export class SupabaseBeginnerProgressRepository
     if (error) {
       throw new Error(`Failed to record word evidence: ${error.message}`);
     }
+    return this.toEvidence(data);
+  }
 
+  private toEvidence(data: unknown): BeginnerWordEvidence {
     const row = evidenceRowSchema.parse(Array.isArray(data) ? data[0] : data);
     return {
       word: row.item_key,
