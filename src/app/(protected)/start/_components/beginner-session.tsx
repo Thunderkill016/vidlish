@@ -3,6 +3,10 @@
 import { useState } from "react";
 
 import {
+  scheduleWithinSessionRecall,
+  type WithinSessionItem,
+} from "@/modules/learning/application/schedule-within-session-recall";
+import {
   beginnerAttemptResponseSchema,
   beginnerSessionResponseSchema,
   beginnerWordIntroductionSchema,
@@ -19,6 +23,13 @@ import { Input } from "@/shared/ui/input";
  * learner has asked for it, and asking is recorded: a word read before it was
  * heard is not evidence of anything, and the difference between "I heard it"
  * and "I saw it" is the whole measurement.
+ *
+ * The order of sentences is decided by `scheduleWithinSessionRecall`, not by an
+ * index walking a list. Playing three sentences once each and ending is
+ * introducing, not teaching: a sentence never asked for again inside the
+ * session usually does not survive to the first delayed review, so something
+ * the learner already met has to come back once other material has been between
+ * them.
  */
 
 type Phase = "idle" | "listening" | "revealed" | "saving" | "answered";
@@ -26,7 +37,15 @@ type Phase = "idle" | "listening" | "revealed" | "saving" | "answered";
 type SessionState =
   | { kind: "none" }
   | { kind: "loading" }
-  | { kind: "ready"; session: BeginnerSessionResponse; index: number }
+  | {
+      kind: "ready";
+      session: BeginnerSessionResponse;
+      index: number;
+      /** Sentence order is a schedule, not a cursor. */
+      items: WithinSessionItem[];
+      step: number;
+      served: number;
+    }
   | { kind: "introduce"; target: string }
   | { kind: "empty"; reason: string }
   | { kind: "error"; message: string };
@@ -93,7 +112,16 @@ export function BeginnerSession() {
         });
         return;
       }
-      setState({ kind: "ready", session: parsed.data, index: 0 });
+      setState({
+        kind: "ready",
+        session: parsed.data,
+        index: 0,
+        items: [
+          { key: parsed.data.sentences[0].text, lastStep: 0, successes: 0 },
+        ],
+        step: 0,
+        served: 1,
+      });
       setPhase("listening");
       speak(parsed.data.sentences[0].text);
     } catch {
@@ -150,12 +178,62 @@ export function BeginnerSession() {
 
   function nextSentence() {
     if (state.kind !== "ready") return;
-    const index = state.index + 1;
-    if (index >= state.session.sentences.length) {
+
+    const step = state.step + 1;
+    const items = state.items.map((item) =>
+      item.key === state.session.sentences[state.index].text
+        ? {
+            ...item,
+            lastStep: step,
+            successes: item.successes + (result?.perfect ? 1 : 0),
+            lastAttemptFailed: !result?.perfect,
+          }
+        : item,
+    );
+
+    const action = scheduleWithinSessionRecall({
+      items,
+      step,
+      newMaterialRemains: state.served < state.session.sentences.length,
+    });
+
+    if (action.kind === "session_complete") {
       void startSession();
       return;
     }
-    setState({ ...state, index });
+
+    const index =
+      action.kind === "recall"
+        ? state.session.sentences.findIndex(
+            (sentence) => sentence.text === action.itemKey,
+          )
+        : state.served;
+
+    // The scheduler names a sentence; if it somehow names one this session does
+    // not hold, ending is honest and repeating the current one is not.
+    if (index < 0 || index >= state.session.sentences.length) {
+      void startSession();
+      return;
+    }
+
+    setState({
+      ...state,
+      index,
+      step,
+      items:
+        action.kind === "introduce_new"
+          ? [
+              ...items,
+              {
+                key: state.session.sentences[index].text,
+                lastStep: step,
+                successes: 0,
+              },
+            ]
+          : items,
+      served:
+        action.kind === "introduce_new" ? state.served + 1 : state.served,
+    });
     setPhase("listening");
     setUsedSupport(false);
     setHeard("");
@@ -236,6 +314,11 @@ export function BeginnerSession() {
   }
 
   const sentence = state.session.sentences[state.index];
+  // A position counter would lie here: the order is a schedule, so "1/3"
+  // would reappear on a return and read as progress going backwards. What the
+  // learner needs to know is whether this one is new.
+  const returning = (state.items.find((item) => item.key === sentence.text)
+    ?.lastStep ?? 0) < state.step;
 
   return (
     <Card className="flex flex-col gap-5">
@@ -244,7 +327,7 @@ export function BeginnerSession() {
           Từ mới: <strong className="text-[var(--foreground)]">{state.session.target}</strong>
         </span>
         <span className="text-xs text-[var(--muted-foreground)] tabular-nums">
-          Câu {state.index + 1}/{state.session.sentences.length}
+          {returning ? "Câu đã gặp, quay lại" : "Câu mới"}
         </span>
       </div>
 

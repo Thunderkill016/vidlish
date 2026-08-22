@@ -227,3 +227,25 @@ Product consequence: score repetition against a known target, where a recogniser
 | Writing | deterministic checks first, model explanation second | a rule ID and a span can be counted and disputed |
 
 What none of these are: sessions completed, days in a row, items reviewed. Those measure attendance. A product that reports attendance to someone who asked for progress is answering a different question than the one it was asked.
+
+## This learner, specifically
+
+The learner is a Vietnamese adult who studies programming and technology, watches live streamers — IShowSpeed, MrBeast — and listens to CEO interview podcasts. That is not colour; it changes what the product teaches and in what order, and the three sources are not equally reachable.
+
+### The podcast is the achievable target; the stream is the hardest thing in English
+
+Interview podcasts are produced at roughly 150–160 words per minute, because a host who wants to be understood slows down. Casual unscripted conversation runs nearer 196, and a live stream adds shouting, slang, overlapping speech and no second take. Research on speech rate finds around 150 wpm is where lower-intermediate learners start to keep up.
+
+So the ordering of the three is the reverse of how they feel. A CEO interview sounds harder because the ideas are abstract; it is the easiest to hear. A live stream sounds easy because it is casual; it is the hardest listening in English.
+
+Product consequence: when the video path opens to this learner, aim it at interview podcasts first. Do not present a live stream as an early target — it would fail, and the learner would conclude their listening is worse than it is.
+
+### Foundation before domain — the product owner's decision
+
+Technical vocabulary is not in the A1/A2 catalogue, and it is a comparatively closed set that can be learned quickly once there is a language to hang it on. The choice was whether to mix it in from the first day, so the learner can use English at work sooner, or to hold it until the foundation is in place.
+
+**Decision: foundation first, and the technical layer opens at roughly three hundred words.**
+
+The reasoning is that `you`, `the`, `to` and `it` are needed by every English sentence including every sentence about code, and a learner who has technical nouns without them can label things but cannot say anything. Three hundred is where the corpus measurements show retrieval covering most targets, so it is also where the product stops depending on generated sentences.
+
+Product consequence: do not add a technical word list to the beginner catalogue. When the layer is built, it is gated on evidence — three hundred words produced unaided — not on time spent or sessions completed.

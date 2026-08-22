@@ -38,12 +38,6 @@ const NOT_YET_WIRED: Record<string, string> = {
   // reaches it, so it cannot quietly describe a past that is over. The four
   // A0 modules that used to sit here left when /start shipped, which is the
   // only evidence that matters that they are no longer inert.
-  //
-  // Within-session recall is here for the same reason they were: the rule is
-  // right and no session drives it yet. It leaves the moment /start asks it
-  // what to serve next.
-  "src/modules/learning/application/schedule-within-session-recall.ts":
-    "A0 beginner track — no session loop calls it yet",
 };
 
 function listSourceFiles(dir: string): string[] {
