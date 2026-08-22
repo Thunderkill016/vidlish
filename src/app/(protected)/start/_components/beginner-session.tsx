@@ -10,6 +10,7 @@ import {
 } from "@/shared/contracts/beginner-session";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
+import { Input } from "@/shared/ui/input";
 
 /**
  * One beginner session, in the order the four skills are actually acquired.
@@ -57,6 +58,13 @@ export function BeginnerSession() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [usedSupport, setUsedSupport] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
+  const [heard, setHeard] = useState("");
+  const [result, setResult] = useState<{
+    correct: number;
+    total: number;
+    missed: string[];
+    perfect: boolean;
+  } | null>(null);
 
   async function startSession() {
     setState({ kind: "loading" });
@@ -93,7 +101,10 @@ export function BeginnerSession() {
     }
   }
 
-  async function record(independent: boolean) {
+  async function record(
+    claimedIndependent: boolean,
+    dictated?: { sentence: string; heard: string },
+  ) {
     const word =
       state.kind === "ready"
         ? state.session.target
@@ -110,7 +121,12 @@ export function BeginnerSession() {
       const response = await fetch("/api/beginner/attempt", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ word, independent }),
+        body: JSON.stringify({
+          word,
+          usedSupport,
+          claimedIndependent,
+          ...(dictated ?? {}),
+        }),
       });
       if (!response.ok) {
         setSaveFailed(true);
@@ -121,6 +137,7 @@ export function BeginnerSession() {
         await response.json(),
       );
       setSaveFailed(!saved.success);
+      setResult(saved.success ? (saved.data.dictation ?? null) : null);
       setPhase("answered");
     } catch {
       // Swallowing this would be the worst option available: the learner would
@@ -141,6 +158,8 @@ export function BeginnerSession() {
     setState({ ...state, index });
     setPhase("listening");
     setUsedSupport(false);
+    setHeard("");
+    setResult(null);
     speak(state.session.sentences[index].text);
   }
 
@@ -258,18 +277,31 @@ export function BeginnerSession() {
         <p className="text-sm text-[var(--muted-foreground)]">Đang lưu…</p>
       ) : phase !== "answered" ? (
         <div className="flex flex-col gap-3">
-          <p className="text-sm">Bạn tự nói lại được câu này chưa?</p>
-          <div className="flex flex-wrap gap-2">
-            <Button onClick={() => record(!usedSupport)}>
-              {usedSupport ? "Nói được, sau khi xem chữ" : "Nói được, không cần xem chữ"}
-            </Button>
-            <Button variant="secondary" onClick={() => record(false)}>
-              Chưa nói được
-            </Button>
-          </div>
+          <p className="text-sm">Gõ lại đúng câu bạn vừa nghe.</p>
+          <Input
+            aria-label="Câu bạn nghe được"
+            value={heard}
+            onChange={(event) => setHeard(event.target.value)}
+          />
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Không tính hoa thường hay dấu câu. Sai một chữ là sai một chữ — đó là
+            lý do con số ở đây có nghĩa.
+          </p>
+          <Button
+            onClick={() => record(false, { sentence: sentence.text, heard })}
+          >
+            Kiểm tra
+          </Button>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
+          {result ? (
+            <p className="text-sm" data-testid="dictation-result">
+              {result.perfect
+                ? "Đúng cả câu."
+                : `Đúng ${result.correct}/${result.total} chữ. Chưa ra: ${result.missed.join(", ")}`}
+            </p>
+          ) : null}
           <p className="text-sm text-[var(--muted-foreground)]">
             {saveFailed
               ? "Chưa lưu được. Từ này sẽ quay lại lần sau — sản phẩm không nói dối rằng đã ghi."
