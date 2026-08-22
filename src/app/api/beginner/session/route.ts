@@ -22,6 +22,10 @@ import { assertSameOrigin } from "@/shared/http/same-origin";
  *
  * POST rather than GET because assembling a session can call a model, and a
  * GET that spends money is a GET something will eventually prefetch.
+ *
+ * Every attemptable item also receives an opaque server-owned challenge. The
+ * learner-visible word/sentence can live in the browser; the evidence target
+ * and answer key cannot be chosen by the later attempt request.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +50,16 @@ export async function POST(request: NextRequest) {
     });
 
     if (outcome.kind === "introduce_word") {
-      const payload = beginnerWordIntroductionSchema.parse(outcome);
+      const challenge = await progress.createEvidenceChallenge({
+        ownerUserId: access.userId,
+        kind: "introduce_word",
+        word: outcome.target,
+        sentence: null,
+      });
+      const payload = beginnerWordIntroductionSchema.parse({
+        ...outcome,
+        challengeId: challenge.id,
+      });
       return NextResponse.json(payload, {
         status: 200,
         headers: { "Cache-Control": "private, no-store" },
@@ -63,10 +76,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const sentences = await Promise.all(
+      outcome.plan.sentences.map(async (text) => {
+        const challenge = await progress.createEvidenceChallenge({
+          ownerUserId: access.userId,
+          kind: "dictation",
+          word: outcome.plan.target,
+          sentence: text,
+        });
+        return { text, challengeId: challenge.id };
+      }),
+    );
+
     const payload = beginnerSessionResponseSchema.parse({
       target: outcome.plan.target,
       source: outcome.plan.source,
-      sentences: outcome.plan.sentences.map((text) => ({ text })),
+      sentences,
       knownWordCount: outcome.plan.knownWordCount,
     });
 
