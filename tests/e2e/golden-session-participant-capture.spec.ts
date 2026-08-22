@@ -44,6 +44,7 @@ test("moderator captures the current owner's durable Golden session without typi
   await expect(
     page.getByRole("heading", { name: "Capture một participant thật" }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Tải measurement" }).click();
   await expect(page.getByText("Trạng thái durable")).toBeVisible();
   await expect(page.getByText("in_progress", { exact: true })).toBeVisible();
 
@@ -94,9 +95,7 @@ test("moderator captures the current owner's durable Golden session without typi
   const sessionId = participant.measurement.sessionId;
 
   await page.getByRole("button", { name: "Xóa Golden browser state" }).click();
-  await expect(
-    page.getByText(/Golden browser state đã được xóa/),
-  ).toBeVisible();
+  await expect(page.getByText(/Golden browser state đã được xóa/)).toBeVisible();
   const storageAfterReset = await page.evaluate(() => ({
     unrelated: localStorage.getItem("vidlish:unrelated-operator-state"),
     goldenKeys: Object.keys(localStorage).filter((key) =>
