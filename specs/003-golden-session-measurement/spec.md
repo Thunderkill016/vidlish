@@ -38,6 +38,7 @@ The moderated operator can tell whether an incorrect attempt was followed by a c
 
 **Acceptance criteria**
 - `correction_shown` can only refer to an owned session activity and contains no answer/correction copy.
+- The UI uses the matching incorrect attempt row ID as the correction event's idempotency key; the production RPC verifies that ID belongs to the same owner/session/activity and has verdict `incorrect`.
 - Runtime defects use a bounded error-kind enum; free-form exception/provider messages are never persisted.
 - The system does not infer `correction_shown` merely because an incorrect attempt exists.
 - Existing attempt rows remain the authority for the learner's response evidence and evaluation outcome.
@@ -77,7 +78,7 @@ A maintainer can map the Golden protocol to source-of-truth evidence without mai
 ### New bounded client-observable facts
 
 - `source_play_completed` — player confirmed the bounded clip ended;
-- `correction_shown` — post-attempt correction/result panel was rendered for an incorrect attempt;
+- `correction_shown` — post-attempt correction/result panel was rendered for the exact incorrect attempt referenced by the event key;
 - `runtime_error` — a bounded technical error category occurred in the learning runtime.
 
 `session_viewed` is represented by successful session start/resume because the learner page must call that server boundary before the active lesson is shown. `target_notice_viewed` is conservatively represented by a persisted attempt on the target meaning/noticing activity rather than claiming pixel visibility. A started session that does not complete is reported as incomplete/abandoned-at-last-known-activity during moderated analysis; Vidlish does not use unreliable page-unload telemetry to mutate durable learning state.
@@ -118,7 +119,7 @@ No provider code/message/string is stored.
 ## Success criteria
 
 1. The first Golden source range has separately inspectable `playback started` and `source play completed` facts.
-2. An incorrect retrieval attempt can be followed by a distinct bounded `correction_shown` record.
+2. An incorrect retrieval attempt can be followed by a distinct bounded `correction_shown` record bound to that incorrect attempt.
 3. Player/runtime failures can be classified without free-form diagnostic content in learner measurement data.
 4. Existing durable evidence plus the new bounded events cover the measurement needed to run the five-person protocol without an external analytics provider.
 5. Full exact-head CI is green before merge.
