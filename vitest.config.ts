@@ -20,6 +20,7 @@ export default defineConfig({
       "src/**/*.test.{ts,tsx}",
       "tests/unit/**/*.test.{ts,tsx}",
       "tests/integration/**/*.test.ts",
+      "scripts/golden-study-harness.test.mjs",
     ],
     clearMocks: true,
     restoreMocks: true,
