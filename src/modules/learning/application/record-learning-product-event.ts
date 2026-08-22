@@ -50,6 +50,17 @@ export class RecordLearningProductEvent {
       );
     }
 
+    if (input.eventKind === "runtime_error") {
+      return this.events.record({
+        ownerUserId: input.ownerUserId,
+        sessionId: input.sessionId,
+        activityId: input.activityId,
+        idempotencyKey: input.idempotencyKey,
+        eventKind: input.eventKind,
+        detailKind: input.detailKind,
+      });
+    }
+
     if (input.eventKind === "source_play_completed") {
       if (activity.evidence.length === 0) {
         throw new LearningProductEventError(
@@ -65,33 +76,22 @@ export class RecordLearningProductEvent {
       });
     }
 
-    if (input.eventKind === "correction_shown") {
-      const attemptCount = await this.sessions.countActivityAttempts({
-        ownerUserId: input.ownerUserId,
-        sessionId: input.sessionId,
-        activityId: input.activityId,
-      });
-      if (attemptCount < 1) {
-        throw new LearningProductEventError(
-          "Correction display requires a persisted attempt first.",
-        );
-      }
-      return this.events.record({
-        ownerUserId: input.ownerUserId,
-        sessionId: input.sessionId,
-        activityId: input.activityId,
-        idempotencyKey: input.idempotencyKey,
-        eventKind: input.eventKind,
-      });
+    const attemptCount = await this.sessions.countActivityAttempts({
+      ownerUserId: input.ownerUserId,
+      sessionId: input.sessionId,
+      activityId: input.activityId,
+    });
+    if (attemptCount < 1) {
+      throw new LearningProductEventError(
+        "Correction display requires a persisted attempt first.",
+      );
     }
-
     return this.events.record({
       ownerUserId: input.ownerUserId,
       sessionId: input.sessionId,
       activityId: input.activityId,
       idempotencyKey: input.idempotencyKey,
       eventKind: input.eventKind,
-      detailKind: input.detailKind,
     });
   }
 }
