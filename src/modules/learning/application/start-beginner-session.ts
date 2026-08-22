@@ -30,18 +30,19 @@ export type BeginnerSessionOutcome =
   | { kind: "no_usable_input"; target: string };
 
 /**
- * Below this, a sentence cannot exist.
+ * Bootstrap threshold for the current conservative beginner policy.
  *
- * i+1 means every word known except one, so a learner who knows `k` words can
- * only be served a sentence of at most `k + 1` words — and at zero that is a
- * one-word sentence, which is not a sentence. The corpus keeps nothing shorter
- * than two words for the same reason.
+ * The sentence gate currently permits one server-selected target outside the
+ * learner's independently produced lexical set. With no evidence at all, there
+ * is no multi-word sentence that can satisfy that policy. With only one known
+ * word, possible strings are so constrained that the current runtime still
+ * bootstraps another standalone word before asking retrieval/generation for a
+ * varied sentence batch.
  *
- * This is not a tuning knob. It is arithmetic, and it means the very first
- * words of a language cannot be taught the way every later word is: they have
- * to be met on their own, heard and said, before any sentence can hold them.
- * A product that pretends otherwise either serves input the learner cannot
- * read, or quietly counts words they never produced.
+ * The threshold is an auditable product choice, not a universal definition of
+ * i+1, comprehensibility, or how first words must be acquired. Changing it is a
+ * learning-policy feature and needs learner evidence; this function merely
+ * enforces the current choice.
  */
 export const SENTENCES_NEED_AT_LEAST = 1;
 
@@ -85,10 +86,8 @@ export async function startBeginnerSession(input: {
   }
 
   if (input.known.size <= SENTENCES_NEED_AT_LEAST) {
-    // Nothing is wrong here: at this point in a learner's life there is no
-    // sentence that could exist. Deciding it before the model call also means
-    // never paying for one, and never inviting a model to invent a sentence
-    // the gate would have to throw away anyway.
+    // Fail closed inside the current bootstrap policy instead of paying a model
+    // for material this same runtime would reject afterwards.
     return {
       kind: "introduce_word",
       target: next.word,
@@ -104,7 +103,7 @@ export async function startBeginnerSession(input: {
 
   // The generated drafts go through the same gate the retrieved ones did. A
   // model that reaches outside the permitted vocabulary produces waste here,
-  // not a lesson the learner cannot read.
+  // not a lesson the learner cannot read under the current policy.
   const composed = composeBeginnerInput({
     target: next.word,
     known: input.known,
@@ -113,10 +112,9 @@ export async function startBeginnerSession(input: {
   });
 
   if (composed.kind !== "ready") {
-    // Serving a short batch would be the tempting outcome. It is worse than
-    // none: a session with one sentence cannot show the same word in a changed
-    // context, which is the only thing that distinguishes learning it from
-    // memorising a string.
+    // The current session design requires a varied batch before it banks this
+    // target through sentence work. That is a product policy, not a claim that
+    // one sentence can never teach anything.
     return { kind: "no_usable_input", target: next.word };
   }
 
