@@ -23,19 +23,19 @@ const EVIDENCE_DIMENSIONS = [
 
 const CHECKPOINT_COPY = {
   building_evidence: {
-    title: "Chưa có bằng chứng dùng độc lập",
-    body: "Vidlish không lấy số lần mở app hay số bài hoàn tất để gọi là tiến bộ. Việc đầu tiên là tạo ra một từ/cụm đúng mà không cần support.",
+    title: "Chưa có bằng chứng dùng độc lập được kiểm chứng",
+    body: "Vidlish không lấy số lần mở app, số bài hoàn tất hay self-report bootstrap để gọi là capability. Checkpoint tăng khi hệ thống có attempt được chấm và evidence chain đủ mạnh.",
   },
   independent_retrieval: {
-    title: "Đã tự gọi lại được ít nhất một đơn vị",
-    body: "Đây là bằng chứng năng lực đầu tiên: bạn đã tạo ra ngôn ngữ đúng khi support đóng. Nó chưa chứng minh bạn dùng được ở tình huống mới hoặc nhớ lâu.",
+    title: "Đã tự gọi lại được ít nhất một source item",
+    body: "Đây là bằng chứng năng lực đầu tiên trong durable review chain: bạn đã tạo ra ngôn ngữ đúng khi support đóng. Nó chưa chứng minh bạn dùng được ở tình huống mới hoặc nhớ lâu.",
   },
   changed_context_transfer: {
     title: "Đã dùng độc lập trong tình huống khác",
     body: "Claim này mạnh hơn recall vì cùng ngôn ngữ đã được dùng lại ngoài câu nguồn. Bước còn thiếu là xem nó có sống qua thời gian hay không.",
   },
   delayed_transfer: {
-    title: "Đã có ít nhất một vòng học sống qua thời gian",
+    title: "Đã có ít nhất một vòng evidence sống qua thời gian",
     body: "Vidlish đã quan sát independent retrieval, changed-context use và delayed transfer trên ít nhất một item. Đây vẫn không phải nhãn mastery hay fluency.",
   },
 } as const;
@@ -44,12 +44,7 @@ const NEXT_ACTION_COPY = {
   start_learning: {
     href: "/start",
     label: "Bắt đầu buổi học",
-    body: "Tạo evidence đầu tiên từ input đủ dễ cho trình độ hiện tại.",
-  },
-  continue_beginner_learning: {
-    href: "/start",
-    label: "Tiếp tục beginner path",
-    body: "Beginner path hiện đã ghi independent word evidence nhưng chưa có durable changed-context + delayed-review chain riêng. Vidlish sẽ không nâng claim cho tới khi phần đó được nối thật.",
+    body: "Tiếp tục tạo evidence ở mức hiện tại. Beginner lexical evidence giúp chọn input, nhưng checkpoint sẽ không gọi nó là capability cho tới khi có attempt được kiểm chứng và delayed chain thật.",
   },
   retrieve_without_support: {
     href: "/dashboard",
@@ -92,10 +87,7 @@ export default async function ProgressPage() {
       createBeginnerProgressRepository().knownWords(access.userId),
     ]);
   const capability = summariseCapabilityEvidence(scheduledItems);
-  const personalCheckpoint = derivePersonalLearningCheckpoint({
-    items: scheduledItems,
-    beginnerIndependentCount: beginnerKnownWords.length,
-  });
+  const personalCheckpoint = derivePersonalLearningCheckpoint(scheduledItems);
   const checkpointCopy = CHECKPOINT_COPY[personalCheckpoint.stage];
   const nextAction = NEXT_ACTION_COPY[personalCheckpoint.nextAction];
 
@@ -113,9 +105,9 @@ export default async function ProgressPage() {
           Đo evidence, không cộng XP cho đẹp
         </h1>
         <p className="max-w-3xl text-[var(--muted-foreground)]">
-          Con số bên dưới đếm thứ bạn đã TẠO RA, không phải số bài đã xem. Không
-          có mốc nào ở đây nói bạn đã thành thạo — nhớ lại được hôm nay và nhớ
-          được sau nhiều tuần là hai chuyện khác nhau.
+          Con số bên dưới tách input-gate evidence khỏi capability evidence. Một
+          target được bank để chọn câu tiếp theo chưa tự động có nghĩa Vidlish đã
+          kiểm chứng rằng bạn dùng được nó độc lập hoặc nhớ được sau nhiều ngày.
         </p>
       </div>
 
@@ -141,7 +133,7 @@ export default async function ProgressPage() {
                 </p>
                 <p className="mt-1 text-sm font-semibold">Independent</p>
                 <p className="mt-1 text-xs leading-5 text-[var(--muted-foreground)]">
-                  Beginner words + source items đã được tạo ra khi support đóng.
+                  Source-review items được chấm đúng khi support đóng.
                 </p>
               </div>
               <div>
@@ -182,32 +174,46 @@ export default async function ProgressPage() {
         </div>
       </section>
 
+      <Card className="space-y-2 p-5">
+        <p className="text-sm font-semibold text-[var(--accent)]">
+          Beginner input gate
+        </p>
+        <p className="text-3xl font-bold tabular-nums">
+          {beginnerKnownWords.length}
+        </p>
+        <p className="text-sm text-[var(--muted-foreground)]">
+          Số word đang nằm trong lexical set mà beginner policy dùng để chọn
+          input. Bootstrap có thể gồm calibrated self-report, nên con số này
+          **không nâng capability checkpoint**. Feature tiếp theo phải tạo
+          checked changed-context + cross-session delayed evidence cho beginner.
+        </p>
+      </Card>
+
       <div className="grid gap-4 sm:grid-cols-3">
         <Card className="space-y-1 p-5">
           <p className="text-3xl font-bold">{capability.independent.length}</p>
           <p className="text-sm font-semibold">
-            Source item tự nói ra được, không cần trợ giúp
+            Source item tự tạo ra được, không cần trợ giúp
           </p>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Bạn đã tạo ra đúng cụm này ít nhất một lần khi không mở mức hỗ trợ
-            nào. Beginner independent words được tính ở checkpoint phía trên,
-            không trộn vào source-item list này.
+            Item này đã có durable independent timestamp trong source-review
+            chain. Beginner input-gate words không bị trộn vào đây.
           </p>
         </Card>
         <Card className="space-y-1 p-5">
           <p className="text-3xl font-bold">{capability.supported.length}</p>
           <p className="text-sm font-semibold">Nói ra được khi có trợ giúp</p>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Đúng, nhưng có mức hỗ trợ đang mở. Vidlish sẽ đưa lại để bạn thử
-            không cần chúng.
+            Đúng, nhưng có mức hỗ trợ đang mở. Nó không được tính như independent
+            capability.
           </p>
         </Card>
         <Card className="space-y-1 p-5">
           <p className="text-3xl font-bold">{capability.encountered.length}</p>
-          <p className="text-sm font-semibold">Mới gặp, chưa tự nói ra</p>
+          <p className="text-sm font-semibold">Mới gặp, chưa tự tạo ra</p>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Gặp một cụm trong bài không phải là dùng được nó. Đếm lượt gặp thành
-            năng lực chính là thứ trang này từ chối làm.
+            Gặp một item trong bài không phải là dùng được nó. Exposure không
+            nâng checkpoint.
           </p>
         </Card>
       </div>
@@ -216,19 +222,19 @@ export default async function ProgressPage() {
         <Card className="space-y-1 p-5">
           <p className="text-3xl font-bold">{capability.transferred.length}</p>
           <p className="text-sm font-semibold">
-            Tự nói ra được VÀ dùng lại trong tình huống khác
+            Tự tạo ra VÀ dùng lại trong tình huống khác
           </p>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Đòi cả hai. Dùng lại sau một lần nhớ có trợ giúp là tuyên bố yếu hơn,
-            và gộp chúng lại sẽ để nhãn mạnh kiếm được bằng đường yếu.
+            Đòi cả independent và successful transfer. Một transfer sau support
+            không được dùng đường tắt để kiếm claim mạnh hơn.
           </p>
         </Card>
         <Card className="space-y-1 p-5">
           <p className="text-3xl font-bold">{completedLessons}</p>
           <p className="text-sm font-semibold">Bài đã hoàn tất</p>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Để đối chiếu, không phải để khoe: hoàn tất một bài nghĩa là bạn đã đi
-            hết nó, không nói lên bạn nhớ được gì và không nâng checkpoint.
+            Để đối chiếu, không phải capability: hoàn tất một bài chỉ nghĩa là
+            bạn đã đi hết flow và không nâng checkpoint.
           </p>
         </Card>
       </div>
@@ -274,10 +280,10 @@ export default async function ProgressPage() {
           </h2>
         </div>
         <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Source-lesson path đã có durable changed-context và delayed-review
-          evidence. Beginner path hiện mới có independent word evidence và
-          within-session reuse; Vidlish không gọi đó là delayed transfer cho tới
-          khi cross-session beginner review được nối thật.
+          Source-lesson path đã có durable independent, changed-context và
+          delayed-review state. Beginner path chưa phân biệt đủ provenance để
+          dùng lexical gate set như capability proof. Vidlish giữ hai thứ tách
+          nhau cho tới khi beginner review chain được nối thật.
         </p>
       </Card>
     </div>
