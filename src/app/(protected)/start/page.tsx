@@ -1,5 +1,9 @@
 import { redirect } from "next/navigation";
 
+import {
+  beginnerSentenceCatalogueSize,
+  readableSentenceCount,
+} from "@/adapters/vocabulary/beginner-sentence-catalogue";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
 import { Card } from "@/shared/ui/card";
@@ -16,6 +20,10 @@ export default async function StartPage() {
   const known = await createBeginnerProgressRepository().knownWords(
     access.userId,
   );
+
+  const knownSet = new Set(known);
+  const readable = readableSentenceCount(knownSet);
+  const corpus = beginnerSentenceCatalogueSize();
 
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
@@ -37,6 +45,23 @@ export default async function StartPage() {
         <span className="text-xs text-[var(--muted-foreground)]">
           Đây là con số quyết định câu tiếp theo bạn gặp. Không phải số buổi
           học, không phải chuỗi ngày liên tiếp.
+        </span>
+      </Card>
+
+      <Card className="flex flex-col gap-1">
+        <span className="text-sm text-[var(--muted-foreground)]">
+          Số câu bạn đọc được trọn vẹn, không có chữ nào lạ
+        </span>
+        <span className="text-3xl font-semibold tabular-nums">
+          {readable.toLocaleString("vi-VN")}
+          <span className="text-base font-normal text-[var(--muted-foreground)]">
+            {" / "}
+            {corpus.toLocaleString("vi-VN")}
+          </span>
+        </span>
+        <span className="text-xs text-[var(--muted-foreground)]">
+          Đếm trên kho câu do người viết. Con số này chỉ nhúc nhích khi bạn học
+          được thêm, nên nó không tự đẹp lên vì bạn mở ứng dụng nhiều hơn.
         </span>
       </Card>
 
