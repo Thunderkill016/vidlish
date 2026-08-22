@@ -30,9 +30,16 @@ function item(
   };
 }
 
+function derive(
+  items: readonly LearningReviewItemState[] = [],
+  beginnerIndependentCount = 0,
+) {
+  return derivePersonalLearningCheckpoint({ items, beginnerIndependentCount });
+}
+
 describe("derivePersonalLearningCheckpoint", () => {
-  it("starts with learning rather than inventing capability when no item exists", () => {
-    expect(derivePersonalLearningCheckpoint([])).toEqual({
+  it("starts with learning rather than inventing capability when no evidence exists", () => {
+    expect(derive()).toEqual({
       stage: "building_evidence",
       nextAction: "start_learning",
       itemCount: 0,
@@ -42,8 +49,16 @@ describe("derivePersonalLearningCheckpoint", () => {
     });
   });
 
+  it("counts narrow beginner known-word evidence as independent production", () => {
+    const result = derive([], 3);
+
+    expect(result.stage).toBe("independent_retrieval");
+    expect(result.nextAction).toBe("use_changed_context");
+    expect(result.independentCount).toBe(3);
+  });
+
   it("does not upgrade support-only retrieval, exposure or scheduling", () => {
-    const result = derivePersonalLearningCheckpoint([
+    const result = derive([
       item({
         exposureCount: 12,
         attemptCount: 8,
@@ -70,8 +85,8 @@ describe("derivePersonalLearningCheckpoint", () => {
     expect(result.independentCount).toBe(0);
   });
 
-  it("recognises independent retrieval only from lastIndependentAt", () => {
-    const result = derivePersonalLearningCheckpoint([
+  it("recognises source-lesson independent retrieval only from lastIndependentAt", () => {
+    const result = derive([
       item({ lastIndependentAt: NOW, successfulRetrievals: 1 }),
     ]);
 
@@ -81,7 +96,7 @@ describe("derivePersonalLearningCheckpoint", () => {
   });
 
   it("does not accept a transfer timestamp without independent production", () => {
-    const result = derivePersonalLearningCheckpoint([
+    const result = derive([
       item({ transferAttemptedAt: NOW, transferSucceededAt: NOW }),
     ]);
 
@@ -90,7 +105,7 @@ describe("derivePersonalLearningCheckpoint", () => {
   });
 
   it("requires independent production plus successful changed-context use", () => {
-    const result = derivePersonalLearningCheckpoint([
+    const result = derive([
       item({
         successfulRetrievals: 1,
         lastIndependentAt: NOW,
@@ -105,7 +120,7 @@ describe("derivePersonalLearningCheckpoint", () => {
   });
 
   it("does not let a delayed timestamp skip the changed-context prerequisite", () => {
-    const result = derivePersonalLearningCheckpoint([
+    const result = derive([
       item({ lastIndependentAt: NOW, lastDelayedTransferAt: NOW }),
     ]);
 
@@ -114,7 +129,7 @@ describe("derivePersonalLearningCheckpoint", () => {
   });
 
   it("reports one complete evidence loop only when delayed transfer follows the prerequisites", () => {
-    const result = derivePersonalLearningCheckpoint([
+    const result = derive([
       item({
         successfulRetrievals: 2,
         lastIndependentAt: NOW,
