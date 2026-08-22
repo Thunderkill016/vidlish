@@ -17,7 +17,7 @@ This document maps the validation protocol to durable evidence. The rule is simp
 | Replay | `learning_support_events.playback_ordinal >= 2` | Replay remains a derived playback fact, not a duplicate product event. |
 | Target notice exposure | Persisted attempt on `meaning_in_context` | Conservative proxy: the learner interacted with the target-notice activity. Vidlish does not claim that every rendered pixel was read. |
 | Retrieval attempted/outcome | `activity_attempts` for `chunk_recall` | Uses privacy-safe response evidence plus server evaluation; raw text is not returned by the measurement API. |
-| Correction shown | `learning_product_events.correction_shown` | Emitted after React commits an incorrect-result panel. The product event stores no correction copy or learner answer. |
+| Correction shown | `learning_product_events.correction_shown` | Emitted after React commits an incorrect-result panel. The event uses that incorrect attempt's immutable row ID as its idempotency key, and the production RPC verifies the matching session/activity/verdict before accepting it. No correction copy or learner answer is stored. |
 | Mandatory retry attempted | `activity_attempts.attempt_number >= 2` for the relevant activity | No duplicate retry event is needed. |
 | Changed-context transfer attempted/self-check | `activity_attempts` for `guided_transfer` | Attempt/evaluation rows remain learning authority. Product measurement cannot strengthen the capability claim. |
 | After-listen check attempted | `activity_attempts` for `exit_ticket` | The Golden fixture's exit ticket carries the final hidden-caption source check. |
