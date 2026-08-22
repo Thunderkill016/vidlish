@@ -40,7 +40,7 @@
 ## Slice F — Review and merge
 
 - [x] F1 Adversarial review privacy/evidence/ownership/replay/admin-bypass/NULL semantics. Review caught and fixed the admin-client/auth.uid calibration mismatch and the stale pgTAP contract that would have preserved browser authority assumptions.
-- [ ] F2 Open draft PR with exact acceptance boundary.
+- [x] F2 Open draft PR with exact acceptance boundary. PR #130.
 - [ ] F3 Merge only after all required CI jobs are green on the exact reviewed head.
 
 ## Explicitly deferred
