@@ -1,17 +1,27 @@
 /**
- * The evidence a learner from zero accumulates, and the only thing that decides
- * what they meet next.
+ * Lexical evidence accumulated by the current zero-beginner path and used to
+ * decide what input the learner may meet next.
  *
- * `knownWords` is deliberately narrow: it returns words the learner has
- * produced with no support open, and nothing else. Not words they have seen,
- * not words they recognised on a page. The current beginner lexical gate reads
- * this set, so widening it would make the product serve input on evidence the
- * learner has not actually produced.
+ * Important provenance limitation: `knownWords()` is a lexical-gate set, not a
+ * capability certification. Dictation can create checked evidence, but the
+ * standalone bootstrap path may also bank a calibrated learner self-report
+ * when no sentence exists yet to score. The current persistence shape does not
+ * expose that provenance distinction through `knownWords()`.
+ *
+ * Therefore this set may drive the conservative beginner input policy, but it
+ * must not by itself upgrade a learner-facing "verified independent ability",
+ * changed-context, retained, or mastery claim. A later bounded feature should
+ * split/strengthen beginner provenance and add cross-session review.
  */
 
 export type BeginnerWordEvidence = {
   readonly word: string;
   readonly successfulRetrievals: number;
+  /**
+   * Historical field name retained for schema compatibility. On the current
+   * standalone bootstrap path this timestamp can originate from a calibrated
+   * self-report, so consumers must not treat it as universally observed speech.
+   */
   readonly lastIndependentAt: string | null;
 };
 
@@ -26,8 +36,8 @@ export type BeginnerEvidenceChallengeKind = "introduce_word" | "dictation";
  * Server-owned authority for one learner attempt.
  *
  * The browser may display/hear the sentence, but it never chooses which word or
- * sentence the evidence write is about. `sentence` is null only for the very
- * first standalone word introduction.
+ * sentence the evidence write is about. `sentence` is null for a standalone
+ * bootstrap introduction.
  */
 export type BeginnerEvidenceChallenge = {
   readonly id: string;
@@ -50,11 +60,10 @@ export interface BeginnerProgressRepository {
     readonly reliable: boolean;
   }): Promise<CalibrationRecord>;
 
+  /** Current lexical-gate set; see the provenance warning above. */
   knownWords(ownerUserId: string): Promise<string[]>;
 
-  /**
-   * Create the opaque server authority a browser attempt must later reference.
-   */
+  /** Create the opaque server authority a browser attempt must later reference. */
   createEvidenceChallenge(input: {
     readonly ownerUserId: string;
     readonly kind: BeginnerEvidenceChallengeKind;
@@ -62,18 +71,19 @@ export interface BeginnerProgressRepository {
     readonly sentence: string | null;
   }): Promise<BeginnerEvidenceChallenge>;
 
-  /**
-   * Resolve only a currently usable challenge owned by this learner.
-   */
+  /** Resolve only a currently usable challenge owned by this learner. */
   evidenceChallenge(input: {
     readonly ownerUserId: string;
     readonly challengeId: string;
   }): Promise<BeginnerEvidenceChallenge | null>;
 
   /**
-   * Atomically consume a server challenge and bank evidence for the word stored
-   * on that challenge. The caller supplies only the server-decided independence
-   * verdict, never a target word.
+   * Atomically consume a server challenge and bank lexical-gate evidence for the
+   * word stored on that challenge. The caller never supplies a target word.
+   *
+   * `independent` here is a legacy persistence verdict and is not sufficient by
+   * itself for a learner-facing verified-capability claim because bootstrap
+   * introductions may be self-reported.
    */
   recordChallengeEvidence(input: {
     readonly ownerUserId: string;
@@ -88,7 +98,6 @@ export interface BeginnerProgressRepository {
   recordWordEvidence(input: {
     readonly ownerUserId: string;
     readonly word: string;
-    /** True only when every support was closed. Never inferred by the adapter. */
     readonly independent: boolean;
   }): Promise<BeginnerWordEvidence>;
 }
