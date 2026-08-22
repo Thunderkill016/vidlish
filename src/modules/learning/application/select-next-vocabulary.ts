@@ -48,8 +48,12 @@ let spokenFrequency: SpokenFrequency = {};
  * Injected rather than imported so the ordering rule stays free of an adapter,
  * and so a test can state the frequencies it is asserting about instead of
  * depending on whatever the shipped artifact happens to contain.
+ *
+ * Not named `useSpokenFrequency`: in this codebase a `use` prefix means a React
+ * hook, and calling it at module scope is an error the linter is right to
+ * raise.
  */
-export function useSpokenFrequency(frequency: SpokenFrequency): void {
+export function applySpokenFrequency(frequency: SpokenFrequency): void {
   spokenFrequency = frequency;
 }
 

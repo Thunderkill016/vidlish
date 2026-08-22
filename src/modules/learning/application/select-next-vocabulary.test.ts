@@ -4,7 +4,7 @@ import catalogue from "@/adapters/vocabulary/cefrj-a1-a2.json";
 import {
   compareTeachingOrder,
   selectNextVocabulary,
-  useSpokenFrequency,
+  applySpokenFrequency,
   type VocabularyEntry,
 } from "./select-next-vocabulary";
 
@@ -128,11 +128,11 @@ describe("ordering by spoken frequency", () => {
   afterEach(() => {
     // Module-level state: without this the next test inherits whatever
     // frequencies this one set, and the failure would appear somewhere else.
-    useSpokenFrequency({});
+    applySpokenFrequency({});
   });
 
   it("teaches the word people say most, not the word that sorts first", () => {
-    useSpokenFrequency({ you: 2_134_713, the: 1_501_908, water: 12_000, anybody: 4_000 });
+    applySpokenFrequency({ you: 2_134_713, the: 1_501_908, water: 12_000, anybody: 4_000 });
 
     const order = selectNextVocabulary({
       catalogue,
@@ -146,7 +146,7 @@ describe("ordering by spoken frequency", () => {
   it("puts a word the spoken corpus never saw last, not first", () => {
     // A missing count is not a neutral value to be skipped over. A word nobody
     // was recorded saying is not a word to teach early.
-    useSpokenFrequency({ you: 100, the: 50 });
+    applySpokenFrequency({ you: 100, the: 50 });
 
     const order = selectNextVocabulary({
       catalogue,
@@ -162,7 +162,7 @@ describe("ordering by spoken frequency", () => {
     // `the` is far commoner than any A1 noun, but an A2 word is never offered
     // while A1 words remain — meeting a word the learner cannot yet use in a
     // sentence is a word wasted.
-    useSpokenFrequency({ the: 1_501_908, water: 12_000 });
+    applySpokenFrequency({ the: 1_501_908, water: 12_000 });
 
     const order = selectNextVocabulary({
       catalogue: [
@@ -177,7 +177,7 @@ describe("ordering by spoken frequency", () => {
   });
 
   it("falls back to part of speech only where the corpus counted equally", () => {
-    useSpokenFrequency({ water: 1_000, the: 1_000 });
+    applySpokenFrequency({ water: 1_000, the: 1_000 });
 
     const order = selectNextVocabulary({
       catalogue: [
