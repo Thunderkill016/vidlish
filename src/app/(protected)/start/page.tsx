@@ -31,28 +31,29 @@ export default async function StartPage() {
         <h1 className="text-2xl font-semibold">Bắt đầu từ số 0</h1>
         <p className="text-sm text-[var(--muted-foreground)]">
           Vidlish hiện dùng một policy bảo thủ: câu beginner chỉ chứa một target
-          chưa có independent evidence, còn các từ khác phải nằm trong tập đã
-          biết. Đây là cách giữ input đầu vào dễ audit ở giai đoạn này, không
-          phải định nghĩa duy nhất của “comprehensible input”.
+          ngoài lexical gate set, còn các từ khác phải nằm trong set đó. Đây là
+          cách giữ input dễ audit ở giai đoạn này, không phải định nghĩa duy nhất
+          của “comprehensible input”.
         </p>
       </header>
 
       <Card className="flex flex-col gap-1">
         <span className="text-sm text-[var(--muted-foreground)]">
-          Số từ bạn đã tự nói ra được, không mở trợ giúp
+          Số từ đang nằm trong beginner input gate
         </span>
         <span className="text-3xl font-semibold tabular-nums">
           {known.length}
         </span>
         <span className="text-xs text-[var(--muted-foreground)]">
-          Đây là evidence set mà policy beginner hiện tại dùng để quyết định câu
-          tiếp theo. Nó không phải toàn bộ những gì bạn có thể nhận ra hoặc hiểu.
+          Set này dùng để chọn input tiếp theo. Bootstrap có thể gồm calibrated
+          self-report, còn sentence dictation có thể được chấm trực tiếp, nên
+          Vidlish không dùng riêng con số này để tuyên bố capability hay nhớ lâu.
         </span>
       </Card>
 
       <Card className="flex flex-col gap-1">
         <span className="text-sm text-[var(--muted-foreground)]">
-          Số câu bạn đọc được trọn vẹn theo evidence set hiện tại
+          Số câu hợp lệ theo lexical gate set hiện tại
         </span>
         <span className="text-3xl font-semibold tabular-nums">
           {readable.toLocaleString("vi-VN")}
@@ -62,8 +63,8 @@ export default async function StartPage() {
           </span>
         </span>
         <span className="text-xs text-[var(--muted-foreground)]">
-          Đếm trên kho câu do người viết bằng policy hiện tại. Con số này chỉ
-          tăng khi independent evidence tăng; nó không phải điểm trình độ chung.
+          Đây là coverage của current input policy trên kho câu, không phải điểm
+          trình độ hay số câu hệ thống đã chứng minh bạn hiểu độc lập.
         </span>
       </Card>
 
