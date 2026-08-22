@@ -6,6 +6,11 @@ Take one Vietnamese adult from **no English at all** to using it — listening,
 speaking, reading, writing — the way a language is actually acquired rather than
 studied.
 
+The product is currently built **personal-first**: the product owner is the first
+real learner, and genuine use of Vidlish should drive the next product fixes.
+External-user/business validation is deferred until the owner explicitly
+reactivates it.
+
 The product promise is not “AI generates a lesson.” The durable value is:
 
 `comprehensible input at the learner's level + personal capability evidence + varied delayed review + progressively less support`
@@ -14,12 +19,12 @@ The product promise is not “AI generates a lesson.” The durable value is:
 
 This project began as a YouTube product for A2–B2 learners who already watched
 English video. That is no longer the mission. A learner starting from zero
-cannot use authentic video at all: it is not suitable beginner input for them.
+cannot use authentic video as their default first input when it is not yet
+comprehensible.
 
-The video pipeline stays, and it is good — it is what a learner graduates *to*
-once they can use it. But it is one source of input among several, and no longer
-the thing the product is organised around. Do not plan work as though reaching
-the video path is the destination.
+The video pipeline stays. It is one source of input among several and becomes
+useful when the learner can actually use it. Do not plan the product as though
+creating video lessons is the daily destination.
 
 ### What the mission implies, and what it costs
 
@@ -28,15 +33,13 @@ the video path is the destination.
   corrective feedback may enter as soon as the task is comprehensible enough
   to attempt; receptive and productive outcomes are different capability
   evidence and must not be collapsed into one `known` claim.
-- **Comprehensibility is a gate; the current `i+1` implementation is a policy.**
-  The beginner generator currently fails closed by allowing at most one new
-  target word by default (`src/modules/learning/application/check-comprehensible-input.ts`).
-  The lexical set available to that gate comes from unsupported independent
-  production because that is the durable evidence the current system has. This
-  is a conservative, auditable product policy — not a universal definition of
-  Krashen's `i+1`, lexical comprehension, or everything the learner knows.
-  Widening it requires an explicit feature, tests and learner evidence; higher
-  generation acceptance is not enough.
+- **Comprehensibility is a gate; the current one-new-target implementation is a
+  policy.** The lexical set available to that gate comes from unsupported
+  independent production because that is the durable evidence the current
+  beginner system has. This is a conservative, auditable product policy — not a
+  universal definition of Krashen's `i+1`, lexical comprehension, or everything
+  the learner knows. Widening it requires an explicit feature, tests and learner
+  evidence; higher generation acceptance is not enough.
 - **High-frequency vocabulary carries coverage, not the whole curriculum.**
   Frequency should be a strong prior because common words recur often, but
   target order also needs communicative usefulness, prerequisites, learner
@@ -52,24 +55,30 @@ The evidence basis and limitations for these distinctions are recorded in
 `specs/002-calibrate-learning-policy/research.md`. Do not replace one slogan
 with another; context-dependent research remains context-dependent.
 
-Three decisions the product owner has made, which earlier invariants forbade:
-storing what the learner writes, recording what they say, and keeping Vietnamese
-explanations for early learning where they are needed. Where an older rule in
-this file conflicts with those, the decision wins and the rule needs rewriting —
-say so rather than quietly following the stale one.
+The product owner has explicitly allowed storing what the learner writes,
+recording what they say, and keeping Vietnamese explanations for early learning
+where needed. That permission is purpose-bound; it is not a reason to collect
+raw text/audio on unrelated tasks.
 
 ## Authority order
 
 Before changing product behavior, read these in order:
 
 1. `docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`
-2. `docs/product/learning-model-v2/golden-session-validation.md`
-3. `.specify/memory/constitution.md`
-4. the current feature's `spec.md`, `plan.md`, `tasks.md` and explicit PR/issue acceptance criteria
-5. code + tests on the branch being changed
-6. `docs/archive/bmad/` only for historical context
+2. `.specify/memory/constitution.md`
+3. the current feature's `spec.md`, `plan.md`, `tasks.md` and explicit PR/issue acceptance criteria
+4. code + tests on the branch being changed
+5. `AGENTS.md` and `HANDOVER.md` for program/execution state and operational traps
+6. `docs/product/learning-model-v2/golden-session-validation.md` only when work concerns the deferred external-user Golden Session study
+7. `docs/archive/bmad/` only for historical context
 
-Archived sprint/story/readiness metadata is never current authority. If an archived decision is still required, restate it in current product docs, the constitution, or an active feature specification.
+The Golden Session five-person protocol is retained unchanged as a future market
+validation instrument. Its old “current Gate 5” language must not override the
+personal-first Master Plan.
+
+Archived sprint/story/readiness metadata is never current authority. If an
+archived decision is still required, restate it in current product docs, the
+constitution, or an active feature specification.
 
 ## Current program state
 
@@ -80,63 +89,61 @@ Work from `main`.
 Integrated and reachable from a route or workflow:
 
 - learner-first product shell;
-- source-first Study Mode workspace;
+- `/start` beginner path for zero/very-low lexical evidence;
+- server-bound beginner evidence challenges;
+- source-grounded Study Mode workspace;
 - durable lesson sessions and privacy-safe attempts;
 - server-confirmed support/replay evidence;
-- delayed review sessions, scheduled by FSRS in the application layer;
+- source-lesson changed-context and delayed review;
+- capability-oriented progress views;
 - Supabase RLS/RPC + pgTAP;
-- Chromium product journeys + durable Supabase Golden Session.
+- Chromium product journeys + durable Supabase journeys.
 
 ### What is proven, and what is not
 
-**A production run authors and publishes v2 blueprints.** Confirmed 21/08/2026
-by driving the product's own API as a signed-in learner: six `lesson_versions`
-rows, each with `lesson_id` null — hanging off the job, not a v1 lesson — and
-activities in the order the authoring gate requires. `learning_authoring_outcome`
-reads `authored`.
+**The production-shaped v2 authoring path can publish readable blueprints.** That
+is reachability evidence, not proof of teaching value.
 
-v1 no longer runs. A job is completed by publishing a v2 blueprint, under the
-same rule v1 used: a job reports completed only when something readable exists
-behind it. When authoring produces nothing the job terminalizes and says so.
-The v1 tables and their rows are untouched; removing that data is its own step.
+**The technical evidence paths are heavily tested.** That means the system can
+store and project evidence according to current contracts; it does not mean a
+fixture learned English.
 
-What is still unproven is **reliability, and everything about learners**. Across
-fifteen authoring briefs production holds six published blueprints. Several
-failure shapes were found and fixed from the record —
-`learning_authoring_outcome` and `learning_authoring_detail` name the branch and
-the cause — but the rate has not been measured on a clean run of the current
-code, and the daily job quota bounds how fast that can be done.
+**The active learner evidence now comes from the owner's genuine use.** Do not
+invent owner learning evidence from CI or from this document. When the owner
+uses Vidlish, the durable evidence itself should determine the strongest claim
+shown in `/progress`.
 
-No learner other than the owner has opened one. Nothing here says a lesson
-taught anyone anything: that needs gates 5 and 6, not another green run.
+A known personal-learning gap remains: the beginner path can bank narrow
+independent word evidence, but it does not yet have its own durable
+changed-context + cross-session delayed-review chain equivalent to the
+source-lesson review path.
 
-So: v2 is **reachable and shipping**, its **reliability is unmeasured**, and its
-**teaching value is unevidenced**. Do not collapse those three into "it works".
+### Active personal development sequence
 
-### Hard-gate sequence
+1. make `/start` the default entry below authentic-media readiness;
+2. store only server-authoritative independent evidence;
+3. show the learner the strongest claim durable evidence supports;
+4. make the next evidence-bearing action obvious;
+5. connect beginner evidence to changed-context, cross-session delayed review;
+6. use Vidlish genuinely and fix observed learning friction in bounded slices;
+7. expand speaking/writing/listening support only when it improves the owner's
+   real learning loop.
 
-0. production authoring path that creates `lesson_versions` — **done**,
-   21/08/2026: six blueprints published by real production runs, v1 retired,
-   the learner routed to the guided session;
-1. first-session durable flow — done;
-2. CI failures fixed from real logs — done;
-3. support/replay server evidence — done;
-4. second-session varied/delayed review — done in code and proven on an
-   arbitrary blueprint in CI; reachable in production now that gate 0 is
-   closed, but no learner has run one;
-5. analytics + moderated usability with 5 target users;
-6. 20–50 learner cohort + predeclared go/no-go thresholds;
-7. benchmark at most 3 temporary authoring models, select one production
-   provider/model by cost per accepted lesson;
-8. paid/retention/legal/operations validation;
-9. rollout.
+This sequence is **not blocked by a five-person external study**.
 
-Gate 9 used to read "only then consider merge to `main`". That gate was passed
-by merging v2 to `main` before the gates above it, so the sequence now describes
-rollout rather than merge. Do not treat the merge as evidence the gates were
-met.
+### Deferred external-market sequence
 
-Do not skip gates because CI is green.
+If the owner later wants to validate Vidlish for other people or commercial
+rollout, reactivate the existing program deliberately:
+
+1. five-person moderated Golden Session study using genuine participants;
+2. 20–50 learner cohort with predeclared thresholds;
+3. benchmark at most three authoring models by cost per accepted artifact;
+4. payment/retention/legal/operations validation;
+5. rollout.
+
+The old five-person Gate 5 remains unpassed. Do not fabricate it, but do not use
+it as a blocker for personal-first development either.
 
 ## Non-negotiable learning invariants
 
@@ -148,12 +155,9 @@ Do not skip gates because CI is green.
 - Completion != mastery.
 - Scheduler state decides when an item returns; it does not prove independent capability.
 - Delayed transfer must be stored/claimed separately from immediate transfer.
-- Persist only bounded privacy-safe evidence. The product owner has since
-  authorised storing what the learner writes and recording what they say, for
-  their own account, to make writing feedback and speaking possible at all —
-  so "no raw audio, no open text" is no longer absolute. It still holds
-  everywhere those two are not the point: an attempt on a listening item has no
-  business carrying free text.
+- Supported and independent success are different claims.
+- A stronger personal checkpoint must preserve its weaker prerequisites; an inconsistent stronger-looking timestamp must fail closed.
+- Persist bounded evidence appropriate to the task. Writing/speaking may store learner writing/audio when that is the feature; unrelated tasks may not piggyback raw content.
 - Provenance/source evidence uses semantic evidence styling; do not use it decoratively.
 - Solved and revealed are different states.
 
@@ -164,23 +168,22 @@ In scope:
 - English target language, one learner, from zero;
 - Vietnamese guidance for early learning, tapering as evidence shows less support is sufficient;
 - short sessions;
-- **generated comprehensible sentences** for a learner below authentic-media readiness, **YouTube source** once they are ready — both bounded, both gated;
-- input-led progression: listening/reading supply understandable language, while bounded retrieval, writing and speaking tasks enter when the learner can attempt them; receptive and productive capability evidence stay separate;
+- generated/curated beginner input below authentic-media readiness;
+- YouTube source once authentic English is appropriate;
+- input-led progression with retrieval, writing and speaking tasks when comprehensible enough to attempt;
+- separate receptive and productive capability evidence;
 - the same loop at every level: input → notice → retrieval → changed-context use
   → delayed review → less support;
 - desktop + mobile web.
 
-Out of scope: other target languages, classroom or multi-tenant features, a
-public marketplace, several payment gateways, multi-provider production routing.
+Out of scope while personal-first: other target languages, classroom or
+multi-tenant features, a public marketplace, payment-gateway expansion,
+multi-provider production routing, broad social/gamification systems.
 
-**Pronunciation scoring is not out of scope any more, but it is not free to
-adopt.** Speech recognition is measurably worse on Vietnamese-accented English
-than on most other L1 groups, and every scoring product's accuracy rests on its
-transcription. A scorer that mishears correct speech and marks it wrong is worse
-than none for a beginner: they will fix a fault they do not have. Before
-shipping any score, measure it on Vietnamese speakers — `L2-ARCTIC` carries four,
-with human phoneme-level annotations. Until then, report what is checkable —
-which words a listener could not make out — and do not dress it as a score.
+**Pronunciation scoring is not free to adopt.** Before shipping a learner-facing
+score, validate the speech stack on Vietnamese-accented English. A scorer that
+mishears correct speech and marks it wrong is worse than no score for a
+beginner. Until then, report only what the system can actually check.
 
 ## Production/provider safety
 
@@ -188,6 +191,7 @@ which words a listener could not make out — and do not dress it as a score.
 - Do not call production Supabase, Gemini, Supadata, or another paid provider unless the task explicitly authorizes that run.
 - Never expose service keys in client code, logs, screenshots, prompts, tests, or repository files.
 - Production uses one enabled provider/model/key at a time. Development agents and temporary offline benchmarks do not change this rule.
+- Personal-first scope does not weaken owner isolation, RLS, RPC privilege or evidence-authority requirements.
 
 ## Architecture
 
@@ -204,7 +208,7 @@ Key areas:
 - `src/adapters/supabase/`: production persistence adapter;
 - `src/platform/`: wiring/config;
 - `supabase/migrations/`: additive DB invariants/RPC/RLS;
-- `supabase/tests/`: pgTAP authority checks;
+- `supabase/tests/`: pgTAP;
 - `tests/e2e/`: user-level browser evidence.
 
 Do not let UI-local state become authority for durable learning evidence.
@@ -232,25 +236,24 @@ pnpm db:local supabase/fixtures/a.sql b.sql      # then run these, in order
 ```
 
 `scripts/local-schema.mjs` applies all migrations to an in-process Postgres
-(PGlite — real Postgres compiled to WASM, no Docker) in about thirteen seconds.
-
-Use it before pushing any migration, fixture or pgTAP fixture block. Seven CI
-round-trips in one session were spent on fixture SQL written from memory — a
-dropped quote, a column that does not exist, a check constraint, a unique
-constraint. **None of those needed pgTAP to catch. They needed the schema.**
+(PGlite — real Postgres compiled to WASM, no Docker).
 
 It does not replace `supabase test db`: PGlite has no pgTAP, so assertions,
-RLS-as-a-role and `security definer` behaviour are still only proven in CI. It
-answers a narrower question — *does this SQL run against the real schema* — and
-that question is where the round-trips went.
+RLS-as-a-role and `security definer` behaviour are still only proven in CI.
 
-Database changes are not complete until pgTAP passes. Learning-flow changes are not complete until Chromium journeys pass. Persistence changes are not complete until the durable Supabase journey proves the expected rows and privacy boundary.
+Database changes are not complete until pgTAP passes. Learning-flow changes are
+not complete until Chromium journeys pass. Persistence changes are not complete
+until the durable Supabase journey proves the expected rows and privacy
+boundary.
 
-Never weaken tests, add forced browser clicks, or loosen security constraints just to make CI green. Diagnose from the failing job/log and fix the product behavior or test contract deliberately.
+Never weaken tests, add forced browser clicks, or loosen security constraints
+just to make CI green. Diagnose from the failing job/log and fix the product
+behavior or test contract deliberately.
 
 ## Spec Kit execution protocol
 
-Use Spec Kit for bounded vertical slices, not vague “improve everything” prompts. The constitution is read live from `.specify/memory/constitution.md`; do not copy it into agent-specific templates.
+Use Spec Kit for bounded vertical slices, not vague “improve everything” prompts.
+The constitution is read live from `.specify/memory/constitution.md`.
 
 For every implementation task with material scope:
 
@@ -264,24 +267,25 @@ For every implementation task with material scope:
 8. converge artifacts only when implementation and verification agree;
 9. merge only the exact reviewed head after all required CI jobs are green.
 
-Small mechanical fixes may use a lightweight spec/PR acceptance boundary, but they still obey the constitution and verification rules.
-
-Parallel agents should work on separate branches/worktrees and non-overlapping scopes. One agent may implement while another reviews threat/privacy/test gaps. Do not have several agents edit the same files concurrently without an explicit integration plan.
+Small mechanical fixes may use a lightweight spec/PR acceptance boundary, but
+they still obey the constitution and verification rules.
 
 ## AI tool roles
 
-This repository is intentionally compatible with multiple development agents while keeping one source of truth.
+This repository is intentionally compatible with multiple development agents
+while keeping one source of truth.
 
-- Primary implement/refactor/CI agent: use the strongest available coding agent with full repo + terminal context.
-- Independent reviewer: use a different frontier coding model/agent for adversarial review of correctness, privacy, RLS, race conditions and test gaps.
-- Large-context/research agent: use for docs/API changes and cross-checking current external platform behavior; verify against primary sources.
-- GitHub coding/review agents: consume `AGENTS.md`, `.specify/memory/constitution.md`, active feature artifacts and path-specific instructions.
+- Primary implement/refactor/CI agent: strongest available coding agent with full repo + terminal context.
+- Independent reviewer: different frontier coding model/agent for adversarial correctness/privacy/RLS/race/test review.
+- Large-context/research agent: docs/API/platform research, verified against primary sources.
+- GitHub coding/review agents: consume `AGENTS.md`, constitution, active feature artifacts and path-specific instructions.
 
-Do not paste separate contradictory project rules into each agent. Update the constitution, this file, or the product authority documents instead.
+Do not paste separate contradictory project rules into each agent. Update the
+constitution, this file, or the product authority documents instead.
 
 ## Communication
 
 - Product-owner communication: Vietnamese.
 - Code, identifiers, commit messages and technical contracts: English unless existing files dictate otherwise.
 - Report what is verified versus inferred.
-- Never claim a feature is production-ready, retained, mastered, paid-validated, legal-cleared, or CI-green without corresponding evidence.
+- Never claim a feature is production-ready, retained, mastered, paid-validated, legal-cleared, externally validated, or CI-green without corresponding evidence.
