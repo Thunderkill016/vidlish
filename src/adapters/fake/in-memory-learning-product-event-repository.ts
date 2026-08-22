@@ -14,6 +14,7 @@ export class InMemoryLearningProductEventRepository
     ReturnType<typeof privacySafeLearningProductEventSchema.parse>
   >();
   private readonly eventIdsByIdempotency = new Map<string, string>();
+  private readonly ownerByEventId = new Map<string, string>();
 
   async record(input: RecordLearningProductEventInput) {
     const lookup = `${input.ownerUserId}:${input.idempotencyKey}`;
@@ -43,13 +44,18 @@ export class InMemoryLearningProductEventRepository
       occurredAt: new Date().toISOString(),
     });
     this.events.set(event.id, event);
+    this.ownerByEventId.set(event.id, input.ownerUserId);
     this.eventIdsByIdempotency.set(lookup, event.id);
     return { event, created: true };
   }
 
   async listForSession(input: { ownerUserId: string; sessionId: string }) {
     return [...this.events.values()]
-      .filter((event) => event.sessionId === input.sessionId)
+      .filter(
+        (event) =>
+          event.sessionId === input.sessionId &&
+          this.ownerByEventId.get(event.id) === input.ownerUserId,
+      )
       .sort((left, right) => left.occurredAt.localeCompare(right.occurredAt));
   }
 }
