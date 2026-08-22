@@ -34,10 +34,11 @@ describe("startBeginnerSession", () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
-  it("introduces the first word on its own rather than inventing a sentence", async () => {
-    // At zero known words, i+1 permits a one-word sentence and nothing longer.
-    // A one-word sentence is not a sentence, so the first word cannot arrive
-    // inside one — and no model is asked for what cannot exist.
+  it("introduces the first word on its own under the bootstrap policy", async () => {
+    // The current conservative sentence gate has no multi-word candidate that
+    // can pass with an empty independent lexical set. The runtime therefore
+    // bootstraps the target instead of calling generation for material it would
+    // reject. This tests the current policy, not a universal acquisition rule.
     const generate = vi.fn(async () => []);
     const result = await startBeginnerSession({
       catalogue,
@@ -74,8 +75,8 @@ describe("startBeginnerSession", () => {
   });
 
   it("applies the same gate to generated sentences as to retrieved ones", async () => {
-    // The model reached outside the permitted vocabulary. That has to produce
-    // waste, not a lesson the learner cannot read.
+    // The model reached outside the vocabulary allowed by the current policy.
+    // That output is discarded rather than silently widening learner input.
     const result = await startBeginnerSession({
       catalogue,
       known: new Set(["the", "i", "have"]),
@@ -87,9 +88,10 @@ describe("startBeginnerSession", () => {
     expect(result).toEqual({ kind: "no_usable_input", target: "water" });
   });
 
-  it("refuses a short batch rather than serving one sentence", async () => {
-    // One sentence cannot show the same word in a changed context, which is the
-    // only thing separating learning a word from memorising a string.
+  it("refuses a batch shorter than the current session policy requires", async () => {
+    // The current session contract asks for a varied batch before banking this
+    // sentence phase. That is a design constraint, not a claim that a single
+    // sentence can never contribute to learning.
     const result = await startBeginnerSession({
       catalogue,
       known: new Set(["the", "i", "have"]),
