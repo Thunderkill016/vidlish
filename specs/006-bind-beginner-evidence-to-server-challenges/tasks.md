@@ -35,13 +35,13 @@
 - [x] E2 Add pgTAP for challenge ownership, expiry, single-use consumption and target derivation.
 - [x] E3 Add unit tests for calibration exact-set validation.
 - [x] E4 Add Chromium proof that random challenge fails, valid challenge succeeds once, replay fails, and legacy forged fields cannot redirect evidence.
-- [x] E5 Full repository CI #482 / run `32574866979` passed on reviewed implementation head `3952f461fda3a42e60fe94dce97ae6396219c58a`: typecheck/lint, unit tests, production build, Supabase migration/RLS + pgTAP, Chromium product journeys, durable Supabase learning journey, and aggregate CI gate all succeeded. The tracker-only convergence commit after that run must itself receive a final exact-head green CI before merge.
+- [x] E5 Full repository CI #482 / run `32574866979` passed on reviewed implementation head `3952f461fda3a42e60fe94dce97ae6396219c58a`. After tracker convergence, final exact head `dc044508a9010ad0153f4e9400694478f68916c2` passed CI #483 / run `32575040768` in full: typecheck/lint, unit tests, production build, Supabase migration/RLS + pgTAP, Chromium product journeys, durable Supabase learning journey, and aggregate CI gate all succeeded.
 
 ## Slice F — Review and merge
 
 - [x] F1 Adversarial review privacy/evidence/ownership/replay/admin-bypass/NULL semantics. Review caught and fixed the admin-client/auth.uid calibration mismatch and the stale pgTAP contract that would have preserved browser authority assumptions.
 - [x] F2 Open draft PR with exact acceptance boundary. PR #130.
-- [ ] F3 Merge only after all required CI jobs are green on the final exact reviewed head.
+- [x] F3 PR #130 was squash-merged only after final exact-head CI #483 succeeded. Merge commit: `21a6b5f070c0544e0f7049b1c65871be70c8f5de`.
 
 ## Explicitly deferred
 
@@ -54,3 +54,5 @@
 - paid provider/model work;
 - production DB/provider calls;
 - payment/gamification/social features.
+
+Feature 006 closes an evidence-authority defect. It does **not** constitute learner evidence and does not pass Gate 5; Gate 5 still requires five genuine participant sessions under the predeclared protocol.

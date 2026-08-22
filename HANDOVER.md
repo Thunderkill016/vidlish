@@ -1,6 +1,6 @@
 # Bàn giao Vidlish — operational state hiện tại
 
-Cập nhật: **2026-08-22**, sau khi Golden Session local study harness được squash-merge qua PR #128.
+Cập nhật: **2026-08-22**, sau khi beginner evidence authority được khóa bằng server-owned challenges qua PR #130.
 
 File này giữ **operational handover và những bẫy đã trả giá để học được**. Nó không đứng trên product authority hay active feature specs.
 
@@ -133,6 +133,33 @@ Nguyên tắc của harness:
 - phải có 5 genuine records rồi mới evaluate Gate 5.
 
 Không tuyển được 5 người thật không phải lý do để tạo synthetic records.
+
+### Beginner evidence authority sau Feature 006
+
+PR #130 sửa một defect thật: trước đó browser có thể gửi chính `word` và dictation answer-key `sentence` cho attempt route, trong khi một số `SECURITY DEFINER` RPC ghi/đọc evidence còn executable bởi `authenticated`. Điều đó làm server-side scoring trông có authority nhưng canonical fact vẫn do client lựa chọn.
+
+Boundary hiện tại:
+
+- `/api/beginner/session` phát opaque challenge ID cho item server đã chọn;
+- challenge row giữ owner, kind, target word, authoritative sentence khi cần dictation, expiry và consumed state;
+- `/api/beginner/attempt` chỉ nhận challenge ID + learner action; browser không gửi canonical target hay answer key;
+- route đọc challenge theo owner rồi score `heard` với sentence server lưu;
+- DB RPC derive item key từ challenge và consume challenge atomically với evidence upsert;
+- challenge sai owner, hết hạn, ngẫu nhiên hoặc đã consume đều fail closed;
+- calibration POST phải khớp **đúng tập item deterministic hiện tại của server**; missing/extra/duplicate/substituted item bị reject;
+- browser không có `EXECUTE` trên legacy arbitrary-word evidence RPC, calibration persistence RPC, arbitrary-owner `learner_known_words(uuid)`, hay challenge mutation RPC;
+- challenge table không mở browser policy; runtime persistence dùng server/service-role boundary;
+- direct learning-table writes của browser vẫn bị khóa; owner relationships của lesson/review paths còn được giữ bằng composite foreign keys, không chỉ route checks.
+
+Verification của Feature 006:
+
+- implementation head `3952f461fda3a42e60fe94dce97ae6396219c58a` pass full CI #482 / run `32574866979`;
+- final exact head `dc044508a9010ad0153f4e9400694478f68916c2` pass full CI #483 / run `32575040768`;
+- PR #130 squash-merge vào `main` thành `21a6b5f070c0544e0f7049b1c65871be70c8f5de`.
+
+Sau merge, audit lại lesson session/attempt, support events, delayed review, lesson progress và product-observation RPC không tìm thấy cùng class browser-executable evidence bypass: các mutation path đó đang service-role-only và có ownership binding phù hợp. Đây là kết quả audit hiện tại, không phải lời khẳng định không bao giờ có bug mới.
+
+Feature 006 là security/evidence-integrity proof, **không phải learner evidence**. Nó không thay đổi hay pass Gate 5.
 
 ---
 
@@ -307,6 +334,19 @@ Ba lớp lỗi từng chỉ lộ khi SQL thực sự chạy:
 - `CHECK (expr = value)` fail open khi `expr` là NULL.
 
 Đừng coi regex-on-migration-text là database proof.
+
+### 7.10 `SECURITY DEFINER` + `EXECUTE` mới là quyền ghi thật
+
+Không đủ để nói “browser không INSERT được table” nếu browser vẫn có thể gọi một `SECURITY DEFINER` function ghi table đó. Feature 006 tồn tại vì test cũ từng chứng minh direct table INSERT bị cấm nhưng bỏ sót function privilege.
+
+Khi thêm/đổi RPC liên quan evidence:
+
+- audit `has_function_privilege` cho `anon`, `authenticated`, `service_role`;
+- kiểm tra function nhận owner ID có thể trở thành arbitrary-owner read/write hay không;
+- nếu application dùng admin/secret client, đừng dựa vào user `auth.uid()` ở service-only persistence primitive;
+- canonical target/answer/evaluation fact phải đến từ server-owned state hoặc immutable blueprint, không từ field browser có thể tự chọn;
+- single-use claims cần atomic consume + write, không phải “GET rồi UPDATE” tách rời dễ race/replay;
+- route ownership check không thay structural FK/RLS/function privilege proof.
 
 ---
 
