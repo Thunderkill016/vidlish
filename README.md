@@ -40,8 +40,10 @@ PR #42 đã thêm pagination đầy đủ cho transcript và permitted-segment r
 
 Đọc trước khi phát triển:
 
+- [`AGENTS.md`](./AGENTS.md) — trạng thái chương trình, invariant và protocol làm việc;
+- [`.specify/memory/constitution.md`](./.specify/memory/constitution.md) — luật bền vững của sản phẩm/kỹ thuật;
 - [`HANDOVER.md`](./HANDOVER.md) — invariant, bẫy production và kiến thức đắt tiền;
-- [`continuous-development-plan.md`](./_bmad-output/planning-artifacts/continuous-development-plan.md) — backlog và việc hiện tại.
+- [`docs/archive/bmad/`](./docs/archive/bmad/) — artifact BMAD cũ, chỉ dùng để tra lịch sử.
 
 ## Học như thế nào
 
@@ -170,27 +172,21 @@ journeys và CI gate. Fixtures không chứng minh provider thật; thay đổi 
 
 Local `pnpm build` cần `CI=true` cùng các biến env trong `.github/workflows/ci.yml`.
 
-## BMAD cho Codex
+## Spec Kit cho phát triển
 
-BMAD được cấu hình ở phiên bản `6.10.0`, module `bmm`, tích hợp qua `.agents/skills/`.
+Vidlish dùng Spec Kit làm workflow phát triển đang hoạt động. Luật bền vững nằm ở
+`.specify/memory/constitution.md`; mỗi thay đổi có scope đáng kể dùng artifact dưới
+`specs/<feature>/`.
 
-```bash
-chmod +x install-bmad.sh
-./install-bmad.sh
+Luồng mặc định:
+
+```text
+constitution → specify → clarify → plan → checklist → tasks → analyze → implement → converge
 ```
 
-Windows PowerShell:
+Không copy constitution vào từng template/agent. Agent đọc constitution hiện tại trực tiếp,
+rồi đọc spec/plan/tasks của feature đang làm và `AGENTS.md`.
 
-```powershell
-Set-ExecutionPolicy -Scope Process Bypass
-.\install-bmad.ps1
-```
-
-Hoặc:
-
-```bash
-pnpm bmad:install
-```
-
-Planning artifacts nằm trong `_bmad-output/planning-artifacts/`; sprint/story artifacts nằm
-trong `_bmad-output/implementation-artifacts/`.
+Artifact BMAD trước đây được lưu nguyên dưới `docs/archive/bmad/` để tra lịch sử. Chúng không
+còn là source of truth và không được dùng để ghi đè product docs, constitution, feature spec hay
+code/tests hiện tại.
