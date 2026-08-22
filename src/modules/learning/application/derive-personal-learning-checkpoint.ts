@@ -25,41 +25,50 @@ export type PersonalLearningCheckpoint = {
 /**
  * Projects the strongest personal learning claim the durable evidence can make.
  *
- * This is deliberately stricter than a progress score. Exposure, lesson
- * completion, scheduler state, attempt count and supported success are useful
- * operational facts, but none of them upgrades the capability checkpoint.
+ * Beginner `knownWords()` is deliberately narrow in this codebase: it contains
+ * only words the learner has independently produced with support closed. That
+ * makes its count legitimate independent evidence, even before the learner has
+ * any source-lesson review item.
+ *
+ * Everything stronger still requires the durable review-item chain. Exposure,
+ * lesson completion, scheduler state, attempt count and supported success are
+ * useful operational facts, but none of them upgrades the checkpoint.
  *
  * The stages are monotonic in claim strength:
  *
- * durable item exists
- *   -> correct independent production
- *   -> independent production + successful changed-context use
- *   -> the same evidence chain survives a delayed transfer
+ * independent beginner/source production
+ *   -> independent source production + successful changed-context use
+ *   -> the same source evidence chain survives a delayed transfer
  *
  * A row with internally inconsistent timestamps is never allowed to skip a
  * weaker prerequisite just because a stronger-looking timestamp is present.
  */
-export function derivePersonalLearningCheckpoint(
-  items: readonly LearningReviewItemState[],
-): PersonalLearningCheckpoint {
-  const independent = items.filter((item) => item.lastIndependentAt !== null);
-  const transferred = items.filter(
+export function derivePersonalLearningCheckpoint(input: {
+  readonly items: readonly LearningReviewItemState[];
+  readonly beginnerIndependentCount: number;
+}): PersonalLearningCheckpoint {
+  const independentItems = input.items.filter(
+    (item) => item.lastIndependentAt !== null,
+  );
+  const transferred = input.items.filter(
     (item) =>
       item.lastIndependentAt !== null && item.transferSucceededAt !== null,
   );
-  const delayedTransfer = items.filter(
+  const delayedTransfer = input.items.filter(
     (item) =>
       item.lastIndependentAt !== null &&
       item.transferSucceededAt !== null &&
       item.lastDelayedTransferAt !== null,
   );
+  const independentCount =
+    input.beginnerIndependentCount + independentItems.length;
 
   if (delayedTransfer.length > 0) {
     return {
       stage: "delayed_transfer",
       nextAction: "continue_learning",
-      itemCount: items.length,
-      independentCount: independent.length,
+      itemCount: input.items.length,
+      independentCount,
       transferredCount: transferred.length,
       delayedTransferCount: delayedTransfer.length,
     };
@@ -69,19 +78,19 @@ export function derivePersonalLearningCheckpoint(
     return {
       stage: "changed_context_transfer",
       nextAction: "complete_delayed_review",
-      itemCount: items.length,
-      independentCount: independent.length,
+      itemCount: input.items.length,
+      independentCount,
       transferredCount: transferred.length,
       delayedTransferCount: 0,
     };
   }
 
-  if (independent.length > 0) {
+  if (independentCount > 0) {
     return {
       stage: "independent_retrieval",
       nextAction: "use_changed_context",
-      itemCount: items.length,
-      independentCount: independent.length,
+      itemCount: input.items.length,
+      independentCount,
       transferredCount: 0,
       delayedTransferCount: 0,
     };
@@ -89,8 +98,9 @@ export function derivePersonalLearningCheckpoint(
 
   return {
     stage: "building_evidence",
-    nextAction: items.length > 0 ? "retrieve_without_support" : "start_learning",
-    itemCount: items.length,
+    nextAction:
+      input.items.length > 0 ? "retrieve_without_support" : "start_learning",
+    itemCount: input.items.length,
     independentCount: 0,
     transferredCount: 0,
     delayedTransferCount: 0,
