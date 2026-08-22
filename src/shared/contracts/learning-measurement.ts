@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { learningRuntimeErrorKindSchema } from "@/shared/contracts/learning-product-events";
+import { persistedLearningSupportStepSchema } from "@/shared/contracts/privacy-safe-learning-evidence";
 
 const entityIdSchema = z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/);
 const verdictSchema = z.enum(["correct", "incorrect", "self_check", "unscored"]);
@@ -14,12 +15,21 @@ const attemptMetricSchema = z
   })
   .strict();
 
+const activitySupportMetricSchema = z
+  .object({
+    activityId: entityIdSchema,
+    playbackCount: z.number().int().nonnegative(),
+    openedSupportSteps: z.array(persistedLearningSupportStepSchema),
+  })
+  .strict();
+
 export const learningMeasurementSummarySchema = z
   .object({
     sessionId: z.string().uuid(),
     status: z.enum(["not_started", "in_progress", "completed", "abandoned"]),
     sessionViewed: z.boolean(),
     completed: z.boolean(),
+    observedElapsedSeconds: z.number().int().nonnegative().nullable(),
     lastKnownActivityId: entityIdSchema,
     incompleteAtLastKnownActivity: entityIdSchema.nullable(),
     firstSource: z
@@ -30,6 +40,7 @@ export const learningMeasurementSummarySchema = z
         replayed: z.boolean(),
       })
       .strict(),
+    gist: attemptMetricSchema,
     targetNotice: z
       .object({
         activityId: entityIdSchema.nullable(),
@@ -45,6 +56,7 @@ export const learningMeasurementSummarySchema = z
     retrieval: attemptMetricSchema,
     transfer: attemptMetricSchema,
     afterListen: attemptMetricSchema,
+    supportByActivity: z.array(activitySupportMetricSchema),
     totalSupportStepsOpened: z.number().int().nonnegative(),
     runtimeErrors: z.array(learningRuntimeErrorKindSchema),
   })
