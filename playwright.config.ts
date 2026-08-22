@@ -18,6 +18,8 @@ const configuredBetaEmails =
     "learning-preview@example.com",
     "v2lab-chromium@example.com",
     "v2lab-mobile-chromium@example.com",
+    "beginner-chromium@example.com",
+    "beginner-mobile-chromium@example.com",
   ].join(",");
 
 export default defineConfig({

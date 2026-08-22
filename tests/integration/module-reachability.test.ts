@@ -34,22 +34,10 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
-  // The first rung of the A0 on-ramp: which words a learner starting from zero
-  // should meet next. Nothing routes to it because the beginner track has no
-  // route yet — the artifact and the ordering are the part that had to be right
-  // first, and getting the order of the first thousand words wrong costs more
-  // than any screen built on top of it.
-  //
-  // This list is self-cleaning: the entry has to leave the moment a route
-  // reaches it, so it cannot quietly describe a past that is over.
-  "src/modules/learning/application/select-next-vocabulary.ts":
-    "A0 beginner track — no route yet",
-  "src/modules/learning/application/check-comprehensible-input.ts":
-    "A0 beginner track — no route yet",
-  "src/modules/learning/application/compose-beginner-input.ts":
-    "A0 beginner track — no route yet",
-  "src/modules/learning/application/retrieve-beginner-input.ts":
-    "A0 beginner track — no route yet",
+  // This list is self-cleaning: an entry has to leave the moment a route
+  // reaches it, so it cannot quietly describe a past that is over. The four
+  // A0 modules that used to sit here left when /start shipped, which is the
+  // only evidence that matters that they are no longer inert.
 };
 
 function listSourceFiles(dir: string): string[] {
