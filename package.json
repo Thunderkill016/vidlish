@@ -18,7 +18,8 @@
     "test:watch": "vitest",
     "test:e2e": "playwright test",
     "test:db": "supabase test db",
-    "db:local": "node scripts/local-schema.mjs"
+    "db:local": "node scripts/local-schema.mjs",
+    "study:golden": "node scripts/golden-study-harness.mjs"
   },
   "dependencies": {
     "@google/genai": "^2.15.0",

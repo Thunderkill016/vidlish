@@ -34,8 +34,8 @@
 ## Slice F — Verification and merge gate
 
 - [x] F1 Adversarial review for PII, raw content, threshold drift and misleading learning/payment claims.
-- [ ] F2 Run typecheck, lint, unit tests and build; rely on full repository PR CI for final gate.
-- [ ] F3 Open PR and merge only the exact reviewed head after every required job is green.
+- [x] F2 Run typecheck, lint, unit tests and build; rely on full repository PR CI for final gate. PR #127 exact head `5c6c82e720bad95e0cfd25fbf2958a77c06068c9` passed CI run #469, including typecheck/lint, unit, production build, database/RLS, Chromium and durable Supabase learning journey.
+- [x] F3 Open PR and merge only the exact reviewed head after every required job is green. PR #127 was squash-merged as `333bc47a288093b2be225fe1c97c0ef45b980eec` after CI #469 succeeded on that exact reviewed head.
 
 ## Explicitly deferred
 
