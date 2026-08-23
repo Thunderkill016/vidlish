@@ -22,8 +22,14 @@ function formString(form: FormData, key: string): string | null {
 export async function POST(request: NextRequest) {
   try {
     assertSameOrigin(request);
-    const contentLength = Number(request.headers.get("content-length") ?? "0");
-    if (Number.isFinite(contentLength) && contentLength > MAX_MULTIPART_BYTES) {
+    const contentLengthHeader = request.headers.get("content-length");
+    const contentLength = Number(contentLengthHeader);
+    if (
+      !contentLengthHeader ||
+      !Number.isFinite(contentLength) ||
+      contentLength <= 0 ||
+      contentLength > MAX_MULTIPART_BYTES
+    ) {
       throw authErrors.rejected();
     }
 
