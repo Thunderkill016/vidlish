@@ -83,15 +83,16 @@ export default async function ProgressPage() {
       <section className="space-y-4" aria-labelledby="skills-heading">
         <div className="space-y-1">
           <p className="text-sm font-semibold text-[var(--accent)]">
-            Four-skill evidence · {fourSkillProgress.totalObservations} observation(s)
+            Four-skill evidence · {fourSkillProgress.totalObservations} projected record(s)
           </p>
           <h2 id="skills-heading" className="text-2xl font-bold">
             Nghe · Đọc · Nói · Viết
           </h2>
           <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Đây là số lần evidence durable được quan sát, không phải điểm CEFR hay
-            phần trăm thành thạo. Attempt lặp lại vẫn là attempt lặp lại — trang này
-            không biến event count thành proficiency score.
+            Các số bên dưới là projected evidence records, không phải số attempt,
+            điểm CEFR hay phần trăm thành thạo. Beginner evidence được giữ dạng
+            aggregate theo item còn lesson evidence đến từ durable attempts, nên
+            không dùng volume giữa các skill để xếp hạng năng lực.
           </p>
         </div>
 
@@ -115,25 +116,33 @@ export default async function ProgressPage() {
 
                 <dl className="grid grid-cols-2 gap-3 text-sm">
                   <div className="rounded-xl bg-[var(--muted)] p-3">
-                    <dt className="text-[var(--muted-foreground)]">Objective · độc lập</dt>
+                    <dt className="text-[var(--muted-foreground)]">
+                      Objective · độc lập
+                    </dt>
                     <dd className="mt-1 text-2xl font-bold">
                       {skill.objectiveIndependentSuccesses}
                     </dd>
                   </div>
                   <div className="rounded-xl bg-[var(--muted)] p-3">
-                    <dt className="text-[var(--muted-foreground)]">Objective · có trợ giúp</dt>
+                    <dt className="text-[var(--muted-foreground)]">
+                      Objective · có trợ giúp
+                    </dt>
                     <dd className="mt-1 text-2xl font-bold">
                       {skill.objectiveSupportedSuccesses}
                     </dd>
                   </div>
                   <div className="rounded-xl bg-[var(--muted)] p-3">
-                    <dt className="text-[var(--muted-foreground)]">Objective · chưa đạt</dt>
+                    <dt className="text-[var(--muted-foreground)]">
+                      Objective · chưa đạt
+                    </dt>
                     <dd className="mt-1 text-2xl font-bold">
                       {skill.objectiveFailures}
                     </dd>
                   </div>
                   <div className="rounded-xl bg-[var(--muted)] p-3">
-                    <dt className="text-[var(--muted-foreground)]">Self-check / chưa chấm</dt>
+                    <dt className="text-[var(--muted-foreground)]">
+                      Self-check / chưa chấm
+                    </dt>
                     <dd className="mt-1 text-2xl font-bold">
                       {skill.unscoredObservations}
                     </dd>
@@ -185,7 +194,9 @@ export default async function ProgressPage() {
           </Card>
           <Card className="space-y-1 p-5">
             <p className="text-3xl font-bold">{capability.encountered.length}</p>
-            <p className="text-sm font-semibold">Mới gặp / chưa retrieval thành công</p>
+            <p className="text-sm font-semibold">
+              Mới gặp / chưa retrieval thành công
+            </p>
             <p className="text-sm text-[var(--muted-foreground)]">
               Exposure không được đổi thành khả năng dùng ngôn ngữ.
             </p>
