@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { learningCapabilityObservationSchema } from "@/shared/contracts/learning-capability";
 import { learningRuntimeErrorKindSchema } from "@/shared/contracts/learning-product-events";
 import { persistedLearningSupportStepSchema } from "@/shared/contracts/privacy-safe-learning-evidence";
 
@@ -62,6 +63,26 @@ export const learningMeasurementSummarySchema = z
   })
   .strict();
 
+/**
+ * Owner-scoped durable evidence for one lesson session.
+ *
+ * Product telemetry remains a separate concept from capability evidence. The
+ * response extends the existing measurement payload rather than teaching the
+ * telemetry summariser to make language-skill claims. Observations contain no
+ * learner free text, transcript or audio and are projected at read time from
+ * immutable blueprint + privacy-safe attempts/support events.
+ */
+export const learningSessionMeasurementResponseSchema =
+  learningMeasurementSummarySchema
+    .extend({
+      capabilityObservations: z.array(learningCapabilityObservationSchema),
+    })
+    .strict();
+
 export type LearningMeasurementSummary = z.infer<
   typeof learningMeasurementSummarySchema
+>;
+
+export type LearningSessionMeasurementResponse = z.infer<
+  typeof learningSessionMeasurementResponseSchema
 >;
