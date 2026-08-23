@@ -10,7 +10,7 @@ export const learningSkillSchema = z.enum([
 export type LearningSkill = z.infer<typeof learningSkillSchema>;
 
 /**
- * Whether the measured success happened after bounded help was opened.
+ * Whether bounded help was open while the observation was produced.
  *
  * `independent` is stronger evidence, not a synonym for mastery.
  */
@@ -30,6 +30,21 @@ export const learningResponseModeSchema = z.enum([
 ]);
 export type LearningResponseMode = z.infer<typeof learningResponseModeSchema>;
 
+/**
+ * How strongly the product verified the observation.
+ *
+ * Only `objective` evidence may claim success/failure. Self-check and
+ * self-report observations are still useful history, but they remain unscored.
+ */
+export const learningCapabilityVerificationSchema = z.enum([
+  "objective",
+  "self_check",
+  "self_report",
+]);
+export type LearningCapabilityVerification = z.infer<
+  typeof learningCapabilityVerificationSchema
+>;
+
 export const learningCapabilityEvidenceKindSchema = z.enum([
   "beginner_dictation",
   "lesson_activity",
@@ -41,9 +56,9 @@ export type LearningCapabilityEvidenceKind = z.infer<
 /**
  * One privacy-safe observation about a skill.
  *
- * This object records what a task actually measured. It intentionally carries
- * no learner free text, transcript, audio or generated answer key. Consumers
- * must not infer capability for `responseMode`; only `targetSkill` is measured.
+ * This records what a task actually measured without learner free text,
+ * transcript, audio or generated answer keys. Consumers must not infer
+ * capability for `responseMode`; only `targetSkill` is measured.
  */
 export const learningCapabilityObservationSchema = z
   .object({
@@ -51,11 +66,25 @@ export const learningCapabilityObservationSchema = z
     targetSkill: learningSkillSchema,
     support: learningSupportLevelSchema,
     responseMode: learningResponseModeSchema,
-    outcome: z.enum(["successful", "unsuccessful"]),
+    verification: learningCapabilityVerificationSchema,
+    outcome: z.enum(["successful", "unsuccessful", "unscored"]),
     evidenceKind: learningCapabilityEvidenceKindSchema,
     observedAt: z.string().datetime({ offset: true }),
   })
-  .strict();
+  .strict()
+  .superRefine((observation, context) => {
+    if (
+      observation.verification !== "objective" &&
+      observation.outcome !== "unscored"
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["outcome"],
+        message:
+          "Self-check and self-report evidence cannot claim successful or unsuccessful capability.",
+      });
+    }
+  });
 
 export type LearningCapabilityObservation = z.infer<
   typeof learningCapabilityObservationSchema
