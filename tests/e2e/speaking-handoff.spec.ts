@@ -18,7 +18,7 @@ test("completed lesson UI hands the exact session to speaking practice", async (
   await login(page);
   await page.goto("/learning-lab/v2");
 
-  const storageKey = await expect
+  await expect
     .poll(() =>
       page.evaluate(
         () =>
@@ -27,15 +27,13 @@ test("completed lesson UI hands the exact session to speaking practice", async (
           ) ?? null,
       ),
     )
-    .not.toBeNull()
-    .then(() =>
-      page.evaluate(
-        () =>
-          Object.keys(window.localStorage).find((key) =>
-            key.startsWith("vidlish:learning-lab:v4:"),
-          ) ?? null,
-      ),
-    );
+    .not.toBeNull();
+  const storageKey = await page.evaluate(
+    () =>
+      Object.keys(window.localStorage).find((key) =>
+        key.startsWith("vidlish:learning-lab:v4:"),
+      ) ?? null,
+  );
   expect(storageKey).toBeTruthy();
 
   await page.evaluate(
