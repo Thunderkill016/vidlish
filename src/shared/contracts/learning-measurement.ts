@@ -60,6 +60,13 @@ export const learningMeasurementSummarySchema = z
     supportByActivity: z.array(activitySupportMetricSchema),
     totalSupportStepsOpened: z.number().int().nonnegative(),
     runtimeErrors: z.array(learningRuntimeErrorKindSchema),
+    // Backward-compatible for existing telemetry consumers such as the Gate 5
+    // study evaluator: old summaries without capability evidence still parse,
+    // while a full /measurement response can be pasted without being rejected
+    // by this otherwise-strict contract.
+    capabilityObservations: z
+      .array(learningCapabilityObservationSchema)
+      .optional(),
   })
   .strict();
 
@@ -67,10 +74,11 @@ export const learningMeasurementSummarySchema = z
  * Owner-scoped durable evidence for one lesson session.
  *
  * Product telemetry remains a separate concept from capability evidence. The
- * response extends the existing measurement payload rather than teaching the
- * telemetry summariser to make language-skill claims. Observations contain no
- * learner free text, transcript or audio and are projected at read time from
- * immutable blueprint + privacy-safe attempts/support events.
+ * API response requires observations, while the base telemetry summary keeps
+ * them optional so existing summaries and Gate 5 study records remain valid.
+ * Observations contain no learner free text, transcript or audio and are
+ * projected at read time from immutable blueprint + privacy-safe
+ * attempts/support events.
  */
 export const learningSessionMeasurementResponseSchema =
   learningMeasurementSummarySchema
