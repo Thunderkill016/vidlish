@@ -102,7 +102,10 @@ function policyForActivity(activity: LearningActivity): ActivityLearningPolicy {
           // ladder before scoring.
           taskScope: "capability",
           support: null,
-          retry: RETRY,
+          // Capability corrections require doing the whole task again. A
+          // same-item patch would let the learner fix only one option after the
+          // answer was exposed and would no longer measure passage gist.
+          retry: { ...RETRY, retryScope: "full_task" },
           transfer: null,
         };
       }
