@@ -102,6 +102,9 @@ begin
   if v_session.id is null then
     raise exception 'owned lesson session not found';
   end if;
+  if v_session.status <> 'completed' or v_session.completed_at is null then
+    raise exception 'speaking capture requires completed lesson session';
+  end if;
 
   select version.blueprint into v_blueprint
   from public.lesson_versions version
