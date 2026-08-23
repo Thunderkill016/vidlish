@@ -30,7 +30,7 @@ describe("projectBeginnerCapabilityEvidence", () => {
 
     expect(projection.observations).toEqual([
       {
-        itemKey: "water",
+        subject: { kind: "language_item", key: "water" },
         targetSkill: "listening",
         support: "independent",
         responseMode: "writing",
@@ -51,6 +51,7 @@ describe("projectBeginnerCapabilityEvidence", () => {
     );
 
     expect(projection.observations[0]).toMatchObject({
+      subject: { kind: "language_item", key: "water" },
       targetSkill: "listening",
       support: "supported",
       responseMode: "writing",
