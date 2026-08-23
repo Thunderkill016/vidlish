@@ -32,7 +32,7 @@ const sessionRowSchema = z
 const versionRowSchema = z
   .object({
     id: z.string().uuid(),
-    blueprint: lessonBlueprintV2Schema,
+    blueprint: z.unknown(),
   })
   .strict();
 
@@ -191,12 +191,13 @@ export class SupabaseLearningCapabilityProgressReader {
           `Capability evidence attempt ${row.id} has no owner-scoped lesson session.`,
         );
       }
-      const blueprint = versionsById.get(session.lesson_version_id);
-      if (!blueprint) {
+      const blueprintCandidate = versionsById.get(session.lesson_version_id);
+      if (!blueprintCandidate) {
         throw new Error(
           `Capability evidence session ${session.id} has no owner-scoped lesson blueprint.`,
         );
       }
+      const blueprint = lessonBlueprintV2Schema.parse(blueprintCandidate);
 
       const attempt = privacySafeActivityAttemptSchema.parse({
         id: row.id,
