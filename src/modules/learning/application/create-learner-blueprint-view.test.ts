@@ -33,4 +33,25 @@ describe("createLearnerBlueprintView", () => {
       expect(gist.evidence[0].sourceSegmentIds[0]).toMatch(/^seg_/);
     }
   });
+
+  it("injects canonical source text only into the lexical reading prompt", () => {
+    const blueprint = createFixtureLearningBlueprint();
+    const view = createLearnerBlueprintView(blueprint);
+    const sourceText = "I'm a member of the Developer Relations team.";
+    const gist = view.activities.find(
+      (activity) => activity.activityType === "gist_choice",
+    );
+    const meaning = view.activities.find(
+      (activity) => activity.activityType === "meaning_in_context",
+    );
+
+    expect(gist?.promptVi).not.toContain(sourceText);
+    expect(meaning?.promptVi).toContain(`“${sourceText}”`);
+    expect(meaning?.promptVi).toContain(
+      "Trong đoạn này, a member of dùng để làm gì?",
+    );
+    // The catalog itself stays server-side; only the exact reading stimulus is
+    // projected into this one learner activity.
+    expect("evidenceCatalog" in view).toBe(false);
+  });
 });
