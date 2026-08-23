@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(16);
 
 select has_table(
   'public',
@@ -207,6 +207,22 @@ select throws_ok(
   )$$,
   'invalid speaking capture receipt',
   'capture cannot be saved before replay self-check'
+);
+
+update public.lesson_sessions
+set status = 'active', completed_at = null, current_phase = 'transfer', current_activity_id = 'activity_transfer'
+where id = 'c7777777-7777-4777-8777-777777777777';
+
+select throws_ok(
+  $$select * from public.record_learning_speaking_attempt(
+    'c1111111-1111-4111-8111-111111111111',
+    'c7777777-7777-4777-8777-777777777777',
+    'activity_transfer',
+    'c9999999-9999-4999-8999-999999999997',
+    2400, 9000, 'audio/webm', true, true
+  )$$,
+  'speaking capture requires completed lesson session',
+  'in-progress lesson cannot mint speaking practice evidence'
 );
 
 select * from finish();
