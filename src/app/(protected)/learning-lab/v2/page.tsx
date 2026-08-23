@@ -9,6 +9,7 @@ import { createIdentityService } from "@/platform/identity/create-identity-servi
 import { bindVerifiedLearningMedia } from "@/shared/contracts/learning-media";
 import { validateLearningRuntimePolicyAgainstBlueprint } from "@/shared/contracts/learning-policy-v2";
 import { LearningSessionLab } from "./_components/learning-session-lab";
+import { SpeakingCompletionHandoff } from "./_components/speaking-completion-handoff";
 
 export const dynamic = "force-dynamic";
 
@@ -47,6 +48,7 @@ export default async function LearningModelV2LabPage() {
         policy={policy}
         supportCopy={fixtureLearningSupportCopy}
       />
+      <SpeakingCompletionHandoff blueprintId={learnerView.blueprintId} />
     </div>
   );
 }
