@@ -2,7 +2,7 @@
 
 ## Approach
 
-Add a small shared capability contract and a conservative beginner-evidence projector before changing learner routing or database shape again.
+Add a small shared capability contract and extend the existing capability-summary application module with a conservative beginner-evidence projection before changing learner routing or database shape again.
 
 The model deliberately separates:
 
@@ -17,7 +17,7 @@ This prevents an integrated task from accidentally promoting every channel it to
 ## Implementation
 
 1. Add `src/shared/contracts/learning-capability.ts` with strict Zod schemas for the four skills, support level, response mode and observation shape.
-2. Add `project-beginner-capability-evidence.ts` to project only trustworthy current beginner evidence.
+2. Extend `summarise-capability-evidence.ts` with a beginner evidence projector so the new logic stays inside an already wired application boundary.
 3. Map durable dictation to `targetSkill: listening`, `responseMode: writing`.
 4. Keep existing productive retrieval visible as `unclassifiedProductiveRetrievals`; do not infer speaking or writing from it.
 5. Add unit tests for independent/supported dictation, response-mode separation and fail-closed legacy evidence.

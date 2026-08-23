@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { BeginnerWordEvidence } from "@/modules/learning/ports/beginner-progress-repository";
 
-import { projectBeginnerCapabilityEvidence } from "./project-beginner-capability-evidence";
+import { projectBeginnerCapabilityEvidence } from "./summarise-capability-evidence";
 
 function evidence(
   overrides: Partial<BeginnerWordEvidence> = {},
