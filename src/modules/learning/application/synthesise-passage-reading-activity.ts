@@ -6,6 +6,11 @@ import type { CanonicalTranscript } from "@/shared/contracts/transcript";
 const MIN_PASSAGE_WORDS = 8;
 const MAX_PASSAGE_CHARS = 4_000;
 
+type GistChoiceDraft = Extract<
+  LearningAuthoringDraftV2["activities"][number],
+  { activityType: "gist_choice" }
+>;
+
 function normalize(text: string): string {
   return text.trim().toLocaleLowerCase("vi").replace(/\s+/g, " ");
 }
@@ -28,7 +33,7 @@ export function synthesisePassageReadingActivity(input: {
   blueprintId: string;
 }): LearningActivity | null {
   const listeningGist = input.draft.activities.find(
-    (activity) =>
+    (activity): activity is GistChoiceDraft =>
       activity.activityType === "gist_choice" &&
       activity.captionPolicy === "hidden_first",
   );
