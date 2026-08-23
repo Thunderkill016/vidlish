@@ -83,7 +83,7 @@ function supportEvent(occurredAt: string): PrivacySafeLearningSupportEvent {
 }
 
 describe("projectLessonActivityCapabilityEvidence", () => {
-  it("projects an objectively correct typed recall as writing success", () => {
+  it("projects an objectively correct typed recall as item-scoped writing success", () => {
     expect(
       projectLessonActivityCapabilityEvidence({
         blueprint: chunkBlueprint(),
@@ -92,7 +92,7 @@ describe("projectLessonActivityCapabilityEvidence", () => {
       }),
     ).toEqual([
       {
-        itemKey: "water",
+        subject: { kind: "language_item", key: "water" },
         targetSkill: "writing",
         support: "independent",
         responseMode: "writing",
@@ -112,6 +112,7 @@ describe("projectLessonActivityCapabilityEvidence", () => {
         supportEvents: [],
       })[0],
     ).toMatchObject({
+      subject: { kind: "language_item", key: "water" },
       targetSkill: "writing",
       verification: "objective",
       outcome: "unsuccessful",
@@ -149,7 +150,7 @@ describe("projectLessonActivityCapabilityEvidence", () => {
     ).toBe("independent");
   });
 
-  it("records guided transfer as writing self-check history, never success", () => {
+  it("records multi-item guided transfer once at activity scope, never as item mastery", () => {
     const observations = projectLessonActivityCapabilityEvidence({
       blueprint: guidedTransferBlueprint(),
       attempt: attempt({
@@ -160,19 +161,18 @@ describe("projectLessonActivityCapabilityEvidence", () => {
       supportEvents: [],
     });
 
-    expect(observations.map((observation) => observation.itemKey)).toEqual([
-      "water",
-      "please",
-    ]);
-    expect(observations).toEqual(
-      observations.map((observation) => ({
-        ...observation,
+    expect(observations).toEqual([
+      {
+        subject: { kind: "activity", key: "transfer_water" },
         targetSkill: "writing",
+        support: "independent",
         responseMode: "writing",
         verification: "self_check",
         outcome: "unscored",
-      })),
-    );
+        evidenceKind: "lesson_activity",
+        observedAt: "2026-08-23T09:00:00.000Z",
+      },
+    ]);
   });
 
   it("does not guess a skill for current choice activities", () => {
