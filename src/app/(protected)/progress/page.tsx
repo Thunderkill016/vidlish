@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
@@ -33,8 +34,8 @@ const SKILL_COPY: Record<
   speaking: {
     title: "Nói",
     description:
-      "Vidlish chưa có speaking task + verifier đủ tin cậy. Typed answer, self-check và legacy productive retrieval đều không được đổi nhãn thành speaking.",
-    empty: "0 là đúng: chưa có speaking evidence được verify.",
+      "Speaking capture dùng microphone thật và lưu self-check chưa chấm. Raw audio không được lưu hay gửi AI; objective speaking vẫn bằng 0 cho tới khi có verifier đủ tin cậy.",
+    empty: "Chưa có speaking capture được lưu.",
   },
   writing: {
     title: "Viết",
@@ -154,6 +155,15 @@ export default async function ProgressPage() {
                     {copy.empty}
                   </p>
                 ) : null}
+
+                {skill.skill === "speaking" ? (
+                  <Link
+                    href="/learning-lab/v2/speaking"
+                    className="inline-flex min-h-11 items-center rounded-xl border border-[var(--border)] px-4 py-2 text-sm font-semibold"
+                  >
+                    Luyện nói bằng microphone
+                  </Link>
+                ) : null}
               </Card>
             );
           })}
@@ -232,9 +242,9 @@ export default async function ProgressPage() {
         </div>
         <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
           Four-skill cards được dựng lại từ immutable lesson blueprint,
-          privacy-safe attempts, support events và beginner dictation evidence. Không
-          có bảng mastery thứ hai và không đọc raw learner text, transcript hay audio
-          để dựng progress page.
+          privacy-safe attempts, support events, beginner dictation evidence và
+          speaking capture receipt metadata. Progress page không đọc raw learner text,
+          transcript hay audio và không có bảng mastery thứ hai.
         </p>
       </Card>
     </div>
