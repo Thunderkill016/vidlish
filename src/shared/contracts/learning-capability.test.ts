@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { learningCapabilityObservationSchema } from "./learning-capability";
 
 const baseObservation = {
-  itemKey: "water",
+  subject: { kind: "language_item" as const, key: "water" },
   targetSkill: "listening" as const,
   support: "independent" as const,
   responseMode: "writing" as const,
@@ -20,6 +20,27 @@ describe("learningCapabilityObservationSchema", () => {
       responseMode: "writing",
       verification: "objective",
     });
+  });
+
+  it("supports activity-scoped evidence without pretending it belongs to a language item", () => {
+    expect(
+      learningCapabilityObservationSchema.parse({
+        ...baseObservation,
+        subject: { kind: "activity", key: "reading_focus_one" },
+        targetSkill: "reading",
+        responseMode: "selection",
+        evidenceKind: "lesson_activity",
+      }).subject,
+    ).toEqual({ kind: "activity", key: "reading_focus_one" });
+  });
+
+  it("rejects malformed activity subjects", () => {
+    expect(
+      learningCapabilityObservationSchema.safeParse({
+        ...baseObservation,
+        subject: { kind: "activity", key: "Bad Activity ID" },
+      }).success,
+    ).toBe(false);
   });
 
   it("rejects invented fifth skills", () => {
@@ -47,6 +68,7 @@ describe("learningCapabilityObservationSchema", () => {
     expect(
       learningCapabilityObservationSchema.parse({
         ...baseObservation,
+        subject: { kind: "activity", key: "transfer_water" },
         targetSkill: "writing",
         verification: "self_check",
         outcome: "unscored",
