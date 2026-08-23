@@ -82,7 +82,7 @@ export function projectBeginnerCapabilityEvidence(
     const independent = evidence.lastIndependentDictationAt !== null;
     observations.push(
       learningCapabilityObservationSchema.parse({
-        itemKey: evidence.word,
+        subject: { kind: "language_item", key: evidence.word },
         targetSkill: "listening",
         support: independent ? "independent" : "supported",
         responseMode: "writing",
@@ -123,8 +123,9 @@ function supportWasOpenBeforeAttempt(input: {
  * - `chunk_recall` is an objectively checked typed production of one target
  *   item, so it can create item-level writing success/failure evidence.
  * - `guided_transfer` is genuinely written production, but the evaluator is a
- *   learner self-check. It is retained as an unscored writing observation and
- *   can never claim success/failure.
+ *   learner self-check across the whole changed-context task. Keep it at
+ *   activity scope so checking a multi-item task cannot inflate every target
+ *   item's mastery.
  * - Choice/reflection activities are left unprojected here because the current
  *   blueprint does not prove whether they measured listening or reading.
  */
@@ -160,7 +161,7 @@ export function projectLessonActivityCapabilityEvidence(input: {
 
     return [
       learningCapabilityObservationSchema.parse({
-        itemKey: target.itemKey,
+        subject: { kind: "language_item", key: target.itemKey },
         targetSkill: "writing",
         support: supported ? "supported" : "independent",
         responseMode: "writing",
@@ -179,17 +180,9 @@ export function projectLessonActivityCapabilityEvidence(input: {
     if (input.attempt.responseEvidence.kind !== "self_check") return [];
     if (input.attempt.evaluation.verdict !== "self_check") return [];
 
-    const targetKeys = activity.targetItemIds
-      .map(
-        (targetId) =>
-          input.blueprint.targetItems.find((item) => item.id === targetId)
-            ?.itemKey,
-      )
-      .filter((itemKey): itemKey is string => itemKey !== undefined);
-
-    return [...new Set(targetKeys)].map((itemKey) =>
+    return [
       learningCapabilityObservationSchema.parse({
-        itemKey,
+        subject: { kind: "activity", key: activity.id },
         targetSkill: "writing",
         support: supportOpened ? "supported" : "independent",
         responseMode: "writing",
@@ -198,7 +191,7 @@ export function projectLessonActivityCapabilityEvidence(input: {
         evidenceKind: "lesson_activity",
         observedAt: input.attempt.submittedAt,
       }),
-    );
+    ];
   }
 
   return [];
