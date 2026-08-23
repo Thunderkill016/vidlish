@@ -3,9 +3,8 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 
 import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
-import { createLearnerBlueprintView } from "@/modules/learning/application/create-learner-blueprint-view";
+import { selectSpeakingPractice } from "@/modules/learning/application/select-speaking-practice";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
-import { lessonBlueprintV2Schema } from "@/shared/contracts/lesson-v2";
 import { Card } from "@/shared/ui/card";
 import { SpeakingCapturePanel } from "./_components/speaking-capture-panel";
 
@@ -97,34 +96,16 @@ export default async function SpeakingPracticePage({
     : { data: [], error: null };
   if (versionsResult.error) throw versionsResult.error;
 
-  const blueprintsByVersion = new Map(
-    (versionsResult.data ?? []).map((row) => [row.id, row.blueprint] as const),
-  );
-
-  let practice:
-    | {
-        sessionId: string;
-        activity: Extract<
-          ReturnType<typeof createLearnerBlueprintView>["activities"][number],
-          { activityType: "guided_transfer" }
-        >;
-      }
-    | null = null;
-
-  for (const session of sessions) {
-    const rawBlueprint = blueprintsByVersion.get(session.lesson_version_id);
-    if (!rawBlueprint) continue;
-    const parsed = lessonBlueprintV2Schema.safeParse(rawBlueprint);
-    if (!parsed.success) continue;
-    const learnerView = createLearnerBlueprintView(parsed.data);
-    const activity = learnerView.activities.find(
-      (candidate) => candidate.activityType === "guided_transfer",
-    );
-    if (activity?.activityType === "guided_transfer") {
-      practice = { sessionId: session.id, activity };
-      break;
-    }
-  }
+  const practice = selectSpeakingPractice({
+    sessions: sessions.map((session) => ({
+      id: session.id,
+      lessonVersionId: session.lesson_version_id,
+    })),
+    blueprintsByVersion: new Map(
+      (versionsResult.data ?? []).map((row) => [row.id, row.blueprint] as const),
+    ),
+    requestedSessionId: requestedSession?.success ? requestedSession.data : null,
+  });
 
   if (!practice) {
     return <EmptySpeakingPractice explicitSession={explicitSession} />;
