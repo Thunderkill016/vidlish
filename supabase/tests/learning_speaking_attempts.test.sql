@@ -91,7 +91,7 @@ insert into public.transcripts (
   'c1111111-1111-4111-8111-111111111111',
   'c3333333-3333-4333-8333-333333333333',
   'c2222222-2222-4222-8222-222222222222',
-  'fixture', 'fixture', 'native_caption', 'en', array['en'],
+  'supadata-native-caption', 'supadata', 'native_caption', 'en', array['en'],
   'unknown', 'unknown', repeat('c', 64), 'transcript-normalization:v1', 10000, 1
 );
 
