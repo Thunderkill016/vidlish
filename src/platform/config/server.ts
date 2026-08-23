@@ -2,6 +2,8 @@ import "server-only";
 
 import { z } from "zod";
 
+import { registeredGeminiModelSupports } from "@/platform/ai/gemini-model-registry";
+
 const serverConfigSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]),
@@ -73,10 +75,10 @@ const serverConfigSchema = z
      * rejected lesson costs its whole generation, so the cheapest model per
      * token is not the cheapest per accepted lesson.
      *
-     * `gemini-3.7-flash` is $0.75 / $3.75 per million against Flash-Lite's
-     * $0.30 / $2.50 — roughly a cent and a half more per lesson, against a
-     * generation thrown away. It is also cheaper than `gemini-3.5-flash`
-     * ($1.50 / $9.00), so this is not simply "spend more".
+     * Keep one explicitly selected production model. The capability registry
+     * can reject a registered endpoint that is known not to author lessons, but
+     * it deliberately does not auto-route or silently fall back to another
+     * model when quota/availability changes.
      */
     LESSON_MODEL_ID: z.string().min(1).default("gemini-3.7-flash"),
     GEMINI_API_KEY: z.string().min(1).optional(),
@@ -174,6 +176,22 @@ const serverConfigSchema = z
         path: ["LEARNING_AUTHORING_PROVIDER"],
         message:
           "The fixture learning authoring provider cannot run in production.",
+      });
+    }
+
+    const geminiAuthoringEnabled =
+      value.LESSON_PROVIDER === "gemini" ||
+      value.LEARNING_AUTHORING_PROVIDER === "gemini";
+    if (
+      geminiAuthoringEnabled &&
+      registeredGeminiModelSupports(value.LESSON_MODEL_ID, "lesson_authoring") ===
+        false
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["LESSON_MODEL_ID"],
+        message:
+          "The registered Gemini model does not support Vidlish lesson authoring.",
       });
     }
   });
