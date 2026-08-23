@@ -1,3 +1,5 @@
+import { deriveCanonicalReadingContext } from "./derive-canonical-reading-context";
+
 import type {
   EvidenceRef,
   LessonBlueprintV2,
@@ -89,36 +91,6 @@ function common(activity: LearningActivity) {
   };
 }
 
-/**
- * Builds the exact English stimulus used by a lexical reading task.
- *
- * The model chooses only canonical evidence ranges. The server resolves those
- * ranges back to the immutable evidence catalog and is the only place that may
- * put source text into the pre-attempt learner view. Listening activities keep
- * the catalog hidden.
- */
-export function canonicalReadingContext(
-  blueprint: LessonBlueprintV2,
-  activity: Extract<LearningActivity, { activityType: "meaning_in_context" }>,
-): string | null {
-  const citedIds = new Set(
-    activity.evidence.flatMap((range) => range.sourceSegmentIds),
-  );
-  if (citedIds.size === 0) return null;
-
-  const cited = blueprint.evidenceCatalog
-    .filter((evidence) => citedIds.has(evidence.segmentId))
-    .sort((left, right) => left.startMs - right.startMs);
-  if (cited.length !== citedIds.size) return null;
-
-  const text = cited.map((evidence) => evidence.text.trim()).join(" ").trim();
-  // A lexical-in-context check should be a short reading stimulus, not a hidden
-  // transcript dump. Fail closed rather than truncate away the phrase or its
-  // context and then still claim reading evidence.
-  if (!text || text.length > 1_800) return null;
-  return text;
-}
-
 export function createLearnerBlueprintView(
   blueprint: LessonBlueprintV2,
 ): LearnerBlueprintView {
@@ -134,7 +106,10 @@ export function createLearnerBlueprintView(
             options: activity.options,
           };
         case "meaning_in_context": {
-          const readingContext = canonicalReadingContext(blueprint, activity);
+          const readingContext = deriveCanonicalReadingContext(
+            blueprint,
+            activity,
+          );
           return {
             ...common(activity),
             phase: activity.phase,
