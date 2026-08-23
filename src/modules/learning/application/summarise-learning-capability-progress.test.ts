@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vitest";
 
-import { learningCapabilityObservationSchema } from "@/shared/contracts/learning-capability";
+import {
+  learningCapabilityObservationSchema,
+  type LearningCapabilityObservation,
+} from "@/shared/contracts/learning-capability";
 
 import { summariseLearningCapabilityProgress } from "./summarise-learning-capability-progress";
 
 const observedAt = "2026-08-23T12:00:00.000Z";
 
 function observation(
-  overrides: Partial<Parameters<typeof learningCapabilityObservationSchema.parse>[0]> = {},
-) {
+  overrides: Partial<LearningCapabilityObservation> = {},
+): LearningCapabilityObservation {
   return learningCapabilityObservationSchema.parse({
     subject: { kind: "activity", key: "reading_gist" },
     targetSkill: "reading",
