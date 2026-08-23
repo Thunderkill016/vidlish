@@ -12,8 +12,9 @@ import type {
  * The beginner evidence store for development and CI.
  *
  * It reproduces the rules that are easy to lose when the production adapter is
- * unavailable: independence only moves forward, a challenge belongs to one
- * learner, and one challenge can create evidence only once.
+ * unavailable: challenge modality is server-owned, independence only moves its
+ * matching capability forward, a challenge belongs to one learner, and one
+ * challenge can create evidence only once.
  */
 type StoredChallenge = BeginnerEvidenceChallenge & {
   ownerUserId: string;
@@ -27,6 +28,17 @@ function publicChallenge(challenge: StoredChallenge): BeginnerEvidenceChallenge 
     word: challenge.word,
     sentence: challenge.sentence,
     expiresAt: challenge.expiresAt,
+  };
+}
+
+function emptyEvidence(word: string): BeginnerWordEvidence {
+  return {
+    word,
+    successfulRetrievals: 0,
+    lastIndependentAt: null,
+    successfulDictations: 0,
+    lastSuccessfulDictationAt: null,
+    lastIndependentDictationAt: null,
   };
 }
 
@@ -105,8 +117,13 @@ export class InMemoryBeginnerProgressRepository
   async recordChallengeEvidence(input: {
     ownerUserId: string;
     challengeId: string;
+    successful: boolean;
     independent: boolean;
   }): Promise<BeginnerWordEvidence> {
+    if (input.independent && !input.successful) {
+      throw new Error("Independent beginner evidence must be successful.");
+    }
+
     const challenge = this.challenges.get(input.challengeId);
     if (
       !challenge ||
@@ -120,14 +137,39 @@ export class InMemoryBeginnerProgressRepository
     // Mark consumed before mutating evidence. JavaScript execution in this fake
     // is single-process, so subsequent/re-entrant calls observe the consumed
     // state just as the database row lock does in production.
-    challenge.consumedAt = new Date().toISOString();
+    const now = new Date().toISOString();
+    challenge.consumedAt = now;
     this.challenges.set(challenge.id, challenge);
 
-    return this.recordWordEvidence({
-      ownerUserId: input.ownerUserId,
-      word: challenge.word,
-      independent: input.independent,
-    });
+    const key = this.key(input.ownerUserId, challenge.word);
+    const existing = this.rows.get(key) ?? emptyEvidence(challenge.word);
+
+    const next: BeginnerWordEvidence =
+      challenge.kind === "dictation"
+        ? {
+            ...existing,
+            successfulDictations:
+              existing.successfulDictations + (input.successful ? 1 : 0),
+            lastSuccessfulDictationAt: input.successful
+              ? now
+              : existing.lastSuccessfulDictationAt,
+            lastIndependentDictationAt: input.independent
+              ? now
+              : existing.lastIndependentDictationAt,
+          }
+        : {
+            ...existing,
+            // Preserve the current productive contract: only independent
+            // introduction banks a successful retrieval/known-word timestamp.
+            successfulRetrievals:
+              existing.successfulRetrievals + (input.independent ? 1 : 0),
+            lastIndependentAt: input.independent
+              ? now
+              : existing.lastIndependentAt,
+          };
+
+    this.rows.set(key, next);
+    return next;
   }
 
   async recordWordEvidence(input: {
@@ -137,14 +179,14 @@ export class InMemoryBeginnerProgressRepository
   }): Promise<BeginnerWordEvidence> {
     const word = input.word.toLocaleLowerCase("en-US");
     const key = this.key(input.ownerUserId, word);
-    const existing = this.rows.get(key);
+    const existing = this.rows.get(key) ?? emptyEvidence(word);
     const next: BeginnerWordEvidence = {
-      word,
+      ...existing,
       successfulRetrievals:
-        (existing?.successfulRetrievals ?? 0) + (input.independent ? 1 : 0),
+        existing.successfulRetrievals + (input.independent ? 1 : 0),
       lastIndependentAt: input.independent
         ? new Date().toISOString()
-        : (existing?.lastIndependentAt ?? null),
+        : existing.lastIndependentAt,
     };
     this.rows.set(key, next);
     return next;

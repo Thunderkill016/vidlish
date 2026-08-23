@@ -4,15 +4,21 @@
  *
  * `knownWords` is deliberately narrow: it returns words the learner has
  * produced with no support open, and nothing else. Not words they have seen,
- * not words they recognised on a page. The current beginner lexical gate reads
- * this set, so widening it would make the product serve input on evidence the
- * learner has not actually produced.
+ * not words they recognised on a page, and not words they copied correctly in
+ * dictation. The current beginner lexical gate reads this set, so widening it
+ * would make the product serve input on evidence the learner has not actually
+ * produced independently.
  */
 
 export type BeginnerWordEvidence = {
   readonly word: string;
+  /** Productive retrieval evidence used by the current known-word gate. */
   readonly successfulRetrievals: number;
   readonly lastIndependentAt: string | null;
+  /** Dictation is useful listening/orthographic evidence, but not productive-known evidence. */
+  readonly successfulDictations: number;
+  readonly lastSuccessfulDictationAt: string | null;
+  readonly lastIndependentDictationAt: string | null;
 };
 
 export type CalibrationRecord = {
@@ -72,12 +78,14 @@ export interface BeginnerProgressRepository {
 
   /**
    * Atomically consume a server challenge and bank evidence for the word stored
-   * on that challenge. The caller supplies only the server-decided independence
-   * verdict, never a target word.
+   * on that challenge. The caller supplies outcome strength only; the
+   * server-owned challenge kind decides which capability dimension is updated.
+   * `independent` is valid only for a successful challenge.
    */
   recordChallengeEvidence(input: {
     readonly ownerUserId: string;
     readonly challengeId: string;
+    readonly successful: boolean;
     readonly independent: boolean;
   }): Promise<BeginnerWordEvidence>;
 

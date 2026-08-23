@@ -13,15 +13,15 @@ import { productErrorResponse } from "@/shared/http/product-error-response";
 import { assertSameOrigin } from "@/shared/http/same-origin";
 
 /**
- * Records one attempt at producing a word.
+ * Records one beginner challenge attempt.
  *
  * The browser reports learner action only. The target word and, for dictation,
  * the answer-key sentence come from a server-issued challenge. The final write
  * consumes that challenge atomically with the evidence upsert so replay cannot
- * manufacture retrieval counts.
+ * manufacture evidence.
  *
  * What the learner wrote is used for scoring and then dropped. The evidence
- * kept is which server-issued word came back, not the raw text it came in.
+ * kept is the bounded result for the server-issued challenge, not the raw text.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const calibration = await progress.latestCalibration(access.userId);
     const trusted = calibration === null || calibration.reliable;
 
-    let produced: boolean;
+    let successful: boolean;
     let dictation: ReturnType<typeof scoreDictation> | null = null;
 
     if (parsed.data.kind === "dictation") {
@@ -55,20 +55,22 @@ export async function POST(request: NextRequest) {
         target: challenge.sentence,
         heard: parsed.data.heard,
       });
-      produced = dictation.perfect;
+      successful = dictation.perfect;
     } else {
       if (challenge.sentence !== null) throw authErrors.rejected();
-      produced = parsed.data.claimedIndependent;
+      successful = parsed.data.claimedIndependent;
     }
 
     // A checked answer outranks a reported one. Where there is nothing to check
     // — the first standalone word — the report stands, and the nonword check is
-    // what keeps that self-report calibrated. Crucially, neither path can pick
-    // a word that the server did not issue.
+    // what keeps that self-report calibrated. The database then derives the
+    // evidence modality from the server-owned challenge kind: dictation cannot
+    // accidentally become productive-known evidence.
     const evidence = await progress.recordChallengeEvidence({
       ownerUserId: access.userId,
       challengeId: challenge.id,
-      independent: produced && !parsed.data.usedSupport && trusted,
+      successful,
+      independent: successful && !parsed.data.usedSupport && trusted,
     });
 
     const payload = beginnerAttemptResponseSchema.parse({

@@ -21,6 +21,9 @@ const evidenceRowSchema = z.object({
   item_key: z.string(),
   successful_retrievals: z.number().int(),
   last_independent_at: z.string().nullable(),
+  successful_dictations: z.number().int(),
+  last_successful_dictation_at: z.string().nullable(),
+  last_independent_dictation_at: z.string().nullable(),
 });
 
 const calibrationRowSchema = z.object({
@@ -146,6 +149,7 @@ export class SupabaseBeginnerProgressRepository
   async recordChallengeEvidence(input: {
     ownerUserId: string;
     challengeId: string;
+    successful: boolean;
     independent: boolean;
   }): Promise<BeginnerWordEvidence> {
     const { data, error } = await this.client.rpc(
@@ -153,6 +157,7 @@ export class SupabaseBeginnerProgressRepository
       {
         p_owner_user_id: input.ownerUserId,
         p_challenge_id: input.challengeId,
+        p_successful: input.successful,
         p_independent: input.independent,
       },
     );
@@ -187,6 +192,9 @@ export class SupabaseBeginnerProgressRepository
       word: row.item_key,
       successfulRetrievals: row.successful_retrievals,
       lastIndependentAt: row.last_independent_at,
+      successfulDictations: row.successful_dictations,
+      lastSuccessfulDictationAt: row.last_successful_dictation_at,
+      lastIndependentDictationAt: row.last_independent_dictation_at,
     };
   }
 }
