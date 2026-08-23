@@ -1,3 +1,5 @@
+import { deriveCanonicalReadingContext } from "./derive-canonical-reading-context";
+
 import type {
   EvidenceRef,
   LessonBlueprintV2,
@@ -103,15 +105,25 @@ export function createLearnerBlueprintView(
             promptVi: activity.promptVi,
             options: activity.options,
           };
-        case "meaning_in_context":
+        case "meaning_in_context": {
+          const readingContext = deriveCanonicalReadingContext(
+            blueprint,
+            activity,
+          );
           return {
             ...common(activity),
             phase: activity.phase,
             activityType: activity.activityType,
             targetItemId: activity.targetItemId,
-            promptVi: activity.promptVi,
+            // Source text is injected by the server, never authored by the
+            // model. Its presence turns this existing objective choice into a
+            // defensible lexical-reading observation.
+            promptVi: readingContext
+              ? `Đọc ngữ cảnh tiếng Anh: “${readingContext}”\n\n${activity.promptVi}`
+              : activity.promptVi,
             options: activity.options,
           };
+        }
         case "chunk_recall":
           return {
             ...common(activity),

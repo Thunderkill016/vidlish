@@ -9,6 +9,7 @@ import type {
 import { projectLessonActivityCapabilityEvidence } from "./summarise-capability-evidence";
 
 const sessionId = "11111111-1111-4111-8111-111111111111";
+const readingSegmentId = `seg_${"a".repeat(32)}`;
 
 function chunkBlueprint(hintVi: string | null = null): LessonBlueprintV2 {
   return {
@@ -19,6 +20,39 @@ function chunkBlueprint(hintVi: string | null = null): LessonBlueprintV2 {
         activityType: "chunk_recall",
         targetItemId: "target_water",
         hintVi,
+      },
+    ],
+  } as unknown as LessonBlueprintV2;
+}
+
+function readingBlueprint(hasCanonicalContext = true): LessonBlueprintV2 {
+  return {
+    evidenceCatalog: hasCanonicalContext
+      ? [
+          {
+            origin: "source_quote",
+            segmentId: readingSegmentId,
+            startMs: 1_000,
+            endMs: 2_000,
+            text: "I'm a member of the Developer Relations team.",
+          },
+        ]
+      : [],
+    targetItems: [{ id: "target_member", itemKey: "a-member-of" }],
+    activities: [
+      {
+        id: "meaning_member",
+        activityType: "meaning_in_context",
+        targetItemId: "target_member",
+        evidence: [
+          {
+            sourceSegmentIds: [readingSegmentId],
+            startMs: 1_000,
+            endMs: 2_000,
+            captionPolicy: "toggle",
+            replayAllowed: true,
+          },
+        ],
       },
     ],
   } as unknown as LessonBlueprintV2;
@@ -69,11 +103,14 @@ function attempt(input: {
   } as unknown as PrivacySafeActivityAttempt;
 }
 
-function supportEvent(occurredAt: string): PrivacySafeLearningSupportEvent {
+function supportEvent(
+  occurredAt: string,
+  activityId = "recall_water",
+): PrivacySafeLearningSupportEvent {
   return {
     id: "44444444-4444-4444-8444-444444444444",
     sessionId,
-    activityId: "recall_water",
+    activityId,
     idempotencyKey: "55555555-5555-4555-8555-555555555555",
     eventKind: "support_opened",
     supportStep: "keyword_hint",
@@ -83,6 +120,58 @@ function supportEvent(occurredAt: string): PrivacySafeLearningSupportEvent {
 }
 
 describe("projectLessonActivityCapabilityEvidence", () => {
+  it("projects objectively checked canonical-context meaning as lexical reading evidence", () => {
+    expect(
+      projectLessonActivityCapabilityEvidence({
+        blueprint: readingBlueprint(),
+        attempt: attempt({ activityId: "meaning_member", kind: "choice" }),
+        supportEvents: [],
+      }),
+    ).toEqual([
+      {
+        subject: { kind: "activity", key: "meaning_member" },
+        targetSkill: "reading",
+        support: "independent",
+        responseMode: "selection",
+        verification: "objective",
+        outcome: "successful",
+        evidenceKind: "lesson_activity",
+        observedAt: "2026-08-23T09:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("keeps lexical reading unsuccessful and support-aware without changing its modality", () => {
+    const observations = projectLessonActivityCapabilityEvidence({
+      blueprint: readingBlueprint(),
+      attempt: attempt({
+        activityId: "meaning_member",
+        kind: "choice",
+        verdict: "incorrect",
+      }),
+      supportEvents: [
+        supportEvent("2026-08-23T08:59:00.000Z", "meaning_member"),
+      ],
+    });
+
+    expect(observations[0]).toMatchObject({
+      targetSkill: "reading",
+      support: "supported",
+      verification: "objective",
+      outcome: "unsuccessful",
+    });
+  });
+
+  it("refuses to claim reading when the canonical context cannot be resolved", () => {
+    expect(
+      projectLessonActivityCapabilityEvidence({
+        blueprint: readingBlueprint(false),
+        attempt: attempt({ activityId: "meaning_member", kind: "choice" }),
+        supportEvents: [],
+      }),
+    ).toEqual([]);
+  });
+
   it("projects an objectively correct typed recall as item-scoped writing success", () => {
     expect(
       projectLessonActivityCapabilityEvidence({
@@ -175,7 +264,7 @@ describe("projectLessonActivityCapabilityEvidence", () => {
     ]);
   });
 
-  it("does not guess a skill for current choice activities", () => {
+  it("does not guess a skill for the listening gist choice", () => {
     const blueprint = {
       targetItems: [],
       activities: [{ id: "gist_one", activityType: "gist_choice" }],
