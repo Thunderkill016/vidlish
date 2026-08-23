@@ -210,7 +210,7 @@ select throws_ok(
 );
 
 update public.lesson_sessions
-set status = 'active', completed_at = null, current_phase = 'transfer', current_activity_id = 'activity_transfer'
+set status = 'in_progress', completed_at = null, current_phase = 'transfer', current_activity_id = 'activity_transfer'
 where id = 'c7777777-7777-4777-8777-777777777777';
 
 select throws_ok(
