@@ -85,7 +85,7 @@ describe("projectLearningReviewCapabilityEvidence", () => {
         kind: "self_check",
         submitted: true,
         characterCount: 28,
-        checkedCriteriaCount: 3,
+        checkedCriteria: [0, 1, 2],
       },
       evaluation: {
         step: "transfer",
