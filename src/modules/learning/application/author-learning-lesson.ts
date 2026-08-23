@@ -8,13 +8,16 @@ import {
   diagnoseLearningVideo,
   prepareLearningAuthoringBrief,
 } from "./prepare-learning-authoring-brief";
-
+import { synthesisePassageReadingActivity } from "./synthesise-passage-reading-activity";
 
 import type { LearningAuthoringProvider } from "@/modules/learning/ports/learning-authoring-provider";
 import type { LearningAuthoringBriefRepository } from "@/modules/learning/ports/learning-authoring-brief-repository";
 import type { LessonVersionRepository } from "@/modules/learning/ports/lesson-version-repository";
 import type { LanguageEligibilityReport } from "@/shared/contracts/language-eligibility";
-import type { LearnerContextSnapshot } from "@/shared/contracts/lesson-v2";
+import {
+  lessonBlueprintV2Schema,
+  type LearnerContextSnapshot,
+} from "@/shared/contracts/lesson-v2";
 import type { CanonicalTranscript } from "@/shared/contracts/transcript";
 
 /**
@@ -154,7 +157,7 @@ export class AuthorLearningLesson {
     // repaired, refuses what means the lesson does not teach.
     const reviewed = reviewAuthoringDraft(authored.value);
 
-    const blueprint = hydrateLearningBlueprint({
+    const authoredBlueprint = hydrateLearningBlueprint({
       brief: stored.brief,
       draft: reviewed.draft,
       profile: stored.videoProfile,
@@ -166,6 +169,36 @@ export class AuthorLearningLesson {
       modelId: authored.modelId,
       createdAt: input.now.toISOString(),
     });
+
+    // Reading comprehension is added by the server rather than asking the
+    // authoring model to invent another passage or authoritative answer. The
+    // brief already owns selected windows and their gist, while the transcript
+    // owns the exact English text. If there is no second passage that meets the
+    // measurement boundary, the lesson remains valid and simply makes no
+    // passage-reading claim.
+    const passageReading = synthesisePassageReadingActivity({
+      brief: stored.brief,
+      draft: reviewed.draft,
+      transcript: input.transcript,
+      blueprintId: input.blueprintId,
+    });
+
+    let blueprint = authoredBlueprint;
+    if (passageReading) {
+      const activities = [...authoredBlueprint.activities];
+      const firstNonGist = activities.findIndex(
+        (activity) => activity.phase !== "gist",
+      );
+      activities.splice(
+        firstNonGist === -1 ? activities.length : firstNonGist,
+        0,
+        passageReading,
+      );
+      blueprint = lessonBlueprintV2Schema.parse({
+        ...authoredBlueprint,
+        activities,
+      });
+    }
 
     const published = await this.repository.publish({
       ownerUserId: input.ownerUserId,
