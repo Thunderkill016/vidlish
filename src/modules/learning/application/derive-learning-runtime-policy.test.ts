@@ -67,6 +67,7 @@ describe("deriveLearningRuntimePolicy", () => {
     expect(readingPolicy?.taskScope).toBe("capability");
     expect(readingPolicy?.support).toBeNull();
     expect(readingPolicy?.retry.requiredAfterCorrection).toBe(true);
+    expect(readingPolicy?.retry.retryScope).toBe("full_task");
   });
 
   it("never offers a translation on a gist question", () => {
