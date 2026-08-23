@@ -94,12 +94,26 @@ describe("the lesson model", () => {
    * cheapest per accepted lesson. That trade is what this default encodes, and
    * a silent downgrade would undo it without anyone noticing.
    */
-  it("defaults to a tier that is not the cheapest and weakest", async () => {
+  it("keeps one explicit production default", async () => {
     const config = await loadConfig({ LESSON_MODEL_ID: undefined });
     expect(config.LESSON_MODEL_ID).toBe("gemini-3.7-flash");
   });
 
-  it("still allows a newer model without a code change", async () => {
+  it("accepts a registered model that supports lesson authoring", async () => {
+    const config = await loadConfig({ LESSON_MODEL_ID: "gemini-3.6-flash" });
+    expect(config.LESSON_MODEL_ID).toBe("gemini-3.6-flash");
+  });
+
+  it("refuses a registered endpoint that is known not to author lessons", async () => {
+    await expect(
+      loadConfig({ LESSON_MODEL_ID: "gemini-3.1-flash-live-preview" }),
+    ).rejects.toThrow(/does not support Vidlish lesson authoring/i);
+  });
+
+  it("still allows a newer explicit model without a code change", async () => {
+    // Unknown means unregistered, not unsupported. The operator still has the
+    // existing escape hatch for a newly released model, but the registry makes
+    // no capability or free-tier claims for it until it is reviewed.
     const config = await loadConfig({ LESSON_MODEL_ID: "gemini-4.0-flash" });
     expect(config.LESSON_MODEL_ID).toBe("gemini-4.0-flash");
   });
