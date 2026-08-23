@@ -73,6 +73,7 @@ export type LearningCapabilityVerification = z.infer<
 export const learningCapabilityEvidenceKindSchema = z.enum([
   "beginner_dictation",
   "lesson_activity",
+  "learning_review",
 ]);
 export type LearningCapabilityEvidenceKind = z.infer<
   typeof learningCapabilityEvidenceKindSchema
