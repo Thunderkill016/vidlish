@@ -78,11 +78,13 @@ const RETRY = {
   maxAttemptsPerSession: 3,
 } as const;
 
-function isShownPassageReadingGist(
-  activity: LearningActivity,
-): activity is Extract<LearningActivity, { activityType: "gist_choice" }> {
+type GistChoiceActivity = Extract<
+  LearningActivity,
+  { activityType: "gist_choice" }
+>;
+
+function isShownPassageReadingGist(activity: GistChoiceActivity): boolean {
   return (
-    activity.activityType === "gist_choice" &&
     activity.evidence.length > 0 &&
     activity.evidence.every((range) => range.captionPolicy === "shown")
   );
