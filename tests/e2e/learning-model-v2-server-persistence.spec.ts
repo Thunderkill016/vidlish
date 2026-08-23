@@ -299,10 +299,10 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     last_delayed_transfer_at: null,
   });
 
-  // Recognition does not create independent production. The chunk recall had
-  // no support opened on its activity and no immutable hint, so that one
-  // productive attempt is sufficient to set last_independent_at.
-  expect(scheduledItems?.[0]?.last_independent_at).not.toBeNull();
+  // Recognition does not create independent production. This fixture's chunk
+  // recall has a non-null immutable hint, so its successful retrieval is
+  // conservatively supported even though the learner opens no runtime support.
+  expect(scheduledItems?.[0]?.last_independent_at).toBeNull();
   // The learner ticked all three criteria this activity sets, so this is the
   // positive half of the rule; the pgTAP case covers the negative one, where
   // two of three ticks record an attempt and no success.
