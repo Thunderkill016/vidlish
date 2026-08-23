@@ -3,6 +3,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { z } from "zod";
 
+import { projectLessonActivityCapabilityEvidence } from "@/modules/learning/application/summarise-capability-evidence";
 import { summariseLearningProductMeasurement } from "@/modules/learning/application/summarise-learning-product-measurement";
 import {
   activityEvaluationSchema,
@@ -10,7 +11,7 @@ import {
   lessonBlueprintV2Schema,
   lessonSessionSchema,
 } from "@/shared/contracts/lesson-v2";
-import { learningMeasurementSummarySchema } from "@/shared/contracts/learning-measurement";
+import { learningSessionMeasurementResponseSchema } from "@/shared/contracts/learning-measurement";
 import {
   learningProductEventKindSchema,
   learningRuntimeErrorKindSchema,
@@ -20,6 +21,7 @@ import {
   persistedLearningSupportStepSchema,
   privacySafeActivityAttemptSchema,
   privacySafeActivityResponseSchema,
+  privacySafeLearningSupportEventSchema,
   type PersistedLearningSupportStep,
 } from "@/shared/contracts/privacy-safe-learning-evidence";
 
@@ -52,9 +54,13 @@ const attemptRowSchema = z
 
 const supportRowSchema = z
   .object({
+    id: z.string().uuid(),
+    session_id: z.string().uuid(),
     activity_id: z.string(),
+    idempotency_key: z.string().uuid(),
     event_kind: z.enum(["playback", "support_opened"]),
     support_step: persistedLearningSupportStepSchema.nullable(),
+    playback_ordinal: z.coerce.number().int().positive().nullable(),
     occurred_at: z.string(),
   })
   .strict();
@@ -111,7 +117,9 @@ export class SupabaseLearningMeasurementReader {
           .order("submitted_at", { ascending: true }),
         this.client
           .from("learning_support_events")
-          .select("activity_id,event_kind,support_step,occurred_at")
+          .select(
+            "id,session_id,activity_id,idempotency_key,event_kind,support_step,playback_ordinal,occurred_at",
+          )
           .eq("session_id", sessionId)
           .eq("owner_user_id", ownerUserId)
           .order("occurred_at", { ascending: true }),
@@ -155,6 +163,19 @@ export class SupabaseLearningMeasurementReader {
         submittedAt: row.submitted_at,
       });
     });
+    const supportEvents = (supportResult.data ?? []).map((candidate) => {
+      const row = supportRowSchema.parse(candidate);
+      return privacySafeLearningSupportEventSchema.parse({
+        id: row.id,
+        sessionId: row.session_id,
+        activityId: row.activity_id,
+        idempotencyKey: row.idempotency_key,
+        eventKind: row.event_kind,
+        supportStep: row.support_step,
+        playbackOrdinal: row.playback_ordinal,
+        occurredAt: row.occurred_at,
+      });
+    });
 
     const progressByActivity = new Map<
       string,
@@ -178,16 +199,15 @@ export class SupabaseLearningMeasurementReader {
     for (const attempt of attempts) {
       progressFor(attempt.activityId).attemptCount += 1;
     }
-    for (const candidate of supportResult.data ?? []) {
-      const row = supportRowSchema.parse(candidate);
-      const progress = progressFor(row.activity_id);
-      if (row.event_kind === "playback") {
+    for (const event of supportEvents) {
+      const progress = progressFor(event.activityId);
+      if (event.eventKind === "playback") {
         progress.playbackCount += 1;
       } else if (
-        row.support_step &&
-        !progress.openedSupportSteps.includes(row.support_step)
+        event.supportStep &&
+        !progress.openedSupportSteps.includes(event.supportStep)
       ) {
-        progress.openedSupportSteps.push(row.support_step);
+        progress.openedSupportSteps.push(event.supportStep);
       }
     }
     const progress = [...progressByActivity.entries()].map(
@@ -207,13 +227,23 @@ export class SupabaseLearningMeasurementReader {
       });
     });
 
-    return learningMeasurementSummarySchema.parse(
-      summariseLearningProductMeasurement(blueprint, {
-        session,
-        attempts,
-        progress,
-        productEvents,
+    const measurement = summariseLearningProductMeasurement(blueprint, {
+      session,
+      attempts,
+      progress,
+      productEvents,
+    });
+    const capabilityObservations = attempts.flatMap((attempt) =>
+      projectLessonActivityCapabilityEvidence({
+        blueprint,
+        attempt,
+        supportEvents,
       }),
     );
+
+    return learningSessionMeasurementResponseSchema.parse({
+      ...measurement,
+      capabilityObservations,
+    });
   }
 }

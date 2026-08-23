@@ -12,6 +12,8 @@ const NOW = "2026-08-22T08:00:00.000Z";
 type Filter = { column: string; value: unknown };
 type QueryResult = { data: unknown; error: null };
 
+type MultiRows = Record<string, unknown[]>;
+
 class FakeQuery {
   readonly filters: Filter[] = [];
 
@@ -43,7 +45,7 @@ class FakeQuery {
   }
 }
 
-function createClient() {
+function createClient(overrides: Partial<MultiRows> = {}) {
   const queries: FakeQuery[] = [];
   const blueprint = createGoldenSessionLearningBlueprint();
   const singleRows: Record<string, unknown> = {
@@ -60,10 +62,11 @@ function createClient() {
     },
     lesson_versions: { blueprint },
   };
-  const multiRows: Record<string, unknown[]> = {
+  const multiRows: MultiRows = {
     activity_attempts: [],
     learning_support_events: [],
     learning_product_events: [],
+    ...overrides,
   };
   const from = vi.fn((table: string) => {
     const query = new FakeQuery(
@@ -93,6 +96,7 @@ describe("SupabaseLearningMeasurementReader", () => {
       sessionId: SESSION_ID,
       status: "in_progress",
       lastKnownActivityId: "activity_gist",
+      capabilityObservations: [],
     });
 
     const queriedTables = [
@@ -118,5 +122,50 @@ describe("SupabaseLearningMeasurementReader", () => {
       column: "id",
       value: SESSION_ID,
     });
+  });
+
+  it("projects privacy-safe capability observations from durable attempts", async () => {
+    const attemptId = "44444444-4444-4444-8444-444444444444";
+    const { client } = createClient({
+      activity_attempts: [
+        {
+          id: attemptId,
+          session_id: SESSION_ID,
+          activity_id: "activity_meaning",
+          attempt_number: 1,
+          idempotency_key: attemptId,
+          response: { kind: "choice", optionId: "option_affiliation" },
+          evaluation: {
+            verdict: "correct",
+            goalVi: "Nhận ra chức năng giao tiếp của language chunk.",
+            evidenceVi: "Đáp án đúng theo evaluator phía server.",
+            nextStepVi: "Tiếp tục sang bước retrieval.",
+            evidenceRefs: [],
+          },
+          submitted_at: "2026-08-22T08:00:00+00:00",
+        },
+      ],
+    });
+
+    const summary = await new SupabaseLearningMeasurementReader(client).read(
+      OWNER_ID,
+      SESSION_ID,
+    );
+
+    expect(summary?.capabilityObservations).toEqual([
+      {
+        subject: { kind: "activity", key: "activity_meaning" },
+        targetSkill: "reading",
+        support: "independent",
+        responseMode: "selection",
+        verification: "objective",
+        outcome: "successful",
+        evidenceKind: "lesson_activity",
+        observedAt: "2026-08-22T08:00:00+00:00",
+      },
+    ]);
+    expect(JSON.stringify(summary?.capabilityObservations)).not.toContain(
+      "option_affiliation",
+    );
   });
 });

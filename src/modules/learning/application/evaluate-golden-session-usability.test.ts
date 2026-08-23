@@ -269,6 +269,26 @@ describe("goldenSessionUsabilityStudySchema", () => {
     expect(result.success).toBe(false);
   });
 
+  it("accepts privacy-safe capability evidence in a full measurement response", () => {
+    const participants = sessionIds.map((_, index) => participant({ index }));
+    participants[0]!.measurement.capabilityObservations = [
+      {
+        subject: { kind: "activity", key: "meaning_notice" },
+        targetSkill: "reading",
+        support: "independent",
+        responseMode: "selection",
+        verification: "objective",
+        outcome: "successful",
+        evidenceKind: "lesson_activity",
+        observedAt: "2026-08-22T08:00:00+00:00",
+      },
+    ];
+
+    const result = goldenSessionUsabilityStudySchema.safeParse({ participants });
+
+    expect(result.success).toBe(true);
+  });
+
   it("rejects arbitrary moderator notes instead of accepting free-form study data", () => {
     const input = study(sessionIds.map((_, index) => participant({ index }))) as GoldenSessionUsabilityStudy & {
       participants: Array<

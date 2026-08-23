@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { learningCapabilityObservationSchema } from "@/shared/contracts/learning-capability";
 import { learningRuntimeErrorKindSchema } from "@/shared/contracts/learning-product-events";
 import { persistedLearningSupportStepSchema } from "@/shared/contracts/privacy-safe-learning-evidence";
 
@@ -59,9 +60,37 @@ export const learningMeasurementSummarySchema = z
     supportByActivity: z.array(activitySupportMetricSchema),
     totalSupportStepsOpened: z.number().int().nonnegative(),
     runtimeErrors: z.array(learningRuntimeErrorKindSchema),
+    // Backward-compatible for existing telemetry consumers such as the Gate 5
+    // study evaluator: old summaries without capability evidence still parse,
+    // while a full /measurement response can be pasted without being rejected
+    // by this otherwise-strict contract.
+    capabilityObservations: z
+      .array(learningCapabilityObservationSchema)
+      .optional(),
   })
   .strict();
 
+/**
+ * Owner-scoped durable evidence for one lesson session.
+ *
+ * Product telemetry remains a separate concept from capability evidence. The
+ * API response requires observations, while the base telemetry summary keeps
+ * them optional so existing summaries and Gate 5 study records remain valid.
+ * Observations contain no learner free text, transcript or audio and are
+ * projected at read time from immutable blueprint + privacy-safe
+ * attempts/support events.
+ */
+export const learningSessionMeasurementResponseSchema =
+  learningMeasurementSummarySchema
+    .extend({
+      capabilityObservations: z.array(learningCapabilityObservationSchema),
+    })
+    .strict();
+
 export type LearningMeasurementSummary = z.infer<
   typeof learningMeasurementSummarySchema
+>;
+
+export type LearningSessionMeasurementResponse = z.infer<
+  typeof learningSessionMeasurementResponseSchema
 >;
