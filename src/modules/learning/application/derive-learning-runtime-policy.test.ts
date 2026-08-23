@@ -5,6 +5,7 @@ import { deriveLearningRuntimePolicy } from "./derive-learning-runtime-policy";
 import { createFixtureLearningBlueprint } from "@/adapters/fake/fixture-learning-blueprint";
 import { createGoldenSessionLearningBlueprint } from "@/adapters/fake/fixture-golden-learning-blueprint";
 import { validateLearningRuntimePolicyAgainstBlueprint } from "@/shared/contracts/learning-policy-v2";
+import type { LessonBlueprintV2 } from "@/shared/contracts/lesson-v2";
 
 describe("deriveLearningRuntimePolicy", () => {
   it("produces a policy the runtime accepts for any blueprint", () => {
@@ -36,6 +37,36 @@ describe("deriveLearningRuntimePolicy", () => {
     )!;
     expect(gistPolicy.support?.minimumAttemptsBeforeFullReveal).toBeGreaterThan(0);
     expect(gistPolicy.support?.steps[0]).toBe("replay");
+  });
+
+  it("treats shown passage reading as capability work with no listening support ladder", () => {
+    const blueprint = createFixtureLearningBlueprint();
+    const gist = blueprint.activities.find(
+      (activity) => activity.activityType === "gist_choice",
+    );
+    expect(gist?.activityType).toBe("gist_choice");
+    if (!gist || gist.activityType !== "gist_choice") return;
+
+    const reading = {
+      ...gist,
+      id: "activity_passage_reading",
+      evidence: gist.evidence.map((range) => ({
+        ...range,
+        captionPolicy: "shown" as const,
+      })),
+    };
+    const withReading = {
+      ...blueprint,
+      activities: [gist, reading, ...blueprint.activities.slice(1)],
+    } as LessonBlueprintV2;
+    const policy = deriveLearningRuntimePolicy(withReading);
+    const readingPolicy = policy.activityPolicies.find(
+      (entry) => entry.activityId === reading.id,
+    );
+
+    expect(readingPolicy?.taskScope).toBe("capability");
+    expect(readingPolicy?.support).toBeNull();
+    expect(readingPolicy?.retry.requiredAfterCorrection).toBe(true);
   });
 
   it("never offers a translation on a gist question", () => {
