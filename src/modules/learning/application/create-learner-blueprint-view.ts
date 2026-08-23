@@ -97,14 +97,24 @@ export function createLearnerBlueprintView(
   const activities: LearnerActivityView[] = blueprint.activities.map(
     (activity) => {
       switch (activity.activityType) {
-        case "gist_choice":
+        case "gist_choice": {
+          const readingContext = deriveCanonicalReadingContext(
+            blueprint,
+            activity,
+          );
           return {
             ...common(activity),
             phase: activity.phase,
             activityType: activity.activityType,
-            promptVi: activity.promptVi,
+            // Only an explicitly shown gist is reading. Hidden-first listening
+            // gists resolve to null, so their transcript remains unavailable
+            // before the learner answers.
+            promptVi: readingContext
+              ? `Đọc đoạn tiếng Anh thật: “${readingContext}”\n\n${activity.promptVi}`
+              : activity.promptVi,
             options: activity.options,
           };
+        }
         case "meaning_in_context": {
           const readingContext = deriveCanonicalReadingContext(
             blueprint,
