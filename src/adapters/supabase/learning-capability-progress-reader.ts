@@ -5,6 +5,7 @@ import { z } from "zod";
 
 import { fetchAllRows } from "@/adapters/supabase/fetch-all-rows";
 import { projectLearningReviewCapabilityEvidence } from "@/modules/learning/application/project-learning-review-capability-evidence";
+import { projectSpeakingCaptureCapabilityEvidence } from "@/modules/learning/application/project-speaking-capture-capability-evidence";
 import {
   projectBeginnerCapabilityEvidence,
   projectLessonActivityCapabilityEvidence,
@@ -19,6 +20,7 @@ import {
   activityEvaluationSchema,
   lessonBlueprintV2Schema,
 } from "@/shared/contracts/lesson-v2";
+import { learningSpeakingAttemptSchema } from "@/shared/contracts/learning-speaking";
 import {
   privacySafeActivityAttemptSchema,
   privacySafeActivityResponseSchema,
@@ -98,6 +100,21 @@ const reviewAttemptRowSchema = z
   })
   .strict();
 
+const speakingAttemptRowSchema = z
+  .object({
+    id: z.string().uuid(),
+    session_id: z.string().uuid(),
+    activity_id: z.string(),
+    idempotency_key: z.string().uuid(),
+    duration_ms: z.coerce.number().int(),
+    byte_count: z.coerce.number().int(),
+    mime_type: z.string(),
+    replayed: z.boolean(),
+    confirmed_audible_speech: z.boolean(),
+    created_at: z.string(),
+  })
+  .strict();
+
 function toBeginnerEvidence(
   row: z.infer<typeof beginnerEvidenceRowSchema>,
 ): BeginnerWordEvidence {
@@ -117,9 +134,10 @@ function toBeginnerEvidence(
  * This deliberately does not persist another capability table. The immutable
  * lesson blueprint decides task modality, attempts carry bounded evaluation,
  * support events decide support strength, beginner dictation keeps its own
- * listening evidence, and delayed review attempts preserve later writing
- * evidence. Every read is owner-scoped even under a service-role client and
- * every collection is paginated to avoid silent Supabase row caps.
+ * listening evidence, delayed review attempts preserve later writing evidence,
+ * and microphone captures contribute unscored speaking self-check evidence.
+ * Every read is owner-scoped even under a service-role client and every
+ * collection is paginated to avoid silent Supabase row caps.
  */
 export class SupabaseLearningCapabilityProgressReader {
   constructor(private readonly client: SupabaseClient) {}
@@ -133,6 +151,7 @@ export class SupabaseLearningCapabilityProgressReader {
       beginnerRows,
       reviewSessionRows,
       reviewAttemptRows,
+      speakingAttemptRows,
     ] = await Promise.all([
       fetchAllRows((from, to) =>
         this.client
@@ -203,6 +222,18 @@ export class SupabaseLearningCapabilityProgressReader {
           )
           .eq("owner_user_id", ownerUserId)
           .order("submitted_at", { ascending: true })
+          .order("id", { ascending: true })
+          .range(from, to),
+      ),
+      fetchAllRows((from, to) =>
+        this.client
+          .from("learning_speaking_attempts")
+          .select(
+            "id,session_id,activity_id,idempotency_key,duration_ms,byte_count,mime_type,replayed,confirmed_audible_speech,created_at",
+            { count: "exact" },
+          )
+          .eq("owner_user_id", ownerUserId)
+          .order("created_at", { ascending: true })
           .order("id", { ascending: true })
           .range(from, to),
       ),
@@ -300,6 +331,26 @@ export class SupabaseLearningCapabilityProgressReader {
           itemKey: reviewSession.item_key,
           attempt,
         }),
+      );
+    }
+
+    for (const candidate of speakingAttemptRows) {
+      const row = speakingAttemptRowSchema.parse(candidate);
+      observations.push(
+        projectSpeakingCaptureCapabilityEvidence(
+          learningSpeakingAttemptSchema.parse({
+            id: row.id,
+            sessionId: row.session_id,
+            activityId: row.activity_id,
+            idempotencyKey: row.idempotency_key,
+            durationMs: row.duration_ms,
+            byteCount: row.byte_count,
+            mimeType: row.mime_type,
+            replayed: row.replayed,
+            confirmedAudibleSpeech: row.confirmed_audible_speech,
+            createdAt: row.created_at,
+          }),
+        ),
       );
     }
 
