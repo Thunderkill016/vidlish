@@ -1,3 +1,5 @@
+import { deriveCanonicalReadingContext } from "./derive-canonical-reading-context";
+
 import type { BeginnerWordEvidence } from "@/modules/learning/ports/beginner-progress-repository";
 import {
   learningCapabilityObservationSchema,
@@ -120,14 +122,17 @@ function supportWasOpenBeforeAttempt(input: {
  * Project only lesson activities whose measured modality is defensible from the
  * immutable activity shape and whose verification strength is known.
  *
+ * - `meaning_in_context` becomes objective lexical-reading evidence only when
+ *   its cited canonical source context can be resolved. The learner view shows
+ *   that exact text before the response; the model never supplies the passage.
  * - `chunk_recall` is an objectively checked typed production of one target
  *   item, so it can create item-level writing success/failure evidence.
  * - `guided_transfer` is genuinely written production, but the evaluator is a
  *   learner self-check across the whole changed-context task. Keep it at
  *   activity scope so checking a multi-item task cannot inflate every target
  *   item's mastery.
- * - Choice/reflection activities are left unprojected here because the current
- *   blueprint does not prove whether they measured listening or reading.
+ * - Gist/reflection remain unprojected because the current blueprint does not
+ *   establish a defensible measured modality for them here.
  */
 export function projectLessonActivityCapabilityEvidence(input: {
   blueprint: LessonBlueprintV2;
@@ -140,6 +145,35 @@ export function projectLessonActivityCapabilityEvidence(input: {
   if (!activity) return [];
 
   const supportOpened = supportWasOpenBeforeAttempt(input);
+
+  if (activity.activityType === "meaning_in_context") {
+    if (input.attempt.responseEvidence.kind !== "choice") return [];
+    if (
+      input.attempt.evaluation.verdict !== "correct" &&
+      input.attempt.evaluation.verdict !== "incorrect"
+    ) {
+      return [];
+    }
+    if (deriveCanonicalReadingContext(input.blueprint, activity) === null) {
+      return [];
+    }
+
+    return [
+      learningCapabilityObservationSchema.parse({
+        subject: { kind: "activity", key: activity.id },
+        targetSkill: "reading",
+        support: supportOpened ? "supported" : "independent",
+        responseMode: "selection",
+        verification: "objective",
+        outcome:
+          input.attempt.evaluation.verdict === "correct"
+            ? "successful"
+            : "unsuccessful",
+        evidenceKind: "lesson_activity",
+        observedAt: input.attempt.submittedAt,
+      }),
+    ];
+  }
 
   if (activity.activityType === "chunk_recall") {
     if (input.attempt.responseEvidence.kind !== "text") return [];
