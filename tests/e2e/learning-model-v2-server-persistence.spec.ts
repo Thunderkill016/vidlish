@@ -286,23 +286,23 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   // the learner had just worked through looked untouched until its first
   // review.
   //
-  // Four attempts, because three activities in this lesson target this item —
-  // meaning, recall and transfer — and transfer was attempted twice. Two of
-  // them were graded correct.
+  // Four attempts, because meaning, recall and transfer target this item and
+  // transfer was attempted twice. Attempt count is generic interaction history.
+  // Meaning-in-context was graded correct, but it is recognition rather than
+  // productive retrieval; only the correct chunk recall increments retrieval.
   expect(scheduledItems?.[0]).toMatchObject({
     item_key: "a-member-of",
     exposure_count: 1,
     attempt_count: 4,
-    successful_retrievals: 2,
+    successful_retrievals: 1,
     last_outcome: null,
     last_delayed_transfer_at: null,
   });
 
-  // The journey opens support on the gist activity only, so both correct
-  // answers were produced with nothing open on their own activity. That is what
-  // independent production means here, and it is the one thing in this row that
-  // is a claim about capability rather than a count.
-  expect(scheduledItems?.[0]?.last_independent_at).not.toBeNull();
+  // Recognition does not create independent production. This fixture's chunk
+  // recall has a non-null immutable hint, so its successful retrieval is
+  // conservatively supported even though the learner opens no runtime support.
+  expect(scheduledItems?.[0]?.last_independent_at).toBeNull();
   // The learner ticked all three criteria this activity sets, so this is the
   // positive half of the rule; the pgTAP case covers the negative one, where
   // two of three ticks record an attempt and no success.
@@ -436,13 +436,13 @@ test("Golden Session UI persists immediate and delayed learning evidence without
     .eq("item_key", "a-member-of");
   expect(reviewedItemsError).toBeNull();
   expect(reviewedItems).toHaveLength(1);
-  // The lesson contributed four attempts and two retrievals; the delayed review
-  // adds its own four and one. Before VLR-201 the lesson half was written as
-  // zeros, so this row only ever counted the review — the totals said nothing
-  // about the session that taught the item.
+  // The lesson contributed four generic item attempts and one productive
+  // retrieval; the delayed review adds its own four attempts and one retrieval.
+  // Before VLR-201 the lesson half was written as zeros, while before Feature
+  // 017 recognition was incorrectly promoted into an extra retrieval.
   expect(reviewedItems?.[0]).toMatchObject({
     attempt_count: 8,
-    successful_retrievals: 3,
+    successful_retrievals: 2,
     last_outcome: "hard",
   });
   expect(reviewedItems?.[0]?.last_delayed_transfer_at).toBeTruthy();
