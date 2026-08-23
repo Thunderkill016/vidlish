@@ -125,8 +125,8 @@ insert into public.lesson_versions (
   '{
     "schemaVersion":"lesson:v2",
     "activities":[
-      {"id":"activity_transfer","activityType":"guided_transfer"},
-      {"id":"activity_exit","activityType":"exit_ticket"}
+      {"id":"activity_transfer","phase":"transfer","activityType":"guided_transfer"},
+      {"id":"activity_exit","phase":"reflect","activityType":"exit_ticket"}
     ]
   }'::jsonb
 );
