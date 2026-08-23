@@ -25,25 +25,33 @@ export function deriveCanonicalReadingContext(
   blueprint: LessonBlueprintV2,
   activity: ReadingActivity,
 ): string | null {
+  // Production blueprints always have `evidence`, but capability projection is
+  // intentionally fail-closed even for malformed or legacy-shaped input. A
+  // missing range must mean "no reading claim", never a runtime exception.
+  const evidence = activity.evidence ?? [];
+
   if (
     activity.activityType === "gist_choice" &&
-    (activity.evidence.length === 0 ||
-      !activity.evidence.every((range) => range.captionPolicy === "shown"))
+    (evidence.length === 0 ||
+      !evidence.every((range) => range.captionPolicy === "shown"))
   ) {
     return null;
   }
 
   const citedIds = new Set(
-    activity.evidence.flatMap((range) => range.sourceSegmentIds),
+    evidence.flatMap((range) => range.sourceSegmentIds),
   );
   if (citedIds.size === 0) return null;
 
-  const cited = blueprint.evidenceCatalog
-    .filter((evidence) => citedIds.has(evidence.segmentId))
+  const cited = (blueprint.evidenceCatalog ?? [])
+    .filter((sourceEvidence) => citedIds.has(sourceEvidence.segmentId))
     .sort((left, right) => left.startMs - right.startMs);
   if (cited.length !== citedIds.size) return null;
 
-  const text = cited.map((evidence) => evidence.text.trim()).join(" ").trim();
+  const text = cited
+    .map((sourceEvidence) => sourceEvidence.text.trim())
+    .join(" ")
+    .trim();
   if (!text) return null;
 
   if (activity.activityType === "gist_choice") {
