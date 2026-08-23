@@ -19,7 +19,7 @@ function evidence(
 }
 
 describe("projectBeginnerCapabilityEvidence", () => {
-  it("projects independent dictation as listening evidence answered in writing", () => {
+  it("projects independent dictation as objectively verified listening evidence answered in writing", () => {
     const projection = projectBeginnerCapabilityEvidence(
       evidence({
         successfulDictations: 2,
@@ -34,6 +34,7 @@ describe("projectBeginnerCapabilityEvidence", () => {
         targetSkill: "listening",
         support: "independent",
         responseMode: "writing",
+        verification: "objective",
         outcome: "successful",
         evidenceKind: "beginner_dictation",
         observedAt: "2026-08-23T09:00:00.000Z",
@@ -53,6 +54,7 @@ describe("projectBeginnerCapabilityEvidence", () => {
       targetSkill: "listening",
       support: "supported",
       responseMode: "writing",
+      verification: "objective",
     });
   });
 
