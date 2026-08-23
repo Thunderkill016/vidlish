@@ -118,10 +118,43 @@ function supportWasOpenBeforeAttempt(input: {
   );
 }
 
+function passageWasExposedEarlier(
+  blueprint: LessonBlueprintV2,
+  activityId: string,
+): boolean {
+  const activityIndex = blueprint.activities.findIndex(
+    (activity) => activity.id === activityId,
+  );
+  if (activityIndex <= 0) return false;
+
+  const activity = blueprint.activities[activityIndex];
+  if (!activity) return false;
+  const currentSegmentIds = new Set(
+    activity.evidence.flatMap((range) => range.sourceSegmentIds),
+  );
+  if (currentSegmentIds.size === 0) return false;
+
+  return blueprint.activities.slice(0, activityIndex).some((earlier) => {
+    if (earlier.activityType !== "gist_choice") return false;
+    const earlierIsShownReading =
+      earlier.evidence.length > 0 &&
+      earlier.evidence.every((range) => range.captionPolicy === "shown");
+    if (earlierIsShownReading) return false;
+    return earlier.evidence.some((range) =>
+      range.sourceSegmentIds.some((segmentId) =>
+        currentSegmentIds.has(segmentId),
+      ),
+    );
+  });
+}
+
 /**
  * Project only lesson activities whose measured modality is defensible from the
  * immutable activity shape and whose verification strength is known.
  *
+ * - a shown `gist_choice` with resolvable canonical source text is objective
+ *   passage-gist reading evidence. If the same source was already heard in an
+ *   earlier listening gist, retain the observation but mark it supported.
  * - `meaning_in_context` becomes objective lexical-reading evidence only when
  *   its cited canonical source context can be resolved. The learner view shows
  *   that exact text before the response; the model never supplies the passage.
@@ -131,8 +164,8 @@ function supportWasOpenBeforeAttempt(input: {
  *   learner self-check across the whole changed-context task. Keep it at
  *   activity scope so checking a multi-item task cannot inflate every target
  *   item's mastery.
- * - Gist/reflection remain unprojected because the current blueprint does not
- *   establish a defensible measured modality for them here.
+ * - Hidden/toggle gist and reflection remain unprojected as reading because
+ *   their measured modality is not defensibly reading.
  */
 export function projectLessonActivityCapabilityEvidence(input: {
   blueprint: LessonBlueprintV2;
@@ -145,6 +178,37 @@ export function projectLessonActivityCapabilityEvidence(input: {
   if (!activity) return [];
 
   const supportOpened = supportWasOpenBeforeAttempt(input);
+
+  if (activity.activityType === "gist_choice") {
+    if (input.attempt.responseEvidence.kind !== "choice") return [];
+    if (
+      input.attempt.evaluation.verdict !== "correct" &&
+      input.attempt.evaluation.verdict !== "incorrect"
+    ) {
+      return [];
+    }
+    if (deriveCanonicalReadingContext(input.blueprint, activity) === null) {
+      return [];
+    }
+
+    const supported =
+      supportOpened || passageWasExposedEarlier(input.blueprint, activity.id);
+    return [
+      learningCapabilityObservationSchema.parse({
+        subject: { kind: "activity", key: activity.id },
+        targetSkill: "reading",
+        support: supported ? "supported" : "independent",
+        responseMode: "selection",
+        verification: "objective",
+        outcome:
+          input.attempt.evaluation.verdict === "correct"
+            ? "successful"
+            : "unsuccessful",
+        evidenceKind: "lesson_activity",
+        observedAt: input.attempt.submittedAt,
+      }),
+    ];
+  }
 
   if (activity.activityType === "meaning_in_context") {
     if (input.attempt.responseEvidence.kind !== "choice") return [];

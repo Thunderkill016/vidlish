@@ -4,7 +4,10 @@ import {
   type ActivityLearningPolicy,
   type LearningRuntimePolicyV2,
 } from "@/shared/contracts/learning-policy-v2";
-import type { LearningActivity, LessonBlueprintV2 } from "@/shared/contracts/lesson-v2";
+import type {
+  LearningActivity,
+  LessonBlueprintV2,
+} from "@/shared/contracts/lesson-v2";
 
 /**
  * Derives the runtime rules for a lesson from the lesson itself.
@@ -75,9 +78,37 @@ const RETRY = {
   maxAttemptsPerSession: 3,
 } as const;
 
+type GistChoiceActivity = Extract<
+  LearningActivity,
+  { activityType: "gist_choice" }
+>;
+
+function isShownPassageReadingGist(activity: GistChoiceActivity): boolean {
+  return (
+    activity.evidence.length > 0 &&
+    activity.evidence.every((range) => range.captionPolicy === "shown")
+  );
+}
+
 function policyForActivity(activity: LearningActivity): ActivityLearningPolicy {
   switch (activity.activityType) {
     case "gist_choice":
+      if (isShownPassageReadingGist(activity)) {
+        return {
+          activityId: activity.id,
+          // The canonical English passage is the required stimulus, not a
+          // scaffold. Playback/caption controls would turn a reading measure
+          // back into a mixed-modality task, so this activity has no support
+          // ladder before scoring.
+          taskScope: "capability",
+          support: null,
+          // Capability corrections require doing the whole task again. A
+          // same-item patch would let the learner fix only one option after the
+          // answer was exposed and would no longer measure passage gist.
+          retry: { ...RETRY, retryScope: "full_task" },
+          transfer: null,
+        };
+      }
       return {
         activityId: activity.id,
         taskScope: "micro_item",
@@ -95,7 +126,10 @@ function policyForActivity(activity: LearningActivity): ActivityLearningPolicy {
       return {
         activityId: activity.id,
         taskScope: "micro_item",
-        support: { steps: [...MEANING_SUPPORT], minimumAttemptsBeforeFullReveal: 1 },
+        support: {
+          steps: [...MEANING_SUPPORT],
+          minimumAttemptsBeforeFullReveal: 1,
+        },
         retry: RETRY,
         transfer: null,
       };
@@ -103,7 +137,10 @@ function policyForActivity(activity: LearningActivity): ActivityLearningPolicy {
       return {
         activityId: activity.id,
         taskScope: "micro_item",
-        support: { steps: [...RECALL_SUPPORT], minimumAttemptsBeforeFullReveal: 2 },
+        support: {
+          steps: [...RECALL_SUPPORT],
+          minimumAttemptsBeforeFullReveal: 2,
+        },
         retry: RETRY,
         transfer: null,
       };

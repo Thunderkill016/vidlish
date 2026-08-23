@@ -10,6 +10,7 @@ import { projectLessonActivityCapabilityEvidence } from "./summarise-capability-
 
 const sessionId = "11111111-1111-4111-8111-111111111111";
 const readingSegmentId = `seg_${"a".repeat(32)}`;
+const listeningSegmentId = `seg_${"b".repeat(32)}`;
 
 function chunkBlueprint(hintVi: string | null = null): LessonBlueprintV2 {
   return {
@@ -50,6 +51,59 @@ function readingBlueprint(hasCanonicalContext = true): LessonBlueprintV2 {
             startMs: 1_000,
             endMs: 2_000,
             captionPolicy: "toggle",
+            replayAllowed: true,
+          },
+        ],
+      },
+    ],
+  } as unknown as LessonBlueprintV2;
+}
+
+function passageBlueprint(overlapsEarlierListen = false): LessonBlueprintV2 {
+  const earlierSegment = overlapsEarlierListen
+    ? readingSegmentId
+    : listeningSegmentId;
+  return {
+    evidenceCatalog: [
+      {
+        origin: "source_quote",
+        segmentId: readingSegmentId,
+        startMs: 10_000,
+        endMs: 14_000,
+        text: "The speaker explains how teams can ask for more time politely.",
+      },
+      {
+        origin: "source_quote",
+        segmentId: listeningSegmentId,
+        startMs: 1_000,
+        endMs: 5_000,
+        text: "First the speaker introduces the topic of asking for help at work.",
+      },
+    ],
+    targetItems: [],
+    activities: [
+      {
+        id: "gist_listening",
+        activityType: "gist_choice",
+        evidence: [
+          {
+            sourceSegmentIds: [earlierSegment],
+            startMs: 1_000,
+            endMs: 5_000,
+            captionPolicy: "hidden_first",
+            replayAllowed: true,
+          },
+        ],
+      },
+      {
+        id: "gist_reading",
+        activityType: "gist_choice",
+        evidence: [
+          {
+            sourceSegmentIds: [readingSegmentId],
+            startMs: 10_000,
+            endMs: 14_000,
+            captionPolicy: "shown",
             replayAllowed: true,
           },
         ],
@@ -170,6 +224,33 @@ describe("projectLessonActivityCapabilityEvidence", () => {
         supportEvents: [],
       }),
     ).toEqual([]);
+  });
+
+  it("projects a shown unseen passage gist as independent objective reading", () => {
+    expect(
+      projectLessonActivityCapabilityEvidence({
+        blueprint: passageBlueprint(false),
+        attempt: attempt({ activityId: "gist_reading", kind: "choice" }),
+        supportEvents: [],
+      })[0],
+    ).toMatchObject({
+      subject: { kind: "activity", key: "gist_reading" },
+      targetSkill: "reading",
+      support: "independent",
+      responseMode: "selection",
+      verification: "objective",
+      outcome: "successful",
+    });
+  });
+
+  it("downgrades passage reading to supported when the same source was heard earlier", () => {
+    expect(
+      projectLessonActivityCapabilityEvidence({
+        blueprint: passageBlueprint(true),
+        attempt: attempt({ activityId: "gist_reading", kind: "choice" }),
+        supportEvents: [],
+      })[0]?.support,
+    ).toBe("supported");
   });
 
   it("projects an objectively correct typed recall as item-scoped writing success", () => {
