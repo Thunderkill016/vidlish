@@ -1,22 +1,48 @@
 import { redirect } from "next/navigation";
 
+import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
+import { SupabaseLearningCapabilityProgressReader } from "@/adapters/supabase/learning-capability-progress-reader";
+import { summariseCapabilityEvidence } from "@/modules/learning/application/summarise-capability-evidence";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
-import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
-import { summariseCapabilityEvidence } from "@/modules/learning/application/summarise-capability-evidence";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
+import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
 import { createStudyProgressRepository } from "@/platform/study/create-study-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
+import type { LearningSkill } from "@/shared/contracts/learning-capability";
 import { Card } from "@/shared/ui/card";
 
 export const dynamic = "force-dynamic";
 
-const EVIDENCE_DIMENSIONS = [
-  ["Comprehension", "Hiểu nội dung ở lần nghe/đọc hiện tại"],
-  ["Productive recall", "Tự gọi lại ngôn ngữ mà không nhìn answer key"],
-  ["Interactional use", "Dùng ngôn ngữ để giải quyết một tình huống giao tiếp"],
-  ["Delayed transfer", "Làm lại được sau thời gian với input hoặc context khác"],
-] as const;
+const SKILL_COPY: Record<
+  LearningSkill,
+  { title: string; description: string; empty: string }
+> = {
+  listening: {
+    title: "Nghe",
+    description:
+      "Hiện gồm dictation beginner được chấm objective. Viết lại câu nghe được là listening evidence; nó không tự biến thành writing evidence.",
+    empty: "Chưa có listening task đủ evidence để ghi nhận.",
+  },
+  reading: {
+    title: "Đọc",
+    description:
+      "Chỉ tính task có canonical source text được server xác nhận là stimulus đọc, không suy reading từ một câu hỏi choice mơ hồ.",
+    empty: "Chưa có reading task đủ evidence để ghi nhận.",
+  },
+  speaking: {
+    title: "Nói",
+    description:
+      "Vidlish chưa có speaking task + verifier đủ tin cậy. Typed answer, self-check và legacy productive retrieval đều không được đổi nhãn thành speaking.",
+    empty: "0 là đúng: chưa có speaking evidence được verify.",
+  },
+  writing: {
+    title: "Viết",
+    description:
+      "Objective chunk recall được tính khi task thật sự đo written production; guided transfer self-check vẫn nằm riêng ở evidence chưa chấm.",
+    empty: "Chưa có writing task đủ evidence để ghi nhận.",
+  },
+};
 
 export default async function ProgressPage() {
   const access = await (await createIdentityService()).resolveCurrentAccess();
@@ -28,115 +54,176 @@ export default async function ProgressPage() {
     generationRepository,
     transcriptRuntime.repository,
   );
-  const [scheduledItems, progressSummaries] = await Promise.all([
+  const [scheduledItems, progressSummaries, fourSkillProgress] = await Promise.all([
     createLearningReviewRepository().listScheduled(access.userId),
     createStudyProgressRepository(lessonRepository).listOwnedSummaries(access.userId),
+    new SupabaseLearningCapabilityProgressReader(getAdminSupabaseClient()).read(
+      access.userId,
+    ),
   ]);
   const capability = summariseCapabilityEvidence(scheduledItems);
-
-  // Average completion and started-lesson counts are gone from the page. Both
-  // measure attendance, and this page's own headline rejects that; keeping them
-  // computed but unshown would be dead work.
-  const completedLessons = progressSummaries.filter((summary) => summary.completedAt).length;
+  const completedLessons = progressSummaries.filter(
+    (summary) => summary.completedAt,
+  ).length;
 
   return (
     <div className="mx-auto max-w-6xl space-y-8">
       <div className="space-y-2">
         <p className="text-sm font-semibold text-[var(--accent)]">Tiến bộ</p>
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">Đo evidence, không cộng XP cho đẹp</h1>
+        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          Đo evidence, không cộng XP cho đẹp
+        </h1>
         <p className="max-w-3xl text-[var(--muted-foreground)]">
-          Con số bên dưới đếm thứ bạn đã TẠO RA, không phải số bài đã xem. Không
-          có mốc nào ở đây nói bạn đã thành thạo — nhớ lại được hôm nay và nhớ
-          được sau nhiều tuần là hai chuyện khác nhau.
+          Vidlish chỉ gắn evidence vào kỹ năng mà task thực sự đo. Một đáp án viết
+          trong dictation vẫn là evidence nghe; hoàn tất lesson không phải mastery;
+          self-check không được đổi thành kết quả objective.
         </p>
       </div>
 
-      {/*
-        What the learner has produced, not how many lessons they sat through.
-        `last_independent_at` was recorded on every item and shown to nobody,
-        while this page counted lesson completions — the "XP for looks" its own
-        headline rejects.
-      */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card className="space-y-1 p-5">
-          <p className="text-3xl font-bold">{capability.independent.length}</p>
-          <p className="text-sm font-semibold">Tự nói ra được, không cần trợ giúp</p>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Bạn đã tạo ra đúng cụm này ít nhất một lần khi không mở mức hỗ trợ
-            nào. Đây là bằng chứng gần nhất với dùng độc lập.
+      <section className="space-y-4" aria-labelledby="skills-heading">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-[var(--accent)]">
+            Four-skill evidence · {fourSkillProgress.totalObservations} observation(s)
           </p>
-        </Card>
-        <Card className="space-y-1 p-5">
-          <p className="text-3xl font-bold">{capability.supported.length}</p>
-          <p className="text-sm font-semibold">Nói ra được khi có trợ giúp</p>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Đúng, nhưng có mức hỗ trợ đang mở. Vidlish sẽ đưa lại để bạn thử
-            không cần chúng.
+          <h2 id="skills-heading" className="text-2xl font-bold">
+            Nghe · Đọc · Nói · Viết
+          </h2>
+          <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
+            Đây là số lần evidence durable được quan sát, không phải điểm CEFR hay
+            phần trăm thành thạo. Attempt lặp lại vẫn là attempt lặp lại — trang này
+            không biến event count thành proficiency score.
           </p>
-        </Card>
-        <Card className="space-y-1 p-5">
-          <p className="text-3xl font-bold">{capability.encountered.length}</p>
-          <p className="text-sm font-semibold">Mới gặp, chưa tự nói ra</p>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Gặp một cụm trong bài không phải là dùng được nó. Đếm lượt gặp thành
-            năng lực chính là thứ trang này từ chối làm.
-          </p>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Card className="space-y-1 p-5">
-          <p className="text-3xl font-bold">{capability.transferred.length}</p>
-          <p className="text-sm font-semibold">
-            Tự nói ra được VÀ dùng lại trong tình huống khác
-          </p>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Đòi cả hai. Dùng lại sau một lần nhớ có trợ giúp là tuyên bố yếu hơn,
-            và gộp chúng lại sẽ để nhãn mạnh kiếm được bằng đường yếu.
-          </p>
-        </Card>
-        <Card className="space-y-1 p-5">
-          <p className="text-3xl font-bold">{completedLessons}</p>
-          <p className="text-sm font-semibold">Bài đã hoàn tất</p>
-          <p className="text-sm text-[var(--muted-foreground)]">
-            Để đối chiếu, không phải để khoe: hoàn tất một bài nghĩa là bạn đã đi
-            hết nó, không nói lên bạn nhớ được gì.
-          </p>
-        </Card>
-      </div>
-
-      <section className="space-y-4" aria-labelledby="evidence-heading">
-        <div>
-          <p className="text-sm font-semibold text-[var(--accent)]">Capability evidence</p>
-          <h2 id="evidence-heading" className="mt-1 text-2xl font-bold">Bốn lớp bằng chứng</h2>
         </div>
+
         <div className="grid gap-4 md:grid-cols-2">
-          {EVIDENCE_DIMENSIONS.map(([title, description], index) => (
-            <Card key={title} className="flex items-start gap-4 p-5">
-              <div className="grid size-10 shrink-0 place-items-center rounded-xl bg-[var(--muted)] text-sm font-bold text-[var(--muted-foreground)]">
-                {index + 1}
-              </div>
-              <div className="min-w-0">
-                <div className="flex flex-wrap items-center gap-2">
-                  <h3 className="font-bold">{title}</h3>
-                  <span className="rounded-full bg-[var(--muted)] px-2 py-0.5 text-xs font-semibold text-[var(--muted-foreground)]">
-                    Đang thu thập
-                  </span>
+          {fourSkillProgress.skills.map((skill) => {
+            const copy = SKILL_COPY[skill.skill];
+            const hasEvidence =
+              skill.objectiveIndependentSuccesses +
+                skill.objectiveSupportedSuccesses +
+                skill.objectiveFailures +
+                skill.unscoredObservations >
+              0;
+            return (
+              <Card key={skill.skill} className="space-y-4 p-5">
+                <div>
+                  <h3 className="text-xl font-bold">{copy.title}</h3>
+                  <p className="mt-1 text-sm leading-6 text-[var(--muted-foreground)]">
+                    {copy.description}
+                  </p>
                 </div>
-                <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">{description}</p>
-              </div>
-            </Card>
-          ))}
+
+                <dl className="grid grid-cols-2 gap-3 text-sm">
+                  <div className="rounded-xl bg-[var(--muted)] p-3">
+                    <dt className="text-[var(--muted-foreground)]">Objective · độc lập</dt>
+                    <dd className="mt-1 text-2xl font-bold">
+                      {skill.objectiveIndependentSuccesses}
+                    </dd>
+                  </div>
+                  <div className="rounded-xl bg-[var(--muted)] p-3">
+                    <dt className="text-[var(--muted-foreground)]">Objective · có trợ giúp</dt>
+                    <dd className="mt-1 text-2xl font-bold">
+                      {skill.objectiveSupportedSuccesses}
+                    </dd>
+                  </div>
+                  <div className="rounded-xl bg-[var(--muted)] p-3">
+                    <dt className="text-[var(--muted-foreground)]">Objective · chưa đạt</dt>
+                    <dd className="mt-1 text-2xl font-bold">
+                      {skill.objectiveFailures}
+                    </dd>
+                  </div>
+                  <div className="rounded-xl bg-[var(--muted)] p-3">
+                    <dt className="text-[var(--muted-foreground)]">Self-check / chưa chấm</dt>
+                    <dd className="mt-1 text-2xl font-bold">
+                      {skill.unscoredObservations}
+                    </dd>
+                  </div>
+                </dl>
+
+                {!hasEvidence ? (
+                  <p className="text-sm font-semibold text-[var(--muted-foreground)]">
+                    {copy.empty}
+                  </p>
+                ) : null}
+              </Card>
+            );
+          })}
+        </div>
+      </section>
+
+      <section className="space-y-4" aria-labelledby="legacy-heading">
+        <div className="space-y-1">
+          <p className="text-sm font-semibold text-[var(--accent)]">
+            Legacy lexical scheduler evidence
+          </p>
+          <h2 id="legacy-heading" className="text-2xl font-bold">
+            Productive retrieval chưa phân loại speaking/writing
+          </h2>
+          <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
+            Các state cũ vẫn hữu ích cho scheduler và lexical gate, nhưng chúng không
+            lưu modality đủ rõ để nói learner đã “nói” hay “viết” được. Vì vậy chúng
+            được giữ riêng thay vì đổ vào bốn kỹ năng phía trên.
+          </p>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Card className="space-y-1 p-5">
+            <p className="text-3xl font-bold">{capability.independent.length}</p>
+            <p className="text-sm font-semibold">Retrieval độc lập</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Correct productive retrieval không có support, nhưng legacy evidence
+              không chứng minh response là speech hay writing.
+            </p>
+          </Card>
+          <Card className="space-y-1 p-5">
+            <p className="text-3xl font-bold">{capability.supported.length}</p>
+            <p className="text-sm font-semibold">Retrieval có trợ giúp</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Có successful retrieval nhưng chưa có independent evidence trong
+              aggregate state.
+            </p>
+          </Card>
+          <Card className="space-y-1 p-5">
+            <p className="text-3xl font-bold">{capability.encountered.length}</p>
+            <p className="text-sm font-semibold">Mới gặp / chưa retrieval thành công</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Exposure không được đổi thành khả năng dùng ngôn ngữ.
+            </p>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Card className="space-y-1 p-5">
+            <p className="text-3xl font-bold">{capability.transferred.length}</p>
+            <p className="text-sm font-semibold">Legacy changed-context transfer</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Có independent retrieval và transfer success trong aggregate state;
+              vẫn không được tự gán modality.
+            </p>
+          </Card>
+          <Card className="space-y-1 p-5">
+            <p className="text-3xl font-bold">{completedLessons}</p>
+            <p className="text-sm font-semibold">Bài đã hoàn tất</p>
+            <p className="text-sm text-[var(--muted-foreground)]">
+              Chỉ để đối chiếu attendance. Hoàn tất bài không nói learner nhớ hoặc
+              transfer được gì.
+            </p>
+          </Card>
         </div>
       </section>
 
       <Card className="space-y-4">
         <div>
           <p className="text-sm font-semibold text-[var(--evidence)]">Nguồn sự thật</p>
-          <h2 className="mt-1 text-xl font-bold">Mỗi claim phải quay về được evidence</h2>
+          <h2 className="mt-1 text-xl font-bold">
+            Capability được rebuild từ durable evidence
+          </h2>
         </div>
         <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Vidlish tách việc “đã làm xong activity” khỏi “đã dùng được sau một khoảng thời gian”. Khi delayed review được nối, trang này mới nên hiển thị xu hướng support giảm, successful retrieval và transfer theo thời gian.
+          Four-skill cards được dựng lại từ immutable lesson blueprint,
+          privacy-safe attempts, support events và beginner dictation evidence. Không
+          có bảng mastery thứ hai và không đọc raw learner text, transcript hay audio
+          để dựng progress page.
         </p>
       </Card>
     </div>
