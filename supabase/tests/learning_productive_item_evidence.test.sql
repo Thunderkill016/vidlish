@@ -2,7 +2,14 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(12);
+select plan(16);
+
+select has_column(
+  'public',
+  'learning_item_states',
+  'transfer_self_checked_at',
+  'item state separates self-checked transfer from objective transfer success'
+);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
@@ -80,7 +87,8 @@ insert into public.lesson_versions (
       {"id":"item_recognition","itemKey":"recognition-only"},
       {"id":"item_hint","itemKey":"recall-with-hint"},
       {"id":"item_support","itemKey":"recall-with-support"},
-      {"id":"item_independent","itemKey":"recall-independent"}
+      {"id":"item_independent","itemKey":"recall-independent"},
+      {"id":"item_transfer","itemKey":"transfer-self-check"}
     ],
     "activities":[
       {
@@ -109,6 +117,13 @@ insert into public.lesson_versions (
         "activityType":"chunk_recall",
         "targetItemId":"item_independent",
         "hintVi":null
+      },
+      {
+        "id":"activity_transfer",
+        "phase":"transfer",
+        "activityType":"guided_transfer",
+        "targetItemIds":["item_transfer"],
+        "evaluation":{"criteriaVi":["criterion one","criterion two"]}
       }
     ]
   }'::jsonb
@@ -174,16 +189,28 @@ select * from public.record_lesson_v2_attempt(
   'e7555555-5555-4555-8555-555555555555',
   '{"kind":"text","submitted":true,"characterCount":18}'::jsonb,
   '{"verdict":"correct"}'::jsonb,
+  'transfer',
+  'activity_transfer',
+  false
+);
+
+select * from public.record_lesson_v2_attempt(
+  'e1111111-1111-4111-8111-111111111111',
+  (select session_id from evidence_session),
+  'activity_transfer',
+  'e7666666-6666-4666-8666-666666666666',
+  '{"kind":"self_check","submitted":true,"characterCount":24,"checkedCriteria":[0,1]}'::jsonb,
+  '{"verdict":"self_check","checkedCriteria":[0,1]}'::jsonb,
   'completed',
-  'activity_independent',
+  'activity_transfer',
   true
 );
 
 select is(
   (select count(*)::integer from public.learning_item_states
    where owner_user_id = 'e1111111-1111-4111-8111-111111111111'),
-  4,
-  'completion schedules all four immutable target items'
+  5,
+  'completion schedules all five immutable target items'
 );
 
 select is(
@@ -233,6 +260,22 @@ select is(
   (select last_independent_at is not null from public.learning_item_states where item_key = 'recall-independent'),
   true,
   'correct unsupported hint-free chunk recall records independent production'
+);
+
+select is(
+  (select transfer_attempted_at is not null from public.learning_item_states where item_key = 'transfer-self-check'),
+  true,
+  'guided transfer submission records a changed-context attempt'
+);
+select is(
+  (select transfer_self_checked_at is not null from public.learning_item_states where item_key = 'transfer-self-check'),
+  true,
+  'full-criteria guided transfer records self-checked transfer evidence'
+);
+select is(
+  (select transfer_succeeded_at is null from public.learning_item_states where item_key = 'transfer-self-check'),
+  true,
+  'self-check does not become objective transfer success'
 );
 
 select is(
