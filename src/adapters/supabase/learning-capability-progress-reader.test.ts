@@ -13,6 +13,7 @@ const SUPPORT_ID = "55555555-5555-4555-8555-555555555555";
 const REVIEW_SESSION_ID = "66666666-6666-4666-8666-666666666666";
 const REVIEW_ATTEMPT_1 = "77777777-7777-4777-8777-777777777777";
 const REVIEW_ATTEMPT_2 = "88888888-8888-4888-8888-888888888888";
+const SPEAKING_ATTEMPT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const NOW = "2026-08-23T12:00:00.000Z";
 
 type Filter =
@@ -168,6 +169,34 @@ function createClient() {
         owner_user_id: OWNER_ID,
       },
     ],
+    learning_speaking_attempts: [
+      {
+        id: SPEAKING_ATTEMPT_ID,
+        session_id: SESSION_ID,
+        activity_id: "activity_transfer",
+        idempotency_key: SPEAKING_ATTEMPT_ID,
+        duration_ms: 2600,
+        byte_count: 9000,
+        mime_type: "audio/webm;codecs=opus",
+        replayed: true,
+        confirmed_audible_speech: true,
+        created_at: "2026-08-23T12:20:00.000Z",
+        owner_user_id: OWNER_ID,
+      },
+      {
+        id: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        session_id: SESSION_ID,
+        activity_id: "activity_transfer",
+        idempotency_key: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+        duration_ms: 9999,
+        byte_count: 9999,
+        mime_type: "audio/webm",
+        replayed: true,
+        confirmed_audible_speech: true,
+        created_at: "2026-08-23T12:21:00.000Z",
+        owner_user_id: OTHER_OWNER_ID,
+      },
+    ],
   };
   const queries: FakeQuery[] = [];
   const from = vi.fn((table: string) => {
@@ -179,13 +208,13 @@ function createClient() {
 }
 
 describe("SupabaseLearningCapabilityProgressReader", () => {
-  it("combines beginner, lesson and delayed-review evidence without inflating retry independence", async () => {
+  it("combines beginner, lesson, review and speaking receipts without inflating objective skill", async () => {
     const { client } = createClient();
     const summary = await new SupabaseLearningCapabilityProgressReader(client).read(
       OWNER_ID,
     );
 
-    expect(summary.totalObservations).toBe(4);
+    expect(summary.totalObservations).toBe(5);
     expect(summary.skills.find((entry) => entry.skill === "listening")).toMatchObject({
       objectiveIndependentSuccesses: 1,
       objectiveSupportedSuccesses: 0,
@@ -203,7 +232,7 @@ describe("SupabaseLearningCapabilityProgressReader", () => {
       objectiveIndependentSuccesses: 0,
       objectiveSupportedSuccesses: 0,
       objectiveFailures: 0,
-      unscoredObservations: 0,
+      unscoredObservations: 1,
     });
   });
 
@@ -219,6 +248,7 @@ describe("SupabaseLearningCapabilityProgressReader", () => {
       "learning_item_states",
       "learning_review_sessions",
       "learning_review_attempts",
+      "learning_speaking_attempts",
     ]) {
       const query = queries.find((candidate) => candidate.table === table);
       expect(query, `${table} should be queried`).toBeDefined();
@@ -230,14 +260,16 @@ describe("SupabaseLearningCapabilityProgressReader", () => {
     }
   });
 
-  it("never lets another owner's beginner evidence leak into totals", async () => {
+  it("never lets another owner's beginner or speaking evidence leak into totals", async () => {
     const { client } = createClient();
     const summary = await new SupabaseLearningCapabilityProgressReader(client).read(
       OWNER_ID,
     );
 
     const listening = summary.skills.find((entry) => entry.skill === "listening");
+    const speaking = summary.skills.find((entry) => entry.skill === "speaking");
     expect(listening?.objectiveIndependentSuccesses).toBe(1);
-    expect(summary.totalObservations).toBe(4);
+    expect(speaking?.unscoredObservations).toBe(1);
+    expect(summary.totalObservations).toBe(5);
   });
 });
