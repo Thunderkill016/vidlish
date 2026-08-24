@@ -292,17 +292,24 @@ export function BeginnerSession() {
   }
 
   const sentence = state.session.sentences[state.index];
+  const showSentenceText = phase !== "listening";
 
   return (
     <Card className="flex flex-col gap-5">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-4">
         <span className="text-sm text-[var(--muted-foreground)]">
-          Từ mới:{" "}
-          <strong className="text-[var(--foreground)]">
-            {state.session.target}
-          </strong>
+          {showSentenceText ? (
+            <>
+              Từ mới:{" "}
+              <strong className="text-[var(--foreground)]">
+                {state.session.target}
+              </strong>
+            </>
+          ) : (
+            "Có một từ mới trong câu — đang ẩn"
+          )}
         </span>
-        <span className="text-xs text-[var(--muted-foreground)] tabular-nums">
+        <span className="shrink-0 text-xs text-[var(--muted-foreground)] tabular-nums">
           Câu {state.index + 1}/{state.session.sentences.length}
         </span>
       </div>
@@ -323,7 +330,7 @@ export function BeginnerSession() {
         )}
       </div>
 
-      {phase === "listening" ? (
+      {!showSentenceText ? (
         <p className="text-sm text-[var(--muted-foreground)]">
           Nghe tới khi bạn nói lại được. Chưa nghe ra thì bấm nghe lại — nghe lại
           không tính là trợ giúp, nhìn chữ thì có.
