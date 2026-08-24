@@ -87,4 +87,15 @@ describe("local schema harness", () => {
     ]);
     expect(result.ok, result.output).toBe(true);
   }, HARNESS_TIMEOUT_MS);
+
+  it("holds the guards on the beginner evidence mutation", () => {
+    // These rules had pgTAP assertions and pgTAP only runs in CI here, so a
+    // migration that rebuilt the function dropped three of them and nothing
+    // local noticed until CI came back red. The SQL raises on failure, so
+    // running clean is the assertion.
+    const result = runHarness(undefined, [
+      "scripts/checks/beginner-evidence-guards.sql",
+    ]);
+    expect(result.ok, result.output).toBe(true);
+  }, HARNESS_TIMEOUT_MS);
 });
