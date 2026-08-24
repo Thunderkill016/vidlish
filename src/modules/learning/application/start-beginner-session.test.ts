@@ -84,7 +84,13 @@ describe("startBeginnerSession", () => {
       wanted: 1,
     });
 
-    expect(result).toEqual({ kind: "no_usable_input", target: "water" });
+    // The drafts are discarded — nothing the model wrote reaches the learner.
+    // The turn is not discarded with them: the word is introduced on its own.
+    expect(result).toEqual({
+      kind: "introduce_word",
+      target: "water",
+      knownWordCount: 3,
+    });
   });
 
   it("refuses a short batch rather than serving one sentence", async () => {
@@ -98,7 +104,11 @@ describe("startBeginnerSession", () => {
       wanted: 3,
     });
 
-    expect(result).toEqual({ kind: "no_usable_input", target: "water" });
+    expect(result).toEqual({
+      kind: "introduce_word",
+      target: "water",
+      knownWordCount: 3,
+    });
   });
 
   it("teaches an A1 word before an A2 word", async () => {
@@ -123,5 +133,66 @@ describe("startBeginnerSession", () => {
     });
 
     expect(result).toEqual({ kind: "catalogue_exhausted" });
+  });
+});
+
+describe("choosing a word the corpus can illustrate", () => {
+  // Simulated from zero against the real catalogue and corpus, taking strictly
+  // the next word left 43 of the first 100 words with no i+1 sentence at all —
+  // each arriving as a bare word with no context. These assertions are about
+  // that behaviour, not about the numbers.
+  const pair = [
+    { word: "you", pos: "pronoun", cefr: "A1" },
+    { word: "go", pos: "verb", cefr: "A1" },
+  ];
+
+  it("passes over a word nothing can illustrate for one that can", async () => {
+    // "you" comes first in teaching order and has no usable sentence today.
+    // Serving it would spend the turn on a flashcard while "go" was available.
+    const result = await startBeginnerSession({
+      catalogue: pair,
+      known: new Set(["i"]),
+      candidatesFor: (target) => (target === "go" ? ["I go."] : []),
+      generate: neverGenerates,
+      wanted: 1,
+    });
+
+    expect(result).toMatchObject({
+      kind: "ready",
+      plan: { target: "go", source: "retrieved", sentences: ["I go."] },
+    });
+  });
+
+  it("still takes the first word when both can be illustrated", async () => {
+    // The corpus decides only between words the order left equally available.
+    // It must not become the thing that decides teaching order.
+    const result = await startBeginnerSession({
+      catalogue: pair,
+      known: new Set(["i"]),
+      candidatesFor: (target) => (target === "you" ? ["I you."] : ["I go."]),
+      generate: neverGenerates,
+      wanted: 1,
+    });
+
+    expect(result).toMatchObject({ kind: "ready", plan: { target: "you" } });
+  });
+
+  it("falls back to the word the order names, not the last one searched", async () => {
+    // When nothing in the window is retrievable the learner still gets the
+    // right word. Returning whichever candidate the loop ended on would let
+    // search order leak into what is taught.
+    const generate = vi.fn(async () => []);
+    const result = await startBeginnerSession({
+      catalogue: pair,
+      known: new Set(["i"]),
+      candidatesFor: () => [],
+      generate,
+      wanted: 1,
+    });
+
+    expect(result).toMatchObject({ target: "you" });
+    expect(generate).toHaveBeenCalledWith(
+      expect.objectContaining({ target: "you" }),
+    );
   });
 });

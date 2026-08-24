@@ -74,8 +74,6 @@ function speak(text: string): void {
 const EMPTY_MESSAGES: Record<string, string> = {
   catalogue_exhausted:
     "Bạn đã đi hết danh sách từ A1–A2. Đây là lúc chuyển sang nguồn thật, không phải lúc học lại từ đầu.",
-  no_usable_input:
-    "Chưa tìm được câu nào chỉ có đúng một từ mới cho từ tiếp theo. Thà không có câu còn hơn một câu bạn chưa đọc nổi.",
 };
 
 export function BeginnerSession() {
