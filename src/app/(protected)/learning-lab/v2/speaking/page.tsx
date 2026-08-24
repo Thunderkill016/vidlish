@@ -142,6 +142,7 @@ export default async function SpeakingPracticePage({
         sessionId={practice.sessionId}
         activityId={practice.activity.id}
         exemplarAfterAttempt={practice.exemplarAfterAttempt ?? undefined}
+        recognitionTargetPhrases={practice.recognitionTargetPhrases}
       />
 
       <Link

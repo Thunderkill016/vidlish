@@ -19,6 +19,11 @@ export type SelectedSpeakingPractice = {
    * lesson rendering cannot reveal evaluation/reveal material before attempt.
    */
   exemplarAfterAttempt: string | null;
+  /**
+   * Immutable target surfaces used only by the optional on-device ASR probe.
+   * They are never a verifier result and are not persisted as learner evidence.
+   */
+  recognitionTargetPhrases: string[];
 };
 
 /**
@@ -57,11 +62,18 @@ export function selectSpeakingPractice(input: {
     );
     if (immutableActivity?.activityType !== "guided_transfer") continue;
 
+    const targetIds = new Set(immutableActivity.targetItemIds);
+    const recognitionTargetPhrases = parsed.data.targetItems
+      .filter((item) => targetIds.has(item.id))
+      .map((item) => item.surfaceForm.trim())
+      .filter(Boolean);
+
     return {
       sessionId: session.id,
       activity,
       exemplarAfterAttempt:
         immutableActivity.evaluation.exemplarAfterAttempt ?? null,
+      recognitionTargetPhrases,
     };
   }
 

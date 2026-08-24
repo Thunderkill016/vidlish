@@ -6,6 +6,14 @@ import {
   learningSpeakingAttemptResponseSchema,
   type LearningSpeakingAttempt,
 } from "@/shared/contracts/learning-speaking";
+import {
+  checkOnDeviceEnglishDictation,
+  installOnDeviceEnglishDictation,
+  startOnDeviceSpeechProbe,
+  type OnDeviceSpeechAvailability,
+  type OnDeviceSpeechProbeController,
+  type OnDeviceSpeechProbeResult,
+} from "./on-device-speech-probe";
 
 const MIME_CANDIDATES = [
   "audio/webm;codecs=opus",
@@ -13,6 +21,13 @@ const MIME_CANDIDATES = [
   "audio/ogg;codecs=opus",
   "audio/mp4",
 ] as const;
+
+type LocalProbeStatus =
+  | "idle"
+  | "listening"
+  | "detected"
+  | "not_detected"
+  | "failed";
 
 function preferredMimeType(): string | undefined {
   if (typeof MediaRecorder === "undefined") return undefined;
@@ -23,16 +38,19 @@ export function SpeakingCapturePanel({
   sessionId,
   activityId,
   exemplarAfterAttempt,
+  recognitionTargetPhrases,
 }: {
   sessionId: string;
   activityId: string;
   exemplarAfterAttempt?: string;
+  recognitionTargetPhrases: readonly string[];
 }) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const startedAtRef = useRef<number | null>(null);
   const idempotencyRef = useRef<string>(crypto.randomUUID());
+  const localProbeRef = useRef<OnDeviceSpeechProbeController | null>(null);
 
   const [recording, setRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
@@ -47,6 +65,26 @@ export function SpeakingCapturePanel({
   );
   const [supportRevealed, setSupportRevealed] = useState(false);
   const [error, setError] = useState("");
+  const [localAvailability, setLocalAvailability] = useState<
+    OnDeviceSpeechAvailability | "checking"
+  >("checking");
+  const [installingLocalPack, setInstallingLocalPack] = useState(false);
+  const [localProbeStatus, setLocalProbeStatus] =
+    useState<LocalProbeStatus>("idle");
+  const [localProbeResult, setLocalProbeResult] =
+    useState<OnDeviceSpeechProbeResult | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    void checkOnDeviceEnglishDictation().then((availability) => {
+      if (active) setLocalAvailability(availability);
+    });
+    return () => {
+      active = false;
+      localProbeRef.current?.abort();
+      localProbeRef.current = null;
+    };
+  }, []);
 
   useEffect(() => {
     return () => {
@@ -69,11 +107,26 @@ export function SpeakingCapturePanel({
     idempotencyRef.current = crypto.randomUUID();
   }
 
+  async function installLocalRecognition() {
+    if (installingLocalPack) return;
+    setInstallingLocalPack(true);
+    try {
+      await installOnDeviceEnglishDictation();
+      setLocalAvailability(await checkOnDeviceEnglishDictation());
+    } finally {
+      setInstallingLocalPack(false);
+    }
+  }
+
   async function startRecording() {
     if (recording || uploading) return;
     setError("");
     setSaved(false);
     setSavedAttempt(null);
+    localProbeRef.current?.abort();
+    localProbeRef.current = null;
+    setLocalProbeResult(null);
+    setLocalProbeStatus("idle");
 
     if (
       typeof navigator === "undefined" ||
@@ -95,10 +148,34 @@ export function SpeakingCapturePanel({
       recorderRef.current = recorder;
       startedAtRef.current = performance.now();
 
+      const audioTrack = stream.getAudioTracks()[0];
+      if (
+        localAvailability === "available" &&
+        audioTrack &&
+        recognitionTargetPhrases.length > 0
+      ) {
+        setLocalProbeStatus("listening");
+        localProbeRef.current = startOnDeviceSpeechProbe({
+          audioTrack,
+          targetPhrases: recognitionTargetPhrases,
+          onResult(result) {
+            setLocalProbeResult(result);
+            setLocalProbeStatus(
+              result.targetPhraseDetected ? "detected" : "not_detected",
+            );
+          },
+          onError() {
+            setLocalProbeStatus("failed");
+          },
+        });
+        if (!localProbeRef.current) setLocalProbeStatus("failed");
+      }
+
       recorder.addEventListener("dataavailable", (event) => {
         if (event.data.size > 0) chunksRef.current.push(event.data);
       });
       recorder.addEventListener("stop", () => {
+        localProbeRef.current?.stop();
         const elapsed = Math.round(
           performance.now() - (startedAtRef.current ?? performance.now()),
         );
@@ -118,6 +195,8 @@ export function SpeakingCapturePanel({
       recorder.start();
       setRecording(true);
     } catch {
+      localProbeRef.current?.abort();
+      localProbeRef.current = null;
       streamRef.current?.getTracks().forEach((track) => track.stop());
       streamRef.current = null;
       setError("Không mở được microphone. Kiểm tra quyền microphone rồi thử lại.");
@@ -187,9 +266,77 @@ export function SpeakingCapturePanel({
           Thu ít nhất một câu, nghe lại hết bản thu rồi tự xác nhận. Nếu đây là
           lần speaking đầu tiên của tình huống sau ít nhất 24 giờ, server có thể
           ghi nhận mức hỗ trợ là independent. Independent vẫn là self-check chưa
-          chấm, không phải điểm phát âm hay mastery. Audio chỉ đi qua request hiện
-          tại; Supabase không lưu audio hay transcript.
+          chấm, không phải điểm phát âm hay mastery. Audio chỉ tồn tại trong
+          browser và request speaking hiện tại; local probe nếu được hỗ trợ chỉ
+          đọc cùng live track trên thiết bị. Supabase không lưu audio hay transcript.
         </p>
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
+        <div>
+          <p className="text-sm font-semibold">Nhận dạng cục bộ · thử nghiệm</p>
+          <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+            Chỉ bật khi browser xác nhận English dictation chạy on-device. Vidlish
+            không fallback sang cloud recognition. Transcript nhận dạng không được
+            hiển thị, gửi API hay lưu; probe chỉ giữ một kết quả bounded trong RAM.
+          </p>
+        </div>
+
+        {localAvailability === "checking" ? (
+          <p className="text-sm">Đang kiểm tra khả năng nhận dạng trên thiết bị…</p>
+        ) : null}
+        {localAvailability === "unsupported" ||
+        localAvailability === "unavailable" ? (
+          <p className="text-sm">
+            Browser này chưa có on-device English dictation phù hợp. Speaking
+            self-check vẫn hoạt động; Vidlish không chuyển sang dịch vụ cloud.
+          </p>
+        ) : null}
+        {localAvailability === "downloadable" ? (
+          <button
+            type="button"
+            onClick={installLocalRecognition}
+            disabled={installingLocalPack}
+            className="min-h-10 rounded-xl border border-[var(--border)] bg-[var(--card)] px-4 py-2 text-sm font-semibold disabled:opacity-50"
+          >
+            {installingLocalPack
+              ? "Đang cài gói English trên thiết bị…"
+              : "Cài gói nhận dạng English trên thiết bị"}
+          </button>
+        ) : null}
+        {localAvailability === "downloading" ? (
+          <p className="text-sm">Browser đang tải gói nhận dạng English cục bộ.</p>
+        ) : null}
+        {localAvailability === "available" ? (
+          <p className="text-sm font-semibold">
+            On-device English dictation sẵn sàng cho lần thu tiếp theo.
+          </p>
+        ) : null}
+        {localProbeStatus === "listening" ? (
+          <p role="status" className="text-sm">
+            Probe ASR đang nghe cùng audio track trên thiết bị…
+          </p>
+        ) : null}
+        {localProbeStatus === "detected" && localProbeResult ? (
+          <p role="status" className="text-sm font-semibold">
+            ASR trên thiết bị nhận ra target phrase trong khoảng {" "}
+            {localProbeResult.recognizedWordCount} từ. Đây chỉ là diagnostic local,
+            không được cộng vào progress hay coi là pronunciation success.
+          </p>
+        ) : null}
+        {localProbeStatus === "not_detected" && localProbeResult ? (
+          <p role="status" className="text-sm">
+            ASR trên thiết bị nhận ra khoảng {localProbeResult.recognizedWordCount} từ
+            nhưng chưa thấy target phrase. Vidlish không coi kết quả thử nghiệm này
+            là speaking failure.
+          </p>
+        ) : null}
+        {localProbeStatus === "failed" ? (
+          <p role="status" className="text-sm">
+            Probe cục bộ không chạy được trên lần thu này. Không có cloud fallback;
+            speaking receipt vẫn giữ self-check như trước.
+          </p>
+        ) : null}
       </div>
 
       <div className="flex flex-wrap gap-3">
