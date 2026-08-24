@@ -12,7 +12,7 @@
 ## Verification
 
 - [x] Add Chromium coverage for the learner home and mobile nav.
-- [ ] Review diff for Gate/evidence/scheduler drift.
+- [x] Review diff for Gate/evidence/scheduler drift.
 - [ ] Run exact-head full repository CI.
 - [ ] Squash merge only the exact green head.
 
