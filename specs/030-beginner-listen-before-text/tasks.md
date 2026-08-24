@@ -13,7 +13,7 @@
 - [x] Cover first-word independent path in Chromium.
 - [x] Cover first-word supported path and durable known count in Chromium.
 - [x] Cover later sentence target/text hiding in Chromium.
-- [ ] Review diff for persistence/scoring/scheduler drift.
+- [x] Review diff for persistence/scoring/scheduler drift.
 - [ ] Run exact-head full repository CI.
 - [ ] Squash merge only the exact green head.
 
