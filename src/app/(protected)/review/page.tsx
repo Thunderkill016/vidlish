@@ -88,7 +88,7 @@ export default async function ReviewPage() {
         <Card className="grid gap-5 border-[var(--border)] bg-[var(--card)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div>
             <p className="text-sm font-semibold text-[var(--accent)]">
-              Speaking · đang chờ delay
+              Speaking · chưa đủ 24 giờ
             </p>
             <h2 className="mt-1 text-2xl font-bold">Đã có lượt nói lại kế tiếp</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">
