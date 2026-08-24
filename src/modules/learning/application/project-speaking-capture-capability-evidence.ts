@@ -8,9 +8,9 @@ import type { LearningSpeakingAttempt } from "@/shared/contracts/learning-speaki
  * A microphone capture proves that a speaking self-check happened, not that the
  * learner pronounced the language correctly or was intelligible to a listener.
  *
- * Feature 022 deliberately marks this supported: the capture happens after the
- * guided written transfer, where an exemplar/correction may already have been
- * shown. A later verifier can add stronger evidence without rewriting this one.
+ * Feature 024 persists the support strength chosen by the authoritative DB RPC.
+ * A first capture at least 24 hours after lesson completion may therefore be an
+ * independent self-check; immediate captures and retries remain supported.
  */
 export function projectSpeakingCaptureCapabilityEvidence(
   attempt: LearningSpeakingAttempt,
@@ -18,7 +18,7 @@ export function projectSpeakingCaptureCapabilityEvidence(
   return learningCapabilityObservationSchema.parse({
     subject: { kind: "activity", key: attempt.activityId },
     targetSkill: "speaking",
-    support: "supported",
+    support: attempt.support,
     responseMode: "speaking",
     verification: "self_check",
     outcome: "unscored",
