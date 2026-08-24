@@ -141,7 +141,7 @@ export default async function SpeakingPracticePage({
       <SpeakingCapturePanel
         sessionId={practice.sessionId}
         activityId={practice.activity.id}
-        exemplarAfterAttempt={practice.activity.evaluation.exemplarAfterAttempt}
+        exemplarAfterAttempt={practice.exemplarAfterAttempt ?? undefined}
       />
 
       <Link
