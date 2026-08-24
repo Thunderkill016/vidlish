@@ -42,6 +42,13 @@ const NOT_YET_WIRED: Record<string, string> = {
   // Within-session recall is here for the same reason they were: the rule is
   // right and no session drives it yet. It leaves the moment /start asks it
   // what to serve next.
+  //
+  // The curriculum module is the authority the product did not have: it decides
+  // what a learner should be able to do, and evidence decides whether they can.
+  // No surface asks it yet — the compiler from a unit to a lesson blueprint is
+  // the next piece — so it is declared here rather than left to look wired.
+  "src/modules/curriculum/application/select-next-unit.ts":
+    "curriculum authority — no surface asks it yet",
   "src/modules/learning/application/schedule-within-session-recall.ts":
     "A0 beginner track — no session loop calls it yet",
 };
