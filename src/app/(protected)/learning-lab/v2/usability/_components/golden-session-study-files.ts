@@ -1,3 +1,5 @@
+import type { ZodError } from "zod";
+
 import {
   goldenSessionUsabilityParticipantSchema,
   goldenSessionUsabilityStudySchema,
@@ -19,11 +21,8 @@ export type GoldenSessionParticipantFileDescriptor = {
   content: string;
 };
 
-function firstSchemaIssue(
-  result: ReturnType<typeof goldenSessionUsabilityParticipantSchema.safeParse> | ReturnType<typeof goldenSessionUsabilityStudySchema.safeParse>,
-): string {
-  if (result.success) return "";
-  const issue = result.error.issues[0];
+function firstSchemaIssue(error: ZodError): string {
+  const issue = error.issues[0];
   const path = issue?.path.join(".");
   return `${path ? `${path}: ` : ""}${issue?.message ?? "Gate 5 JSON không hợp lệ."}`;
 }
@@ -33,7 +32,7 @@ export function createGoldenSessionParticipantFile(
 ): GoldenSessionParticipantFileDescriptor {
   const parsed = goldenSessionUsabilityParticipantSchema.safeParse(participant);
   if (!parsed.success) {
-    throw new Error(firstSchemaIssue(parsed));
+    throw new Error(firstSchemaIssue(parsed.error));
   }
 
   return {
@@ -55,7 +54,7 @@ export function parseGoldenSessionParticipantJson(
 
   const parsed = goldenSessionUsabilityParticipantSchema.safeParse(raw);
   if (!parsed.success) {
-    throw new Error(firstSchemaIssue(parsed));
+    throw new Error(firstSchemaIssue(parsed.error));
   }
   return parsed.data;
 }
@@ -83,7 +82,7 @@ export async function readGoldenSessionStudyFiles(
 
   const parsedStudy = goldenSessionUsabilityStudySchema.safeParse({ participants });
   if (!parsedStudy.success) {
-    throw new Error(firstSchemaIssue(parsedStudy));
+    throw new Error(firstSchemaIssue(parsedStudy.error));
   }
   return parsedStudy.data;
 }
@@ -93,7 +92,7 @@ export function serializeGoldenSessionStudy(
 ): string {
   const parsed = goldenSessionUsabilityStudySchema.safeParse(study);
   if (!parsed.success) {
-    throw new Error(firstSchemaIssue(parsed));
+    throw new Error(firstSchemaIssue(parsed.error));
   }
   return JSON.stringify(parsed.data, null, 2);
 }
