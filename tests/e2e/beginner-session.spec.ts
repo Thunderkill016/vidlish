@@ -291,3 +291,18 @@ test("beginner evidence follows only a single-use server challenge", async ({
   );
   expect(calibration.body.items).not.toContain("forged-target");
 });
+
+test("the home page answers with one thing to do, not a menu", async ({
+  page,
+}, testInfo) => {
+  await login(page, `beginner-${testInfo.project.name}@example.com`);
+
+  await page.goto("/dashboard");
+
+  // The answer is decided by evidence, so a learner with none is pointed at the
+  // first unit rather than at whichever card looks easiest.
+  const action = page.getByTestId("todays-action");
+  await expect(action).toBeVisible();
+  await expect(action).toContainText("Học tiếp phần đang dở");
+  await expect(action.getByRole("link", { name: "Làm tiếp" })).toBeVisible();
+});
