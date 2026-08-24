@@ -2,9 +2,10 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { classifyLearningReviewQueue } from "@/modules/learning/application/classify-learning-review-queue";
-import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-plan";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
+import { createLearningSpeakingReviewQueueReader } from "@/platform/learning/create-learning-speaking-review-queue-reader";
+import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-plan";
 import { Card } from "@/shared/ui/card";
 
 export const dynamic = "force-dynamic";
@@ -36,14 +37,16 @@ export default async function ReviewPage() {
   const access = await (await createIdentityService()).resolveCurrentAccess();
   if (!access) redirect("/sign-in");
 
-  const scheduled = await createLearningReviewRepository().listScheduled(
-    access.userId,
-  );
+  const [scheduled, speakingQueue] = await Promise.all([
+    createLearningReviewRepository().listScheduled(access.userId),
+    createLearningSpeakingReviewQueueReader().read(access.userId),
+  ]);
   const { due, upcoming } = await classifyLearningReviewQueue(
     scheduled,
     async (itemKey) =>
       (await resolveLearningReviewPlan(access.userId, itemKey)) !== null,
   );
+  const nextSpeaking = speakingQueue.due[0] ?? null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -53,19 +56,64 @@ export default async function ReviewPage() {
           Nhớ được sau thời gian trì hoãn mới có ý nghĩa
         </h1>
         <p className="max-w-3xl text-[var(--muted-foreground)]">
-          Queue này đọc lịch ôn thật từ learner state. Golden Session v2 hiện có một bounded review variant để kiểm chứng phiên thứ hai; Vidlish chưa gọi completion hay một lần review là mastery.
+          Lexical review dùng scheduler thật. Speaking delayed review là một queue
+          dẫn xuất riêng từ lesson completion và speaking receipt, không bị giả
+          thành FSRS state hay mastery.
         </p>
       </div>
+
+      {nextSpeaking ? (
+        <Card className="grid gap-5 border-[var(--solved)] bg-[var(--solved-wash)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+          <div>
+            <p className="text-sm font-semibold text-[var(--solved)]">
+              Speaking · đã đủ 24 giờ
+            </p>
+            <h2 className="mt-1 text-2xl font-bold">
+              {speakingQueue.due.length} tình huống có thể nói lại không xem mẫu
+            </h2>
+            <p className="mt-2 max-w-2xl text-sm text-[var(--muted-foreground)]">
+              Link này giữ đúng lesson session chưa có speaking receipt. Lần capture
+              đầu tiên sau delay có thể được ghi mức hỗ trợ independent, nhưng vẫn
+              chỉ là self-check chưa chấm — không phải pronunciation success.
+            </p>
+          </div>
+          <Link
+            href={`/learning-lab/v2/speaking?session=${nextSpeaking.sessionId}`}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          >
+            Nói lại ngay
+          </Link>
+        </Card>
+      ) : speakingQueue.upcoming ? (
+        <Card className="grid gap-5 border-[var(--border)] bg-[var(--card)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+          <div>
+            <p className="text-sm font-semibold text-[var(--accent)]">
+              Speaking · đang chờ delay
+            </p>
+            <h2 className="mt-1 text-2xl font-bold">Đã có lượt nói lại kế tiếp</h2>
+            <p className="mt-2 text-sm text-[var(--muted-foreground)]">
+              Mở sau <strong>{formatReviewTime(speakingQueue.upcoming.dueAt)}</strong>.
+              Vidlish không mở sớm rồi vẫn gọi evidence đó là independent.
+            </p>
+          </div>
+          <span className="rounded-full bg-[var(--muted)] px-3 py-1.5 text-sm font-semibold text-[var(--muted-foreground)]">
+            Chờ đủ 24 giờ
+          </span>
+        </Card>
+      ) : null}
 
       {due.length > 0 ? (
         <Card className="grid gap-5 border-[var(--solved)] bg-[var(--solved-wash)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div>
-            <p className="text-sm font-semibold text-[var(--solved)]">Đến hạn thật</p>
+            <p className="text-sm font-semibold text-[var(--solved)]">
+              Lexical review · đến hạn thật
+            </p>
             <h2 className="mt-1 text-2xl font-bold">
               {due.length} mục cần ôn
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--muted-foreground)]">
-              Phiên ôn sẽ bắt đầu bằng tự nhớ lại, sau đó đổi sang một bối cảnh khác. Đáp án không được gửi xuống trước attempt.
+              Phiên ôn sẽ bắt đầu bằng tự nhớ lại, sau đó đổi sang một bối cảnh khác.
+              Đáp án không được gửi xuống trước attempt.
             </p>
           </div>
           <Link
@@ -78,10 +126,13 @@ export default async function ReviewPage() {
       ) : upcoming?.nextReviewAt ? (
         <Card className="grid gap-5 border-[var(--border)] bg-[var(--card)] md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
           <div>
-            <p className="text-sm font-semibold text-[var(--accent)]">Chưa đến hạn</p>
+            <p className="text-sm font-semibold text-[var(--accent)]">
+              Lexical review · chưa đến hạn
+            </p>
             <h2 className="mt-1 text-2xl font-bold">Lịch ôn đã được tạo</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">
-              Lượt kế tiếp: <strong>{formatReviewTime(upcoming.nextReviewAt)}</strong>. Vidlish không cho mở sớm chỉ để tạo cảm giác có tiến bộ.
+              Lượt kế tiếp: <strong>{formatReviewTime(upcoming.nextReviewAt)}</strong>.
+              Vidlish không cho mở sớm chỉ để tạo cảm giác có tiến bộ.
             </p>
           </div>
           <span className="rounded-full bg-[var(--muted)] px-3 py-1.5 text-sm font-semibold text-[var(--muted-foreground)]">
@@ -90,10 +141,13 @@ export default async function ReviewPage() {
         </Card>
       ) : (
         <Card className="space-y-3 border-dashed">
-          <p className="text-sm font-semibold text-[var(--accent)]">Chưa có lịch ôn</p>
+          <p className="text-sm font-semibold text-[var(--accent)]">
+            Chưa có lexical review
+          </p>
           <h2 className="text-2xl font-bold">Hoàn tất một Golden Session v2 trước</h2>
           <p className="max-w-2xl text-sm text-[var(--muted-foreground)]">
-            Chỉ khi phiên đầu hoàn tất, target item mới được schedule. Review không tự sinh từ số lần mở trang hay từ progress bar.
+            Chỉ khi phiên đầu hoàn tất, target item mới được schedule. Review không tự
+            sinh từ số lần mở trang hay từ progress bar.
           </p>
           <Link
             href="/learning-lab/v2"
@@ -107,7 +161,9 @@ export default async function ReviewPage() {
       <section className="space-y-4">
         <div>
           <p className="text-sm font-semibold text-[var(--accent)]">Review model</p>
-          <h2 className="mt-1 text-2xl font-bold">Phiên thứ hai được kiểm soát thế nào?</h2>
+          <h2 className="mt-1 text-2xl font-bold">
+            Phiên thứ hai được kiểm soát thế nào?
+          </h2>
         </div>
         <div className="grid gap-4 md:grid-cols-3">
           {REVIEW_STEPS.map((step, index) => (
@@ -130,7 +186,9 @@ export default async function ReviewPage() {
         <p className="text-sm font-semibold text-[var(--accent)]">Nguyên tắc</p>
         <h2 className="text-xl font-bold">Completion không phải mastery</h2>
         <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
-          `next_review_at` chỉ là lịch. `last_delayed_transfer_at` là evidence rằng learner đã hoàn tất changed-context check sau delay. Cả hai vẫn chưa đủ để gọi một item là “đã thành thạo”.
+          `next_review_at` chỉ là lịch lexical. Speaking `dueAt` chỉ là mốc đủ 24 giờ
+          để thử production không xem mẫu. Cả hai đều là điều kiện để thu evidence,
+          không phải bằng chứng learner đã thành thạo.
         </p>
       </Card>
     </div>
