@@ -9,9 +9,25 @@ export const learningSkillCapabilitySummarySchema = z
     objectiveSupportedSuccesses: z.number().int().nonnegative(),
     objectiveFailures: z.number().int().nonnegative(),
     unscoredObservations: z.number().int().nonnegative(),
+    unscoredIndependentObservations: z.number().int().nonnegative(),
+    unscoredSupportedObservations: z.number().int().nonnegative(),
     latestObservedAt: z.string().datetime({ offset: true }).nullable(),
   })
-  .strict();
+  .strict()
+  .superRefine((summary, context) => {
+    if (
+      summary.unscoredObservations !==
+      summary.unscoredIndependentObservations +
+        summary.unscoredSupportedObservations
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["unscoredObservations"],
+        message:
+          "Unscored total must equal independent plus supported unscored observations.",
+      });
+    }
+  });
 export type LearningSkillCapabilitySummary = z.infer<
   typeof learningSkillCapabilitySummarySchema
 >;
