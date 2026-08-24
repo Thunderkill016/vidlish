@@ -12,10 +12,7 @@ import { resolveLearningReviewPlan } from "@/platform/learning/resolve-review-pl
 import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
 import { createStudyProgressRepository } from "@/platform/study/create-study-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
-import { resolveTodaysAction } from "@/platform/learning/resolve-todays-action";
 import { Card } from "@/shared/ui/card";
-
-import { TodaysAction } from "./_components/todays-action";
 
 export const dynamic = "force-dynamic";
 
@@ -55,9 +52,6 @@ export default async function DashboardPage() {
     createBeginnerProgressRepository().knownWords(access.userId),
     createLearningSpeakingReviewQueueReader().read(access.userId),
   ]);
-
-  // One question drives the page. Everything below it is detail on the answer.
-  const todaysAction = await resolveTodaysAction(access.userId);
 
   const progressByJobId = new Map(
     progressSummaries.map((summary) => [summary.jobId, summary]),
@@ -105,8 +99,7 @@ export default async function DashboardPage() {
             Hôm nay học gì?
           </h1>
           <p className="max-w-2xl text-[var(--muted-foreground)]">
-            Một việc mỗi lần, chọn theo bằng chứng bạn để lại — không phải theo
-            thứ bạn thấy dễ nhất.
+            Học tiếp bài đang dở, củng cố từ nền hoặc làm đúng những lượt ôn đã đến hạn.
           </p>
         </div>
         <Link
@@ -116,8 +109,6 @@ export default async function DashboardPage() {
           + Tạo bài từ video
         </Link>
       </div>
-
-      <TodaysAction action={todaysAction} />
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.85fr)]">
         {continueRow ? (
