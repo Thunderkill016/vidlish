@@ -25,7 +25,7 @@ describe("selectSpeakingPractice", () => {
     expect(result).toBeNull();
   });
 
-  it("may choose the newest valid completed lesson when no session is requested", () => {
+  it("selects bounded post-attempt support without leaking evaluation into the learner view", () => {
     const result = selectSpeakingPractice({
       sessions: [
         { id: REQUESTED_SESSION, lessonVersionId: REQUESTED_VERSION },
@@ -40,5 +40,9 @@ describe("selectSpeakingPractice", () => {
 
     expect(result?.sessionId).toBe(FALLBACK_SESSION);
     expect(result?.activity.activityType).toBe("guided_transfer");
+    expect(result?.activity).not.toHaveProperty("evaluation");
+    expect(result?.exemplarAfterAttempt).toBe(
+      "I'm a member of the product design team.",
+    );
   });
 });
