@@ -13,6 +13,12 @@ export type SelectedSpeakingPractice = {
     ReturnType<typeof createLearnerBlueprintView>["activities"][number],
     { activityType: "guided_transfer" }
   >;
+  /**
+   * Bounded post-attempt support selected on the server from the immutable
+   * blueprint. It stays separate from the learner activity view so generic
+   * lesson rendering cannot reveal evaluation/reveal material before attempt.
+   */
+  exemplarAfterAttempt: string | null;
 };
 
 /**
@@ -37,13 +43,26 @@ export function selectSpeakingPractice(input: {
     if (!rawBlueprint) continue;
     const parsed = lessonBlueprintV2Schema.safeParse(rawBlueprint);
     if (!parsed.success) continue;
+
     const learnerView = createLearnerBlueprintView(parsed.data);
     const activity = learnerView.activities.find(
       (candidate) => candidate.activityType === "guided_transfer",
     );
-    if (activity?.activityType === "guided_transfer") {
-      return { sessionId: session.id, activity };
-    }
+    if (activity?.activityType !== "guided_transfer") continue;
+
+    const immutableActivity = parsed.data.activities.find(
+      (candidate) =>
+        candidate.id === activity.id &&
+        candidate.activityType === "guided_transfer",
+    );
+    if (immutableActivity?.activityType !== "guided_transfer") continue;
+
+    return {
+      sessionId: session.id,
+      activity,
+      exemplarAfterAttempt:
+        immutableActivity.evaluation.exemplarAfterAttempt ?? null,
+    };
   }
 
   return null;
