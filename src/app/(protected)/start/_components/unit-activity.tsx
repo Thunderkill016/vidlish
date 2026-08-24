@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { playEnglishLines } from "@/platform/speech/play-english-line";
 import {
   checkOnDeviceEnglishDictation,
   startOnDeviceSpeechProbe,
@@ -43,16 +44,6 @@ import { Input } from "@/shared/ui/input";
 
 type Phase = "presenting" | "producing" | "saving" | "done";
 
-function speak(lines: readonly string[]): void {
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  window.speechSynthesis.cancel();
-  for (const line of lines) {
-    const utterance = new SpeechSynthesisUtterance(line);
-    utterance.lang = "en-US";
-    utterance.rate = 0.75;
-    window.speechSynthesis.speak(utterance);
-  }
-}
 
 const STRAND_LABEL: Record<BeginnerUnitActivity["strand"], string> = {
   meaning_focused_input: "Nghe để hiểu",
@@ -242,7 +233,7 @@ export function UnitActivity({
 
       {mayHear ? (
         <div className="flex flex-wrap gap-2">
-          <Button onClick={() => speak(activity.listen)}>Nghe</Button>
+          <Button onClick={() => playEnglishLines(activity.listen)}>Nghe</Button>
           {phase === "presenting" && !usedSupport ? (
             <Button
               variant="secondary"
