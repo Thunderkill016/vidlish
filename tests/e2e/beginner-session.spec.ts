@@ -299,10 +299,11 @@ test("the home page answers with one thing to do, not a menu", async ({
 
   await page.goto("/dashboard");
 
-  // The answer is decided by evidence, so a learner with none is pointed at the
-  // first unit rather than at whichever card looks easiest.
+  // The answer is decided by evidence, not by whichever card looks easiest. A
+  // learner with none cannot reach a Pre-A1 chunk yet — "my name is" is three
+  // unknown words at once — so the honest answer is a single new word.
   const action = page.getByTestId("todays-action");
   await expect(action).toBeVisible();
-  await expect(action).toContainText("Học tiếp phần đang dở");
-  await expect(action.getByRole("link", { name: "Làm tiếp" })).toBeVisible();
+  await expect(action).toContainText("Gặp một từ mới");
+  await expect(action.getByRole("link", { name: "Bắt đầu" })).toBeVisible();
 });

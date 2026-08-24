@@ -34,13 +34,7 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
-  // The compiler turns a curriculum activity into something servable, and the
-  // API could return it today. The beginner UI cannot render it: it knows a
-  // word and a sentence, and a communicative task is neither. Wiring the route
-  // first would have shipped a blank screen, so the compiler waits here until
-  // the activity runtime exists.
-  "src/modules/curriculum/application/compile-unit-activity.ts":
-    "curriculum activity runtime — the UI cannot render one yet",
+
   // This list is self-cleaning: an entry has to leave the moment a route
   // reaches it, so it cannot quietly describe a past that is over. The four
   // A0 modules that used to sit here left when /start shipped, which is the

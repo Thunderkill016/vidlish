@@ -79,6 +79,12 @@ export const beginnerUnitActivitySchema = z.object({
     .min(1)
     .max(6),
   supportAllowed: z.boolean(),
+  /**
+   * Present only for a retrieval. The browser never sends the chunk it is being
+   * graded on; the server holds it against this single-use challenge, exactly
+   * as it does for a dictated sentence.
+   */
+  challengeId: z.string().uuid().optional(),
 });
 
 export type BeginnerUnitActivity = z.infer<typeof beginnerUnitActivitySchema>;
