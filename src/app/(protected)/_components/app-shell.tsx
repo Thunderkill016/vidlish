@@ -13,6 +13,8 @@ const NAV_ITEMS = [
   { href: "/progress", label: "Tiến bộ", glyph: "progress", match: ["/progress"] },
 ] as const;
 
+const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => item.href !== "/create");
+
 type GlyphName = (typeof NAV_ITEMS)[number]["glyph"];
 
 function NavGlyph({ name }: { name: GlyphName }) {
@@ -71,7 +73,9 @@ function NavGlyph({ name }: { name: GlyphName }) {
 }
 
 function pathMatches(pathname: string, prefixes: readonly string[]) {
-  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
+  return prefixes.some(
+    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
+  );
 }
 
 function AccountMenu({ email }: { email: string }) {
@@ -89,7 +93,10 @@ function AccountMenu({ email }: { email: string }) {
         </span>
       </summary>
       <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-card)] lg:bottom-0 lg:left-full lg:right-auto lg:top-auto lg:mb-0 lg:ml-2 lg:mt-0">
-        <p className="mb-3 truncate text-xs text-[var(--muted-foreground)]" title={email}>
+        <p
+          className="mb-3 truncate text-xs text-[var(--muted-foreground)]"
+          title={email}
+        >
           {email}
         </p>
         <form action="/api/auth/sign-out" method="post">
@@ -105,7 +112,13 @@ function AccountMenu({ email }: { email: string }) {
   );
 }
 
-export function AppShell({ children, email }: { children: ReactNode; email: string }) {
+export function AppShell({
+  children,
+  email,
+}: {
+  children: ReactNode;
+  email: string;
+}) {
   const pathname = usePathname();
 
   return (
@@ -119,7 +132,10 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
             Vidlish
           </Link>
         </div>
-        <nav aria-label="Điều hướng chính" className="flex-1 space-y-1 px-3 pb-20 pt-2">
+        <nav
+          aria-label="Điều hướng chính"
+          className="flex-1 space-y-1 px-3 pb-20 pt-2"
+        >
           {NAV_ITEMS.map((item) => {
             const active = pathMatches(pathname, item.match);
             return (
@@ -164,7 +180,7 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
         aria-label="Điều hướng chính trên di động"
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--border)] bg-[var(--card)] px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 lg:hidden"
       >
-        {NAV_ITEMS.map((item) => {
+        {MOBILE_NAV_ITEMS.map((item) => {
           const active = pathMatches(pathname, item.match);
           return (
             <Link
@@ -172,7 +188,9 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl px-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
-                active ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"
+                active
+                  ? "text-[var(--primary)]"
+                  : "text-[var(--muted-foreground)]"
               }`}
             >
               <NavGlyph name={item.glyph} />
