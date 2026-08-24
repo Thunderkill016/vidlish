@@ -266,8 +266,9 @@ export function SpeakingCapturePanel({
           Thu ít nhất một câu, nghe lại hết bản thu rồi tự xác nhận. Nếu đây là
           lần speaking đầu tiên của tình huống sau ít nhất 24 giờ, server có thể
           ghi nhận mức hỗ trợ là independent. Independent vẫn là self-check chưa
-          chấm, không phải điểm phát âm hay mastery. Audio chỉ đi qua request hiện
-          tại; Supabase không lưu audio hay transcript.
+          chấm, không phải điểm phát âm hay mastery. Audio chỉ tồn tại trong
+          browser và request speaking hiện tại; local probe nếu được hỗ trợ chỉ
+          đọc cùng live track trên thiết bị. Supabase không lưu audio hay transcript.
         </p>
       </div>
 
