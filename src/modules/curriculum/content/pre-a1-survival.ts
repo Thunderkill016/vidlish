@@ -71,6 +71,40 @@ export const PRE_A1_ASK_FOR_REPEAT: FoundationUnit = {
       supportAllowed: false,
     },
     {
+      // Listening had seven activities and not one of them was graded: every
+      // single one allowed support, so the product never once checked whether
+      // the learner heard anything. This is the dictation the measurement rules
+      // call for — heard, then written down, with nothing on screen to copy.
+      id: "repeat-listen-and-write",
+      strand: "meaning_focused_input",
+      skill: "listening",
+      promptVi: "Nghe rồi gõ lại đúng phần bạn nghe được. Không nhìn chữ.",
+      targets: ["again please"],
+      supportAllowed: false,
+    },
+    {
+      // Reading is the one skill the syllabus claimed and never once exercised.
+      // The English is shown and never spoken here: play it and this becomes a
+      // listening item wearing a reading label.
+      id: "repeat-read-meaning",
+      strand: "meaning_focused_input",
+      skill: "reading",
+      promptVi: "Đọc câu tiếng Anh dưới đây. Nó nghĩa là gì?",
+      targets: ["again please"],
+      supportAllowed: false,
+    },
+    {
+      // Writing without audio. With the sentence playing in your ears this
+      // would be copying, which measures typing.
+      id: "repeat-write-message",
+      strand: "meaning_focused_output",
+      skill: "writing",
+      promptVi:
+        "Bạn nhắn tin cho người vừa nói quá nhanh. Viết câu tiếng Anh nghĩa là “nói lại giúp tôi”.",
+      targets: ["again please"],
+      supportAllowed: false,
+    },
+    {
       id: "repeat-fluency",
       strand: "fluency_development",
       skill: "speaking",
@@ -153,6 +187,29 @@ export const PRE_A1_SAY_WHAT_YOU_DO: FoundationUnit = {
       supportAllowed: false,
     },
     {
+      // Listening had seven activities and not one of them was graded: every
+      // single one allowed support, so the product never once checked whether
+      // the learner heard anything. This is the dictation the measurement rules
+      // call for — heard, then written down, with nothing on screen to copy.
+      id: "do-listen-and-write",
+      strand: "meaning_focused_input",
+      skill: "listening",
+      promptVi: "Nghe rồi gõ lại đúng phần bạn nghe được. Không nhìn chữ.",
+      targets: ["i write code"],
+      supportAllowed: false,
+    },
+    {
+      // Reading is the one skill the syllabus claimed and never once exercised.
+      // The English is shown and never spoken here: play it and this becomes a
+      // listening item wearing a reading label.
+      id: "do-read-meaning",
+      strand: "meaning_focused_input",
+      skill: "reading",
+      promptVi: "Đọc câu tiếng Anh dưới đây. Nó nghĩa là gì?",
+      targets: ["i write code"],
+      supportAllowed: false,
+    },
+    {
       id: "do-write-bio",
       strand: "meaning_focused_output",
       skill: "writing",
@@ -212,6 +269,26 @@ export const PRE_A1_ASK_WHAT_IT_MEANS: FoundationUnit = {
       promptVi:
         "Bạn đang nghe podcast và gặp một từ lạ. Nói hai câu: hỏi nghĩa, và thừa nhận bạn chưa biết.",
       targets: ["what does it mean", "i don't know"],
+      supportAllowed: false,
+    },
+    {
+      // Reading is the one skill the syllabus claimed and never once exercised.
+      // The English is shown and never spoken here: play it and this becomes a
+      // listening item wearing a reading label.
+      id: "mean-read-meaning",
+      strand: "meaning_focused_input",
+      skill: "reading",
+      promptVi: "Đọc câu tiếng Anh dưới đây. Nó nghĩa là gì?",
+      targets: ["what does it mean"],
+      supportAllowed: false,
+    },
+    {
+      id: "mean-write-question",
+      strand: "meaning_focused_output",
+      skill: "writing",
+      promptVi:
+        "Bạn gặp một từ lạ trong tài liệu. Viết câu tiếng Anh nghĩa là “nó nghĩa là gì”.",
+      targets: ["what does it mean"],
       supportAllowed: false,
     },
     {

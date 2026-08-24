@@ -1,8 +1,10 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { vietnameseGlossFor } from "@/adapters/vocabulary/vietnamese-glosses";
+import { buildReadingOptions } from "@/modules/curriculum/application/build-reading-options";
 import { compileUnitActivity } from "@/modules/curriculum/application/compile-unit-activity";
-import { foundationUnitById } from "@/modules/curriculum/content";
+import { chunkMeaningVi, foundationUnitById } from "@/modules/curriculum/content";
+import { challengeKindForSkill } from "@/modules/learning/application/challenge-kind-for-skill";
 import { startBeginnerSession } from "@/modules/learning/application/start-beginner-session";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
@@ -53,10 +55,13 @@ export async function POST(request: NextRequest) {
         // dictated sentence gets: the browser never sends the answer it is
         // being marked against.
         const [gradedChunk] = activity.evidenceKeys;
+        // The skill the unit declared decides the evidence dimension. It was
+        // hard-coded to `dictation` here, which is how an activity labelled
+        // speaking was answered by typing and banked as a dictation.
         const challenge = gradedChunk
           ? await progress.createEvidenceChallenge({
               ownerUserId: access.userId,
-              kind: "dictation",
+              kind: challengeKindForSkill(activity.skill),
               word: gradedChunk,
               sentence: gradedChunk,
             })
@@ -73,6 +78,14 @@ export async function POST(request: NextRequest) {
           targets: activity.targets,
           supportAllowed: activity.supportAllowed,
           ...(challenge ? { challengeId: challenge.id } : {}),
+          ...(challenge && activity.skill === "reading" && gradedChunk
+            ? {
+                readingOptions: buildReadingOptions({
+                  correctVi: chunkMeaningVi(gradedChunk) ?? "",
+                  seed: challenge.id,
+                }),
+              }
+            : {}),
         });
         return NextResponse.json(payload, {
           status: 200,

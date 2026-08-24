@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
+import { chunkMeaningVi } from "@/modules/curriculum/content";
 import { scoreDictation } from "@/modules/learning/application/score-dictation";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
@@ -48,17 +49,50 @@ export async function POST(request: NextRequest) {
 
     let successful: boolean;
     let dictation: ReturnType<typeof scoreDictation> | null = null;
+    let heardBack: string | null = null;
 
-    if (parsed.data.kind === "dictation") {
-      if (challenge.sentence === null) throw authErrors.rejected();
+    // Every kind except the standalone word is graded against text the server
+    // holds. The kind came from the challenge, and the challenge came from the
+    // skill the unit declared, so a speaking activity cannot be answered by
+    // typing however the browser chooses to phrase the request.
+    if (parsed.data.kind === "introduce_word") {
+      if (challenge.sentence !== null) throw authErrors.rejected();
+      successful = parsed.data.claimedIndependent;
+    } else if (challenge.sentence === null) {
+      throw authErrors.rejected();
+    } else if (parsed.data.kind === "dictation") {
       dictation = scoreDictation({
         target: challenge.sentence,
         heard: parsed.data.heard,
       });
       successful = dictation.perfect;
+    } else if (parsed.data.kind === "spoken") {
+      // Scored exactly like a dictation because the comparison is the same:
+      // positional, case- and punctuation-insensitive, against text the browser
+      // never received. What differs is the dimension it lands in and the fact
+      // that the transcript goes back to the learner, because a recogniser that
+      // mishears must be visibly wrong rather than silently authoritative.
+      dictation = scoreDictation({
+        target: challenge.sentence,
+        heard: parsed.data.transcript,
+      });
+      successful = dictation.perfect;
+      heardBack = parsed.data.transcript;
+    } else if (parsed.data.kind === "written") {
+      dictation = scoreDictation({
+        target: challenge.sentence,
+        heard: parsed.data.written,
+      });
+      successful = dictation.perfect;
     } else {
-      if (challenge.sentence !== null) throw authErrors.rejected();
-      successful = parsed.data.claimedIndependent;
+      const expected = chunkMeaningVi(challenge.sentence);
+      // A chunk with no authored meaning cannot be read for meaning. Failing
+      // closed is the only honest answer; guessing would grade the learner
+      // against nothing.
+      if (expected === null) throw authErrors.rejected();
+      successful =
+        parsed.data.chosenVi.trim().toLowerCase() ===
+        expected.trim().toLowerCase();
     }
 
     // A checked answer outranks a reported one. Where there is nothing to check
@@ -78,6 +112,7 @@ export async function POST(request: NextRequest) {
       successfulRetrievals: evidence.successfulRetrievals,
       known: evidence.lastIndependentAt !== null,
       ...(dictation ? { dictation } : {}),
+      ...(heardBack === null ? {} : { heardBack }),
     });
 
     return NextResponse.json(payload, {

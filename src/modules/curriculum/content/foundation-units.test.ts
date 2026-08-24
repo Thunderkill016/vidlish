@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { foundationUnitSchema } from "@/shared/contracts/curriculum";
-import { FOUNDATION_UNITS, foundationUnitById } from "./index";
+import { FOUNDATION_UNITS, chunkMeaningVi, foundationUnitById } from "./index";
 
 describe("the authored syllabus", () => {
   it("parses, so a broken unit fails here and not on a learner's screen", () => {
@@ -126,6 +126,51 @@ describe("the syllabus as a whole", () => {
       );
       for (const criterion of unit.evidenceCriteria) {
         expect(produced.has(criterion.chunk)).toBe(true);
+      }
+    }
+  });
+});
+
+describe("the four skills are taught, not just labelled", () => {
+  it("exercises every skill somewhere in the syllabus", () => {
+    // Reading was declared in the schema from the first day and had zero
+    // activities. A skill nothing practises is a column in a table, not part
+    // of a course.
+    const skills = new Set(
+      FOUNDATION_UNITS.flatMap((unit) =>
+        unit.activities.map((activity) => activity.skill),
+      ),
+    );
+    expect([...skills].sort()).toEqual([
+      "listening",
+      "reading",
+      "speaking",
+      "writing",
+    ]);
+  });
+
+  it("grades at least one activity in each skill", () => {
+    // An activity that allows support banks nothing, so a skill present only
+    // in support-allowed activities is still never measured.
+    for (const skill of ["listening", "speaking", "reading", "writing"] as const) {
+      const graded = FOUNDATION_UNITS.flatMap((unit) =>
+        unit.activities.filter(
+          (activity) => activity.skill === skill && !activity.supportAllowed,
+        ),
+      );
+      expect(graded.length, `no graded ${skill} activity`).toBeGreaterThan(0);
+    }
+  });
+
+  it("gives every graded reading activity a single chunk with an authored meaning", () => {
+    // Reading is marked by choosing a meaning, and the server grades against
+    // the first evidence key. More than one target would mean the learner sees
+    // several sentences and is graded on one of them without being told which.
+    for (const unit of FOUNDATION_UNITS) {
+      for (const activity of unit.activities) {
+        if (activity.skill !== "reading" || activity.supportAllowed) continue;
+        expect(activity.targets, `${activity.id} targets`).toHaveLength(1);
+        expect(chunkMeaningVi(activity.targets[0])).not.toBeNull();
       }
     }
   });
