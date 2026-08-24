@@ -17,7 +17,7 @@ describe("on-device speech probe", () => {
       detectRecognizedTargetPhrase("I'm a member of the design team.", [
         "a member of",
       ]),
-    ).toEqual({ targetPhraseDetected: true, recognizedWordCount: 8 });
+    ).toEqual({ targetPhraseDetected: true, recognizedWordCount: 7 });
     expect(
       detectRecognizedTargetPhrase("I'm a member for the design team.", [
         "a member of",
@@ -59,11 +59,7 @@ describe("on-device speech probe", () => {
     const start = vi.fn();
     const stop = vi.fn();
     const abort = vi.fn();
-    let instance: {
-      processLocally: boolean;
-      onresult: ((event: unknown) => void) | null;
-      onend: (() => void) | null;
-    } | null = null;
+    const instances: Recognition[] = [];
 
     class Recognition {
       lang = "";
@@ -71,15 +67,15 @@ describe("on-device speech probe", () => {
       interimResults = true;
       maxAlternatives = 3;
       processLocally = false;
-      onresult: ((event: never) => void) | null = null;
-      onerror: ((event: never) => void) | null = null;
+      onresult: ((event: { results: ArrayLike<{ 0?: { transcript?: string } }> }) => void) | null = null;
+      onerror: ((event: { error?: string }) => void) | null = null;
       onend: (() => void) | null = null;
       start = start;
       stop = stop;
       abort = abort;
 
       constructor() {
-        instance = this;
+        instances.push(this);
       }
     }
 
@@ -91,7 +87,9 @@ describe("on-device speech probe", () => {
       scope: { SpeechRecognition: Recognition },
     });
 
+    const instance = instances[0];
     expect(controller).not.toBeNull();
+    expect(instance).toBeDefined();
     expect(clone).toHaveBeenCalledOnce();
     expect(start).toHaveBeenCalledWith(clonedTrack);
     expect(instance?.processLocally).toBe(true);
@@ -101,7 +99,7 @@ describe("on-device speech probe", () => {
     });
     expect(onResult).toHaveBeenCalledWith({
       targetPhraseDetected: true,
-      recognizedWordCount: 8,
+      recognizedWordCount: 7,
     });
     expect(JSON.stringify(onResult.mock.calls)).not.toContain("PRIVATE");
 
