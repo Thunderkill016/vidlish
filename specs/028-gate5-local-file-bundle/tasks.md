@@ -13,8 +13,8 @@
 - [x] Add unit coverage for serialization/import/strict schema rejection.
 - [x] Extend durable capture Chromium coverage to verify downloaded bytes.
 - [x] Extend evaluator Chromium coverage to import five files.
-- [ ] Update the Gate 5 runbook.
-- [ ] Review diff for persistence/evidence/threshold drift.
+- [x] Update the Gate 5 runbook.
+- [x] Review diff for persistence/evidence/threshold drift.
 - [ ] Run exact-head full repository CI.
 - [ ] Squash merge only the exact green head.
 
