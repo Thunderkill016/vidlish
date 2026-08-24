@@ -25,7 +25,7 @@ describe("selectSpeakingPractice", () => {
     expect(result).toBeNull();
   });
 
-  it("selects bounded post-attempt support without leaking evaluation into the learner view", () => {
+  it("selects bounded support and local recognition phrases without leaking evaluation into the learner view", () => {
     const result = selectSpeakingPractice({
       sessions: [
         { id: REQUESTED_SESSION, lessonVersionId: REQUESTED_VERSION },
@@ -44,5 +44,6 @@ describe("selectSpeakingPractice", () => {
     expect(result?.exemplarAfterAttempt).toBe(
       "I'm a member of the product design team.",
     );
+    expect(result?.recognitionTargetPhrases).toEqual(["a member of"]);
   });
 });
