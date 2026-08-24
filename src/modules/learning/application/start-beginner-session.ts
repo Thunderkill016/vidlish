@@ -42,6 +42,11 @@ export type BeginnerSessionOutcome =
  * to be met on their own, heard and said, before any sentence can hold them.
  * A product that pretends otherwise either serves input the learner cannot
  * read, or quietly counts words they never produced.
+ *
+ * The number is how many known words a sentence needs, so one known word is
+ * enough: `I go` is two words with one of them new. It was compared with `<=`
+ * and so excluded the very case it names, which held a learner on single words
+ * for one turn longer than the arithmetic requires.
  */
 export const SENTENCES_NEED_AT_LEAST = 1;
 
@@ -84,7 +89,7 @@ export async function startBeginnerSession(input: {
     };
   }
 
-  if (input.known.size <= SENTENCES_NEED_AT_LEAST) {
+  if (input.known.size < SENTENCES_NEED_AT_LEAST) {
     // Nothing is wrong here: at this point in a learner's life there is no
     // sentence that could exist. Deciding it before the model call also means
     // never paying for one, and never inviting a model to invent a sentence
