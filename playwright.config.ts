@@ -29,6 +29,10 @@ const DEFAULT_BETA_EMAILS = [
   "measurement-mobile-chromium@example.com",
   "beginner-chromium@example.com",
   "beginner-mobile-chromium@example.com",
+  "beginner-support-chromium@example.com",
+  "beginner-support-mobile-chromium@example.com",
+  "beginner-later-chromium@example.com",
+  "beginner-later-mobile-chromium@example.com",
   "speaking-handoff-chromium@example.com",
   "speaking-handoff-mobile-chromium@example.com",
   // The adversarial beginner-evidence journey needs a clean owner distinct
