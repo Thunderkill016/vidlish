@@ -9,7 +9,7 @@
 ## Verification
 
 - [x] Add focused helper/preload tests.
-- [ ] Review branch diff for product/evidence drift.
+- [x] Review branch diff for product/evidence drift.
 - [ ] Run exact-head repository CI.
 - [ ] Squash merge only the exact green head.
 
