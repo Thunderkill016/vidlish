@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { playEnglishLines } from "@/platform/speech/play-english-line";
 import {
   scheduleWithinSessionRecall,
   type WithinSessionItem,
@@ -58,18 +59,16 @@ type SessionState =
   | { kind: "error"; message: string };
 
 function speak(text: string): void {
-  // The browser's own voice. It is not the best English a learner could hear,
-  // and it costs nothing and needs no network — which is the right trade while
-  // the corpus can supply almost no licensed human audio.
-  if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-  const utterance = new SpeechSynthesisUtterance(text);
-  utterance.lang = "en-US";
-  // Slower than natural speech. A beginner is not failing to understand, they
-  // are failing to segment — the words run together before they know where one
-  // ends.
-  utterance.rate = 0.75;
-  window.speechSynthesis.cancel();
-  window.speechSynthesis.speak(utterance);
+  // Prefers the recording rendered at build time; the browser's own voice is
+  // the fallback for generated sentences, which are not part of the syllabus
+  // and were never rendered.
+  //
+  // The fallback stays slower than natural speech. A beginner is not failing to
+  // understand, they are failing to segment — the words run together before
+  // they know where one ends. The recordings are not slowed: stretching an
+  // audio file without pitch correction makes a voice no human makes, and a
+  // beginner cannot tell that distortion from an accent they have not learned.
+  playEnglishLines([text], { fallbackRate: 0.75 });
 }
 
 const EMPTY_MESSAGES: Record<string, string> = {
