@@ -101,6 +101,22 @@ begin
     raise exception 'speaking capture requires completed lesson session';
   end if;
 
+  -- A duplicate request may have been inserted while this transaction waited
+  -- for the session lock. Re-check so an idempotent retry returns the original
+  -- receipt rather than becoming a second attempt or surfacing a unique error.
+  select * into v_existing
+  from public.learning_speaking_attempts
+  where owner_user_id = p_owner_user_id
+    and idempotency_key = p_idempotency_key;
+  if v_existing.id is not null then
+    if v_existing.session_id <> p_session_id
+      or v_existing.activity_id <> p_activity_id then
+      raise exception 'idempotency key belongs to another speaking attempt';
+    end if;
+    return query select v_existing.id, false;
+    return;
+  end if;
+
   select version.blueprint into v_blueprint
   from public.lesson_versions version
   where version.id = v_session.lesson_version_id
