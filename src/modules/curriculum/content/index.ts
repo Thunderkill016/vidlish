@@ -32,3 +32,21 @@ export const FOUNDATION_UNITS: readonly FoundationUnit[] = AUTHORED.map(
 export function foundationUnitById(id: string): FoundationUnit | null {
   return FOUNDATION_UNITS.find((unit) => unit.id === id) ?? null;
 }
+
+/**
+ * The Vietnamese a chunk means, looked up on the server.
+ *
+ * A reading activity is answered by choosing a meaning, so something has to
+ * hold which meaning is right. It is here rather than in the response payload
+ * for the same reason the graded chunk is: a browser that holds the answer is
+ * not being measured, it is being asked to be honest.
+ */
+export function chunkMeaningVi(text: string): string | null {
+  const wanted = text.trim().toLowerCase();
+  for (const unit of FOUNDATION_UNITS) {
+    for (const chunk of unit.targetChunks) {
+      if (chunk.text.trim().toLowerCase() === wanted) return chunk.vi;
+    }
+  }
+  return null;
+}

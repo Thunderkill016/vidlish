@@ -142,6 +142,17 @@ export function startOnDeviceSpeechProbe(input: {
   audioTrack: MediaStreamTrack;
   targetPhrases: readonly string[];
   onResult(result: OnDeviceSpeechProbeResult): void;
+  /**
+   * The raw recognised text, when the caller needs it scored elsewhere.
+   *
+   * The speaking self-check does not ask for this on purpose: it only needs to
+   * know that speech happened, and a transcript it never requests is a
+   * transcript it cannot leak. The beginner track does need it, because the
+   * sentence being graded is held by the server and the browser must not be
+   * the thing that decides whether the attempt matched. The route scores it and
+   * discards it; nothing persists the text.
+   */
+  onTranscript?(transcript: string): void;
   onError?(reason: string): void;
   scope?: unknown;
 }): OnDeviceSpeechProbeController | null {
@@ -171,6 +182,7 @@ export function startOnDeviceSpeechProbe(input: {
     for (let index = 0; index < event.results.length; index += 1) {
       transcript += ` ${event.results[index]?.[0]?.transcript ?? ""}`;
     }
+    input.onTranscript?.(normalizeRecognizedEnglish(transcript));
     input.onResult(detectRecognizedTargetPhrase(transcript, input.targetPhrases));
   };
   recognition.onerror = (event) => {

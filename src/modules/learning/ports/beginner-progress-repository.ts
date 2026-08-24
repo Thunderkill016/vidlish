@@ -26,7 +26,21 @@ export type CalibrationRecord = {
   readonly reliable: boolean;
 };
 
-export type BeginnerEvidenceChallengeKind = "introduce_word" | "dictation";
+/**
+ * Which kind of work the server issued the challenge for.
+ *
+ * This is the only thing that decides which capability dimension an attempt
+ * lands in, and the browser never sends it. The curriculum labels activities
+ * with a skill; if the browser could choose the kind, "I typed it" and "I said
+ * it" would be the same claim, which is how thirteen speaking activities came
+ * to be answered without anyone speaking.
+ */
+export type BeginnerEvidenceChallengeKind =
+  | "introduce_word"
+  | "dictation"
+  | "spoken"
+  | "written"
+  | "reading";
 
 /**
  * Server-owned authority for one learner attempt.

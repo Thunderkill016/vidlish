@@ -13,7 +13,7 @@ import {
   type OnDeviceSpeechAvailability,
   type OnDeviceSpeechProbeController,
   type OnDeviceSpeechProbeResult,
-} from "./on-device-speech-probe";
+} from "@/platform/speech/on-device-speech-probe";
 
 const MIME_CANDIDATES = [
   "audio/webm;codecs=opus",

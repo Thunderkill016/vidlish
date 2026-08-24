@@ -92,6 +92,12 @@ export const beginnerUnitActivitySchema = z.object({
    * as it does for a dictated sentence.
    */
   challengeId: z.string().uuid().optional(),
+  /**
+   * Present only for a graded reading activity: the meanings to choose between,
+   * built on the server so the browser never receives a marker telling it which
+   * one is right.
+   */
+  readingOptions: z.array(z.string().min(1).max(200)).min(2).max(6).optional(),
 });
 
 export type BeginnerUnitActivity = z.infer<typeof beginnerUnitActivitySchema>;
@@ -111,6 +117,41 @@ export const beginnerAttemptRequestSchema = z.discriminatedUnion("kind", [
       claimedIndependent: z.boolean(),
     })
     .strict(),
+  /**
+   * A speaking attempt. `transcript` is what the on-device recogniser heard,
+   * never what the learner claims they said — the browser still does not hold
+   * the target, so it cannot make the transcript match.
+   */
+  z
+    .object({
+      ...beginnerAttemptBase,
+      kind: z.literal("spoken"),
+      transcript: z.string().max(400),
+    })
+    .strict(),
+  /**
+   * Writing: produced from meaning with no audio played, which is why it is a
+   * different dimension from dictation even though both arrive as typed text.
+   */
+  z
+    .object({
+      ...beginnerAttemptBase,
+      kind: z.literal("written"),
+      written: z.string().max(400),
+    })
+    .strict(),
+  /**
+   * Reading: the English was shown as text and never spoken, and the learner
+   * answers by choosing the Vietnamese it means. The server holds which choice
+   * is right, so the index alone is not enough to guess with.
+   */
+  z
+    .object({
+      ...beginnerAttemptBase,
+      kind: z.literal("reading"),
+      chosenVi: z.string().min(1).max(200),
+    })
+    .strict(),
 ]);
 
 export const beginnerAttemptResponseSchema = z.object({
@@ -126,6 +167,16 @@ export const beginnerAttemptResponseSchema = z.object({
       perfect: z.boolean(),
     })
     .optional(),
+  /**
+   * What the recogniser heard, echoed back on a speaking attempt.
+   *
+   * A score the learner cannot inspect is an assertion, not a measurement, and
+   * speech recognition on Vietnamese-accented English has no published error
+   * rate to lean on. Showing the transcript is what lets the learner see that
+   * the machine misheard rather than concluding their pronunciation is worse
+   * than it is.
+   */
+  heardBack: z.string().optional(),
 });
 
 /**

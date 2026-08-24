@@ -97,6 +97,29 @@ export const PRE_A1_INTRODUCE_YOURSELF: FoundationUnit = {
       supportAllowed: false,
     },
     {
+      // Listening had seven activities and not one of them was graded: every
+      // single one allowed support, so the product never once checked whether
+      // the learner heard anything. This is the dictation the measurement rules
+      // call for — heard, then written down, with nothing on screen to copy.
+      id: "listen-and-write-it-down",
+      strand: "meaning_focused_input",
+      skill: "listening",
+      promptVi: "Nghe rồi gõ lại đúng phần bạn nghe được. Không nhìn chữ.",
+      targets: ["my name is"],
+      supportAllowed: false,
+    },
+    {
+      // Reading is the one skill the syllabus claimed and never once exercised.
+      // The English is shown and never spoken here: play it and this becomes a
+      // listening item wearing a reading label.
+      id: "read-what-it-means",
+      strand: "meaning_focused_input",
+      skill: "reading",
+      promptVi: "Đọc câu tiếng Anh dưới đây. Nó nghĩa là gì?",
+      targets: ["my name is"],
+      supportAllowed: false,
+    },
+    {
       id: "fluency-say-it-fast",
       strand: "fluency_development",
       skill: "speaking",
