@@ -21,6 +21,8 @@ const rowSchema = z
     id: z.string().uuid(),
     session_id: z.string().uuid(),
     activity_id: z.string(),
+    attempt_number: z.coerce.number().int().positive(),
+    support_level: z.enum(["supported", "independent"]),
     idempotency_key: z.string().uuid(),
     duration_ms: z.coerce.number().int(),
     byte_count: z.coerce.number().int(),
@@ -58,7 +60,7 @@ export class SupabaseLearningSpeakingAttemptRepository
     const result = await this.client
       .from("learning_speaking_attempts")
       .select(
-        "id,session_id,activity_id,idempotency_key,duration_ms,byte_count,mime_type,replayed,confirmed_audible_speech,created_at",
+        "id,session_id,activity_id,attempt_number,support_level,idempotency_key,duration_ms,byte_count,mime_type,replayed,confirmed_audible_speech,created_at",
       )
       .eq("id", rpcRow.speaking_attempt_id)
       .eq("owner_user_id", input.ownerUserId)
@@ -70,6 +72,8 @@ export class SupabaseLearningSpeakingAttemptRepository
       id: row.id,
       sessionId: row.session_id,
       activityId: row.activity_id,
+      attemptNumber: row.attempt_number,
+      support: row.support_level,
       idempotencyKey: row.idempotency_key,
       durationMs: row.duration_ms,
       byteCount: row.byte_count,
