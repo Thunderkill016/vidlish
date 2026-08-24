@@ -72,7 +72,14 @@ alter table public.beginner_evidence_challenges
       and char_length(sentence_text) between 1 and 200)
   );
 
--- Extend the evidence RPC to also write the skill dimension. The existing
+-- Extend the evidence RPC to also write the skill dimension.
+--
+-- The body below is the previous migration's function taken verbatim, with
+-- one declaration and one insert added. It was first written by retyping the
+-- parts that mattered, which silently dropped three guards — the null-argument
+-- check, the rule that independent evidence must be successful, and the exact
+-- error text five existing assertions match on. `create or replace` will
+-- happily accept a function that has quietly lost half its rules. The existing
 -- writes are untouched: this adds a row that says which of the four skills the
 -- attempt exercised, which is the thing no previous table could express.
 create or replace function public.record_beginner_challenge_evidence(
@@ -84,14 +91,23 @@ create or replace function public.record_beginner_challenge_evidence(
 returns public.learning_item_states
 language plpgsql
 security definer
-set search_path = public, pg_temp
+set search_path = public
 as $$
 declare
   v_challenge public.beginner_evidence_challenges;
   v_row public.learning_item_states;
   v_skill text;
 begin
-  select * into v_challenge
+  if p_owner_user_id is null or p_challenge_id is null then
+    raise exception 'beginner evidence challenge is not available';
+  end if;
+
+  if p_independent and not p_successful then
+    raise exception 'independent beginner evidence must be successful';
+  end if;
+
+  select *
+    into v_challenge
   from public.beginner_evidence_challenges
   where id = p_challenge_id
     and owner_user_id = p_owner_user_id
@@ -100,7 +116,7 @@ begin
   for update;
 
   if not found then
-    raise exception 'beginner evidence challenge not available';
+    raise exception 'beginner evidence challenge is not available';
   end if;
 
   update public.beginner_evidence_challenges
