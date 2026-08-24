@@ -38,7 +38,25 @@ async function postJson(
   );
 }
 
-test("a learner starting from zero hears a sentence and their evidence is kept", async ({
+async function beginFirstWord(page: Page) {
+  const issuedPromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/beginner/session") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Bắt đầu nghe" }).click();
+  const issued = await issuedPromise;
+  expect(issued.ok()).toBe(true);
+  const introduction = (await issued.json()) as {
+    kind: string;
+    target: string;
+    challengeId: string;
+  };
+  expect(introduction.kind).toBe("introduce_word");
+  return introduction;
+}
+
+test("a learner starting from zero hears the first word before text and their independent evidence is kept", async ({
   page,
 }, testInfo) => {
   // A per-project email, or the two Playwright projects share one learner and
@@ -46,26 +64,37 @@ test("a learner starting from zero hears a sentence and their evidence is kept",
   await login(page, `beginner-${testInfo.project.name}@example.com`);
 
   await page.goto("/start");
-  await expect(page.getByRole("heading", { name: "Bắt đầu từ số 0" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Bắt đầu từ số 0" }),
+  ).toBeVisible();
 
   // Nothing has been produced unaided yet, so the count that decides what comes
   // next is zero — not a session count, not a streak.
-  const known = page.getByText("Số từ bạn đã tự nói ra được, không mở trợ giúp");
+  const known = page.getByText(
+    "Số từ bạn đã tự nói ra được, không mở trợ giúp",
+  );
   await expect(known).toBeVisible();
 
-  await page.getByRole("button", { name: "Bắt đầu nghe" }).click();
+  const introduction = await beginFirstWord(page);
 
   // At zero known words no sentence can satisfy i+1, so the first word arrives
-  // on its own. This is arithmetic, not a missing feature.
+  // on its own. Crucially, it now follows the same listen-before-text boundary
+  // as every later sentence: the target itself is not rendered yet.
   await expect(
-    page.getByText("Từ đầu tiên không đến trong một câu"),
+    page.getByText("Từ đầu tiên sẽ đến một mình"),
   ).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByTestId("beginner-first-word-hidden")).toBeVisible();
+  await expect(
+    page.getByText(introduction.target, { exact: true }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Cho tôi xem chữ" }),
+  ).toBeVisible();
 
+  // The learner can self-report that they reproduced the sound without ever
+  // opening text. Only this path is eligible to become independent evidence.
   await page.getByRole("button", { name: "Nói được", exact: true }).click();
-  // The confirmation only appears once the save has come back. It used to
-  // appear immediately, which meant a learner who closed the tab was told they
-  // had made progress the next session could not see.
-  await expect(page.getByText(/Đã ghi lại/)).toBeVisible();
+  await expect(page.getByText(/Đã ghi nhận lần bạn tự nói lại/)).toBeVisible();
 
   // The evidence has to survive a reload, or nothing decided the next word.
   await page.reload();
@@ -85,6 +114,39 @@ test("a learner starting from zero hears a sentence and their evidence is kept",
 
   await expect(page.getByTestId("calibration-result")).toContainText(
     "Hôm nay chưa ghi được bằng chứng độc lập",
+  );
+});
+
+test("revealing the first word is support and cannot bank it as independently known", async ({
+  page,
+}, testInfo) => {
+  await login(page, `beginner-support-${testInfo.project.name}@example.com`);
+  await page.goto("/start");
+
+  const introduction = await beginFirstWord(page);
+  await expect(
+    page.getByText(introduction.target, { exact: true }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Cho tôi xem chữ" }).click();
+  await expect(
+    page.getByText(introduction.target, { exact: true }),
+  ).toBeVisible();
+
+  await page.getByRole("button", { name: "Nói được", exact: true }).click();
+  await expect(
+    page.getByText(/chưa được tính là tự nhớ độc lập/),
+  ).toBeVisible();
+
+  // The supported success may be kept as a bounded attempt, but it must not
+  // alter the durable independent-known count that drives progression.
+  await page.reload();
+  const knownCard = page
+    .getByText("Số từ bạn đã tự nói ra được, không mở trợ giúp")
+    .locator("..");
+  await expect(knownCard.getByText("0", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Làm kiểm tra" })).toHaveCount(
+    0,
   );
 });
 
