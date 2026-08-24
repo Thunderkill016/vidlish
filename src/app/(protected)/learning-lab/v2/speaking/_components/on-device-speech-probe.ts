@@ -198,6 +198,9 @@ export function startOnDeviceSpeechProbe(input: {
     abort() {
       try {
         recognition.abort();
+      } catch {
+        // Experimental implementations may throw when already ended. Abort is
+        // cleanup-only; never let that browser state escape into React teardown.
       } finally {
         cleanupTrack();
       }
