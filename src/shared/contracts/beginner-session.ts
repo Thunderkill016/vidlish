@@ -48,6 +48,47 @@ const beginnerAttemptBase = {
  * evidence or the authoritative dictation sentence; both live on the server
  * challenge identified by `challengeId`.
  */
+/**
+ * One curriculum activity, ready to serve.
+ *
+ * It is a separate response shape from the word and sentence ones because it is
+ * a different kind of work: the unit decides what is practised and why, and the
+ * runtime only plays it. Folding it into the sentence shape would have meant
+ * pretending a communicative task is a dictation.
+ */
+export const beginnerUnitActivitySchema = z.object({
+  kind: z.literal("unit_activity"),
+  unitId: z.string().min(1).max(64),
+  activityId: z.string().min(1).max(64),
+  strand: z.enum([
+    "meaning_focused_input",
+    "meaning_focused_output",
+    "language_focused",
+    "fluency_development",
+  ]),
+  skill: z.enum(["listening", "speaking", "reading", "writing"]),
+  promptVi: z.string().min(1).max(300),
+  listen: z.array(z.string().min(1).max(200)).max(20),
+  targets: z
+    .array(
+      z.object({
+        text: z.string().min(1).max(80),
+        vi: z.string().max(200),
+      }),
+    )
+    .min(1)
+    .max(6),
+  supportAllowed: z.boolean(),
+  /**
+   * Present only for a retrieval. The browser never sends the chunk it is being
+   * graded on; the server holds it against this single-use challenge, exactly
+   * as it does for a dictated sentence.
+   */
+  challengeId: z.string().uuid().optional(),
+});
+
+export type BeginnerUnitActivity = z.infer<typeof beginnerUnitActivitySchema>;
+
 export const beginnerAttemptRequestSchema = z.discriminatedUnion("kind", [
   z
     .object({
