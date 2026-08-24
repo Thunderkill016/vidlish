@@ -6,6 +6,7 @@ import { fixtureLearningSupportCopy } from "@/adapters/fake/fixture-learning-run
 import { createLearnerBlueprintView } from "@/modules/learning/application/create-learner-blueprint-view";
 import { deriveLearningRuntimePolicy } from "@/modules/learning/application/derive-learning-runtime-policy";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
+import { isGoldenStudyMode } from "@/platform/learning/is-golden-study-mode";
 import { bindVerifiedLearningMedia } from "@/shared/contracts/learning-media";
 import { validateLearningRuntimePolicyAgainstBlueprint } from "@/shared/contracts/learning-policy-v2";
 import { LearningSessionLab } from "./_components/learning-session-lab";
@@ -39,6 +40,7 @@ export default async function LearningModelV2LabPage() {
     createFixtureLearningMedia(),
   );
   const learnerView = createLearnerBlueprintView(blueprint);
+  const studyMode = isGoldenStudyMode();
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
@@ -48,7 +50,15 @@ export default async function LearningModelV2LabPage() {
         policy={policy}
         supportCopy={fixtureLearningSupportCopy}
       />
-      <SpeakingCompletionHandoff blueprintId={learnerView.blueprintId} />
+      {/*
+        The five-person Gate 5 protocol was predeclared before speaking handoff
+        shipped. The local moderator harness suppresses post-session extensions
+        so they cannot prime the participant's goal-restatement/recognition
+        observations. Normal learner runtime still receives the speaking CTA.
+      */}
+      {!studyMode ? (
+        <SpeakingCompletionHandoff blueprintId={learnerView.blueprintId} />
+      ) : null}
     </div>
   );
 }
