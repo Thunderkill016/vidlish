@@ -9,6 +9,7 @@ import { createIdentityService } from "@/platform/identity/create-identity-servi
 import { resolveLearnerLessonRoute } from "@/platform/learning/resolve-learner-lesson-route";
 import { validateLearningRuntimePolicyAgainstBlueprint } from "@/shared/contracts/learning-policy-v2";
 import { LearningSessionLab } from "../../../learning-lab/v2/_components/learning-session-lab";
+import { SpeakingCompletionHandoff } from "../../../learning-lab/v2/_components/speaking-completion-handoff";
 
 export const dynamic = "force-dynamic";
 
@@ -63,6 +64,8 @@ export default async function LearnerSessionPage({
     );
   }
 
+  const learnerView = createLearnerBlueprintView(blueprint);
+
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6">
       {/*
@@ -77,12 +80,13 @@ export default async function LearnerSessionPage({
         Xem bản tra cứu của bài học này
       </a>
       <LearningSessionLab
-        blueprint={createLearnerBlueprintView(blueprint)}
+        blueprint={learnerView}
         media={media}
         policy={policy}
         supportCopy={deriveLearningSupportCopy(blueprint)}
         jobId={jobId.data}
       />
+      <SpeakingCompletionHandoff blueprintId={learnerView.blueprintId} />
     </div>
   );
 }
