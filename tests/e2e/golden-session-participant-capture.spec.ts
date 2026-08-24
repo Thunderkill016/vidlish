@@ -95,11 +95,15 @@ test("moderator captures the current owner's durable Golden session without typi
   const sessionId = participant.measurement.sessionId;
 
   // A moderator correction makes the previously built JSON stale. It must stop
-  // being copyable until the record is explicitly rebuilt from current inputs.
+  // being copyable/downloadable until the record is explicitly rebuilt from
+  // current inputs.
   await page.getByLabel("Lesson goal restated").selectOption("no");
   await expect(page.getByLabel("Participant JSON")).toHaveCount(0);
   await expect(
     page.getByRole("button", { name: "Sao chép participant JSON" }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "Tải participant JSON file" }),
   ).toHaveCount(0);
 
   await page.getByRole("button", { name: "Tạo participant JSON" }).click();
@@ -111,6 +115,22 @@ test("moderator captures the current owner's durable Golden session without typi
   );
   expect(rebuiltParticipant.measurement.sessionId).toBe(sessionId);
   expect(rebuiltParticipant.observation.lessonGoalRestated).toBe(false);
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.getByRole("button", { name: "Tải participant JSON file" }).click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toBe(
+    `vidlish-gate5-p1-${sessionId.slice(0, 8)}.json`,
+  );
+  const downloadStream = await download.createReadStream();
+  const chunks: Buffer[] = [];
+  for await (const chunk of downloadStream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  const downloadedParticipant = goldenSessionUsabilityParticipantSchema.parse(
+    JSON.parse(Buffer.concat(chunks).toString("utf8")),
+  );
+  expect(downloadedParticipant).toEqual(rebuiltParticipant);
 
   await page.getByRole("button", { name: "Xóa Golden browser state" }).click();
   await expect(page.getByText(/Golden browser state đã được xóa/)).toBeVisible();

@@ -53,11 +53,13 @@ The command:
    providers;
 5. strips inherited Gemini, Supadata, YouTube API and production-Supabase
    credentials from the child app;
-6. prints the local sign-in, lesson, capture and evaluator URLs plus the fixture
+6. locks the predeclared Golden study surface so post-study product extensions do
+   not silently prime moderator observations;
+7. prints the local sign-in, lesson, capture and evaluator URLs plus the fixture
    email/OTP.
 
-Use the existing Golden Session fixture and normal product flow. The internal
-pass must not require a paid provider call or production Supabase.
+Use the existing Golden Session fixture and normal study flow. The internal pass
+must not require a paid provider call or production Supabase.
 
 Cover both desktop and mobile experience across the five participants. If the
 operator environment cannot expose this local harness safely to a physical mobile
@@ -156,15 +158,23 @@ Do **not** infer recognition improvement from `afterListen.latestVerdict`. The
 Golden Session exit ticket is `unscored`; it proves an after-check was attempted,
 not that the learner improved.
 
-Click **Tạo participant JSON**. Copy the generated JSON and save it locally with
-the other study records. The page does not POST or persist that record.
+Click **Tạo participant JSON**. The page validates the record with the existing
+strict participant schema. Then click **Tải participant JSON file** and keep that
+local file before resetting anything. Its deterministic filename contains only
+the bounded participant code and a short session-id prefix; Vidlish does not
+upload or persist the study record.
+
+Clipboard copy remains available as a fallback if browser download is blocked.
+If you use the clipboard fallback, save the exact generated JSON locally before
+you reset. Do not hand-edit the automated record or add qualitative notes to it.
 
 ## 6. Reset before the next real participant
 
-Only after the participant JSON has been copied:
+Only after the participant JSON file has been saved locally (or the exact JSON
+has been saved through the clipboard fallback):
 
 1. click **Xóa Golden browser state** on the capture page;
-2. verify the JSON remains visible/copyable;
+2. verify the generated JSON remains visible/copyable;
 3. stop the running `pnpm study:golden` process;
 4. run `pnpm study:golden` again;
 5. use the fresh session for the next real participant.
@@ -182,7 +192,18 @@ After five real people have completed the procedure, open:
 
 `/learning-lab/v2/usability`
 
-Paste a JSON object shaped as:
+Preferred path: use **Import đúng 5 participant JSON files** and select the five
+local files created by the capture page. The evaluator parses each file through
+the strict participant schema, then validates the assembled object with the same
+authoritative five-person study schema. Duplicate participant codes, duplicate
+session IDs, malformed records, extra free-form fields, or anything other than
+exactly five files fail closed.
+
+Import only prepares canonical Study JSON; it does **not** produce a Gate 5
+verdict. Review the assembled JSON, then explicitly click **Đánh giá 5 phiên**.
+No participant file is uploaded or persisted by Vidlish.
+
+Manual paste remains a fallback. If needed, paste a JSON object shaped as:
 
 ```json
 {

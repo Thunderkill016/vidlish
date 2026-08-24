@@ -83,7 +83,7 @@ function participant(index: number) {
   };
 }
 
-test("internal usability evaluator rejects arbitrary notes and reports the predeclared five-person gate", async ({
+test("internal usability evaluator rejects arbitrary notes, imports five local files and reports the predeclared gate", async ({
   page,
 }) => {
   await login(page);
@@ -116,7 +116,21 @@ test("internal usability evaluator rejects arbitrary notes and reports the prede
   await expect(validationAlert).toContainText("Không thể đánh giá");
   await expect(validationAlert).toContainText("Unrecognized key");
 
-  await textarea.fill(JSON.stringify(validStudy));
+  const participantFiles = validStudy.participants.map((value, index) => ({
+    name: `participant-p${index + 1}.json`,
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(value), "utf8"),
+  }));
+  await page
+    .getByLabel("Import exactly five participant JSON files")
+    .setInputFiles(participantFiles);
+
+  await expect(page.getByRole("status")).toContainText(
+    "Đã nạp p1, p2, p3, p4, p5",
+  );
+  const importedStudy = JSON.parse(await textarea.inputValue()) as typeof validStudy;
+  expect(importedStudy).toEqual(validStudy);
+
   await page.getByRole("button", { name: "Đánh giá 5 phiên" }).click();
 
   await expect(page.getByText("Kết luận usability gate")).toBeVisible();

@@ -7,6 +7,10 @@ import {
   type GoldenSessionUsabilityEvaluation,
 } from "@/modules/learning/application/evaluate-golden-session-usability";
 import { goldenSessionUsabilityStudySchema } from "@/shared/contracts/golden-session-usability";
+import {
+  readGoldenSessionStudyFiles,
+  serializeGoldenSessionStudy,
+} from "./golden-session-study-files";
 
 const thresholdLabels: Record<
   keyof GoldenSessionUsabilityEvaluation["thresholds"],
@@ -46,8 +50,29 @@ function formatThreshold(
 export function GoldenSessionStudyEvaluator() {
   const [input, setInput] = useState('{\n  "participants": []\n}');
   const [error, setError] = useState<string | null>(null);
+  const [importStatus, setImportStatus] = useState<string | null>(null);
   const [evaluation, setEvaluation] =
     useState<GoldenSessionUsabilityEvaluation | null>(null);
+
+  async function importParticipantFiles(files: readonly File[]) {
+    setError(null);
+    setImportStatus(null);
+    setEvaluation(null);
+
+    try {
+      const study = await readGoldenSessionStudyFiles(files);
+      setInput(serializeGoldenSessionStudy(study));
+      setImportStatus(
+        `Đã nạp ${study.participants.map((participant) => participant.observation.participantCode).join(", ")} từ 5 file local. Chưa có verdict cho tới khi bấm đánh giá.`,
+      );
+    } catch (caught) {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "Không thể đọc participant JSON files.",
+      );
+    }
+  }
 
   function evaluate() {
     setError(null);
@@ -80,15 +105,44 @@ export function GoldenSessionStudyEvaluator() {
         <p className="text-sm font-semibold text-[var(--accent)]">Gate 5 · Internal operator</p>
         <h2 className="text-2xl font-bold tracking-tight">Đánh giá usability study 5 người</h2>
         <p className="max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Paste đúng 5 privacy-safe measurement summaries kèm bounded moderator observations. Dữ liệu chỉ được parse trong trang này; evaluator không ghi study record vào Supabase.
+          Nạp đúng 5 participant JSON đã tải từ capture page, hoặc paste study JSON thủ công. Dữ liệu chỉ được đọc trong browser này; evaluator không upload hay ghi study record vào Supabase.
         </p>
+      </div>
+
+      <div className="space-y-2 rounded-2xl border border-[var(--border)] p-4">
+        <label className="block space-y-2 text-sm font-semibold">
+          <span>Import đúng 5 participant JSON files</span>
+          <input
+            type="file"
+            multiple
+            accept="application/json,.json"
+            aria-label="Import exactly five participant JSON files"
+            onChange={(event) => {
+              const files = Array.from(event.currentTarget.files ?? []);
+              event.currentTarget.value = "";
+              void importParticipantFiles(files);
+            }}
+            className="block w-full text-sm font-normal"
+          />
+        </label>
+        <p className="text-xs leading-5 text-[var(--muted-foreground)]">
+          Import không tạo participant mới. Mỗi file phải tự pass participant schema; tập 5 file vẫn phải pass exact-count + unique participant/session contract trước khi được đưa vào textarea.
+        </p>
+        {importStatus ? (
+          <p role="status" className="text-sm text-[var(--muted-foreground)]">
+            {importStatus}
+          </p>
+        ) : null}
       </div>
 
       <label className="block space-y-2">
         <span className="text-sm font-semibold">Study JSON</span>
         <textarea
           value={input}
-          onChange={(event) => setInput(event.target.value)}
+          onChange={(event) => {
+            setInput(event.target.value);
+            setImportStatus(null);
+          }}
           spellCheck={false}
           className="min-h-80 w-full rounded-2xl border border-[var(--border)] bg-[var(--background)] p-4 font-mono text-xs leading-5 outline-none focus:border-[var(--primary)]"
           aria-describedby="study-json-help"

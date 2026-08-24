@@ -8,6 +8,10 @@ import {
   learningMeasurementSummarySchema,
   type LearningMeasurementSummary,
 } from "@/shared/contracts/learning-measurement";
+import {
+  createGoldenSessionParticipantFile,
+  parseGoldenSessionParticipantJson,
+} from "../../_components/golden-session-study-files";
 
 const STORED_LAB_VERSION = 4;
 const storedSessionPointerSchema = z
@@ -169,6 +173,9 @@ export function GoldenSessionParticipantCapture({
   const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">(
     "idle",
   );
+  const [downloadState, setDownloadState] = useState<
+    "idle" | "downloaded" | "failed"
+  >("idle");
   const [browserStateCleared, setBrowserStateCleared] = useState(false);
 
   async function loadMeasurement() {
@@ -177,6 +184,7 @@ export function GoldenSessionParticipantCapture({
     setMeasurementError(null);
     setParticipantJson(null);
     setCopyState("idle");
+    setDownloadState("idle");
 
     try {
       const raw = window.localStorage.getItem(storageKey(blueprintId));
@@ -241,6 +249,7 @@ export function GoldenSessionParticipantCapture({
     setBuildError(null);
     setParticipantJson(null);
     setCopyState("idle");
+    setDownloadState("idle");
 
     if (!measurement) {
       setBuildError(
@@ -297,6 +306,27 @@ export function GoldenSessionParticipantCapture({
     }
 
     setParticipantJson(JSON.stringify(parsed.data, null, 2));
+  }
+
+  function downloadParticipant() {
+    if (!participantJson) return;
+    setDownloadState("idle");
+    try {
+      const participant = parseGoldenSessionParticipantJson(participantJson);
+      const descriptor = createGoldenSessionParticipantFile(participant);
+      const blob = new Blob([descriptor.content], { type: descriptor.mimeType });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.download = descriptor.fileName;
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 0);
+      setDownloadState("downloaded");
+    } catch {
+      setDownloadState("failed");
+    }
   }
 
   async function copyParticipant() {
@@ -385,6 +415,7 @@ export function GoldenSessionParticipantCapture({
           onChangeCapture={() => {
             setParticipantJson(null);
             setCopyState("idle");
+            setDownloadState("idle");
             setBuildError(null);
           }}
         >
@@ -499,12 +530,12 @@ export function GoldenSessionParticipantCapture({
               3 · Participant record
             </p>
             <h2 className="mt-1 text-2xl font-bold tracking-tight">
-              Copy record trước khi reset
+              Tải record trước khi reset
             </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-              Record này chỉ nằm trong browser. Sau khi đủ năm record thật, ghép
-              chúng vào evaluator Gate 5. Không dùng record mẫu/synthetic thay
-              người test.
+              Ưu tiên tải file JSON đã validate để tránh mất/sửa nhầm record khi
+              reset participant. File chỉ được tạo local trong browser; Vidlish
+              không upload hay persist study record. Clipboard vẫn là fallback.
             </p>
           </div>
 
@@ -517,6 +548,13 @@ export function GoldenSessionParticipantCapture({
           />
 
           <div className="flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={downloadParticipant}
+              className="inline-flex min-h-11 items-center justify-center rounded-full bg-[var(--primary)] px-5 text-sm font-semibold text-[var(--primary-foreground)]"
+            >
+              Tải participant JSON file
+            </button>
             <button
               type="button"
               onClick={() => void copyParticipant()}
@@ -533,6 +571,17 @@ export function GoldenSessionParticipantCapture({
             </button>
           </div>
 
+          {downloadState === "downloaded" ? (
+            <p role="status" className="text-sm text-[var(--muted-foreground)]">
+              Browser đã nhận yêu cầu tải participant JSON. Giữ file này cho lần
+              import 5 người ở evaluator.
+            </p>
+          ) : null}
+          {downloadState === "failed" ? (
+            <p role="status" className="text-sm text-[var(--muted-foreground)]">
+              Không tạo được file local; dùng nút copy hoặc copy từ ô JSON.
+            </p>
+          ) : null}
           {copyState === "copied" ? (
             <p role="status" className="text-sm text-[var(--muted-foreground)]">
               Đã copy participant JSON.
