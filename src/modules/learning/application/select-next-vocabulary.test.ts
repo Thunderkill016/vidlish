@@ -1,7 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 
 import catalogue from "@/adapters/vocabulary/cefrj-a1-a2.json";
 import {
+  applySpokenFrequency,
   compareTeachingOrder,
   selectNextVocabulary,
   type VocabularyEntry,
@@ -113,5 +114,81 @@ describe("the vendored CEFR-J artifact", () => {
     const contentWords = first.filter((item) => item.pos === "noun");
 
     expect(contentWords).toEqual([]);
+  });
+});
+
+describe("ordering by spoken frequency", () => {
+  const catalogue = [
+    { word: "anybody", pos: "pronoun", cefr: "A1" },
+    { word: "you", pos: "pronoun", cefr: "A1" },
+    { word: "water", pos: "noun", cefr: "A1" },
+    { word: "the", pos: "determiner", cefr: "A1" },
+  ];
+
+  afterEach(() => {
+    // Module-level state: without this the next test inherits whatever this one
+    // set, and the failure surfaces somewhere else entirely.
+    applySpokenFrequency({});
+  });
+
+  it("teaches the word people say most, not the word that sorts first", () => {
+    applySpokenFrequency({
+      you: 2_134_713,
+      the: 1_501_908,
+      water: 12_000,
+      anybody: 4_000,
+    });
+
+    expect(
+      selectNextVocabulary({ catalogue, known: new Set(), limit: 4 }).map(
+        (entry) => entry.word,
+      ),
+    ).toEqual(["you", "the", "water", "anybody"]);
+  });
+
+  it("puts a word the spoken corpus never saw last, not first", () => {
+    // A missing count is not a neutral value to skip over. A word nobody was
+    // recorded saying is not a word to teach early.
+    applySpokenFrequency({ you: 100, the: 50 });
+
+    const order = selectNextVocabulary({
+      catalogue,
+      known: new Set(),
+      limit: 4,
+    }).map((entry) => entry.word);
+
+    expect(order.slice(0, 2)).toEqual(["you", "the"]);
+  });
+
+  it("keeps level ahead of frequency", () => {
+    // `the` is far commoner than any A1 noun, but an A2 word is never offered
+    // while A1 words remain.
+    applySpokenFrequency({ the: 1_501_908, water: 12_000 });
+
+    expect(
+      selectNextVocabulary({
+        catalogue: [
+          { word: "the", pos: "determiner", cefr: "A2" },
+          { word: "water", pos: "noun", cefr: "A1" },
+        ],
+        known: new Set(),
+        limit: 2,
+      }).map((entry) => entry.word),
+    ).toEqual(["water", "the"]);
+  });
+
+  it("falls back to part of speech only where the corpus counted equally", () => {
+    applySpokenFrequency({ water: 1_000, the: 1_000 });
+
+    expect(
+      selectNextVocabulary({
+        catalogue: [
+          { word: "water", pos: "noun", cefr: "A1" },
+          { word: "the", pos: "determiner", cefr: "A1" },
+        ],
+        known: new Set(),
+        limit: 2,
+      }).map((entry) => entry.word),
+    ).toEqual(["the", "water"]);
   });
 });
