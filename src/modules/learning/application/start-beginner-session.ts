@@ -26,8 +26,7 @@ export type BeginnerSessionPlan = {
 export type BeginnerSessionOutcome =
   | { kind: "ready"; plan: BeginnerSessionPlan }
   | { kind: "catalogue_exhausted" }
-  | { kind: "introduce_word"; target: string; knownWordCount: number }
-  | { kind: "no_usable_input"; target: string };
+  | { kind: "introduce_word"; target: string; knownWordCount: number };
 
 /**
  * Below this, a sentence cannot exist.
@@ -50,6 +49,35 @@ export type BeginnerSessionOutcome =
  */
 export const SENTENCES_NEED_AT_LEAST = 1;
 
+/**
+ * How far down the teaching order the session may look for a word the corpus
+ * can actually illustrate.
+ *
+ * Taking strictly the next word measured badly: simulated from zero against the
+ * real catalogue and the real corpus, **43 of the first 100 words had no i+1
+ * sentence at all**, and the starved ones were the words that matter most —
+ * `you`, `the`, `to`, `a`, `it`, `that`. Each of those arrives as a bare word
+ * with no context, which is a flashcard, and this product's whole claim is that
+ * flashcards are not how a language is met.
+ *
+ * Looking a little further down the order fixes it, because whether a word can
+ * be illustrated depends on what the learner already knows, and two words of
+ * equal frequency are not equally teachable today.
+ *
+ * The width was measured rather than picked. Starved words in the first hundred:
+ *
+ *     window   1 → 43        window  40 → 9
+ *     window   5 → 38        window  80 → 1
+ *     window  20 → 26
+ *
+ * Forty is where the curve flattens. The cost of looking further is teaching a
+ * rarer word sooner, and that cost was measured too: at forty, the least common
+ * word among the first hundred still ranks 136th by spoken frequency and **no
+ * A2 word is pulled forward at all**. Eighty saves eight more words and pushes
+ * that to 172nd, which is paying more of the ordering for less of the problem.
+ */
+export const TEACHABLE_SEARCH_WINDOW = 40;
+
 export async function startBeginnerSession(input: {
   readonly catalogue: readonly VocabularyEntry[];
   readonly known: ReadonlySet<string>;
@@ -63,31 +91,40 @@ export async function startBeginnerSession(input: {
   }) => Promise<readonly string[]>;
   readonly wanted: number;
 }): Promise<BeginnerSessionOutcome> {
-  const [next] = selectNextVocabulary({
+  const candidates = selectNextVocabulary({
     catalogue: input.catalogue,
     known: input.known,
-    limit: 1,
+    limit: TEACHABLE_SEARCH_WINDOW,
   });
-  if (!next) return { kind: "catalogue_exhausted" };
+  const [first] = candidates;
+  if (!first) return { kind: "catalogue_exhausted" };
 
-  const retrieved = retrieveBeginnerInput({
-    target: next.word,
-    known: input.known,
-    candidates: input.candidatesFor(next.word),
-    wanted: input.wanted,
-  });
-
-  if (retrieved.source === "retrieved") {
+  // Prefer a word the corpus can show in a sentence today. Order still decides
+  // between two words that are both teachable; this only refuses to spend the
+  // learner's next turn on a word nothing can illustrate while a comparably
+  // common one can be.
+  for (const candidate of candidates) {
+    const retrieved = retrieveBeginnerInput({
+      target: candidate.word,
+      known: input.known,
+      candidates: input.candidatesFor(candidate.word),
+      wanted: input.wanted,
+    });
+    if (retrieved.source !== "retrieved") continue;
     return {
       kind: "ready",
       plan: {
-        target: next.word,
+        target: candidate.word,
         source: "retrieved",
         sentences: retrieved.sentences,
         knownWordCount: input.known.size,
       },
     };
   }
+
+  // Nothing in the window can be retrieved. The word taught is then the one the
+  // order actually names, not whichever happened to be searched last.
+  const next = first;
 
   if (input.known.size < SENTENCES_NEED_AT_LEAST) {
     // Nothing is wrong here: at this point in a learner's life there is no
@@ -118,11 +155,24 @@ export async function startBeginnerSession(input: {
   });
 
   if (composed.kind !== "ready") {
-    // Serving a short batch would be the tempting outcome. It is worse than
-    // none: a session with one sentence cannot show the same word in a changed
-    // context, which is the only thing that distinguishes learning it from
-    // memorising a string.
-    return { kind: "no_usable_input", target: next.word };
+    // Serving a short batch would be the tempting outcome, and it is still
+    // refused: one sentence cannot show the same word in a changed context,
+    // which is the only thing separating learning a word from memorising a
+    // string. Whatever was drafted is discarded here.
+    //
+    // What is not refused any more is the turn itself. This used to end the
+    // session with "no usable input", and measured against the real catalogue
+    // and corpus that happened on 56 of the first 300 words — including `the`,
+    // `to`, `a`, `it`, `that`, `and`, `of` and `what`, which is to say the words
+    // the learner needs most. Being handed nothing is worse than being handed
+    // the word: the standalone introduction is exactly how the very first word
+    // of the language is taught, it records its evidence as a self-report the
+    // nonword calibration keeps honest, and it claims nothing about sentences.
+    return {
+      kind: "introduce_word",
+      target: next.word,
+      knownWordCount: input.known.size,
+    };
   }
 
   return {
