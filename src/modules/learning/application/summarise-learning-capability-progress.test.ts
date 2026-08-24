@@ -54,13 +54,15 @@ describe("summariseLearningCapabilityProgress", () => {
       objectiveSupportedSuccesses: 0,
       objectiveFailures: 0,
       unscoredObservations: 0,
+      unscoredIndependentObservations: 0,
+      unscoredSupportedObservations: 0,
     });
     expect(summary.skills.find((entry) => entry.skill === "writing")).toMatchObject({
       objectiveIndependentSuccesses: 0,
     });
   });
 
-  it("separates independent success, supported success, objective failure and unscored evidence", () => {
+  it("separates independent success, supported success, objective failure and unscored support", () => {
     const summary = summariseLearningCapabilityProgress([
       observation(),
       observation({ support: "supported" }),
@@ -70,10 +72,18 @@ describe("summariseLearningCapabilityProgress", () => {
         responseMode: "writing",
         verification: "self_check",
         outcome: "unscored",
+        support: "independent",
+      }),
+      observation({
+        targetSkill: "writing",
+        responseMode: "writing",
+        verification: "self_check",
+        outcome: "unscored",
+        support: "supported",
       }),
     ]);
 
-    expect(summary.totalObservations).toBe(4);
+    expect(summary.totalObservations).toBe(5);
     expect(summary.skills.find((entry) => entry.skill === "reading")).toMatchObject({
       objectiveIndependentSuccesses: 1,
       objectiveSupportedSuccesses: 1,
@@ -84,7 +94,9 @@ describe("summariseLearningCapabilityProgress", () => {
       objectiveIndependentSuccesses: 0,
       objectiveSupportedSuccesses: 0,
       objectiveFailures: 0,
-      unscoredObservations: 1,
+      unscoredObservations: 2,
+      unscoredIndependentObservations: 1,
+      unscoredSupportedObservations: 1,
     });
   });
 

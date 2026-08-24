@@ -26,6 +26,9 @@ function summariseSkill(
   const matching = observations.filter(
     (observation) => observation.targetSkill === skill,
   );
+  const unscored = matching.filter(
+    (observation) => observation.outcome === "unscored",
+  );
 
   return {
     skill,
@@ -46,8 +49,12 @@ function summariseSkill(
         observation.verification === "objective" &&
         observation.outcome === "unsuccessful",
     ).length,
-    unscoredObservations: matching.filter(
-      (observation) => observation.outcome === "unscored",
+    unscoredObservations: unscored.length,
+    unscoredIndependentObservations: unscored.filter(
+      (observation) => observation.support === "independent",
+    ).length,
+    unscoredSupportedObservations: unscored.filter(
+      (observation) => observation.support === "supported",
     ).length,
     latestObservedAt: latestTimestamp(matching),
   };

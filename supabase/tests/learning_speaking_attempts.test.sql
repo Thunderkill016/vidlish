@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(16);
+select plan(24);
 
 select has_table(
   'public',
@@ -26,6 +26,18 @@ select hasnt_column(
   'learning_speaking_attempts',
   'text',
   'learner speech text is not a durable column'
+);
+select has_column(
+  'public',
+  'learning_speaking_attempts',
+  'attempt_number',
+  'speaking receipt persists authoritative attempt ordinal'
+);
+select has_column(
+  'public',
+  'learning_speaking_attempts',
+  'support_level',
+  'speaking receipt persists authoritative support strength'
 );
 select is(
   (select relrowsecurity from pg_class where oid = 'public.learning_speaking_attempts'::regclass),
@@ -170,6 +182,16 @@ select is(
   true,
   'self-check confirmation is persisted'
 );
+select is(
+  (select attempt_number from public.learning_speaking_attempts),
+  1,
+  'immediate first capture receives attempt number one'
+);
+select is(
+  (select support_level from public.learning_speaking_attempts),
+  'supported',
+  'immediate post-lesson speaking remains supported'
+);
 
 create temporary table retried_capture on commit drop as
 select * from public.record_learning_speaking_attempt(
@@ -184,6 +206,61 @@ select * from public.record_learning_speaking_attempt(
   true
 );
 select is((select created from retried_capture), false, 'network retry is idempotent');
+
+insert into public.lesson_sessions (
+  id, lesson_version_id, owner_user_id, status, current_phase,
+  current_activity_id, started_at, completed_at, updated_at
+) values (
+  'd7777777-7777-4777-8777-777777777777',
+  'c6666666-6666-4666-8666-666666666666',
+  'c1111111-1111-4111-8111-111111111111',
+  'completed', 'completed', 'activity_exit',
+  now() - interval '26 hours', now() - interval '25 hours', now()
+);
+
+select * from public.record_learning_speaking_attempt(
+  'c1111111-1111-4111-8111-111111111111',
+  'd7777777-7777-4777-8777-777777777777',
+  'activity_transfer',
+  'd8888888-8888-4888-8888-888888888888',
+  2600,
+  9100,
+  'audio/webm;codecs=opus',
+  true,
+  true
+);
+select is(
+  (select attempt_number from public.learning_speaking_attempts where session_id = 'd7777777-7777-4777-8777-777777777777'),
+  1,
+  'delayed first speaking capture receives attempt number one'
+);
+select is(
+  (select support_level from public.learning_speaking_attempts where session_id = 'd7777777-7777-4777-8777-777777777777'),
+  'independent',
+  'first capture after twenty-four hours is independent self-check evidence'
+);
+
+select * from public.record_learning_speaking_attempt(
+  'c1111111-1111-4111-8111-111111111111',
+  'd7777777-7777-4777-8777-777777777777',
+  'activity_transfer',
+  'd9999999-9999-4999-8999-999999999999',
+  2700,
+  9200,
+  'audio/webm',
+  true,
+  true
+);
+select is(
+  (select max(attempt_number) from public.learning_speaking_attempts where session_id = 'd7777777-7777-4777-8777-777777777777'),
+  2,
+  'delayed retry receives attempt number two'
+);
+select is(
+  (select support_level from public.learning_speaking_attempts where session_id = 'd7777777-7777-4777-8777-777777777777' and attempt_number = 2),
+  'supported',
+  'every delayed retry is conservatively supported'
+);
 
 select throws_ok(
   $$select * from public.record_learning_speaking_attempt(

@@ -2,7 +2,10 @@
 
 import { useEffect, useRef, useState } from "react";
 
-import { learningSpeakingAttemptResponseSchema } from "@/shared/contracts/learning-speaking";
+import {
+  learningSpeakingAttemptResponseSchema,
+  type LearningSpeakingAttempt,
+} from "@/shared/contracts/learning-speaking";
 
 const MIME_CANDIDATES = [
   "audio/webm;codecs=opus",
@@ -19,9 +22,11 @@ function preferredMimeType(): string | undefined {
 export function SpeakingCapturePanel({
   sessionId,
   activityId,
+  exemplarAfterAttempt,
 }: {
   sessionId: string;
   activityId: string;
+  exemplarAfterAttempt?: string;
 }) {
   const recorderRef = useRef<MediaRecorder | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -37,6 +42,10 @@ export function SpeakingCapturePanel({
   const [confirmedAudibleSpeech, setConfirmedAudibleSpeech] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [savedAttempt, setSavedAttempt] = useState<LearningSpeakingAttempt | null>(
+    null,
+  );
+  const [supportRevealed, setSupportRevealed] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -56,6 +65,7 @@ export function SpeakingCapturePanel({
     setReplayed(false);
     setConfirmedAudibleSpeech(false);
     setSaved(false);
+    setSavedAttempt(null);
     idempotencyRef.current = crypto.randomUUID();
   }
 
@@ -63,6 +73,7 @@ export function SpeakingCapturePanel({
     if (recording || uploading) return;
     setError("");
     setSaved(false);
+    setSavedAttempt(null);
 
     if (
       typeof navigator === "undefined" ||
@@ -150,8 +161,10 @@ export function SpeakingCapturePanel({
       if (!request.ok) {
         throw new Error("Vidlish chưa thể lưu speaking receipt.");
       }
-      learningSpeakingAttemptResponseSchema.parse(body);
+      const parsed = learningSpeakingAttemptResponseSchema.parse(body);
+      setSavedAttempt(parsed.attempt);
       setSaved(true);
+      setSupportRevealed(true);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -169,11 +182,13 @@ export function SpeakingCapturePanel({
         <p className="text-sm font-semibold text-[var(--accent)]">
           Speaking capture · self-check
         </p>
-        <h2 className="text-xl font-bold">Nói lại bằng chính giọng của bạn</h2>
+        <h2 className="text-xl font-bold">Nói trước, xem mẫu sau</h2>
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
-          Thu ít nhất một câu, nghe lại hết bản thu rồi tự xác nhận. Vidlish không
-          chấm phát âm ở bước này. Audio chỉ đi qua request hiện tại để xác nhận
-          có bản thu; Supabase chỉ lưu metadata receipt, không lưu audio hay transcript.
+          Thu ít nhất một câu, nghe lại hết bản thu rồi tự xác nhận. Nếu đây là
+          lần speaking đầu tiên của tình huống sau ít nhất 24 giờ, server có thể
+          ghi nhận mức hỗ trợ là independent. Independent vẫn là self-check chưa
+          chấm, không phải điểm phát âm hay mastery. Audio chỉ đi qua request hiện
+          tại; Supabase không lưu audio hay transcript.
         </p>
       </div>
 
@@ -254,12 +269,28 @@ export function SpeakingCapturePanel({
         </div>
       ) : null}
 
-      {saved ? (
+      {savedAttempt ? (
         <p role="status" className="text-sm font-semibold">
-          Đã ghi nhận một speaking self-check chưa chấm. Đây không phải điểm phát
-          âm, intelligibility hay mastery.
+          Đã ghi nhận speaking self-check lần {savedAttempt.attemptNumber}: {" "}
+          {savedAttempt.support === "independent"
+            ? "independent sau trì hoãn"
+            : "supported"}
+          . Kết quả vẫn unscored — không phải điểm phát âm, intelligibility hay
+          mastery.
         </p>
       ) : null}
+
+      {supportRevealed && exemplarAfterAttempt ? (
+        <div className="space-y-2 rounded-xl border border-[var(--border)] bg-[var(--muted)] p-4">
+          <p className="text-sm font-semibold">Mẫu chỉ mở sau lần nói</p>
+          <p>{exemplarAfterAttempt}</p>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Có thể bấm “Thu lại” để retry. Mọi retry sau khi mẫu đã mở được ghi
+            supported, kể cả khi không nhìn lại mẫu.
+          </p>
+        </div>
+      ) : null}
+
       {error ? <p role="alert">{error}</p> : null}
     </section>
   );

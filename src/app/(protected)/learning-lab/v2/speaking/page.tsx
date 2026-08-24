@@ -119,9 +119,9 @@ export default async function SpeakingPracticePage({
           Dùng lại tình huống đã học bằng giọng nói
         </h1>
         <p className="text-[var(--muted-foreground)]">
-          Đây là speaking self-check chưa chấm. Mục tiêu của slice này là tạo
-          production bằng giọng thật và lưu evidence đúng mức, không giả một
-          pronunciation score khi chưa có verifier.
+          Đây là speaking self-check chưa chấm. Mục tiêu là tạo production bằng
+          giọng thật và phân biệt đúng mức hỗ trợ; không giả một pronunciation
+          score khi chưa có verifier.
         </p>
       </div>
 
@@ -132,14 +132,16 @@ export default async function SpeakingPracticePage({
         <p>{practice.activity.scenarioVi}</p>
         <p className="font-semibold">{practice.activity.promptVi}</p>
         <p className="text-sm text-[var(--muted-foreground)]">
-          Viết trong prompt là bài gốc; ở bước này hãy nói thành tiếng câu bạn
-          muốn dùng trong tình huống đó.
+          Nói trước khi xem mẫu. Nếu lesson đã hoàn tất ít nhất 24 giờ và đây là
+          speaking receipt đầu tiên của tình huống, server mới được phép ghi mức
+          hỗ trợ independent.
         </p>
       </Card>
 
       <SpeakingCapturePanel
         sessionId={practice.sessionId}
         activityId={practice.activity.id}
+        exemplarAfterAttempt={practice.exemplarAfterAttempt ?? undefined}
       />
 
       <Link

@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { learningSupportLevelSchema } from "@/shared/contracts/learning-capability";
+
 const entityIdSchema = z.string().regex(/^[a-z][a-z0-9_-]{2,63}$/);
 
 export const learningSpeakingAttemptSchema = z
@@ -7,6 +9,8 @@ export const learningSpeakingAttemptSchema = z
     id: z.string().uuid(),
     sessionId: z.string().uuid(),
     activityId: entityIdSchema,
+    attemptNumber: z.number().int().positive(),
+    support: learningSupportLevelSchema,
     idempotencyKey: z.string().uuid(),
     durationMs: z.number().int().min(500).max(120_000),
     byteCount: z.number().int().min(256).max(5_000_000),

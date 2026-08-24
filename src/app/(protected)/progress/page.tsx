@@ -34,7 +34,7 @@ const SKILL_COPY: Record<
   speaking: {
     title: "Nói",
     description:
-      "Speaking capture dùng microphone thật và lưu self-check chưa chấm. Raw audio không được lưu hay gửi AI; objective speaking vẫn bằng 0 cho tới khi có verifier đủ tin cậy.",
+      "Speaking capture dùng microphone thật và lưu self-check chưa chấm. Lần đầu sau ít nhất 24 giờ có thể là independent evidence; raw audio không được lưu hay gửi AI và objective speaking vẫn bằng 0 cho tới khi có verifier đủ tin cậy.",
     empty: "Chưa có speaking capture được lưu.",
   },
   writing: {
@@ -147,6 +147,10 @@ export default async function ProgressPage() {
                     <dd className="mt-1 text-2xl font-bold">
                       {skill.unscoredObservations}
                     </dd>
+                    <p className="mt-1 text-xs text-[var(--muted-foreground)]">
+                      Độc lập {skill.unscoredIndependentObservations} · có trợ giúp {" "}
+                      {skill.unscoredSupportedObservations}
+                    </p>
                   </div>
                 </dl>
 
