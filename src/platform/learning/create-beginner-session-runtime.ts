@@ -2,6 +2,7 @@ import "server-only";
 
 import catalogue from "@/adapters/vocabulary/cefrj-a1-a2.json";
 import { beginnerSentencesFor } from "@/adapters/vocabulary/beginner-sentence-catalogue";
+import { FixtureBeginnerInputProvider } from "@/adapters/fake/fixture-beginner-input-provider";
 import { GeminiBeginnerInputProvider } from "@/adapters/gemini/gemini-beginner-input-provider";
 import type { BeginnerInputProvider } from "@/modules/learning/ports/beginner-input-provider";
 import type { VocabularyEntry } from "@/modules/learning/application/select-next-vocabulary";
@@ -33,6 +34,13 @@ export function beginnerCandidatesFor(target: string): readonly string[] {
  */
 export function createBeginnerInputProvider(): BeginnerInputProvider | null {
   const config = getServerConfig();
+  // The fixture exists so the sentence phase runs somewhere other than
+  // production. Retrieval covers almost nothing until a learner has dozens of
+  // words, so without it every test fell through to the single-word
+  // introduction and the sentence code was never executed by anything.
+  if (config.LEARNING_AUTHORING_PROVIDER === "fixture") {
+    return new FixtureBeginnerInputProvider();
+  }
   if (config.LEARNING_AUTHORING_PROVIDER !== "gemini") return null;
   if (!config.GEMINI_API_KEY) return null;
   return new GeminiBeginnerInputProvider({

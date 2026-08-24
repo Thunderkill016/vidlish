@@ -29,6 +29,10 @@ const DEFAULT_BETA_EMAILS = [
   "measurement-mobile-chromium@example.com",
   "beginner-chromium@example.com",
   "beginner-mobile-chromium@example.com",
+  "beginner-support-chromium@example.com",
+  "beginner-support-mobile-chromium@example.com",
+  "beginner-later-chromium@example.com",
+  "beginner-later-mobile-chromium@example.com",
   "speaking-handoff-chromium@example.com",
   "speaking-handoff-mobile-chromium@example.com",
   // The adversarial beginner-evidence journey needs a clean owner distinct
@@ -83,6 +87,12 @@ export default defineConfig({
       // durable job to opt into the real local Supabase repository.
       LEARNING_SESSION_REPOSITORY:
         process.env.LEARNING_SESSION_REPOSITORY ?? "fake",
+      // Without this the beginner sentence phase is unreachable in E2E: the
+      // authoring provider defaults to "off", so no sentences are ever drafted
+      // and every journey falls through to the single-word introduction. The
+      // sentence code then ships having been executed only by production.
+      LEARNING_AUTHORING_PROVIDER:
+        process.env.LEARNING_AUTHORING_PROVIDER ?? "fixture",
       TEST_BETA_EMAILS: configuredBetaEmails,
       VIDEO_METADATA_ADAPTER: process.env.VIDEO_METADATA_ADAPTER ?? "fixture",
       YOUTUBE_VIEWER_REGION: process.env.YOUTUBE_VIEWER_REGION ?? "VN",

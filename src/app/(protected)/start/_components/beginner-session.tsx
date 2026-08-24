@@ -58,6 +58,9 @@ export function BeginnerSession() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [usedSupport, setUsedSupport] = useState(false);
   const [saveFailed, setSaveFailed] = useState(false);
+  const [knownAfterAttempt, setKnownAfterAttempt] = useState<boolean | null>(
+    null,
+  );
   const [heard, setHeard] = useState("");
   const [result, setResult] = useState<{
     correct: number;
@@ -70,6 +73,10 @@ export function BeginnerSession() {
     setState({ kind: "loading" });
     setPhase("idle");
     setUsedSupport(false);
+    setSaveFailed(false);
+    setKnownAfterAttempt(null);
+    setHeard("");
+    setResult(null);
     try {
       const response = await fetch("/api/beginner/session", { method: "POST" });
       const body = await response.json();
@@ -84,6 +91,9 @@ export function BeginnerSession() {
           target: introduction.data.target,
           challengeId: introduction.data.challengeId,
         });
+        // A standalone first word follows the same boundary as every later
+        // sentence: sound first, text only after the learner explicitly asks.
+        setPhase("listening");
         speak(introduction.data.target);
         return;
       }
@@ -139,6 +149,7 @@ export function BeginnerSession() {
       });
       if (!response.ok) {
         setSaveFailed(true);
+        setKnownAfterAttempt(null);
         setPhase("answered");
         return;
       }
@@ -146,6 +157,7 @@ export function BeginnerSession() {
         await response.json(),
       );
       setSaveFailed(!saved.success);
+      setKnownAfterAttempt(saved.success ? saved.data.known : null);
       setResult(saved.success ? (saved.data.dictation ?? null) : null);
       setPhase("answered");
     } catch {
@@ -153,6 +165,7 @@ export function BeginnerSession() {
       // be told their word was recorded, the next session would not know it,
       // and the product would look like it had forgotten them.
       setSaveFailed(true);
+      setKnownAfterAttempt(null);
       setPhase("answered");
     }
   }
@@ -167,6 +180,8 @@ export function BeginnerSession() {
     setState({ ...state, index });
     setPhase("listening");
     setUsedSupport(false);
+    setSaveFailed(false);
+    setKnownAfterAttempt(null);
     setHeard("");
     setResult(null);
     speak(state.session.sentences[index].text);
@@ -199,30 +214,58 @@ export function BeginnerSession() {
   }
 
   if (state.kind === "introduce") {
+    const showTarget = phase !== "listening";
+
     return (
       <Card className="flex flex-col gap-5">
         <div className="flex flex-col gap-1">
           <span className="text-sm text-[var(--muted-foreground)]">
-            Từ đầu tiên không đến trong một câu
+            Từ đầu tiên sẽ đến một mình
           </span>
-          <p className="text-xs text-[var(--muted-foreground)]">
-            Một câu dễ hiểu là câu bạn biết hết chữ trừ một. Khi bạn chưa biết
-            chữ nào, câu ngắn nhất có thể có đúng một chữ — mà một chữ thì không
-            phải câu. Nên từ đầu tiên phải gặp một mình.
+          <p className="text-xs leading-5 text-[var(--muted-foreground)]">
+            Chưa có từ nào làm nền, nên lượt đầu chỉ có một từ. Nghe trước và
+            thử nói lại. Chỉ mở chữ nếu bạn thực sự cần trợ giúp.
           </p>
         </div>
 
-        <p className="text-4xl font-semibold">{state.target}</p>
+        {showTarget ? (
+          <p className="text-4xl font-semibold">{state.target}</p>
+        ) : (
+          <div
+            data-testid="beginner-first-word-hidden"
+            className="rounded-2xl border border-dashed border-[var(--border)] p-5"
+          >
+            <p className="font-semibold">Nghe trước. Chữ đang được ẩn.</p>
+            <p className="mt-1 text-sm text-[var(--muted-foreground)]">
+              Nếu nghe chưa rõ, bấm nghe lại. Nhìn chữ sẽ được tính là có trợ
+              giúp trong lượt này.
+            </p>
+          </div>
+        )}
 
         <div className="flex flex-wrap gap-2">
           <Button onClick={() => speak(state.target)}>Nghe lại</Button>
+          {phase === "listening" ? (
+            <Button
+              variant="secondary"
+              onClick={() => {
+                setUsedSupport(true);
+                setPhase("revealed");
+              }}
+            >
+              Cho tôi xem chữ
+            </Button>
+          ) : null}
         </div>
 
         {phase === "saving" ? (
           <p className="text-sm text-[var(--muted-foreground)]">Đang lưu…</p>
         ) : phase !== "answered" ? (
           <div className="flex flex-col gap-3">
-            <p className="text-sm">Bạn nói lại được từ này chưa?</p>
+            <p className="text-sm">
+              Bạn có thể nói lại từ vừa nghe mà không cần nghe mẫu cùng lúc
+              không?
+            </p>
             <div className="flex flex-wrap gap-2">
               <Button onClick={() => record(true)}>Nói được</Button>
               <Button variant="secondary" onClick={() => record(false)}>
@@ -234,10 +277,14 @@ export function BeginnerSession() {
           <div className="flex flex-col gap-3">
             <p className="text-sm text-[var(--muted-foreground)]">
               {saveFailed
-                ? "Chưa lưu được. Từ này sẽ quay lại lần sau — sản phẩm không nói dối rằng đã ghi."
-                : "Đã ghi lại. Từ sau sẽ đến cùng một câu, vì giờ đã có một chữ bạn biết để dựa vào."}
+                ? "Chưa lưu được lượt này. Hãy thử lại để tiến độ không bị ghi sai."
+                : knownAfterAttempt
+                  ? "Đã ghi nhận lần bạn tự nói lại được mà không mở chữ. Từ tiếp theo có thể dùng từ này làm nền."
+                  : "Đã ghi lượt luyện, nhưng từ này chưa được tính là tự nhớ độc lập. Nó sẽ còn quay lại để bạn thử lại không cần chữ."}
             </p>
-            <Button onClick={startSession}>Từ tiếp theo</Button>
+            <Button onClick={startSession}>
+              {knownAfterAttempt ? "Từ tiếp theo" : "Thử tiếp"}
+            </Button>
           </div>
         )}
       </Card>
@@ -245,14 +292,24 @@ export function BeginnerSession() {
   }
 
   const sentence = state.session.sentences[state.index];
+  const showSentenceText = phase !== "listening";
 
   return (
     <Card className="flex flex-col gap-5">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-4">
         <span className="text-sm text-[var(--muted-foreground)]">
-          Từ mới: <strong className="text-[var(--foreground)]">{state.session.target}</strong>
+          {showSentenceText ? (
+            <>
+              Từ mới:{" "}
+              <strong className="text-[var(--foreground)]">
+                {state.session.target}
+              </strong>
+            </>
+          ) : (
+            "Có một từ mới trong câu — đang ẩn"
+          )}
         </span>
-        <span className="text-xs text-[var(--muted-foreground)] tabular-nums">
+        <span className="shrink-0 text-xs text-[var(--muted-foreground)] tabular-nums">
           Câu {state.index + 1}/{state.session.sentences.length}
         </span>
       </div>
@@ -273,7 +330,7 @@ export function BeginnerSession() {
         )}
       </div>
 
-      {phase === "listening" ? (
+      {!showSentenceText ? (
         <p className="text-sm text-[var(--muted-foreground)]">
           Nghe tới khi bạn nói lại được. Chưa nghe ra thì bấm nghe lại — nghe lại
           không tính là trợ giúp, nhìn chữ thì có.
