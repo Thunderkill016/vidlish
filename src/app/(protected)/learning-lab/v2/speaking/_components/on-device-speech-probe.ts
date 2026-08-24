@@ -191,7 +191,7 @@ export function startOnDeviceSpeechProbe(input: {
     stop() {
       try {
         recognition.stop();
-      } finally {
+      } catch {
         cleanupTrack();
       }
     },
