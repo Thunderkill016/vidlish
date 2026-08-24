@@ -6,6 +6,7 @@ import {
   type LearningAction,
 } from "@/modules/learning/application/resolve-next-learning-action";
 import { pendingUnitActivities } from "@/modules/curriculum/application/pending-unit-activities";
+import { reachableActivities } from "@/modules/curriculum/application/reachable-activities";
 import { selectNextUnit } from "@/modules/curriculum/application/select-next-unit";
 import { FOUNDATION_UNITS } from "@/modules/curriculum/content";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
@@ -54,10 +55,25 @@ export async function resolveTodaysAction(
     },
   });
 
-  const unitActivities =
+  // Two filters, in this order. What the unit still owes, and what the learner
+  // can actually attempt: a Pre-A1 chunk is several words, and to someone with
+  // nothing it is several unknown words at once. The i+1 rule does not stop
+  // applying because the language came from a syllabus, so the beginner word
+  // path keeps working until the unit's language is within reach.
+  const owed =
     nextUnit.kind === "study"
       ? pendingUnitActivities(nextUnit.unit, independent)
       : [];
+  const reachable = new Set(
+    nextUnit.kind === "study"
+      ? reachableActivities(nextUnit.unit, independent).map(
+          (activity) => activity.id,
+        )
+      : [],
+  );
+  const unitActivities = owed.filter((activity) =>
+    reachable.has(activity.activityId),
+  );
 
   return resolveNextLearningAction({
     dueReviews: due.map((item) => item.itemKey),

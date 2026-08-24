@@ -5,12 +5,15 @@ import { useState } from "react";
 import {
   beginnerAttemptResponseSchema,
   beginnerSessionResponseSchema,
+  beginnerUnitActivitySchema,
   beginnerWordIntroductionSchema,
   type BeginnerSessionResponse,
 } from "@/shared/contracts/beginner-session";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
+
+import { UnitActivity } from "./unit-activity";
 
 /**
  * One beginner session, in the order the four skills are actually acquired.
@@ -28,6 +31,10 @@ type SessionState =
   | { kind: "loading" }
   | { kind: "ready"; session: BeginnerSessionResponse; index: number }
   | { kind: "introduce"; target: string; challengeId: string }
+  | {
+      kind: "unit_activity";
+      activity: import("@/shared/contracts/beginner-session").BeginnerUnitActivity;
+    }
   | { kind: "empty"; reason: string }
   | { kind: "error"; message: string };
 
@@ -84,6 +91,15 @@ export function BeginnerSession() {
         setState({ kind: "error", message: "Không mở được buổi học." });
         return;
       }
+      // The curriculum answers before the word path does, so this is checked
+      // first: a unit activity is a different kind of work, not a variant of a
+      // word.
+      const unitActivity = beginnerUnitActivitySchema.safeParse(body);
+      if (unitActivity.success) {
+        setState({ kind: "unit_activity", activity: unitActivity.data });
+        return;
+      }
+
       const introduction = beginnerWordIntroductionSchema.safeParse(body);
       if (introduction.success) {
         setState({
@@ -210,6 +226,17 @@ export function BeginnerSession() {
         <p className="text-sm">{message}</p>
         <Button onClick={startSession}>Thử lại</Button>
       </Card>
+    );
+  }
+
+  if (state.kind === "unit_activity") {
+    return (
+      <UnitActivity
+        activity={state.activity}
+        onNext={() => {
+          void startSession();
+        }}
+      />
     );
   }
 
