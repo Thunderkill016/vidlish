@@ -150,6 +150,63 @@ test("revealing the first word is support and cannot bank it as independently kn
   );
 });
 
+test("later beginner sentences hide both the target word and sentence until text support is opened", async ({
+  page,
+}, testInfo) => {
+  await login(page, `beginner-later-${testInfo.project.name}@example.com`);
+
+  // Seed exactly one independently known word through the same server-owned
+  // challenge path. This gets the UI to the first true i+1 sentence without
+  // depending on text that the test itself is meant to inspect.
+  const issued = await postJson(page, "/api/beginner/session");
+  expect(issued.status).toBe(200);
+  const introduction = issued.body as {
+    kind: "introduce_word";
+    target: string;
+    challengeId: string;
+  };
+  expect(introduction.kind).toBe("introduce_word");
+  const banked = await postJson(page, "/api/beginner/attempt", {
+    kind: "introduce_word",
+    challengeId: introduction.challengeId,
+    usedSupport: false,
+    claimedIndependent: true,
+  });
+  expect(banked.status).toBe(201);
+  expect(banked.body).toMatchObject({ known: true });
+
+  await page.goto("/start");
+  const sessionPromise = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/beginner/session") &&
+      response.request().method() === "POST",
+  );
+  await page.getByRole("button", { name: "Bắt đầu nghe" }).click();
+  const response = await sessionPromise;
+  expect(response.ok()).toBe(true);
+  const session = (await response.json()) as {
+    target: string;
+    sentences: Array<{ text: string; challengeId: string }>;
+    knownWordCount: number;
+  };
+  expect(session.knownWordCount).toBeGreaterThanOrEqual(1);
+  expect(session.sentences.length).toBeGreaterThan(0);
+
+  await expect(
+    page.getByText("Có một từ mới trong câu — đang ẩn", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText(session.target, { exact: true })).toHaveCount(0);
+  await expect(
+    page.getByText(session.sentences[0]!.text, { exact: true }),
+  ).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Cho tôi xem chữ" }).click();
+  await expect(page.getByText(session.target, { exact: true })).toBeVisible();
+  await expect(
+    page.getByText(session.sentences[0]!.text, { exact: true }),
+  ).toBeVisible();
+});
+
 test("beginner evidence follows only a single-use server challenge", async ({
   page,
 }, testInfo) => {
