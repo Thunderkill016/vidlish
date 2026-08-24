@@ -1,11 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { compileUnitActivity } from "@/modules/curriculum/application/compile-unit-activity";
-import { foundationUnitById } from "@/modules/curriculum/content";
 import { startBeginnerSession } from "@/modules/learning/application/start-beginner-session";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
-import { resolveTodaysAction } from "@/platform/learning/resolve-todays-action";
 import {
   BEGINNER_SENTENCES_PER_SESSION,
   beginnerCandidatesFor,
@@ -14,7 +11,6 @@ import {
 } from "@/platform/learning/create-beginner-session-runtime";
 import {
   beginnerSessionResponseSchema,
-  beginnerUnitActivitySchema,
   beginnerWordIntroductionSchema,
 } from "@/shared/contracts/beginner-session";
 import { authErrors } from "@/shared/errors/product-error";
@@ -38,48 +34,6 @@ export async function POST(request: NextRequest) {
     if (!access) throw authErrors.sessionRequired();
 
     const progress = createBeginnerProgressRepository();
-
-    // The curriculum answers first, and only for activities whose language is
-    // already within reach. Until then the beginner word path below keeps
-    // working, which is what lets a syllabus exist for someone at zero.
-    const todays = await resolveTodaysAction(access.userId);
-    if (todays.kind === "unit_activity") {
-      const unit = foundationUnitById(todays.unitId);
-      const compiled = unit ? compileUnitActivity(unit, todays.activityId) : null;
-      if (compiled?.kind === "compiled") {
-        const activity = compiled.activity;
-        // A retrieval is graded, so it needs the same server-held authority a
-        // dictated sentence gets: the browser never sends the answer it is
-        // being marked against.
-        const [gradedChunk] = activity.evidenceKeys;
-        const challenge = gradedChunk
-          ? await progress.createEvidenceChallenge({
-              ownerUserId: access.userId,
-              kind: "dictation",
-              word: gradedChunk,
-              sentence: gradedChunk,
-            })
-          : null;
-
-        const payload = beginnerUnitActivitySchema.parse({
-          kind: "unit_activity",
-          unitId: activity.unitId,
-          activityId: activity.activityId,
-          strand: activity.strand,
-          skill: activity.skill,
-          promptVi: activity.promptVi,
-          listen: activity.listen,
-          targets: activity.targets,
-          supportAllowed: activity.supportAllowed,
-          ...(challenge ? { challengeId: challenge.id } : {}),
-        });
-        return NextResponse.json(payload, {
-          status: 200,
-          headers: { "Cache-Control": "private, no-store" },
-        });
-      }
-    }
-
     const known = new Set(await progress.knownWords(access.userId));
     const provider = createBeginnerInputProvider();
 

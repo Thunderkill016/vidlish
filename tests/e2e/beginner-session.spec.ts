@@ -291,19 +291,3 @@ test("beginner evidence follows only a single-use server challenge", async ({
   );
   expect(calibration.body.items).not.toContain("forged-target");
 });
-
-test("the home page answers with one thing to do, not a menu", async ({
-  page,
-}, testInfo) => {
-  await login(page, `beginner-${testInfo.project.name}@example.com`);
-
-  await page.goto("/dashboard");
-
-  // The answer is decided by evidence, not by whichever card looks easiest. A
-  // learner with none cannot reach a Pre-A1 chunk yet — "my name is" is three
-  // unknown words at once — so the honest answer is a single new word.
-  const action = page.getByTestId("todays-action");
-  await expect(action).toBeVisible();
-  await expect(action).toContainText("Gặp một từ mới");
-  await expect(action.getByRole("link", { name: "Bắt đầu" })).toBeVisible();
-});

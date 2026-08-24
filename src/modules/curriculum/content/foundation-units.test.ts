@@ -71,3 +71,62 @@ describe("the balance rules the schema enforces", () => {
     expect(JSON.stringify(result)).toContain("does not teach");
   });
 });
+
+describe("the syllabus as a whole", () => {
+  it("has exactly one unit that can be started from nothing", () => {
+    // More than one entry point means the product has to choose arbitrarily on
+    // day one; none means the syllabus can never begin.
+    const roots = FOUNDATION_UNITS.filter(
+      (unit) => unit.prerequisites.length === 0,
+    );
+    expect(roots).toHaveLength(1);
+  });
+
+  it("never teaches the same chunk in two units", () => {
+    // Two units teaching one chunk split its evidence, so neither can ever be
+    // satisfied and the learner is taught it twice.
+    const seen = new Map<string, string>();
+    for (const unit of FOUNDATION_UNITS) {
+      for (const chunk of unit.targetChunks) {
+        const owner = seen.get(chunk.text);
+        expect(owner ?? unit.id).toBe(unit.id);
+        seen.set(chunk.text, unit.id);
+      }
+    }
+  });
+
+  it("can be walked from the first unit to the last", () => {
+    // Follows the prerequisite graph. A unit nothing reaches is a unit the
+    // learner can never be offered, however good it is.
+    const byId = new Map(FOUNDATION_UNITS.map((unit) => [unit.id, unit]));
+    const reached = new Set<string>();
+    let changed = true;
+    while (changed) {
+      changed = false;
+      for (const unit of FOUNDATION_UNITS) {
+        if (reached.has(unit.id)) continue;
+        if (unit.prerequisites.every((id) => reached.has(id))) {
+          reached.add(unit.id);
+          changed = true;
+        }
+      }
+    }
+
+    expect(reached.size).toBe(byId.size);
+  });
+
+  it("claims evidence only for language the learner was asked to produce", () => {
+    // A criterion on a chunk that no unsupported activity practises could never
+    // be met, and the unit would never finish.
+    for (const unit of FOUNDATION_UNITS) {
+      const produced = new Set(
+        unit.activities
+          .filter((activity) => !activity.supportAllowed)
+          .flatMap((activity) => activity.targets),
+      );
+      for (const criterion of unit.evidenceCriteria) {
+        expect(produced.has(criterion.chunk)).toBe(true);
+      }
+    }
+  });
+});
