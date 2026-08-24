@@ -209,6 +209,26 @@ The A0 session already does listen-then-say-back. What it does not do is score t
 
 Product consequence: build elicited imitation as the progress instrument, not as another exercise type. It reuses the corpus, the audio and the recording permission that are already approved, and it produces a number that is comparable across weeks — which is what "am I actually getting better" requires and what a streak can never provide.
 
+### The buildable specification, with the numbers it rests on
+
+The paragraph above says what to build. These are the parameters, taken from the published instruments rather than invented here, so that the score this product reports is comparable to something outside this product.
+
+**Item bank.** The standard shape is around **30 items ranging from 7 to 18 syllables**. Length is not decoration: regression on item difficulty found that **syllable length predicted difficulty while grammatical difficulty did not**, so the bank is spread across that range deliberately and grading a learner means finding where in it they stop succeeding.
+
+**Why it cannot be gamed.** An item longer than raw echoic memory cannot be echoed — only reconstructed — so a correct repetition is evidence of parsing rather than of hearing. That is the entire reason this instrument is worth more than a streak, and it is also why the item bank must reach past roughly seven syllables to work at all.
+
+**Scoring.** Human rubrics use a scale of more than three levels and credit **meaning retained despite form errors**. The automatable equivalent is word error rate against the known target sentence, and it has been measured against human raters: **ICC = 0.929** on per-item error rates and **r = 0.969** on overall participant scores, using open-source Whisper. That is the finding that makes this instrument buildable by one person — the alternative was paying trained raters.
+
+**The limit, stated before it bites.** That validation used 30 participants whose L1 was Japanese. There is no equivalent Vietnamese-L1 validation, and Vietnamese speakers sit among the harder accent groups for every ASR system tested on L2-ARCTIC. What protects the measure is the task shape rather than the accent: elicited imitation is short, read-like speech against a *known* target, which is the case where Whisper reaches roughly **5.4% error** on non-native read speech — against 13–28% on spontaneous accented narrative.
+
+Product consequence, in order:
+
+1. The recogniser is compared against the sentence it was supposed to produce, never asked to transcribe freely.
+2. A score is reported as a range, not a point, until it has been measured on this learner's own speech.
+3. If the recogniser and the learner disagree, the audio is kept for the learner to arbitrate. A measure that cannot be disputed is not a measure, it is an assertion.
+
+Sources: [Yan et al. 2016 meta-analysis](https://eric.ed.gov/?id=EJ1114289) · [Davis et al. 2021, ETS](https://onlinelibrary.wiley.com/doi/full/10.1002/ets2.12338) · [Whisper + WER automation study](https://www.sciencedirect.com/science/article/pii/S2772766125000187) · [standardized EIT measurement properties](https://www.cambridge.org/core/journals/studies-in-second-language-acquisition/article/measurement-properties-of-a-standardized-elicited-imitation-test-an-integrative-data-analysis/D25501C0180D2327C935B8315D97A9AA) · [ASR accent comparison on L2-ARCTIC](https://arxiv.org/pdf/2310.11004)
+
 ### Speech recognition is usable for this shape and not for free speech
 
 The measured picture is consistent. Non-native word error rate on **clean read speech** can be as low as 5.4%. Spontaneous accented narrative runs 13–28%, and accented speech generally raises error rates two- to fourfold against native benchmarks; a large multi-accent corpus put a strong model at 19.7% WER against 2.7% on US English read speech.
