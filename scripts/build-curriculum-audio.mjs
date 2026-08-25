@@ -30,6 +30,7 @@ import { pathToFileURL } from "node:url";
 const OUT_DIR = path.normalize("public/audio/curriculum");
 const MANIFEST = path.normalize("src/adapters/audio/curriculum-audio.json");
 const TEMP_BUNDLE = path.normalize("node_modules/.cache/curriculum-content.mjs");
+const TEMP_ENTRY = path.normalize("node_modules/.cache/curriculum-entry.ts");
 
 /** One voice for the whole syllabus. Two voices would confound a listening
  *  score with speaker adaptation — the learner would get better at this voice,
@@ -46,10 +47,21 @@ const force = process.argv.includes("--force");
  */
 function loadSyllabus() {
   mkdirSync(path.dirname(TEMP_BUNDLE), { recursive: true });
+  // The measurement bank is rendered by the same pipeline as the syllabus, and
+  // for a stronger reason: a proficiency score is only comparable between
+  // sittings if the sentences sounded the same both times. A browser voice that
+  // changes with the device would move the score without the learner changing.
+  writeFileSync(
+    TEMP_ENTRY,
+    [
+      'export { FOUNDATION_UNITS } from "@/modules/curriculum/content";',
+      'export { ELICITED_IMITATION_ITEMS } from "@/modules/measurement/content/elicited-imitation-items";',
+    ].join("\n"),
+  );
   execFileSync(
     path.normalize("node_modules/.bin/esbuild"),
     [
-      path.normalize("src/modules/curriculum/content/index.ts"),
+      TEMP_ENTRY,
       "--bundle",
       "--format=esm",
       "--platform=node",
@@ -63,12 +75,13 @@ function loadSyllabus() {
 }
 
 /** Every distinct English line the learner will hear, in a stable order. */
-function spokenLines(units) {
+function spokenLines(units, measurementItems) {
   const seen = new Map();
   for (const unit of units) {
     for (const scene of unit.inputScenes) add(seen, scene.text);
     for (const chunk of unit.targetChunks) add(seen, chunk.text);
   }
+  for (const item of measurementItems) add(seen, item.text);
   return [...seen.values()].sort((left, right) => (left.key < right.key ? -1 : 1));
 }
 
@@ -126,9 +139,11 @@ function isAudible(samples) {
   return { ok: peak > 0.05 && rms > 0.005, peak, rms };
 }
 
-const { FOUNDATION_UNITS } = await loadSyllabus();
-const lines = spokenLines(FOUNDATION_UNITS);
-console.log(`${lines.length} dòng tiếng Anh trong chương trình`);
+const { FOUNDATION_UNITS, ELICITED_IMITATION_ITEMS } = await loadSyllabus();
+const lines = spokenLines(FOUNDATION_UNITS, ELICITED_IMITATION_ITEMS);
+console.log(
+  `${lines.length} dòng tiếng Anh (${ELICITED_IMITATION_ITEMS.length} câu đo trình độ)`,
+);
 
 mkdirSync(OUT_DIR, { recursive: true });
 mkdirSync(path.dirname(MANIFEST), { recursive: true });
@@ -177,6 +192,7 @@ for (const entry of readdirSync(OUT_DIR)) {
 
 writeFileSync(MANIFEST, `${JSON.stringify(manifest, null, 2)}\n`);
 rmSync(TEMP_BUNDLE, { force: true });
+rmSync(TEMP_ENTRY, { force: true });
 
 console.log(
   `dựng ${rendered}, dùng lại ${reused}, xoá ${removed}` +

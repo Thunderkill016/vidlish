@@ -4,6 +4,7 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { FOUNDATION_UNITS } from "@/modules/curriculum/content";
+import { ELICITED_IMITATION_ITEMS } from "@/modules/measurement/content/elicited-imitation-items";
 
 import manifest from "./curriculum-audio.json";
 import { curriculumAudioFor, normaliseSpokenLine } from "./curriculum-audio";
@@ -46,5 +47,17 @@ describe("curriculum audio", () => {
     expect(curriculumAudioFor(chunk.text.toUpperCase())).not.toBeNull();
     expect(curriculumAudioFor(`  ${chunk.text}  `)).not.toBeNull();
     expect(normaliseSpokenLine("  My   Name  Is ")).toBe("my name is");
+  });
+});
+
+describe("measurement audio", () => {
+  it("has a recording for every item in the imitation bank", () => {
+    // A proficiency score is only comparable between sittings if the sentences
+    // sounded the same both times. A browser voice that differs by device would
+    // move the score without the learner changing.
+    const missing = ELICITED_IMITATION_ITEMS.filter(
+      (item) => !curriculumAudioFor(item.text),
+    ).map((item) => item.id);
+    expect(missing).toEqual([]);
   });
 });
