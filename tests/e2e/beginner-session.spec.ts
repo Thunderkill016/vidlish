@@ -1,13 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-async function login(page: Page, email: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(email);
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
-}
+import { signIn } from "./_sign-in";
 
 async function postJson(
   page: Page,
@@ -61,11 +54,11 @@ test("a learner starting from zero hears the first word before text and their in
 }, testInfo) => {
   // A per-project email, or the two Playwright projects share one learner and
   // the second one starts with words the first taught.
-  await login(page, `beginner-${testInfo.project.name}@example.com`);
+  await signIn(page, `beginner-${testInfo.project.name}@example.com`);
 
   await page.goto("/start");
   await expect(
-    page.getByRole("heading", { name: "Bắt đầu từ số 0" }),
+    page.getByRole("heading", { name: "Hôm nay, nghe một câu để bắt đầu dùng tiếng Anh." }),
   ).toBeVisible();
 
   // Nothing has been produced unaided yet, so the count that decides what comes
@@ -120,7 +113,7 @@ test("a learner starting from zero hears the first word before text and their in
 test("revealing the first word is support and cannot bank it as independently known", async ({
   page,
 }, testInfo) => {
-  await login(page, `beginner-support-${testInfo.project.name}@example.com`);
+  await signIn(page, `beginner-support-${testInfo.project.name}@example.com`);
   await page.goto("/start");
 
   const introduction = await beginFirstWord(page);
@@ -153,7 +146,7 @@ test("revealing the first word is support and cannot bank it as independently kn
 test("later beginner sentences hide both the target word and sentence until text support is opened", async ({
   page,
 }, testInfo) => {
-  await login(page, `beginner-later-${testInfo.project.name}@example.com`);
+  await signIn(page, `beginner-later-${testInfo.project.name}@example.com`);
 
   // Seed exactly one independently known word through the same server-owned
   // challenge path. This gets the UI to the first true i+1 sentence without
@@ -210,7 +203,7 @@ test("later beginner sentences hide both the target word and sentence until text
 test("beginner evidence follows only a single-use server challenge", async ({
   page,
 }, testInfo) => {
-  await login(page, `beginner-challenge-${testInfo.project.name}@example.com`);
+  await signIn(page, `beginner-challenge-${testInfo.project.name}@example.com`);
 
   const issued = await postJson(page, "/api/beginner/session");
   expect(issued.status).toBe(200);
@@ -295,7 +288,7 @@ test("beginner evidence follows only a single-use server challenge", async ({
 test("the home page answers with one thing to do, not a menu", async ({
   page,
 }, testInfo) => {
-  await login(page, `beginner-${testInfo.project.name}@example.com`);
+  await signIn(page, `beginner-${testInfo.project.name}@example.com`);
 
   await page.goto("/dashboard");
 

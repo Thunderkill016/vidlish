@@ -1,5 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
+import { signIn } from "./_sign-in";
+
 import { goldenSessionUsabilityParticipantSchema } from "@/shared/contracts/golden-session-usability";
 
 test.describe.configure({ retries: 0 });
@@ -11,15 +13,6 @@ test.skip(
 const OWNER_EMAIL = "learning-preview@example.com";
 const OTHER_EMAIL = "golden-study-observer@example.com";
 
-async function login(page: Page, email: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(email);
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
-}
-
 async function logout(page: Page) {
   await page.getByText("Tài khoản", { exact: true }).click();
   await page.getByRole("button", { name: "Đăng xuất" }).click();
@@ -29,7 +22,7 @@ async function logout(page: Page) {
 test("moderator captures the current owner's durable Golden session without typing a session id", async ({
   page,
 }) => {
-  await login(page, OWNER_EMAIL);
+  await signIn(page, OWNER_EMAIL);
   await page.goto("/learning-lab/v2");
   await page
     .getByRole("button", { name: "Bắt đầu nghe không phụ đề" })
@@ -148,7 +141,7 @@ test("moderator captures the current owner's durable Golden session without typi
   );
 
   await logout(page);
-  await login(page, OTHER_EMAIL);
+  await signIn(page, OTHER_EMAIL);
 
   const crossOwnerStatus = await page.evaluate(async (id) => {
     const response = await fetch(

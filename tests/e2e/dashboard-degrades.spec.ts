@@ -1,13 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-async function login(page: Page, email: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(email);
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
-}
+import { signIn } from "./_sign-in";
 
 // The fault has to exist when the dev server boots, so this spec is run on its
 // own with `FAKE_SPEAKING_QUEUE_FAULT=missing_table` (see the CI workflow).
@@ -25,7 +18,7 @@ test("the home page survives a panel whose table is missing", async ({
   // never been migrated, the speaking-queue read threw, and the learner saw
   // "This page couldn't load" with no way in — because a widget they had never
   // used could not read its table.
-  await login(page, `degrade-${testInfo.project.name}@example.com`);
+  await signIn(page, `degrade-${testInfo.project.name}@example.com`);
 
   const response = await page.goto("/dashboard");
   expect(response?.status()).toBe(200);

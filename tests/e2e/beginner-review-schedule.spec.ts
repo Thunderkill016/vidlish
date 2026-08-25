@@ -1,13 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-async function login(page: Page, email: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(email);
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
-}
+import { signIn } from "./_sign-in";
 
 test("a word the learner produces is scheduled to come back", async ({
   page,
@@ -15,7 +8,7 @@ test("a word the learner produces is scheduled to come back", async ({
   // The defect: the beginner track banked evidence and never set a review date,
   // so a word was met once and never again. FSRS was installed, tested and
   // reachable — and driving only the older video-lesson path.
-  await login(page, `schedule-${testInfo.project.name}@example.com`);
+  await signIn(page, `schedule-${testInfo.project.name}@example.com`);
   await page.goto("/start");
 
   const issued = page.waitForResponse(

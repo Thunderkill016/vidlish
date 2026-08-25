@@ -144,7 +144,7 @@ export default async function DashboardPage() {
         <div className="space-y-2">
           <p className="text-sm font-semibold text-[var(--accent)]">Hôm nay</p>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-            Hôm nay học gì?
+            Một bước tiếng Anh vừa sức hôm nay
           </h1>
           <p className="max-w-2xl text-[var(--muted-foreground)]">
             Một việc mỗi lần, chọn theo bằng chứng bạn để lại — không phải theo

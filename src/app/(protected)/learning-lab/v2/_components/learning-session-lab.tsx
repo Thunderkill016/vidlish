@@ -1,6 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 
 import type { LearningSupportCopyByActivity } from "@/adapters/fake/fixture-learning-runtime-policy";
 import type {
@@ -34,6 +40,10 @@ import {
   type LearningRuntimePolicyV2,
   type SupportStep,
 } from "@/shared/contracts/learning-policy-v2";
+import {
+  learningProductEventResponseSchema,
+  type LearningRuntimeErrorKind,
+} from "@/shared/contracts/learning-product-events";
 import type { ActivityResponse, LessonSession } from "@/shared/contracts/lesson-v2";
 import type { PersistedLearningSupportStep } from "@/shared/contracts/privacy-safe-learning-evidence";
 import { YouTubeEvidencePlayer } from "./youtube-evidence-player";
@@ -65,6 +75,10 @@ type StoredLabState = {
   completed: boolean;
   progressByActivity: Record<string, LearningActivityRuntimeProgress>;
 };
+
+type ProductMeasurementEvent =
+  | { eventKind: "source_play_completed" | "correction_shown" }
+  | { eventKind: "runtime_error"; detailKind: LearningRuntimeErrorKind };
 
 function storageKey(blueprintId: string): string {
   return `vidlish:learning-lab:v4:${blueprintId}`;
@@ -210,13 +224,13 @@ function supportMessage(
   if (step === "chunk_boundaries") {
     return (
       attempt?.postAttemptSupport.chunkBoundaryText ??
-      "Nếp chưa có đủ evidence để chia cụm câu nói này."
+      "Vidlish chưa có đủ evidence để chia cụm câu nói này."
     );
   }
   if (step === "vietnamese_meaning") {
     return (
       attempt?.postAttemptSupport.targetItem?.contextualMeaningVi ??
-      "Nếp chưa có nghĩa theo ngữ cảnh đã kiểm chứng."
+      "Vidlish chưa có nghĩa theo ngữ cảnh đã kiểm chứng."
     );
   }
   if (step === "slower_playback") {
@@ -295,7 +309,8 @@ export function LearningSessionLab({
   // the passage they cannot play is unanswerable by listening, which is the one
   // thing the activity claims to measure.
   const evidenceRanges = current?.evidence ?? [];
-  const evidenceRange = evidenceRanges[Math.min(evidenceIndex, evidenceRanges.length - 1)];
+  const evidenceRange =
+    evidenceRanges[Math.min(evidenceIndex, evidenceRanges.length - 1)];
   const captionControlAllowed = currentProgress.openedSupportSteps.includes(
     "english_caption",
   );
@@ -331,6 +346,40 @@ export function LearningSessionLab({
   const allCriteriaSelected = Boolean(
     currentAttempt?.selfCheckCriteriaVi?.length &&
       checkedCriteria.length === currentAttempt.selfCheckCriteriaVi.length,
+  );
+
+  const sendProductEvent = useCallback(
+    async (
+      activityId: string,
+      event: ProductMeasurementEvent,
+      idempotencyKey = crypto.randomUUID(),
+      sessionOverride?: string,
+    ): Promise<boolean> => {
+      const activeSessionId = sessionOverride ?? sessionId;
+      if (!activeSessionId) return false;
+      try {
+        const request = await fetch("/api/learning-lab/v2/product-events", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sessionId: activeSessionId,
+            activityId,
+            idempotencyKey,
+            ...event,
+          }),
+        });
+        if (!request.ok) return false;
+        const body = (await request.json()) as unknown;
+        learningProductEventResponseSchema.parse(body);
+        return true;
+      } catch {
+        // Product measurement is intentionally best-effort. It may explain a
+        // moderated session, but it must never alter the learning outcome or
+        // block a learner from progressing through an otherwise valid lesson.
+        return false;
+      }
+    },
+    [sessionId],
   );
 
   useEffect(() => {
@@ -427,6 +476,32 @@ export function LearningSessionLab({
     started,
   ]);
 
+  // Effects run after React commits the result panel. Reusing the persisted
+  // attempt UUID as the product-event idempotency key means a remount/reload may
+  // retry this observation without creating a second correction row.
+  useEffect(() => {
+    const attemptId = currentAttempt?.persistedAttempt?.id;
+    if (
+      !current?.id ||
+      !attemptId ||
+      result?.verdict !== "incorrect" ||
+      retrying
+    ) {
+      return;
+    }
+    void sendProductEvent(
+      current.id,
+      { eventKind: "correction_shown" },
+      attemptId,
+    );
+  }, [
+    current?.id,
+    currentAttempt?.persistedAttempt?.id,
+    result?.verdict,
+    retrying,
+    sendProductEvent,
+  ]);
+
   function updateProgressForActivity(
     activityId: string,
     updater: (
@@ -471,7 +546,7 @@ export function LearningSessionLab({
       body: jobId ? JSON.stringify({ jobId }) : undefined,
     });
     const body = (await request.json()) as unknown;
-    if (!request.ok) throw new Error("Nếp chưa thể mở phiên học.");
+    if (!request.ok) throw new Error("Vidlish chưa thể mở phiên học.");
     const parsed = learningLabSessionResponseSchema.parse(body);
     setSessionId(parsed.session.id);
     setEvidenceIndex(0);
@@ -482,8 +557,8 @@ export function LearningSessionLab({
     // that has seen nothing must not hand back a step the learner already
     // spent an attempt to earn, and a browser holding a stale ladder must not
     // keep offering what the record does not support.
-    setProgressByActivity((current) => {
-      const next = { ...current };
+    setProgressByActivity((currentProgressState) => {
+      const next = { ...currentProgressState };
       const durable = new Set<string>();
       for (const entry of parsed.progress) {
         durable.add(entry.activityId);
@@ -541,7 +616,9 @@ export function LearningSessionLab({
       setStarted(true);
     } catch (caught) {
       setError(
-        caught instanceof Error ? caught.message : "Nếp chưa thể mở phiên học.",
+        caught instanceof Error
+          ? caught.message
+          : "Vidlish chưa thể mở phiên học.",
       );
     } finally {
       setStarting(false);
@@ -565,7 +642,15 @@ export function LearningSessionLab({
       }),
     });
     const body = (await request.json()) as unknown;
-    if (!request.ok) throw new Error("Nếp chưa thể kiểm tra câu trả lời.");
+    if (!request.ok) {
+      void sendProductEvent(
+        current.id,
+        { eventKind: "runtime_error", detailKind: "attempt_request" },
+        crypto.randomUUID(),
+        activeSessionId,
+      );
+      throw new Error("Vidlish chưa thể kiểm tra câu trả lời.");
+    }
     const parsed = learningLabAttemptResponseSchema.parse(body);
     if (!parsed.persistedAttempt || !parsed.session) {
       throw new Error("Attempt chưa được lưu bền vững.");
@@ -596,7 +681,13 @@ export function LearningSessionLab({
     });
     const body = (await request.json()) as unknown;
     if (!request.ok) {
-      throw new Error("Nếp chưa thể lưu evidence hỗ trợ.");
+      void sendProductEvent(
+        activityId,
+        { eventKind: "runtime_error", detailKind: "support_request" },
+        crypto.randomUUID(),
+        activeSessionId,
+      );
+      throw new Error("Vidlish chưa thể lưu evidence hỗ trợ.");
     }
     return learningLabSupportEventResponseSchema.parse(body);
   }
@@ -629,7 +720,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Đoạn đã phát chậm nhưng Nếp chưa lưu được evidence.",
+          : "Đoạn đã phát chậm nhưng Vidlish chưa lưu được evidence.",
       );
     }
   }
@@ -655,9 +746,24 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Đoạn đã phát nhưng Nếp chưa lưu được evidence nghe.",
+          : "Đoạn đã phát nhưng Vidlish chưa lưu được evidence nghe.",
       );
     }
+  }
+
+  function recordSourcePlayCompleted() {
+    if (!current) return;
+    void sendProductEvent(current.id, { eventKind: "source_play_completed" });
+  }
+
+  function recordPlayerRuntimeError(
+    kind: "youtube_api_load" | "youtube_player",
+  ) {
+    if (!current) return;
+    void sendProductEvent(current.id, {
+      eventKind: "runtime_error",
+      detailKind: kind,
+    });
   }
 
   async function submitAttempt(event: FormEvent<HTMLFormElement>) {
@@ -687,7 +793,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Nếp chưa thể kiểm tra câu trả lời.",
+          : "Vidlish chưa thể kiểm tra câu trả lời.",
       );
     } finally {
       setSubmitting(false);
@@ -728,7 +834,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Nếp chưa thể lưu xác nhận transfer.",
+          : "Vidlish chưa thể lưu xác nhận transfer.",
       );
     } finally {
       setSubmitting(false);
@@ -818,7 +924,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Nếp chưa thể mở mức hỗ trợ này.",
+          : "Vidlish chưa thể mở mức hỗ trợ này.",
       );
     } finally {
       setSupporting(false);
@@ -931,7 +1037,7 @@ export function LearningSessionLab({
           </div>
         ) : null}
         <p className="rounded-xl border border-[var(--accent)] p-4 text-sm">
-          Nếp cần kiểm tra lại bằng input hoặc bối cảnh khác sau một khoảng
+          Vidlish cần kiểm tra lại bằng input hoặc bối cảnh khác sau một khoảng
           thời gian trước khi có thể nói năng lực này ổn định.
         </p>
         <button
@@ -1033,9 +1139,11 @@ export function LearningSessionLab({
                 captionControlAllowed={captionControlAllowed}
                 slowPlaybackAllowed={slowPlaybackAllowed}
                 onPlay={() => void recordPlaybackEvidence()}
+                onEnded={recordSourcePlayCompleted}
                 onSlowPlaybackConfirmed={() =>
                   void recordSlowPlaybackEvidence()
                 }
+                onRuntimeError={recordPlayerRuntimeError}
               />
             </div>
           ) : (
