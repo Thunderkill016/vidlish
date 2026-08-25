@@ -105,6 +105,42 @@ export class SupabaseBeginnerProgressRepository
     );
   }
 
+  async reviewSchedule(input: { ownerUserId: string; itemKey: string }) {
+    const { data, error } = await this.client
+      .from("learning_item_states")
+      .select("review_state,next_review_at")
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("item_key", input.itemKey.toLowerCase())
+      .maybeSingle();
+    if (error) throw new Error(`Failed to read review schedule: ${error.message}`);
+    if (!data) return null;
+    return {
+      reviewState: (data as { review_state: unknown }).review_state ?? null,
+      nextReviewAt: (data as { next_review_at: string | null }).next_review_at,
+    };
+  }
+
+  async scheduleReview(input: {
+    ownerUserId: string;
+    itemKey: string;
+    reviewState: unknown;
+    nextReviewAt: string;
+  }) {
+    // An update rather than an upsert: the row is created by the evidence
+    // function, which runs first. Writing one here would create a row with no
+    // evidence behind it, and every other read treats a row as proof the
+    // learner met the item.
+    const { error } = await this.client
+      .from("learning_item_states")
+      .update({
+        review_state: input.reviewState,
+        next_review_at: input.nextReviewAt,
+      })
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("item_key", input.itemKey.toLowerCase());
+    if (error) throw new Error(`Failed to schedule review: ${error.message}`);
+  }
+
   async createEvidenceChallenge(input: {
     ownerUserId: string;
     kind: BeginnerEvidenceChallengeKind;

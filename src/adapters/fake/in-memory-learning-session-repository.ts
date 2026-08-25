@@ -31,6 +31,8 @@ import {
   type PrivacySafeLearningSupportEvent,
 } from "@/shared/contracts/privacy-safe-learning-evidence";
 
+import { beginnerScheduledFor } from "./shared-learning-item-states";
+
 const INITIAL_REVIEW_DELAY_MS = 24 * 60 * 60 * 1000;
 
 function addMs(iso: string, delayMs: number): string {
@@ -356,8 +358,12 @@ export class InMemoryLearningSessionRepository
   }
 
   async listScheduled(ownerUserId: string) {
-    return [...this.reviewItems.values()]
+    // Beginner words live in the same table in production, so the fake has to
+    // return them too or the review queue looks empty for the one path the
+    // learner actually uses.
+    return [...this.reviewItems.values(), ...beginnerScheduledFor(ownerUserId)]
       .filter((item) => item.ownerUserId === ownerUserId)
+      .filter((item) => item.nextReviewAt !== null)
       .sort((left, right) => {
         if (left.nextReviewAt === null) return 1;
         if (right.nextReviewAt === null) return -1;

@@ -41,7 +41,14 @@ export const learningReviewItemStateSchema = z
   .object({
     ownerUserId: z.string().uuid(),
     itemKey: itemKeySchema,
-    sourceLessonVersionId: z.string().uuid(),
+    /**
+     * The lesson version this item came from, or null when it did not come from
+     * a lesson at all. Words learned on the beginner track have no blueprint
+     * behind them; requiring a uuid here was a leftover of the assumption that
+     * every item originates in a video, and it would have thrown the moment a
+     * beginner word was given a review date.
+     */
+    sourceLessonVersionId: z.string().uuid().nullable(),
     exposureCount: z.number().int().nonnegative(),
     attemptCount: z.number().int().nonnegative(),
     successfulRetrievals: z.number().int().nonnegative(),
@@ -73,7 +80,14 @@ export const learningReviewSessionSchema = z
     id: z.string().uuid(),
     ownerUserId: z.string().uuid(),
     itemKey: itemKeySchema,
-    sourceLessonVersionId: z.string().uuid(),
+    /**
+     * The lesson version this item came from, or null when it did not come from
+     * a lesson at all. Words learned on the beginner track have no blueprint
+     * behind them; requiring a uuid here was a leftover of the assumption that
+     * every item originates in a video, and it would have thrown the moment a
+     * beginner word was given a review date.
+     */
+    sourceLessonVersionId: z.string().uuid().nullable(),
     scheduledFor: offsetDateTimeSchema,
     variantId: entityIdSchema,
     status: z.enum(["in_progress", "completed", "abandoned"]),

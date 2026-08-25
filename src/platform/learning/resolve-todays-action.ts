@@ -30,9 +30,19 @@ export async function resolveTodaysAction(
     createLearningSpeakingReviewQueueReader().read(ownerUserId),
   ]);
 
+  // An item is actionable when something can actually serve it. A lesson item
+  // needs its blueprint; a beginner word needs nothing but itself, and the
+  // beginner path below serves it. Requiring a blueprint for both meant every
+  // scheduled beginner word was silently dropped from the queue.
+  const beginnerScheduled = new Set(
+    scheduled
+      .filter((item) => item.sourceLessonVersionId === null)
+      .map((item) => item.itemKey),
+  );
   const { due } = await classifyLearningReviewQueue(
     scheduled,
     async (itemKey) =>
+      beginnerScheduled.has(itemKey) ||
       (await resolveLearningReviewPlan(ownerUserId, itemKey)) !== null,
   );
 

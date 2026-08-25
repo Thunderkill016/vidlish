@@ -117,7 +117,7 @@ const reviewItemRowSchema = z
   .object({
     owner_user_id: z.string().uuid(),
     item_key: z.string().min(1).max(160),
-    source_lesson_version_id: z.string().uuid(),
+    source_lesson_version_id: z.string().uuid().nullable(),
     exposure_count: z.coerce.number().int().nonnegative(),
     attempt_count: z.coerce.number().int().nonnegative(),
     successful_retrievals: z.coerce.number().int().nonnegative(),
@@ -137,7 +137,7 @@ const reviewSessionRowSchema = z
     id: z.string().uuid(),
     owner_user_id: z.string().uuid(),
     item_key: z.string().min(1).max(160),
-    source_lesson_version_id: z.string().uuid(),
+    source_lesson_version_id: z.string().uuid().nullable(),
     scheduled_for: z.string(),
     variant_id: z.string(),
     status: z.enum(["in_progress", "completed", "abandoned"]),
