@@ -179,7 +179,7 @@ export function DelayedReviewLab() {
           <p className="text-sm font-semibold text-[var(--accent)]">Phiên thứ hai</p>
           <h2 className="mt-1 text-2xl font-bold">Kiểm tra điều còn nhớ sau delay</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Nếp chỉ mở phiên này khi scheduler server xác nhận item đã đến hạn. Bước đầu không gửi đáp án xuống trước khi tự nhớ.
+            Nếp chỉ mở phiên này khi máy xếp lịch xác nhận từ này đã tới hạn ôn. Bước đầu không gửi đáp án về máy bạn trước khi bạn tự nhớ.
           </p>
         </div>
         {error ? <p role="alert" className="text-sm font-semibold text-[var(--evidence)]">{error}</p> : null}
@@ -198,7 +198,7 @@ export function DelayedReviewLab() {
   if (session.status === "completed") {
     return (
       <Card className="space-y-4 border-[var(--solved)] bg-[var(--solved-wash)]">
-        <p className="text-sm font-semibold text-[var(--solved)]">Delayed evidence đã lưu</p>
+        <p className="text-sm font-semibold text-[var(--solved)]">Đã ghi lần ôn lại</p>
         <h2 className="text-2xl font-bold">Phiên ôn đã hoàn tất</h2>
         <p className="max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
           Nếp đã ghi nhận một changed-context check sau thời gian trì hoãn và đã tạo lịch tiếp theo. Đây vẫn không phải tuyên bố rằng item đã “mastered”.
@@ -243,7 +243,7 @@ export function DelayedReviewLab() {
             </p>
             <p className="text-sm leading-6">{recallFeedback.correctionVi}</p>
             <p className="text-sm">
-              Đáp án sau attempt: <strong>{recallFeedback.answer}</strong>
+              Đáp án, sau khi bạn đã thử: <strong>{recallFeedback.answer}</strong>
             </p>
             {recallFeedback.verdict === "incorrect" ? (
               <button
@@ -313,7 +313,7 @@ export function DelayedReviewLab() {
             ))}
           </div>
           <div className="rounded-xl bg-[var(--muted)] p-3 text-sm leading-6">
-            <span className="font-semibold">Câu mẫu sau attempt:</span>{" "}
+            <span className="font-semibold">Câu mẫu, sau khi bạn đã thử:</span>{" "}
             {transferFeedback.exemplarAfterAttempt}
           </div>
           <button

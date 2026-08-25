@@ -68,7 +68,7 @@ export function SpeakingCompletionHandoff({
       </p>
       <h2 className="mt-1 text-xl font-bold">Nói lại tình huống vừa dùng</h2>
       <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
-        Thu âm, nghe lại rồi tự xác nhận. Đây vẫn là speaking self-check chưa
+        Thu âm, nghe lại rồi tự xác nhận. Đây vẫn là bạn tự đánh giá, chưa
         chấm pronunciation hay intelligibility.
       </p>
       <Link

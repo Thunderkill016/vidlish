@@ -111,6 +111,37 @@ if (silent.length > 0 && wantAudio) {
   if (silent.length > 6) console.error(`      … và ${silent.length - 6} dòng nữa`);
 }
 
+// 2b. Every recorded line needs a syllable count, or shadowing goes quiet.
+//
+// The rhythm scorer divides by this to get an articulation rate, and refuses
+// lines too short to carry rhythm. The two manifests are built from the same
+// list of lines, so adding a line to the syllabus and rendering its audio
+// without rebuilding this one leaves shadowing silently unable to measure it —
+// a failure that shows up as a stage the learner cannot complete, with no
+// error anywhere.
+{
+  const syllables = JSON.parse(
+    readFileSync("src/adapters/audio/curriculum-syllables.json", "utf8"),
+  );
+  const recorded = Object.keys(
+    JSON.parse(readFileSync("src/adapters/audio/curriculum-audio.json", "utf8")),
+  );
+  const uncounted = recorded.filter((line) => syllables[line] === undefined);
+  if (uncounted.length > 0 && wantAudio) {
+    console.log(`${uncounted.length} dòng chưa đếm âm tiết — đang đếm…\n`);
+    execFileSync("node", ["scripts/build-syllable-manifest.mjs"], { stdio: "inherit" });
+    console.log("");
+  } else if (uncounted.length > 0) {
+    problem(
+      `${uncounted.length} dòng có tiếng nhưng chưa đếm âm tiết — shadowing sẽ không đo được. Chạy: node scripts/build-syllable-manifest.mjs`,
+    );
+    for (const line of uncounted.slice(0, 6)) console.error(`      "${line}"`);
+  }
+
+  const shadowable = Object.values(syllables).filter((n) => n >= 4).length;
+  console.log(`  ${shadowable}/${recorded.length} dòng đủ dài để shadowing (>= 4 âm tiết)`);
+}
+
 // 3. Every skill must be exercised and graded somewhere, or it is a label.
 for (const skill of ["listening", "speaking", "reading", "writing"]) {
   const graded = FOUNDATION_UNITS.flatMap((unit) =>

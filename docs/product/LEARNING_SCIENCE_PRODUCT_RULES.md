@@ -269,3 +269,286 @@ Technical vocabulary is not in the A1/A2 catalogue, and it is a comparatively cl
 The reasoning is that `you`, `the`, `to` and `it` are needed by every English sentence including every sentence about code, and a learner who has technical nouns without them can label things but cannot say anything. Three hundred is where the corpus measurements show retrieval covering most targets, so it is also where the product stops depending on generated sentences.
 
 Product consequence: do not add a technical word list to the beginner catalogue. When the layer is built, it is gated on evidence — three hundred words produced unaided — not on time spent or sessions completed.
+
+---
+
+## Methods ranked by measured effect, and what this product does about each
+
+Searched without a target on 25/08/2026. Only interventions with a published
+meta-analytic effect size are listed; everything that came back as opinion was
+dropped. Read `d` and `g` the usual way: 0.2 small, 0.5 medium, 0.8 large.
+
+**Read the evidence column before the effect column.** A controlled
+comparison at g = 0.67 is stronger evidence than an uncontrolled pre/post at
+d = 1.50, because everyone improves over ten weeks and a study with no control
+group cannot separate the method from the calendar. Several of the largest
+numbers below come from single-group designs and are marked so.
+
+| Method | Effect | Evidence | Built here? |
+| --- | --- | --- | --- |
+| Remove seductive detail | g = 1.00 | meta-analysis | yes — no points, no streaks, no leaderboard |
+| **Extensive reading** | **d = 1.32** (vocabulary) | meta-analysis, k = 21 | **no — no usable material at this vocabulary size, measured** |
+| Explicit over implicit instruction | d ≈ 1.0 | meta-analysis | yes — every unit states what it teaches |
+| Redundancy (no text under speech) | d = 0.87 | meta-analysis | yes — listen before text, and it is recorded |
+| Modality (speech, not printed words) | g = 0.82 | meta-analysis | yes — Kokoro audio for every line |
+| Pronunciation instruction *with feedback* | d = 0.80–0.89 | meta-analysis | partly — measured, not taught |
+| L2 phonetic training, overall | d = 0.76 | meta-analysis | in progress — HVPT |
+| **HVPT — hearing the sounds** | **g = 0.92** pre/post, **g = 0.67 controlled** | meta-analysis, **79 studies** | **no — highest-quality evidence unbuilt** |
+| Segmenting, learner-paced | d = 0.70–0.79 | meta-analysis | yes — one action at a time |
+| Written corrective feedback, *focused* | g = 0.69 | meta-analysis | no |
+| **Shadowing — intonation** | d = 1.50 | **one group, no control, n = 30** | **yes — built, staged** |
+| **Shadowing — linking / stress** | d = 1.16 / 1.08 | same study, same limitation | **yes** |
+| **Shadowing — unscripted speech** | d = 1.24 | same study, same limitation | **yes** |
+| HVPT → *production* of trained items | +10.5% | meta-analysis | — see the warning below |
+| HVPT → *production* of untrained items | +4.5% | meta-analysis | — does not generalise |
+| Spacing with FSRS over SM-2 | 20–30% fewer reviews, same retention | 700M+ real reviews | yes |
+| Formulaic chunks → fewer pauses | β = .40, R² = .16 | single study | no |
+| Written corrective feedback, *unfocused* | g = 0.33 | meta-analysis | deliberately not |
+
+## Why learners quit, and why a streak is the wrong answer
+
+This is the failure mode that beats every effect size in this document: a method
+at d = 1.32 that the learner abandons in week two produces nothing. Roughly two
+thirds of online language learners abandon within three months.
+
+The industry answer is streaks, leagues and points. The evidence says they do
+not predict learning, and can cause the very abandonment they are sold to
+prevent.
+
+**They do not predict achievement.** A 2025 multilevel meta-analysis of
+self-determination theory and language achievement found intrinsic regulation
+correlated with L2 achievement at r = .26 and identified regulation at r = .16
+(autonomous motivation overall, r = .23) — while **introjected regulation and
+external regulation were not related to achievement at all**, and neither was
+controlled motivation.
+
+Read the categories carefully, because a streak sits squarely in the two that
+correlate with nothing. Points and leagues are *external* regulation. A streak
+is *introjected* regulation: you continue to avoid the bad feeling of losing it.
+The product is manufacturing guilt and calling it motivation.
+
+**And the attachment is brittle.** A study of 30,000+ Duolingo forum posts over
+nine years plus fifteen interviews with users who had gamed the system found the
+mechanics turned against learning:
+
+- Confidence collapsed. One learner: *"Without cheating, most of my answers were
+  wrong because I'd cheated before to climb the top rungs... that heavily shook
+  my confidence in learning."*
+- Learning became the obstacle. *"I was so obsessed that I was literally seeing
+  real learning as an obstacle to my success in gamification."*
+- Losing the streak ended the account. *"My brother lost his 110-day streak, and
+  now he is an abandoned account."*
+
+That last one is the whole argument. A streak converts every day of past effort
+into something the learner can lose in one night — and when they lose it, the
+sunk investment argues for quitting rather than continuing.
+
+**What this product does instead.** The three needs SDT names are autonomy,
+competence and relatedness, and competence is the one this product can serve
+honestly: the learner needs to see they are capable. So the thing that brings
+them back is evidence that **cannot be lost** — words known, sentences held,
+measured and dated. A count of what you know does not reset at midnight. Missing
+a day makes it older, not smaller.
+
+## Correcting a spoken mistake: prompt, do not supply
+
+Oral corrective feedback works — d = 0.64 across the meta-analysis, and the
+effect held over time. Two findings decide how it should be delivered.
+
+**Prompts beat recasts.** A recast supplies the correct form; a prompt pushes
+the learner to produce it — a clarification request, a repetition of the error,
+an elicitation, a metalinguistic clue. In classroom settings prompts were more
+effective, and the difference was clearest on measures requiring free
+constructed responses, which is the kind of speech this product is trying to
+build.
+
+**Explicit is better now; implicit lasts longer.** Explicit feedback won on
+immediate and short-delayed posttests, but implicit feedback was better
+maintained on long-delayed ones.
+
+So when a learner misses a word, the product should first give them the chance
+to find it — replay the audio, mark where it went wrong, ask again — before
+showing the answer. Handing over the correct form is the easier build and the
+weaker treatment.
+
+## Task-based teaching, and a lesson in reading effect sizes
+
+TBLT — organising instruction around tasks with real outcomes rather than around
+grammar points — is widely reported at **d = 0.93** from a meta-analysis of 52
+studies. A later technical comment identified three problems with it: loose
+inclusion criteria, oversimplified effect size calculation, and neglected
+moderators. Reanalysed under stricter criteria, the effect is **g = 0.61**.
+
+Both numbers describe the same literature. Quote the second. And note what
+happened: the widely-cited figure was a third larger than the defensible one,
+which is the ordinary condition of headline effect sizes and the reason the
+evidence column in the table above exists.
+
+## The two halves of pronunciation, and the gap between them
+
+These are different problems with different evidence, and the product must not
+blur them.
+
+**Prosody — the music.** Shadowing moves it: intonation d = 1.50, linking
+d = 1.16, stress d = 1.08, and it carried into unscripted speech at d = 1.24
+(Vietnamese A2 learners, ten weeks). Large, and from a one-group design with no
+control, so treat it as "worth building" rather than as a number to quote.
+
+**Segments — the individual sounds.** Shadowing does *not* move these:
+Niimoto 2022 found no significant difference in segmental production.
+High variability phonetic training does, and has the best evidence of anything
+in this document — a meta-analysis of **79 studies**, g = 0.92 pre/post and
+g = 0.67 against a control group, with gains retained long-term and some
+generalisation to sounds never trained on.
+
+**The gap.** HVPT trains *perception*. Its transfer to *production* is real but
+small and does not travel: +10.5% on the exact items trained, +4.5% on untrained
+items, with **no strong support for long-term retention of the production gain
+and no generalisation to untrained stimuli**.
+
+So the honest claim, and the only one this product may make: HVPT will teach the
+learner to **hear** a distinction they currently cannot hear. It will not
+reliably teach them to say it. Selling perception training as an accent fix is
+the exact illusion this document exists to prevent.
+
+Two design facts fall out of the same meta-analysis, and both are cheap here:
+
+- **Three talkers is enough.** Talker count between 3 and 30 did not predict
+  production transfer. Kokoro ships multiple voices, so the variability HVPT
+  requires costs nothing but build time.
+- **Explain the sound first.** Presenting phonetic information about the target
+  before perception training *optimises* transfer to production. The explanation
+  is not preamble; it is part of the treatment.
+
+## What a Vietnamese speaker actually gets wrong
+
+HVPT only helps if it trains the right contrasts, and "the right contrasts"
+depends on the first language. Measured on 36 Vietnamese university learners
+(Can Tho University Journal of Science 14(3), 2022):
+
+| Cluster | Most common error | Share |
+| --- | --- | --- |
+| Two consonants | **Feature change** | **77.4%** |
+| | Deletion (of the *first* consonant, 55 of 56) | 22.2% |
+| | Epenthesis | 0.4% |
+| Three consonants | **Deletion** (first: 77, second: 56, third: 1) | **78.2%** |
+| | Feature change | 16.6% |
+| | Epenthesis | 5.2% |
+
+The strategy **flips with cluster length**: at two consonants the learner
+changes a sound, at three they drop one. And the feature that changes is
+specific — voiceless plosives /p/, /t/, /k/ in clusters like /tr/, /pl/, /kr/,
+because Vietnamese permits aspiration only slightly and only on an alveolar.
+Vietnamese also has no final consonant clusters at all, and a much smaller set
+of permitted final consonants than English.
+
+That is a training list, not a generality: aspiration of /p/ /t/ /k/, final
+consonants, and clusters — in that order, since it is the largest measured error
+category. One study, n = 36, a regional journal: enough to aim the first version
+at, not enough to defend as settled.
+
+## Fluency comes from chunks, and shows up in the pauses
+
+Formulaic sequences — prefabricated wholes retrieved rather than assembled —
+significantly predicted speech fluency (β = .40, R² = .16). The mechanism is
+specific and useful: they reduced **pausing**, and did **not** raise speech
+rate, with the effect strongest on long sentences.
+
+That matters for what this product already measures. The rhythm scorer built for
+shadowing reads the amplitude envelope, and pauses are exactly what an envelope
+shows. Fewer and shorter gaps in the same sentence is a visible, honest fluency
+signal — and it is not the same thing as talking faster, which the evidence says
+chunks do not cause.
+
+### The two largest things not built
+
+**Extensive reading.** The largest measured effect in this entire table, and
+the figure had to be corrected by opening the paper.
+
+Search summaries gave d = 0.57–0.79. Those are Jeon & Day and Nakanishi
+measuring *reading proficiency* broadly. The vocabulary-specific meta-analysis
+(ERIC `EJ1179114`, k = 21) reports **d = 1.32 between groups** — larger than
+anything else here, including removing seductive detail.
+
+Two figures from that paper are deliberately **not** quoted. Its pre-post
+contrast (d = 3.26) has no control group. Its headline "huge effect for
+children" (d = 5.18) rests on **k = 1** — a single study, a limitation the
+authors state themselves. Anyone repeating either number is quoting an artefact.
+
+The meta-analyses agree it is positive across *every* domain measured —
+comprehension, vocabulary, decoding speed, motivation, writing, and oral
+proficiency. One intervention, gains in all of them. This product has four short
+reading comprehension checks and nothing that could be called reading at volume.
+
+The same paper's recommendation names the material: **graded readers**. That is
+exactly what Nation publishes free under CC BY-SA.
+
+The material is free and licensed: Nation's mid-frequency graded readers, classic
+fiction and non-fiction rewritten to a known vocabulary size, CC BY-SA. The
+vocabulary gate this product already computes is exactly what picks the right
+reader for a learner.
+
+**Measured, and it does not work yet.** Two openly-licensed sources were tested
+against the current 2,234-word catalogue, counting a word as known if it or a
+simple inflection of it is in the catalogue:
+
+| Source | Paragraphs ≥ 90% known | ≥ 95% known |
+| --- | --- | --- |
+| Aesop's Fables (Gutenberg, public domain) | 5 of 290 | **0** |
+| Simple English Wikipedia, *Computer programming* | 6 of 18 | **0** |
+
+Simple English Wikipedia averages 84.2% coverage. Extensive reading needs
+95–98%: below that the learner stops to look words up and it stops being
+extensive reading.
+
+So **no naturally-occurring English is usable for this learner yet**, however
+simple it looks. Aesop reads as a children's book and is far above A2. This is
+precisely the gap graded readers exist to fill — they are written *to* a
+vocabulary size rather than found at one — and it is why Nation had to rewrite
+the classics rather than link to them.
+
+Three ways forward, in order of honesty:
+
+1. **Nation's mid-frequency readers**, CC BY-SA, written to 4,000/6,000/8,000
+   word levels. Behind the IP block; a person can download them in seconds.
+2. **Grow the catalogue first.** At roughly 4,000–5,000 words Simple English
+   Wikipedia would likely clear the threshold, and it covers this learner's own
+   subject matter.
+3. Generate graded text — available, and the option this product trusts least
+   for beginner input, for the reasons already written down here.
+
+Until one of those lands, extensive reading is a plan, not a feature. Say so.
+
+**Shadowing.** Hear a sentence, say it back immediately, matching rhythm and
+stress. Every study in the 2025 systematic review that measured fluency found
+gains, and **lower-proficiency learners gain the most** — which is this learner.
+
+The whole apparatus already exists: recorded audio, on-device recognition,
+word-error-rate scoring against a held target. Elicited imitation *is* shadowing;
+it is currently used only to measure. Turning the same loop into practice is
+small work with a large effect.
+
+One honesty limit to carry into the copy: shadowing reliably improves
+comprehensibility and prosody, and its effect on **accentedness is weak and
+inconsistent**. Do not tell a learner this will make them sound native.
+
+### A correction to earlier advice in this file
+
+Writing feedback has been listed here as a top gap. The evidence does not support
+that ranking *for this learner*: proficiency is the strongest moderator of
+written corrective feedback, and **advanced learners benefit more than
+beginners**. At A1–A2 it should sit below extensive reading and shadowing.
+
+When it is built, the design is already decided by the numbers: **focused
+feedback, g = 0.69, beats unfocused feedback, g = 0.33, by more than double.**
+Correct one thing at a time. Marking every error in a beginner's writing is not
+twice the help, it is a third of it.
+
+### Sources
+
+[Extensive reading meta-analysis (Jeon & Day; Nakanishi)](https://onlinelibrary.wiley.com/doi/10.1002/tesq.157) ·
+[Learning a language through reading, 2025](https://link.springer.com/article/10.1007/s10648-025-10068-6) ·
+[Shadowing for pronunciation: systematic review](https://www.tandfonline.com/doi/full/10.1080/29984475.2025.2546827) ·
+[Written corrective feedback meta-analysis](https://tesl-ej.org/wordpress/issues/volume24/ej95/ej95a3/) ·
+[Bayesian meta-analysis of WCF](https://journals.sagepub.com/doi/10.1177/13621688221147374) ·
+[Pronunciation instruction meta-analysis](https://www.researchgate.net/publication/274178849_The_Effectiveness_of_Second_Language_Pronunciation_Instruction_A_Meta-Analysis)

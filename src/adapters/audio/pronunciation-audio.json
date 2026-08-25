@@ -1,0 +1,344 @@
+{
+  "back": {
+    "af_heart": "/audio/pronunciation/1db7a3f8b011b488.wav",
+    "am_michael": "/audio/pronunciation/8eb111adca494632.wav",
+    "bf_emma": "/audio/pronunciation/91ad3dd8c79f32ba.wav",
+    "bm_george": "/audio/pronunciation/8d2715f06db2197e.wav"
+  },
+  "bad": {
+    "af_heart": "/audio/pronunciation/0ef6332f73bd9958.wav",
+    "am_michael": "/audio/pronunciation/7c30642c7b4193cd.wav",
+    "bf_emma": "/audio/pronunciation/6e5af09d8fe41b6d.wav",
+    "bm_george": "/audio/pronunciation/4a62add980666d62.wav"
+  },
+  "bag": {
+    "af_heart": "/audio/pronunciation/86c3985e26179b3b.wav",
+    "am_michael": "/audio/pronunciation/7a27a31588dabf14.wav",
+    "bf_emma": "/audio/pronunciation/0af77ce621750fda.wav",
+    "bm_george": "/audio/pronunciation/d7c2bb73d141c44f.wav"
+  },
+  "bat": {
+    "af_heart": "/audio/pronunciation/cfde7f6f1f7dd53e.wav",
+    "am_michael": "/audio/pronunciation/40a86701e17b7a2a.wav",
+    "bf_emma": "/audio/pronunciation/14e4cf068b5a5464.wav",
+    "bm_george": "/audio/pronunciation/492c2831f4fda84b.wav"
+  },
+  "beach": {
+    "af_heart": "/audio/pronunciation/160868f2d9bb9b20.wav",
+    "am_michael": "/audio/pronunciation/b3be8b275bd51f4b.wav",
+    "bf_emma": "/audio/pronunciation/54f06724e46855ac.wav",
+    "bm_george": "/audio/pronunciation/a01d01d205bc5acb.wav"
+  },
+  "bear": {
+    "af_heart": "/audio/pronunciation/037c58488871f9c7.wav",
+    "am_michael": "/audio/pronunciation/cf12911d162ac65d.wav",
+    "bf_emma": "/audio/pronunciation/20dc6015015d40de.wav",
+    "bm_george": "/audio/pronunciation/86a91cb23d4b597c.wav"
+  },
+  "big": {
+    "af_heart": "/audio/pronunciation/cfb3b4ec69bc11ce.wav",
+    "am_michael": "/audio/pronunciation/0b57594002fe5ef1.wav",
+    "bf_emma": "/audio/pronunciation/25ab809aa0cdfb91.wav",
+    "bm_george": "/audio/pronunciation/289fbece97186a9f.wav"
+  },
+  "bin": {
+    "af_heart": "/audio/pronunciation/a32a971c63b4ce93.wav",
+    "am_michael": "/audio/pronunciation/332560d8358b3239.wav",
+    "bf_emma": "/audio/pronunciation/902e2eba5372d4cb.wav",
+    "bm_george": "/audio/pronunciation/f3d776eca2c996b9.wav"
+  },
+  "bus": {
+    "af_heart": "/audio/pronunciation/53f6391b1acfc480.wav",
+    "am_michael": "/audio/pronunciation/be18d61af6d813db.wav",
+    "bf_emma": "/audio/pronunciation/f61aa2d438808089.wav",
+    "bm_george": "/audio/pronunciation/6c1859d12c7a4b94.wav"
+  },
+  "buzz": {
+    "af_heart": "/audio/pronunciation/be8ed39175dc0904.wav",
+    "am_michael": "/audio/pronunciation/7aa14438546f098e.wav",
+    "bf_emma": "/audio/pronunciation/1f8dfe6cb5d80b50.wav",
+    "bm_george": "/audio/pronunciation/1e13ed3e72a0a803.wav"
+  },
+  "came": {
+    "af_heart": "/audio/pronunciation/e5f35a34a0709921.wav",
+    "am_michael": "/audio/pronunciation/2d51b570b1f4ffaa.wav",
+    "bf_emma": "/audio/pronunciation/f09c6a7ba84838bd.wav",
+    "bm_george": "/audio/pronunciation/9c3219226e26eb1c.wav"
+  },
+  "coat": {
+    "af_heart": "/audio/pronunciation/440654bbfcfa1f89.wav",
+    "am_michael": "/audio/pronunciation/9739f227a6324318.wav",
+    "bf_emma": "/audio/pronunciation/24809c2d3264210e.wav",
+    "bm_george": "/audio/pronunciation/59b14ce2f37be2ef.wav"
+  },
+  "cold": {
+    "af_heart": "/audio/pronunciation/fb13fe3e74ed35ac.wav",
+    "am_michael": "/audio/pronunciation/b296b3cdf38faa96.wav",
+    "bf_emma": "/audio/pronunciation/209d799f564c1e2c.wav",
+    "bm_george": "/audio/pronunciation/b00f3d69d88d9b5a.wav"
+  },
+  "cot": {
+    "af_heart": "/audio/pronunciation/9a429750ac5dad12.wav",
+    "am_michael": "/audio/pronunciation/c8c180bcf8cd5284.wav",
+    "bf_emma": "/audio/pronunciation/dbb1fba1061c5ef7.wav",
+    "bm_george": "/audio/pronunciation/6df5895d7a157b9c.wav"
+  },
+  "curl": {
+    "af_heart": "/audio/pronunciation/87d3297fcfffa5ab.wav",
+    "am_michael": "/audio/pronunciation/550494916ed0ee17.wav",
+    "bf_emma": "/audio/pronunciation/bc55a890f114301a.wav",
+    "bm_george": "/audio/pronunciation/547b875cc67d3c4f.wav"
+  },
+  "den": {
+    "af_heart": "/audio/pronunciation/03f000dfd12b4f18.wav",
+    "am_michael": "/audio/pronunciation/9e53d670e93045fa.wav",
+    "bf_emma": "/audio/pronunciation/f30b76ecc8b2c89f.wav",
+    "bm_george": "/audio/pronunciation/5f2dd8653a055c93.wav"
+  },
+  "die": {
+    "af_heart": "/audio/pronunciation/3cb025c1d6f22a2f.wav",
+    "am_michael": "/audio/pronunciation/6c295465ff1c54fa.wav",
+    "bf_emma": "/audio/pronunciation/1e310b0f6a17f7c4.wav",
+    "bm_george": "/audio/pronunciation/79620004668fb417.wav"
+  },
+  "dime": {
+    "af_heart": "/audio/pronunciation/fd746fd96f6de39b.wav",
+    "am_michael": "/audio/pronunciation/f76f533ba6247027.wav",
+    "bf_emma": "/audio/pronunciation/0220781ef351da4c.wav",
+    "bm_george": "/audio/pronunciation/d0cbcd115aa1fc13.wav"
+  },
+  "down": {
+    "af_heart": "/audio/pronunciation/d2892e7054f262ef.wav",
+    "am_michael": "/audio/pronunciation/2c3911e260303c43.wav",
+    "bf_emma": "/audio/pronunciation/29dbebc9e73c66c9.wav",
+    "bm_george": "/audio/pronunciation/cf1a4c11247a842f.wav"
+  },
+  "dry": {
+    "af_heart": "/audio/pronunciation/e63473fd2b3516a0.wav",
+    "am_michael": "/audio/pronunciation/98919d1dc4dd82d2.wav",
+    "bf_emma": "/audio/pronunciation/186239205b9a399f.wav",
+    "bm_george": "/audio/pronunciation/6bf3903e2afd593d.wav"
+  },
+  "duck": {
+    "af_heart": "/audio/pronunciation/cbc35e6f4a382542.wav",
+    "am_michael": "/audio/pronunciation/25c5b005689b94f3.wav",
+    "bf_emma": "/audio/pronunciation/6f7181077bdda5de.wav",
+    "bm_george": "/audio/pronunciation/e01ae06892969aa6.wav"
+  },
+  "dug": {
+    "af_heart": "/audio/pronunciation/189597f66a15fd59.wav",
+    "am_michael": "/audio/pronunciation/23a8208ab99e0e71.wav",
+    "bf_emma": "/audio/pronunciation/56e2b36f4db534a5.wav",
+    "bm_george": "/audio/pronunciation/45ec2df3d3b1d2a5.wav"
+  },
+  "force": {
+    "af_heart": "/audio/pronunciation/136305a32db00e72.wav",
+    "am_michael": "/audio/pronunciation/8b7b01c37119092a.wav",
+    "bf_emma": "/audio/pronunciation/df0fd9a7806c0602.wav",
+    "bm_george": "/audio/pronunciation/ae09305334576ec0.wav"
+  },
+  "fourth": {
+    "af_heart": "/audio/pronunciation/02b0fc816bfe1551.wav",
+    "am_michael": "/audio/pronunciation/d0df1f3a17252e2d.wav",
+    "bf_emma": "/audio/pronunciation/163c07f6be2e5e77.wav",
+    "bm_george": "/audio/pronunciation/02d357b8d607876b.wav"
+  },
+  "game": {
+    "af_heart": "/audio/pronunciation/cc74ada76aeca7bd.wav",
+    "am_michael": "/audio/pronunciation/6fec4265da6332ed.wav",
+    "bf_emma": "/audio/pronunciation/6094eb6162c592ee.wav",
+    "bm_george": "/audio/pronunciation/0afee32225d85d84.wav"
+  },
+  "girl": {
+    "af_heart": "/audio/pronunciation/272574f21000bd63.wav",
+    "am_michael": "/audio/pronunciation/1e558f3c4dfad071.wav",
+    "bf_emma": "/audio/pronunciation/647328c7a12d3f51.wav",
+    "bm_george": "/audio/pronunciation/1f2732fcb4f73af6.wav"
+  },
+  "goat": {
+    "af_heart": "/audio/pronunciation/5efe7490eefa1782.wav",
+    "am_michael": "/audio/pronunciation/383756bd5fb89a31.wav",
+    "bf_emma": "/audio/pronunciation/682fc3892baa8f41.wav",
+    "bm_george": "/audio/pronunciation/c8ab84000d47be73.wav"
+  },
+  "gold": {
+    "af_heart": "/audio/pronunciation/3d57939f61f11fa0.wav",
+    "am_michael": "/audio/pronunciation/07e121f509ad9dc5.wav",
+    "bf_emma": "/audio/pronunciation/edf4eeceeaacb7f7.wav",
+    "bm_george": "/audio/pronunciation/06621b0b6ffb950d.wav"
+  },
+  "got": {
+    "af_heart": "/audio/pronunciation/8d87695bf2e681aa.wav",
+    "am_michael": "/audio/pronunciation/d8a7343ef3c97590.wav",
+    "bf_emma": "/audio/pronunciation/54bc1e9732bf5673.wav",
+    "bm_george": "/audio/pronunciation/76956674d2ae7d9d.wav"
+  },
+  "had": {
+    "af_heart": "/audio/pronunciation/ff36e629bf8020ac.wav",
+    "am_michael": "/audio/pronunciation/68945e0f81d5785a.wav",
+    "bf_emma": "/audio/pronunciation/292ba96a9957d6e8.wav",
+    "bm_george": "/audio/pronunciation/6d116d2e5b211114.wav"
+  },
+  "hard": {
+    "af_heart": "/audio/pronunciation/a4e62cbcc30bafbb.wav",
+    "am_michael": "/audio/pronunciation/17dbcbed45121b4c.wav",
+    "bf_emma": "/audio/pronunciation/4496bae80b5327c2.wav",
+    "bm_george": "/audio/pronunciation/5ddb409d8e59e135.wav"
+  },
+  "hat": {
+    "af_heart": "/audio/pronunciation/903037c36bd04f35.wav",
+    "am_michael": "/audio/pronunciation/50d54f6be36cf41e.wav",
+    "bf_emma": "/audio/pronunciation/05ae0f293a1d415f.wav",
+    "bm_george": "/audio/pronunciation/df841d3da40aaf05.wav"
+  },
+  "heart": {
+    "af_heart": "/audio/pronunciation/fafbb75ad6b348cf.wav",
+    "am_michael": "/audio/pronunciation/624cf0d351368d50.wav",
+    "bf_emma": "/audio/pronunciation/433269f195572c2a.wav",
+    "bm_george": "/audio/pronunciation/f8282fb89fc4e2ca.wav"
+  },
+  "mouse": {
+    "af_heart": "/audio/pronunciation/ce12ab91c70d7421.wav",
+    "am_michael": "/audio/pronunciation/d0ba03d18c53c92a.wav",
+    "bf_emma": "/audio/pronunciation/cd72de1dd1483a3b.wav",
+    "bm_george": "/audio/pronunciation/8ebce2a77ab70a08.wav"
+  },
+  "mouth": {
+    "af_heart": "/audio/pronunciation/6aa1bd525a6a32eb.wav",
+    "am_michael": "/audio/pronunciation/3efda27bf9d71e2d.wav",
+    "bf_emma": "/audio/pronunciation/e2b4a9f1f013f264.wav",
+    "bm_george": "/audio/pronunciation/7bd680d4c388fbc8.wav"
+  },
+  "pack": {
+    "af_heart": "/audio/pronunciation/6183df640610840c.wav",
+    "am_michael": "/audio/pronunciation/694f8ab8971c3a9e.wav",
+    "bf_emma": "/audio/pronunciation/10d5722c2d4063f1.wav",
+    "bm_george": "/audio/pronunciation/ea5aa04bc5c2fbff.wav"
+  },
+  "pass": {
+    "af_heart": "/audio/pronunciation/1a6a857b64c959d1.wav",
+    "am_michael": "/audio/pronunciation/14a1d0ac2e3699fc.wav",
+    "bf_emma": "/audio/pronunciation/17f372e46e5993b7.wav",
+    "bm_george": "/audio/pronunciation/09fc868944cd5d44.wav"
+  },
+  "pat": {
+    "af_heart": "/audio/pronunciation/4362fad796dbdb9a.wav",
+    "am_michael": "/audio/pronunciation/b81c082b1d130d0b.wav",
+    "bf_emma": "/audio/pronunciation/8640b3e7de1ea97b.wav",
+    "bm_george": "/audio/pronunciation/f2572fa7ea44cd46.wav"
+  },
+  "path": {
+    "af_heart": "/audio/pronunciation/de9add080a0227fa.wav",
+    "am_michael": "/audio/pronunciation/bde9017c2d0a5207.wav",
+    "bf_emma": "/audio/pronunciation/3082ab6c9c911f2f.wav",
+    "bm_george": "/audio/pronunciation/aaab32cf593ebc17.wav"
+  },
+  "peace": {
+    "af_heart": "/audio/pronunciation/6193cd3985e47ec8.wav",
+    "am_michael": "/audio/pronunciation/75005c6804e446fe.wav",
+    "bf_emma": "/audio/pronunciation/93c178569cc6cc01.wav",
+    "bm_george": "/audio/pronunciation/3ab243bcdda0fa23.wav"
+  },
+  "peach": {
+    "af_heart": "/audio/pronunciation/8048855d6fe750ec.wav",
+    "am_michael": "/audio/pronunciation/2d0ca18d2648cd86.wav",
+    "bf_emma": "/audio/pronunciation/ef605fce0b5b9236.wav",
+    "bm_george": "/audio/pronunciation/f9320762bf319adb.wav"
+  },
+  "pear": {
+    "af_heart": "/audio/pronunciation/ee052f9ac1084387.wav",
+    "am_michael": "/audio/pronunciation/5a48a4c678444079.wav",
+    "bf_emma": "/audio/pronunciation/7b2e1e511558d412.wav",
+    "bm_george": "/audio/pronunciation/c8aa3347a66ee254.wav"
+  },
+  "peas": {
+    "af_heart": "/audio/pronunciation/0346933e7b91a394.wav",
+    "am_michael": "/audio/pronunciation/115d8d23c226bd7f.wav",
+    "bf_emma": "/audio/pronunciation/ae623880a9f321d4.wav",
+    "bm_george": "/audio/pronunciation/c60912330ef28c0c.wav"
+  },
+  "pick": {
+    "af_heart": "/audio/pronunciation/66c41cda4069ba3a.wav",
+    "am_michael": "/audio/pronunciation/6f425c14b3c0028e.wav",
+    "bf_emma": "/audio/pronunciation/89f315e0cd9f1a53.wav",
+    "bm_george": "/audio/pronunciation/7f1d5f1598c47f4d.wav"
+  },
+  "pig": {
+    "af_heart": "/audio/pronunciation/c9358d3e8e7b6d72.wav",
+    "am_michael": "/audio/pronunciation/21f7c0d5df13e06a.wav",
+    "bf_emma": "/audio/pronunciation/544085dae6e0be47.wav",
+    "bm_george": "/audio/pronunciation/3bc9658cfb656bad.wav"
+  },
+  "pin": {
+    "af_heart": "/audio/pronunciation/389ce19a5faec224.wav",
+    "am_michael": "/audio/pronunciation/b94c1d368add2fc0.wav",
+    "bf_emma": "/audio/pronunciation/0b42ebd5585a20d4.wav",
+    "bm_george": "/audio/pronunciation/2f1eecc3acc1c8e2.wav"
+  },
+  "price": {
+    "af_heart": "/audio/pronunciation/d89888ebf8521cf5.wav",
+    "am_michael": "/audio/pronunciation/759fa4417b48ab8d.wav",
+    "bf_emma": "/audio/pronunciation/9a839973c6963deb.wav",
+    "bm_george": "/audio/pronunciation/c3817c5b088fada4.wav"
+  },
+  "prize": {
+    "af_heart": "/audio/pronunciation/1b92260bf3e12529.wav",
+    "am_michael": "/audio/pronunciation/9feea35287365586.wav",
+    "bf_emma": "/audio/pronunciation/3600789381722430.wav",
+    "bm_george": "/audio/pronunciation/7a7270ac774d441b.wav"
+  },
+  "road": {
+    "af_heart": "/audio/pronunciation/5bb8c4db1edce7ae.wav",
+    "am_michael": "/audio/pronunciation/453090da6ab1eb86.wav",
+    "bf_emma": "/audio/pronunciation/9700e35d7b85625a.wav",
+    "bm_george": "/audio/pronunciation/6eea288787237bd5.wav"
+  },
+  "seat": {
+    "af_heart": "/audio/pronunciation/22567702e3462d96.wav",
+    "am_michael": "/audio/pronunciation/4f9b4e8685900d2d.wav",
+    "bf_emma": "/audio/pronunciation/2f09348cdecdfc71.wav",
+    "bm_george": "/audio/pronunciation/69c0928fc4de0aa0.wav"
+  },
+  "seed": {
+    "af_heart": "/audio/pronunciation/9b0507b85b52841a.wav",
+    "am_michael": "/audio/pronunciation/43c9982570ef53d0.wav",
+    "bf_emma": "/audio/pronunciation/a0b729ef3cf8504f.wav",
+    "bm_george": "/audio/pronunciation/a4fca221215b7005.wav"
+  },
+  "ten": {
+    "af_heart": "/audio/pronunciation/4faef0d5e0a113e0.wav",
+    "am_michael": "/audio/pronunciation/84ea41e9e9bd87fa.wav",
+    "bf_emma": "/audio/pronunciation/4bab7cd2726a33bb.wav",
+    "bm_george": "/audio/pronunciation/4dbe077af09add26.wav"
+  },
+  "tie": {
+    "af_heart": "/audio/pronunciation/7dfbc86c8eea010e.wav",
+    "am_michael": "/audio/pronunciation/6e623d522108a1e4.wav",
+    "bf_emma": "/audio/pronunciation/c77e768987da39ac.wav",
+    "bm_george": "/audio/pronunciation/b4ff141b4ff5c36e.wav"
+  },
+  "time": {
+    "af_heart": "/audio/pronunciation/bf5223c20cd37a37.wav",
+    "am_michael": "/audio/pronunciation/7d861a1df5cee1d0.wav",
+    "bf_emma": "/audio/pronunciation/987f063e722f2a8b.wav",
+    "bm_george": "/audio/pronunciation/e77f29d48629a189.wav"
+  },
+  "town": {
+    "af_heart": "/audio/pronunciation/7dc0730103cfd45a.wav",
+    "am_michael": "/audio/pronunciation/466c38a85de4c297.wav",
+    "bf_emma": "/audio/pronunciation/4269df4bb491e897.wav",
+    "bm_george": "/audio/pronunciation/a3462c9fa92c0829.wav"
+  },
+  "try": {
+    "af_heart": "/audio/pronunciation/b5f883fe8180c769.wav",
+    "am_michael": "/audio/pronunciation/ab1d1d150b305c90.wav",
+    "bf_emma": "/audio/pronunciation/35ba9561e30ac0be.wav",
+    "bm_george": "/audio/pronunciation/a406b8602e38146e.wav"
+  },
+  "wrote": {
+    "af_heart": "/audio/pronunciation/1ba2d83c18bdf4c5.wav",
+    "am_michael": "/audio/pronunciation/c27757e5a943903c.wav",
+    "bf_emma": "/audio/pronunciation/3e20dacc3f5d05f1.wav",
+    "bm_george": "/audio/pronunciation/5d9ea049b8787476.wav"
+  }
+}

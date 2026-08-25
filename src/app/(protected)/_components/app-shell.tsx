@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import {
   BookOpenCheck,
   ChartNoAxesCombined,
+  Ear,
   Home,
   LibraryBig,
   RefreshCcw,
@@ -16,9 +17,27 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Hôm nay", icon: Home, match: ["/dashboard"] },
   { href: "/start", label: "Lộ trình", icon: BookOpenCheck, match: ["/start"] },
   { href: "/review", label: "Ôn tập", icon: RefreshCcw, match: ["/review", "/learning-lab/v2"] },
+  // Desktop only. The mobile bar is a five-column grid and the labels already
+  // truncate at 11px; a sixth item drops onto a second row of a fixed bottom
+  // bar. Luyện tai is a learning activity rather than a top-level section, so
+  // it is reached from the daily home on small screens instead of competing for
+  // a thumb slot with the five sections.
+  { href: "/listen", label: "Luyện tai", icon: Ear, match: ["/listen"], desktopOnly: true },
   { href: "/library", label: "Thư viện", icon: LibraryBig, match: ["/library", "/lessons"] },
   { href: "/progress", label: "Tiến bộ", icon: ChartNoAxesCombined, match: ["/progress"] },
 ] as const;
+
+/**
+ * What the fixed bottom bar shows on a phone.
+ *
+ * The bar is a five-column grid, so its item count is not a preference — a
+ * sixth entry wraps onto a second row of a fixed element and covers content.
+ * Deriving the list here rather than filtering inline keeps the constraint
+ * visible next to the thing it constrains.
+ */
+const MOBILE_NAV_ITEMS = NAV_ITEMS.filter(
+  (item) => !("desktopOnly" in item && item.desktopOnly),
+);
 
 type NavigationItem = (typeof NAV_ITEMS)[number] & { icon: LucideIcon };
 
@@ -120,7 +139,7 @@ export function AppShell({ children, email }: { children: ReactNode; email: stri
         aria-label="Điều hướng chính trên di động"
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--border)] bg-[var(--card)] px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 lg:hidden"
       >
-        {NAV_ITEMS.map((item) => {
+        {MOBILE_NAV_ITEMS.map((item) => {
           const active = pathMatches(pathname, item.match);
           const Icon = (item as NavigationItem).icon;
           return (

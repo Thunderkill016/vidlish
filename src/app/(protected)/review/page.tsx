@@ -13,15 +13,15 @@ export const dynamic = "force-dynamic";
 const REVIEW_STEPS = [
   {
     title: "Gọi lại trước khi xem đáp án",
-    body: "Learner phải tự nhớ trước. Đáp án chỉ xuất hiện sau attempt và correction không tự biến thành completion.",
+    body: "Bạn phải tự nhớ trước đã. Đáp án chỉ hiện sau khi bạn đã thử, và đọc lời sửa không tính là đã làm xong.",
   },
   {
     title: "Đổi cue và bối cảnh",
-    body: "Phiên thứ hai không lặp câu nguồn. Golden variant đổi sang tình huống một nhóm tình nguyện mới trước khi xác nhận transfer.",
+    body: "Lần thứ hai không hỏi lại đúng câu cũ. Nó đổi sang một tình huống khác, để xem bạn dùng được thật hay chỉ thuộc lòng câu đó.",
   },
   {
-    title: "Lưu delayed evidence riêng",
-    body: "Scheduler quyết định lúc quay lại; delayed transfer được ghi riêng khỏi completion của phiên đầu và vẫn không đồng nghĩa mastery.",
+    title: "Lần quay lại sau được ghi riêng",
+    body: "Máy xếp lịch quyết định khi nào câu này quay lại. Lần đó được ghi tách khỏi lần đầu — và vẫn chưa có nghĩa là bạn đã thạo.",
   },
 ];
 
@@ -56,9 +56,9 @@ export default async function ReviewPage() {
           Nhớ được sau thời gian trì hoãn mới có ý nghĩa
         </h1>
         <p className="max-w-3xl text-[var(--muted-foreground)]">
-          Lexical review dùng scheduler thật. Speaking delayed review là một queue
-          dẫn xuất riêng từ lesson completion và speaking receipt, không bị giả
-          thành FSRS state hay mastery.
+          Phần ôn từ chạy bằng máy xếp lịch thật. Phần ôn nói là một hàng chờ
+          dựng riêng từ việc bạn học xong bài nào và đã nói lại lần nào, chứ
+          không bị nhét vào lịch ôn từ hay đổi thành &ldquo;đã thạo&rdquo;.
         </p>
       </div>
 
@@ -72,9 +72,9 @@ export default async function ReviewPage() {
               {speakingQueue.due.length} tình huống có thể nói lại không xem mẫu
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--muted-foreground)]">
-              Link này giữ đúng lesson session chưa có speaking receipt. Lần capture
+              Đường dẫn này mở đúng buổi học bạn chưa nói lại lần nào. Lần nói
               đầu tiên sau delay có thể được ghi mức hỗ trợ independent, nhưng vẫn
-              chỉ là self-check chưa chấm — không phải pronunciation success.
+              chỉ là bạn tự đánh giá, chưa ai chấm — không phải là phát âm đã đúng.
             </p>
           </div>
           <Link
@@ -93,7 +93,7 @@ export default async function ReviewPage() {
             <h2 className="mt-1 text-2xl font-bold">Đã có lượt nói lại kế tiếp</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">
               Mở sau <strong>{formatReviewTime(speakingQueue.upcoming.dueAt)}</strong>.
-              Vidlish không mở sớm rồi vẫn gọi evidence đó là independent.
+              Sản phẩm này không mở sớm rồi vẫn ghi là bạn tự làm được.
             </p>
           </div>
           <span className="rounded-full bg-[var(--muted)] px-3 py-1.5 text-sm font-semibold text-[var(--muted-foreground)]">
@@ -113,7 +113,7 @@ export default async function ReviewPage() {
             </h2>
             <p className="mt-2 max-w-2xl text-sm text-[var(--muted-foreground)]">
               Phiên ôn sẽ bắt đầu bằng tự nhớ lại, sau đó đổi sang một bối cảnh khác.
-              Đáp án không được gửi xuống trước attempt.
+              Đáp án không được gửi về máy bạn trước khi bạn thử.
             </p>
           </div>
           <Link
@@ -132,7 +132,7 @@ export default async function ReviewPage() {
             <h2 className="mt-1 text-2xl font-bold">Lịch ôn đã được tạo</h2>
             <p className="mt-2 text-sm text-[var(--muted-foreground)]">
               Lượt kế tiếp: <strong>{formatReviewTime(upcoming.nextReviewAt)}</strong>.
-              Vidlish không cho mở sớm chỉ để tạo cảm giác có tiến bộ.
+              Nếp không cho mở sớm chỉ để tạo cảm giác có tiến bộ.
             </p>
           </div>
           <span className="rounded-full bg-[var(--muted)] px-3 py-1.5 text-sm font-semibold text-[var(--muted-foreground)]">
@@ -146,7 +146,7 @@ export default async function ReviewPage() {
           </p>
           <h2 className="text-2xl font-bold">Hoàn tất một Golden Session v2 trước</h2>
           <p className="max-w-2xl text-sm text-[var(--muted-foreground)]">
-            Chỉ khi phiên đầu hoàn tất, target item mới được schedule. Review không tự
+            Xong lần đầu thì từ đó mới được xếp lịch quay lại. Việc ôn không tự
             sinh từ số lần mở trang hay từ progress bar.
           </p>
           <Link
@@ -184,10 +184,10 @@ export default async function ReviewPage() {
 
       <Card className="space-y-3">
         <p className="text-sm font-semibold text-[var(--accent)]">Nguyên tắc</p>
-        <h2 className="text-xl font-bold">Completion không phải mastery</h2>
+        <h2 className="text-xl font-bold">Làm xong không phải là đã thạo</h2>
         <p className="max-w-3xl text-sm leading-6 text-[var(--muted-foreground)]">
           `next_review_at` chỉ là lịch lexical. Speaking `dueAt` chỉ là mốc đủ 24 giờ
-          để thử production không xem mẫu. Cả hai đều là điều kiện để thu evidence,
+          để bạn thử tự nói ra mà không nhìn mẫu. Cả hai đều là điều kiện để có căn cứ,
           không phải bằng chứng learner đã thành thạo.
         </p>
       </Card>

@@ -127,6 +127,54 @@ today's worst damage came from that and none of it came from bad code.
   that way. AGENTS.md is an open specification, read by more than twenty coding
   agents; a rule that lives in only one of them is a rule the next agent breaks.
 
+## Reading the research
+
+`node scripts/research/eric.mjs "<query>"` searches ERIC — the US Department of
+Education's index — and `--get <id>` downloads the open full text and converts
+it to layout-preserving text. No key, no login. Downloads land in
+`docs/research/` and are git-ignored.
+
+Use it before quoting a number. Three figures in this repository turned out to
+be wrong when the source was finally opened:
+
+- a repository described everywhere as using spaced repetition, which has none;
+- a vocabulary target this codebase computed itself and then quoted as if
+  published;
+- an extensive-reading effect size taken from a search summary, which measured
+  a different outcome than the one it was being used to justify.
+
+Reading the paper also shows what a summary never does. The same meta-analysis
+that gives extensive reading its headline number also reports a "huge effect for
+children" resting on **one study** — a limitation stated plainly in the paper
+and absent from every summary of it.
+
+**Cite the ERIC id** when a rule rests on a paper, so the next reader can fetch
+the same file rather than trusting the sentence.
+
+**Read the evidence column before the effect column.** A controlled comparison
+at g = 0.67 is stronger evidence than an uncontrolled pre/post at d = 1.50:
+everyone improves over ten weeks, and a single-group design cannot separate the
+method from the calendar. Headline effect sizes are routinely a third larger
+than the defensible ones — TBLT is quoted at d = 0.93 and survives reanalysis at
+g = 0.61. When you cite a number here, cite the design with it.
+
+## Writing a specification
+
+Two rules taken from FreeLingo's spec set, because both fix a way agents here
+have actually gone wrong. `docs/product/REPO_SURVEY.md` records what else was
+looked at and rejected.
+
+- **Name the files the spec governs.** Put an `applyTo` line in the frontmatter
+  listing the paths. An agent opening a file should be able to find the spec
+  that binds it without reading every spec.
+- **Write `Out of scope` and mean it.** A spec that lists only what to build
+  leaves the boundary to whoever reads it next, and they will widen it. Every
+  spec here says what it deliberately does not do.
+
+Keep history separate from current state. Feature specs record how something
+came to be built; one document per domain says how it works *today* and is the
+one to trust when they disagree.
+
 ## Shipping means it reaches the learner
 
 A merge is not a delivery. Each of these has failed in production here:
@@ -242,6 +290,25 @@ Do not skip gates because CI is green.
   business carrying free text.
 - Provenance/source evidence uses semantic evidence styling; do not use it decoratively.
 - Solved and revealed are different states.
+- **Prompt before you supply.** When a learner misses something, give them a
+  chance to retrieve it — the count, a replay, a clue — before showing the
+  answer. Oral corrective feedback runs at d = 0.64 and within it prompts beat
+  recasts, most clearly on free constructed responses. Handing over the correct
+  form is the easier build and the weaker treatment. Two screens already got
+  this wrong once.
+- **No streaks, no points, no leaderboards — and know why.** They are not
+  merely "seductive detail". A 2025 multilevel meta-analysis found external and
+  introjected regulation *unrelated* to language achievement, and a streak is
+  introjected regulation by construction: you continue to avoid the feeling of
+  losing it. Worse, it makes the account fragile — the failure mode on record is
+  a learner losing a 110-day streak and abandoning the account. What brings a
+  learner back here is evidence that **cannot be lost**: missing a day makes it
+  older, never smaller.
+- **Say what a technique moves, and only that.** Shadowing moves prosody —
+  intonation, linking, stress — and does not move segmental production. High
+  variability phonetic training moves perception, and reaches production at
+  about +10% on trained items only. Neither may be described to a learner as
+  fixing their accent, however much better that would sound.
 
 ## Product scope guardrails
 
@@ -298,6 +365,19 @@ Do not let UI-local state become authority for durable learning evidence.
 ## Required verification
 
 For application/UI-only changes, run the smallest relevant tests first, then the full gate before merge.
+
+**`pnpm test:e2e` passing locally is not the e2e suite passing.** Thirteen tests
+carry a `test.skip` guarded on `NEXT_PUBLIC_SUPABASE_URL` and
+`SUPABASE_SECRET_KEY`, so on a machine without them the run reports green while
+skipping every test that touches the real database. CI runs them in the
+`durable_learning` job with `LEARNING_SESSION_REPOSITORY: supabase`. A local run
+that says "79 passed, 13 skipped" has told you nothing about those thirteen —
+read the skip count, not just the pass count.
+
+**And `pnpm lint` is not `biome check`.** The repository runs both: Biome owns
+formatting, ESLint owns the React rules. Formatting clean says nothing about
+`react/no-unescaped-entities`, which is exactly what a straight quote in
+Vietnamese prose trips.
 
 Canonical commands:
 

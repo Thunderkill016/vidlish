@@ -29,6 +29,18 @@ import {
   A1_WHEN_AND_ANYONE,
   A1_WHICH_ONE,
 } from "./a1-core-4";
+import {
+  A2_POLITE,
+  A2_WHAT_HAPPENS_NEXT,
+  A2_YESTERDAY_QUESTIONS,
+} from "./a2-core";
+import {
+  A2_GETTING_THINGS_DONE,
+  A2_IF_AND_BECAUSE,
+  A2_MORE_AND_MOST,
+  A2_ONGOING_WORK,
+  A2_REPORTING,
+} from "./a2-core-2";
 import { PRE_A1_INTRODUCE_YOURSELF } from "./pre-a1-introduce-yourself";
 import {
   PRE_A1_ASK_FOR_REPEAT,
@@ -67,6 +79,14 @@ const AUTHORED: readonly FoundationUnit[] = [
   A1_WHEN_AND_ANYONE,
   A1_IT_WAS_DONE,
   A1_DID_YOU,
+  A2_YESTERDAY_QUESTIONS,
+  A2_WHAT_HAPPENS_NEXT,
+  A2_POLITE,
+  A2_IF_AND_BECAUSE,
+  A2_REPORTING,
+  A2_MORE_AND_MOST,
+  A2_GETTING_THINGS_DONE,
+  A2_ONGOING_WORK,
 ];
 
 export const FOUNDATION_UNITS: readonly FoundationUnit[] = AUTHORED.map(

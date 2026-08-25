@@ -224,13 +224,13 @@ function supportMessage(
   if (step === "chunk_boundaries") {
     return (
       attempt?.postAttemptSupport.chunkBoundaryText ??
-      "Vidlish chưa có đủ evidence để chia cụm câu nói này."
+      "Nếp chưa có đủ căn cứ để chia cụm cho câu này."
     );
   }
   if (step === "vietnamese_meaning") {
     return (
       attempt?.postAttemptSupport.targetItem?.contextualMeaningVi ??
-      "Vidlish chưa có nghĩa theo ngữ cảnh đã kiểm chứng."
+      "Nếp chưa có nghĩa theo ngữ cảnh đã kiểm chứng."
     );
   }
   if (step === "slower_playback") {
@@ -250,7 +250,7 @@ function blockerMessage(blocker: string | undefined): string {
   if (blocker === "SELF_CHECK_REQUIRED") {
     return "Hãy đối chiếu đủ tiêu chí hoặc chỉnh lại toàn bộ câu.";
   }
-  return "Bước này chưa đủ evidence để hoàn thành.";
+  return "Bước này chưa đủ căn cứ để tính là xong.";
 }
 
 export function LearningSessionLab({
@@ -546,7 +546,7 @@ export function LearningSessionLab({
       body: jobId ? JSON.stringify({ jobId }) : undefined,
     });
     const body = (await request.json()) as unknown;
-    if (!request.ok) throw new Error("Vidlish chưa thể mở phiên học.");
+    if (!request.ok) throw new Error("Nếp chưa thể mở phiên học.");
     const parsed = learningLabSessionResponseSchema.parse(body);
     setSessionId(parsed.session.id);
     setEvidenceIndex(0);
@@ -618,7 +618,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Vidlish chưa thể mở phiên học.",
+          : "Nếp chưa thể mở phiên học.",
       );
     } finally {
       setStarting(false);
@@ -649,11 +649,11 @@ export function LearningSessionLab({
         crypto.randomUUID(),
         activeSessionId,
       );
-      throw new Error("Vidlish chưa thể kiểm tra câu trả lời.");
+      throw new Error("Nếp chưa thể kiểm tra câu trả lời.");
     }
     const parsed = learningLabAttemptResponseSchema.parse(body);
     if (!parsed.persistedAttempt || !parsed.session) {
-      throw new Error("Attempt chưa được lưu bền vững.");
+      throw new Error("Lần trả lời này chưa được lưu chắc chắn.");
     }
     setSessionId(parsed.session.id);
     return parsed;
@@ -687,7 +687,7 @@ export function LearningSessionLab({
         crypto.randomUUID(),
         activeSessionId,
       );
-      throw new Error("Vidlish chưa thể lưu evidence hỗ trợ.");
+      throw new Error("Nếp chưa lưu được việc bạn đã mở gợi ý.");
     }
     return learningLabSupportEventResponseSchema.parse(body);
   }
@@ -710,7 +710,7 @@ export function LearningSessionLab({
         supportStep: "slower_playback",
       });
       if (persisted.event.supportStep !== "slower_playback") {
-        throw new Error("Server trả về support evidence không khớp.");
+        throw new Error("Máy chủ trả về kết quả không khớp với việc vừa làm.");
       }
       updateProgressForActivity(activityId, (progress) =>
         openLearningSupportStep(progress, "slower_playback"),
@@ -720,7 +720,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Đoạn đã phát chậm nhưng Vidlish chưa lưu được evidence.",
+          : "Đoạn đã phát chậm, nhưng Nếp chưa ghi lại được.",
       );
     }
   }
@@ -746,7 +746,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Đoạn đã phát nhưng Vidlish chưa lưu được evidence nghe.",
+          : "Đoạn đã phát, nhưng Nếp chưa ghi lại được phần nghe.",
       );
     }
   }
@@ -773,7 +773,7 @@ export function LearningSessionLab({
       gatingAttemptCount(currentProgress) >=
       currentPolicy.retry.maxAttemptsPerSession
     ) {
-      setError("Bước này đã đạt giới hạn attempt của phiên.");
+      setError("Bước này đã hết số lần thử cho phiên hôm nay.");
       return;
     }
     const response = createResponse(current, choice, text);
@@ -793,7 +793,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Vidlish chưa thể kiểm tra câu trả lời.",
+          : "Nếp chưa thể kiểm tra câu trả lời.",
       );
     } finally {
       setSubmitting(false);
@@ -834,7 +834,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Vidlish chưa thể lưu xác nhận transfer.",
+          : "Nếp chưa lưu được phần dùng trong tình huống mới.",
       );
     } finally {
       setSubmitting(false);
@@ -915,7 +915,7 @@ export function LearningSessionLab({
         supportStep: nextSupportStep,
       });
       if (persisted.event.supportStep !== nextSupportStep) {
-        throw new Error("Server trả về support evidence không khớp.");
+        throw new Error("Máy chủ trả về kết quả không khớp với việc vừa làm.");
       }
       updateProgressForActivity(activityId, (progress) =>
         openLearningSupportStep(progress, nextSupportStep),
@@ -924,7 +924,7 @@ export function LearningSessionLab({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Vidlish chưa thể mở mức hỗ trợ này.",
+          : "Nếp chưa thể mở mức hỗ trợ này.",
       );
     } finally {
       setSupporting(false);
@@ -991,15 +991,15 @@ export function LearningSessionLab({
             Phiên đầu đã hoàn tất
           </p>
           <h1 className="text-3xl font-bold">
-            Bạn đã tạo được evidence cho lần học hôm nay.
+            Buổi học hôm nay đã có căn cứ được ghi lại.
           </h1>
           <p className="text-[var(--muted-foreground)]">
-            Đây là completion của phiên đầu, không phải tuyên bố đã thành thạo.
+            Đây là bạn đã đi hết buổi đầu, không phải tuyên bố bạn đã thạo.
           </p>
         </div>
         <div className="grid gap-3 sm:grid-cols-2">
           <p className="rounded-xl bg-[var(--muted)] p-4">
-            Attempt đã thực hiện: <strong>{summary.totalAttempts}</strong>
+            Số lần đã trả lời: <strong>{summary.totalAttempts}</strong>
           </p>
           <p className="rounded-xl bg-[var(--muted)] p-4">
             Mức hỗ trợ đã mở: <strong>{summary.totalSupportSteps}</strong>
@@ -1037,7 +1037,7 @@ export function LearningSessionLab({
           </div>
         ) : null}
         <p className="rounded-xl border border-[var(--accent)] p-4 text-sm">
-          Vidlish cần kiểm tra lại bằng input hoặc bối cảnh khác sau một khoảng
+          Nếp cần kiểm tra lại bằng input hoặc bối cảnh khác sau một khoảng
           thời gian trước khi có thể nói năng lực này ổn định.
         </p>
         <button
@@ -1052,7 +1052,7 @@ export function LearningSessionLab({
   }
 
   if (!current || !currentPolicy) {
-    return <p role="alert">Runtime policy không khớp với lesson fixture.</p>;
+    return <p role="alert">Cấu hình đang chạy không khớp với bài học mẫu.</p>;
   }
 
   const assistedCompletion = completionState?.assistedCompletion ?? false;
@@ -1390,8 +1390,8 @@ export function LearningSessionLab({
       </div>
 
       <p className="text-center text-xs text-[var(--muted-foreground)]">
-        Server xác nhận attempt result, playback/support evidence và session
-        state trước khi local runtime phản chiếu tiến độ. Nội dung câu trả lời mở
+        Máy chủ tự xác nhận kết quả từng lần thử, những lần bạn nghe lại hoặc mở gợi ý, và buổi
+        trạng thái trước khi máy bạn hiển thị tiến độ. Nội dung câu trả lời mở
         không được ghi vào local storage hoặc persistence.
       </p>
     </div>

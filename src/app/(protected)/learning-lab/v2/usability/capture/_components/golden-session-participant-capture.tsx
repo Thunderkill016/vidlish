@@ -534,7 +534,7 @@ export function GoldenSessionParticipantCapture({
             </h2>
             <p className="mt-2 text-sm leading-6 text-[var(--muted-foreground)]">
               Ưu tiên tải file JSON đã validate để tránh mất/sửa nhầm record khi
-              reset participant. File chỉ được tạo local trong browser; Vidlish
+              reset participant. File chỉ được tạo local trong browser; Nếp
               không upload hay persist study record. Clipboard vẫn là fallback.
             </p>
           </div>

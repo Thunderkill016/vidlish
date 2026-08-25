@@ -108,7 +108,7 @@ test("golden session remains usable without horizontal overflow on a narrow mobi
 
   await expect(
     page.getByRole("heading", {
-      name: "Bạn đã tạo được evidence cho lần học hôm nay.",
+      name: "Buổi học hôm nay đã có căn cứ được ghi lại.",
     }),
   ).toBeVisible();
   expect(

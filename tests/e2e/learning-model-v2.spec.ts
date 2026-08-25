@@ -217,10 +217,10 @@ test("golden Learning Model v2 session enforces support retry transfer and hones
 
   await expect(
     page.getByRole("heading", {
-      name: "Bạn đã tạo được evidence cho lần học hôm nay.",
+      name: "Buổi học hôm nay đã có căn cứ được ghi lại.",
     }),
   ).toBeVisible();
-  await expect(page.getByText(/không phải tuyên bố đã thành thạo/i)).toBeVisible();
+  await expect(page.getByText(/không phải tuyên bố bạn đã thạo/i)).toBeVisible();
   await expect(page.getByText("Đã viết và tự đối chiếu đủ tiêu chí")).toBeVisible();
 
   // VLR-104. The first listen took three plays and three support steps, the

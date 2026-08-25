@@ -7,6 +7,7 @@ import { FOUNDATION_UNITS } from "@/modules/curriculum/content";
 import { ELICITED_IMITATION_ITEMS } from "@/modules/measurement/content/elicited-imitation-items";
 
 import manifest from "./curriculum-audio.json";
+import { syllablesForLine } from "./curriculum-audio";
 import { curriculumAudioFor, normaliseSpokenLine } from "./curriculum-audio";
 
 describe("curriculum audio", () => {
@@ -59,5 +60,28 @@ describe("measurement audio", () => {
       (item) => !curriculumAudioFor(item.text),
     ).map((item) => item.id);
     expect(missing).toEqual([]);
+  });
+});
+
+describe("syllable counts for the lines the syllabus speaks", () => {
+  it("counts every recorded line, so no line reaches the scorer without one", () => {
+    // A line with audio but no syllable count would reach the rhythm scorer as
+    // an unmeasurable, and the scorer would have to refuse a line the learner
+    // had already spoken. The two manifests are built from the same list and
+    // must not drift apart.
+    for (const line of Object.keys(manifest)) {
+      expect(syllablesForLine(line)).toBeGreaterThan(0);
+    }
+  });
+
+  it("agrees with pronunciation on lines whose syllable count is not arguable", () => {
+    expect(syllablesForLine("and")).toBe(1);
+    expect(syllablesForLine("always")).toBe(2);
+    expect(syllablesForLine("anyone")).toBe(3);
+  });
+
+  it("normalises the same way the audio lookup does", () => {
+    expect(syllablesForLine("  Anyone  ")).toBe(syllablesForLine("anyone"));
+    expect(syllablesForLine("a line nobody recorded")).toBeNull();
   });
 });

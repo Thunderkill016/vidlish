@@ -25,6 +25,16 @@ test("dashboard gives the learner a clear daily home on mobile", async ({ page }
     name: "Điều hướng chính trên di động",
   });
   await expect(mobileNav.getByRole("link")).toHaveCount(5);
+
+  // Tie the count to the layout that depends on it. The bar is a fixed
+  // five-column grid, so a sixth item does not shrink the others — it wraps
+  // onto a second row of an element pinned to the bottom of the screen and
+  // covers the content behind it. Asserting only the number lets someone
+  // "fix" the failure by raising it; asserting the grid too says why five.
+  const columns = await mobileNav.evaluate(
+    (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
+  );
+  expect(columns).toBe(5);
   await expect(mobileNav.getByRole("link", { name: "Tạo bài" })).toHaveCount(0);
   await expect(mobileNav.getByRole("link", { name: "Hôm nay" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Lộ trình" })).toBeVisible();

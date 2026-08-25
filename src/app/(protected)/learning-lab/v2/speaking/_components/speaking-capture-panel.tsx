@@ -238,7 +238,7 @@ export function SpeakingCapturePanel({
       });
       const body = (await request.json()) as unknown;
       if (!request.ok) {
-        throw new Error("Vidlish chưa thể lưu speaking receipt.");
+        throw new Error("Nếp chưa lưu được biên nhận lần nói này.");
       }
       const parsed = learningSpeakingAttemptResponseSchema.parse(body);
       setSavedAttempt(parsed.attempt);
@@ -248,7 +248,7 @@ export function SpeakingCapturePanel({
       setError(
         caught instanceof Error
           ? caught.message
-          : "Vidlish chưa thể lưu speaking receipt.",
+          : "Nếp chưa lưu được biên nhận lần nói này.",
       );
     } finally {
       setUploading(false);
@@ -265,8 +265,8 @@ export function SpeakingCapturePanel({
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
           Thu ít nhất một câu, nghe lại hết bản thu rồi tự xác nhận. Nếu đây là
           lần speaking đầu tiên của tình huống sau ít nhất 24 giờ, server có thể
-          ghi nhận mức hỗ trợ là independent. Independent vẫn là self-check chưa
-          chấm, không phải điểm phát âm hay mastery. Audio chỉ tồn tại trong
+          ghi là bạn tự làm. Nhưng &ldquo;tự làm&rdquo; ở đây vẫn là bạn TỰ ĐÁNH GIÁ, chưa
+          ai chấm — không phải điểm phát âm, càng không phải đã thạo. Tiếng nói chỉ nằm trong
           browser và request speaking hiện tại; local probe nếu được hỗ trợ chỉ
           đọc cùng live track trên thiết bị. Supabase không lưu audio hay transcript.
         </p>
@@ -276,8 +276,8 @@ export function SpeakingCapturePanel({
         <div>
           <p className="text-sm font-semibold">Nhận dạng cục bộ · thử nghiệm</p>
           <p className="mt-1 text-sm text-[var(--muted-foreground)]">
-            Chỉ bật khi browser xác nhận English dictation chạy on-device. Vidlish
-            không fallback sang cloud recognition. Transcript nhận dạng không được
+            Chỉ bật khi trình duyệt xác nhận nó nhận dạng tiếng Anh ngay trên máy
+            bạn. Nếp không chuyển sang máy chủ ngoài. Chữ máy nghe được không được
             hiển thị, gửi API hay lưu; probe chỉ giữ một kết quả bounded trong RAM.
           </p>
         </div>
@@ -288,8 +288,8 @@ export function SpeakingCapturePanel({
         {localAvailability === "unsupported" ||
         localAvailability === "unavailable" ? (
           <p className="text-sm">
-            Browser này chưa có on-device English dictation phù hợp. Speaking
-            self-check vẫn hoạt động; Vidlish không chuyển sang dịch vụ cloud.
+            Trình duyệt này chưa nhận dạng được tiếng Anh ngay trên máy. Bạn vẫn
+            nói và tự đánh giá được; Nếp không gửi tiếng nói ra dịch vụ ngoài.
           </p>
         ) : null}
         {localAvailability === "downloadable" ? (
@@ -309,7 +309,7 @@ export function SpeakingCapturePanel({
         ) : null}
         {localAvailability === "available" ? (
           <p className="text-sm font-semibold">
-            On-device English dictation sẵn sàng cho lần thu tiếp theo.
+            Máy đã sẵn sàng nhận dạng tiếng Anh ngay trên máy bạn cho lần nói tới.
           </p>
         ) : null}
         {localProbeStatus === "listening" ? (
@@ -327,14 +327,14 @@ export function SpeakingCapturePanel({
         {localProbeStatus === "not_detected" && localProbeResult ? (
           <p role="status" className="text-sm">
             ASR trên thiết bị nhận ra khoảng {localProbeResult.recognizedWordCount} từ
-            nhưng chưa thấy target phrase. Vidlish không coi kết quả thử nghiệm này
+            nhưng chưa thấy target phrase. Nếp không coi kết quả thử nghiệm này
             là speaking failure.
           </p>
         ) : null}
         {localProbeStatus === "failed" ? (
           <p role="status" className="text-sm">
-            Probe cục bộ không chạy được trên lần thu này. Không có cloud fallback;
-            speaking receipt vẫn giữ self-check như trước.
+            Lần này máy không nhận dạng được. Nếp không gửi ra dịch vụ ngoài để
+            bù; phần bạn tự đánh giá vẫn được giữ như cũ.
           </p>
         ) : null}
       </div>
@@ -375,7 +375,7 @@ export function SpeakingCapturePanel({
           </audio>
           <p className="text-sm text-[var(--muted-foreground)]">
             Bản thu khoảng {(durationMs / 1000).toFixed(1)} giây. Phải nghe hết
-            một lượt trước khi lưu self-check.
+            một lượt trước khi lưu phần bạn tự đánh giá.
           </p>
         </div>
       ) : null}
@@ -408,17 +408,17 @@ export function SpeakingCapturePanel({
             className="min-h-11 w-full rounded-xl bg-[var(--primary)] px-4 py-2 font-semibold text-white disabled:opacity-50"
           >
             {saved
-              ? "Đã lưu speaking self-check"
+              ? "Đã lưu phần bạn tự đánh giá"
               : uploading
-                ? "Đang lưu receipt…"
-                : "Lưu speaking self-check"}
+                ? "Đang lưu biên nhận…"
+                : "Lưu phần tự đánh giá"}
           </button>
         </div>
       ) : null}
 
       {savedAttempt ? (
         <p role="status" className="text-sm font-semibold">
-          Đã ghi nhận speaking self-check lần {savedAttempt.attemptNumber}: {" "}
+          Đã ghi lần nói thứ {savedAttempt.attemptNumber}, phần bạn tự đánh giá: {" "}
           {savedAttempt.support === "independent"
             ? "independent sau trì hoãn"
             : "supported"}
