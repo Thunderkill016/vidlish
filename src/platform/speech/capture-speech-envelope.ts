@@ -47,17 +47,34 @@ export type EnvelopeCapture = {
  * shadowing stage with no voice in it has no result, and saying otherwise is
  * the failure mode this product is built against.
  */
-export async function captureSpeechEnvelope(): Promise<EnvelopeCapture | null> {
+export async function captureSpeechEnvelope(
+  options: {
+    /**
+     * An already-open microphone to measure, when the caller has one.
+     *
+     * Shadowing needs both this curve and a transcript from the recogniser, and
+     * asking for the microphone twice would show the learner two permission
+     * prompts for one action. A stream passed in here is borrowed, not owned:
+     * stop() leaves it running for whoever opened it.
+     */
+    readonly stream?: MediaStream;
+  } = {},
+): Promise<EnvelopeCapture | null> {
   if (typeof window === "undefined") return null;
-  const media = navigator.mediaDevices;
-  if (!media?.getUserMedia) return null;
 
+  const borrowed = options.stream !== undefined;
   let stream: MediaStream;
-  try {
-    stream = await media.getUserMedia({ audio: true });
-  } catch {
-    // Denied, or no device. Both mean the same thing to the caller.
-    return null;
+  if (options.stream) {
+    stream = options.stream;
+  } else {
+    const media = navigator.mediaDevices;
+    if (!media?.getUserMedia) return null;
+    try {
+      stream = await media.getUserMedia({ audio: true });
+    } catch {
+      // Denied, or no device. Both mean the same thing to the caller.
+      return null;
+    }
   }
 
   const AudioContextClass =
@@ -65,7 +82,7 @@ export async function captureSpeechEnvelope(): Promise<EnvelopeCapture | null> {
     (window as unknown as { webkitAudioContext?: typeof AudioContext })
       .webkitAudioContext;
   if (!AudioContextClass) {
-    for (const track of stream.getTracks()) track.stop();
+    if (!borrowed) for (const track of stream.getTracks()) track.stop();
     return null;
   }
 
@@ -91,7 +108,7 @@ export async function captureSpeechEnvelope(): Promise<EnvelopeCapture | null> {
         stopped = true;
         window.clearInterval(timer);
         source.disconnect();
-        for (const track of stream.getTracks()) track.stop();
+        if (!borrowed) for (const track of stream.getTracks()) track.stop();
         void context.close();
       }
       return { frames: [...frames], frameRate: FRAME_RATE };

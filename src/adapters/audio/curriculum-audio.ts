@@ -1,4 +1,5 @@
 import manifest from "./curriculum-audio.json";
+import syllableManifest from "./curriculum-syllables.json";
 
 /**
  * The recorded English for a line the syllabus speaks.
@@ -31,4 +32,20 @@ export function normaliseSpokenLine(text: string): string {
 
 export function recordedLineCount(): number {
   return Object.keys(RECORDED).length;
+}
+
+/**
+ * How many syllables a spoken line has, counted at build time against CMUdict.
+ *
+ * The rhythm scorer turns a duration into an articulation rate by dividing by
+ * this, and refuses lines too short to carry rhythm at all. Counting in the
+ * browser is not an option — the dictionary has 130k entries — and guessing
+ * from spelling would put an estimate underneath a measurement.
+ *
+ * Rebuilt by `node scripts/build-syllable-manifest.mjs`.
+ */
+const SYLLABLES: Record<string, number> = syllableManifest;
+
+export function syllablesForLine(text: string): number | null {
+  return SYLLABLES[normaliseSpokenLine(text)] ?? null;
 }

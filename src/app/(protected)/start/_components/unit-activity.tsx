@@ -13,6 +13,7 @@ import {
   beginnerAttemptResponseSchema,
   type BeginnerUnitActivity,
 } from "@/shared/contracts/beginner-session";
+import { ShadowingBlock } from "./shadowing-block";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
 import { Input } from "@/shared/ui/input";
@@ -106,6 +107,20 @@ export function UnitActivity({
       for (const track of stream.current?.getTracks() ?? []) track.stop();
     };
   }, []);
+
+  // Fluency activities are shadowing, and shadowing is a seven-stage sequence,
+  // not a prompt with a text box. Twenty-nine of these were authored and every
+  // one of them used to render as "read this and press done" — the instruction
+  // said fluency and the interaction recorded attendance.
+  //
+  // Nothing is banked here. Shadowing's measure is rhythm, and the evidence
+  // model has no slot for rhythm; filing it as a spoken attempt would record
+  // one thing under another thing's name. It is practice, and the dose that the
+  // studies delivered was fifteen minutes twice a week for ten weeks — one
+  // block is not evidence of anything and is not stored as if it were.
+  if (activity.strand === "fluency_development") {
+    return <ShadowingBlock lines={activity.targets} onDone={onNext} />;
+  }
 
   async function speakAnswer() {
     if (!activity.challengeId) return;
