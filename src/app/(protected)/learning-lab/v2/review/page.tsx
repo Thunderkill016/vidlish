@@ -20,7 +20,7 @@ export default function DelayedReviewPage() {
         </Link>
       </div>
       <p className="max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-        Phiên này kiểm tra retrieval rồi changed-context transfer. Không có đáp án trước attempt, không lưu raw text của câu trả lời, và hoàn tất phiên không đồng nghĩa mastery.
+        Phiên này xem bạn có tự nhớ ra không, rồi xem bạn có dùng được sang một tình huống khác không. Đáp án không hiện trước khi bạn thử, chữ bạn gõ không được lưu lại, và đi hết phiên không có nghĩa là đã thạo.
       </p>
       <DelayedReviewLab />
     </div>

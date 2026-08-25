@@ -296,7 +296,7 @@ export default async function DashboardPage() {
                 ? "Làm lượt đã đến hạn trước khi học thêm để kiểm tra xem bạn còn tự nhớ và tự dùng được không."
                 : nextDueAt
                   ? `Lượt gần nhất mở vào ${formatReviewTime(nextDueAt)}.`
-                  : "Sau khi hoàn tất bài có nội dung cần nhớ, Vidlish sẽ đưa lượt ôn vào đây."}
+                  : "Sau khi hoàn tất bài có nội dung cần nhớ, Nếp sẽ đưa lượt ôn vào đây."}
             </p>
             <div className="flex flex-wrap gap-x-4 gap-y-2">
               {nextSpeaking ? (

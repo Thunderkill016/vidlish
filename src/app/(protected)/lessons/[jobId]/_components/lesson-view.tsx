@@ -337,7 +337,7 @@ function ProgressPanel({
         <div>
           <p className="text-sm font-semibold">Tiến độ phiên này</p>
           <p className="mt-0.5 text-[11px] text-[var(--faint-foreground)]">
-            Completion, không phải mastery
+            Đi hết bài, không phải đã thạo
           </p>
         </div>
         <p className="text-sm font-semibold text-[var(--accent)]">

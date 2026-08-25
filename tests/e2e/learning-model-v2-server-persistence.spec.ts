@@ -152,7 +152,7 @@ test("Golden Session UI persists immediate and delayed learning evidence without
 
   await expect(
     page.getByRole("heading", {
-      name: "Bạn đã tạo được evidence cho lần học hôm nay.",
+      name: "Buổi học hôm nay đã có căn cứ được ghi lại.",
     }),
   ).toBeVisible();
 
@@ -352,7 +352,7 @@ test("Golden Session UI persists immediate and delayed learning evidence without
   await expect(
     page.getByText(/đang giới thiệu bản thân với cộng tác viên mới/i),
   ).toBeVisible();
-  await expect(page.getByText("Câu mẫu sau attempt:")).toHaveCount(0);
+  await expect(page.getByText("Câu mẫu, sau khi bạn đã thử:")).toHaveCount(0);
 
   await page.getByLabel("Câu của bạn").fill(PRIVATE_DELAYED_TRANSFER_TEXT);
   await page.getByRole("button", { name: "Gửi câu để tự đối chiếu" }).click();

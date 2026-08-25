@@ -67,6 +67,12 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Check learner-facing copy is readable
+        # This product teaches English to someone who has none. A page that
+        # explains their progress in English jargon is the page failing at its
+        # one job, and it is invisible to every other check here.
+        run: pnpm copy
+
   unit:
     name: Unit tests
     runs-on: ubuntu-24.04

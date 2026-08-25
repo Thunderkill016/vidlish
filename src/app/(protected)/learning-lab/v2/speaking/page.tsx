@@ -26,8 +26,8 @@ function EmptySpeakingPractice({ explicitSession }: { explicitSession: boolean }
         </h1>
         <p className="text-[var(--muted-foreground)]">
           {explicitSession
-            ? "Vidlish chỉ mở speaking capture khi chính phiên được yêu cầu thuộc tài khoản này, đã hoàn tất và có guided transfer trong immutable lesson blueprint. Hệ thống không âm thầm chuyển sang lesson khác."
-            : "Speaking capture chỉ dùng prompt từ một lesson đã hoàn tất. Vidlish không tự bịa câu nói mới chỉ để tạo điểm speaking."}
+            ? "Nếp chỉ mở phần nói khi đúng buổi học bạn yêu cầu thuộc tài khoản này, đã học xong, và trong nội dung bài có sẵn phần tập dùng lại. Nội dung bài không sửa được sau khi tạo, và hệ thống không âm thầm đổi sang bài khác."
+            : "Phần nói chỉ dùng câu lấy từ một bài bạn đã học xong. Nếp không tự nghĩ ra câu mới chỉ để có cái cho bạn nói."}
         </p>
       </div>
       <div className="flex flex-wrap gap-3">
@@ -41,7 +41,7 @@ function EmptySpeakingPractice({ explicitSession }: { explicitSession: boolean }
           href="/progress"
           className="inline-flex min-h-11 items-center rounded-xl border border-[var(--border)] px-4 py-2 font-semibold"
         >
-          Xem evidence hiện có
+          Xem những gì đã ghi được
         </Link>
       </div>
     </div>
@@ -119,7 +119,7 @@ export default async function SpeakingPracticePage({
           Dùng lại tình huống đã học bằng giọng nói
         </h1>
         <p className="text-[var(--muted-foreground)]">
-          Đây là speaking self-check chưa chấm. Mục tiêu là tạo production bằng
+          Đây là phần bạn tự đánh giá, chưa ai chấm. Mục tiêu là để bạn tự nói ra bằng
           giọng thật và phân biệt đúng mức hỗ trợ; không giả một pronunciation
           score khi chưa có verifier.
         </p>
@@ -133,7 +133,7 @@ export default async function SpeakingPracticePage({
         <p className="font-semibold">{practice.activity.promptVi}</p>
         <p className="text-sm text-[var(--muted-foreground)]">
           Nói trước khi xem mẫu. Nếu lesson đã hoàn tất ít nhất 24 giờ và đây là
-          speaking receipt đầu tiên của tình huống, server mới được phép ghi mức
+          lần nói đầu tiên của tình huống đó, máy chủ mới được phép ghi mức
           hỗ trợ independent.
         </p>
       </Card>
