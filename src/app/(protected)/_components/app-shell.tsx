@@ -15,27 +15,40 @@ import {
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Hôm nay", icon: Home, match: ["/dashboard"] },
-  { href: "/start", label: "Lộ trình", icon: BookOpenCheck, match: ["/start"] },
-  { href: "/review", label: "Ôn tập", icon: RefreshCcw, match: ["/review", "/learning-lab/v2"] },
-  { href: "/read", label: "Đọc", icon: BookOpen, match: ["/read"] },
-  // Desktop only. The mobile bar is a five-column grid and the labels already
-  // truncate at 11px; a sixth item drops onto a second row of a fixed bottom bar
-  // and covers content.
+  // Five doors, and the first one is the whole product. Everything else is a
+  // way in for a learner who wants a specific thing today.
   //
-  // Reading takes the thumb slot and the video library gives it up, because the
-  // two are used at different rates: reading is the daily hour that has to fill
-  // the 500 Cambridge puts between zero and B2, while a video lesson is made
-  // occasionally. Both remain one tap from the daily home.
-  { href: "/listen", label: "Luyện tai", icon: Ear, match: ["/listen"], desktopOnly: true },
+  // This list was a menu of eight and the product owner called the site a
+  // jumble. He was right, and the cause was nameable: this repo had principles
+  // and no goals, so every well-evidenced method opened its own door instead of
+  // taking its place inside a session.
+  //
+  // Review and sentence building are deliberately NOT here. They are steps
+  // inside the daily session, not destinations — a learner with thirty minutes
+  // should not spend any of them choosing.
+  { href: "/dashboard", label: "Hôm nay", icon: Home, match: ["/dashboard"] },
+  { href: "/read", label: "Đọc", icon: BookOpen, match: ["/read"] },
+  { href: "/listen", label: "Luyện tai", icon: Ear, match: ["/listen"] },
+  { href: "/start", label: "Lộ trình", icon: BookOpenCheck, match: ["/start"] },
+  { href: "/progress", label: "Tiến bộ", icon: ChartNoAxesCombined, match: ["/progress"] },
+  // Kept and reachable, deliberately not on the bar. Watching a full TV
+  // programme yielded four words on average and rewarded the vocabulary a
+  // learner already had — which is what a beginner does not have. It stays
+  // because the product owner uses it, and it sits behind the daily home.
   {
     href: "/library",
     label: "Thư viện",
     icon: LibraryBig,
-    match: ["/library", "/lessons"],
+    match: ["/library", "/lessons", "/learning-lab"],
     desktopOnly: true,
   },
-  { href: "/progress", label: "Tiến bộ", icon: ChartNoAxesCombined, match: ["/progress"] },
+  {
+    href: "/review",
+    label: "Ôn tập",
+    icon: RefreshCcw,
+    match: ["/review"],
+    desktopOnly: true,
+  },
 ] as const;
 
 /**

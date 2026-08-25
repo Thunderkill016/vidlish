@@ -29,21 +29,19 @@ test("dashboard gives the learner a clear daily home on mobile", async ({ page }
   // Tie the count to the layout that depends on it. The bar is a fixed
   // five-column grid, so a sixth item does not shrink the others — it wraps
   // onto a second row of an element pinned to the bottom of the screen and
-  // covers the content behind it. Asserting only the number lets someone
-  // "fix" the failure by raising it; asserting the grid too says why five.
+  // covers the content behind it.
   const columns = await mobileNav.evaluate(
     (element) => getComputedStyle(element).gridTemplateColumns.split(" ").length,
   );
   expect(columns).toBe(5);
-  await expect(mobileNav.getByRole("link", { name: "Tạo bài" })).toHaveCount(0);
-  await expect(mobileNav.getByRole("link", { name: "Hôm nay" })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "Lộ trình" })).toBeVisible();
-  // The video library gave its thumb slot to reading: reading is the daily hour
-  // that has to fill the 500 Cambridge puts between zero and B2, while a video
-  // lesson is made occasionally. It stays one tap from this page.
-  await expect(mobileNav.getByRole("link", { name: "Đọc" })).toBeVisible();
+
+  // Five doors, and the first is the whole product. Review and sentence
+  // building are steps inside the daily session, not destinations — a learner
+  // with thirty minutes should not spend any of them choosing.
+  for (const label of ["Hôm nay", "Đọc", "Luyện tai", "Lộ trình", "Tiến bộ"]) {
+    await expect(mobileNav.getByRole("link", { name: label })).toBeVisible();
+  }
+  await expect(mobileNav.getByRole("link", { name: "Ôn tập" })).toHaveCount(0);
   await expect(mobileNav.getByRole("link", { name: "Thư viện" })).toHaveCount(0);
   await expect(page.getByTestId("library-entry")).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "Ôn tập" })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "Tiến bộ" })).toBeVisible();
 });
