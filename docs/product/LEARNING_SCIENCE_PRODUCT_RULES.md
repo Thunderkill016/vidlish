@@ -533,6 +533,27 @@ Simple English Wikipedia averages 84.2% coverage. Extensive reading needs
 95–98%: below that the learner stops to look words up and it stops being
 extensive reading.
 
+**This conclusion was wrong, and wrong in a way worth keeping visible.** The
+95% and 98% figures are thresholds for *unassisted* reading — what Nation calls
+independent meaning-focused reading, where the learner has no help. Holley (1973)
+glossed the unfamiliar words and found **no statistically significant
+relationship between comprehension and the density of unknown words at all**.
+
+The measurement below was correct. The product conclusion drawn from it was not,
+because it asked "can this learner read this alone?" when the question a reading
+product has to answer is "can this learner read this *here*, with the help this
+page gives them?"
+
+Every product that succeeds at this — LingQ, Language Reactor, Readlang — answers
+the second question. None of them authors a syllabus. They take the learner's own
+real material and put a layer over it: every word coloured by whether the learner
+knows it, one tap for meaning and audio without leaving the text, and the count of
+known words as the thing that grows. At that point 84% coverage is a reading
+session, not a wall.
+
+What follows is kept because the numbers are real and they explain why *graded
+readers* exist. It is no longer the reason extensive reading is unavailable here.
+
 So **no naturally-occurring English is usable for this learner yet**, however
 simple it looks. Aesop reads as a children's book and is far above A2. This is
 precisely the gap graded readers exist to fill — they are written *to* a
