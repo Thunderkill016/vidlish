@@ -37,7 +37,7 @@ export async function POST(request: NextRequest) {
     );
     if (!parsed.success) throw authErrors.rejected();
 
-    const progress = createBeginnerProgressRepository();
+    const progress = await createBeginnerProgressRepository();
     const challenge = await progress.evidenceChallenge({
       ownerUserId: access.userId,
       challengeId: parsed.data.challengeId,

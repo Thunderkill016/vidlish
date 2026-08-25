@@ -26,7 +26,7 @@ export async function resolveTodaysAction(
 ): Promise<LearningAction> {
   const [scheduled, knownItems, speakingQueue] = await Promise.all([
     createLearningReviewRepository().listScheduled(ownerUserId),
-    createBeginnerProgressRepository().knownWords(ownerUserId),
+    (await createBeginnerProgressRepository()).knownWords(ownerUserId),
     createLearningSpeakingReviewQueueReader().read(ownerUserId),
   ]);
 

@@ -41,7 +41,7 @@ export async function POST(request: NextRequest) {
     const access = await (await createIdentityService()).resolveCurrentAccess();
     if (!access) throw authErrors.sessionRequired();
 
-    const progress = createBeginnerProgressRepository();
+    const progress = await createBeginnerProgressRepository();
 
     // The curriculum answers first, and only for activities whose language is
     // already within reach. Until then the beginner word path below keeps

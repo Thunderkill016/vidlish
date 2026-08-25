@@ -69,8 +69,8 @@ export default async function DashboardPage() {
     readPanel("lịch ôn", () =>
       createLearningReviewRepository().listScheduled(access.userId),
     ),
-    readPanel("từ nền", () =>
-      createBeginnerProgressRepository().knownWords(access.userId),
+    readPanel("từ nền", async () =>
+(await createBeginnerProgressRepository()).knownWords(access.userId),
     ),
     readPanel("hàng chờ luyện nói", () =>
       createLearningSpeakingReviewQueueReader().read(access.userId),

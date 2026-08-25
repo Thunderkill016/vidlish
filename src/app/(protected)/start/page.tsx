@@ -24,8 +24,8 @@ export default async function StartPage() {
   // start teaching words the learner already produced and bank a second round
   // of evidence for them — quietly corrupting the one record the whole product
   // is built on. Refusing, with the reason on screen, is the honest outcome.
-  const knownRead = await readPanel("từ nền", () =>
-    createBeginnerProgressRepository().knownWords(access.userId),
+  const knownRead = await readPanel("từ nền", async () =>
+(await createBeginnerProgressRepository()).knownWords(access.userId),
   );
 
   if (knownRead.kind === "unavailable") {
