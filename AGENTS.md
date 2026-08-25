@@ -151,6 +151,13 @@ and absent from every summary of it.
 **Cite the ERIC id** when a rule rests on a paper, so the next reader can fetch
 the same file rather than trusting the sentence.
 
+**Read the evidence column before the effect column.** A controlled comparison
+at g = 0.67 is stronger evidence than an uncontrolled pre/post at d = 1.50:
+everyone improves over ten weeks, and a single-group design cannot separate the
+method from the calendar. Headline effect sizes are routinely a third larger
+than the defensible ones — TBLT is quoted at d = 0.93 and survives reanalysis at
+g = 0.61. When you cite a number here, cite the design with it.
+
 ## Writing a specification
 
 Two rules taken from FreeLingo's spec set, because both fix a way agents here
@@ -283,6 +290,25 @@ Do not skip gates because CI is green.
   business carrying free text.
 - Provenance/source evidence uses semantic evidence styling; do not use it decoratively.
 - Solved and revealed are different states.
+- **Prompt before you supply.** When a learner misses something, give them a
+  chance to retrieve it — the count, a replay, a clue — before showing the
+  answer. Oral corrective feedback runs at d = 0.64 and within it prompts beat
+  recasts, most clearly on free constructed responses. Handing over the correct
+  form is the easier build and the weaker treatment. Two screens already got
+  this wrong once.
+- **No streaks, no points, no leaderboards — and know why.** They are not
+  merely "seductive detail". A 2025 multilevel meta-analysis found external and
+  introjected regulation *unrelated* to language achievement, and a streak is
+  introjected regulation by construction: you continue to avoid the feeling of
+  losing it. Worse, it makes the account fragile — the failure mode on record is
+  a learner losing a 110-day streak and abandoning the account. What brings a
+  learner back here is evidence that **cannot be lost**: missing a day makes it
+  older, never smaller.
+- **Say what a technique moves, and only that.** Shadowing moves prosody —
+  intonation, linking, stress — and does not move segmental production. High
+  variability phonetic training moves perception, and reaches production at
+  about +10% on trained items only. Neither may be described to a learner as
+  fixing their accent, however much better that would sound.
 
 ## Product scope guardrails
 
