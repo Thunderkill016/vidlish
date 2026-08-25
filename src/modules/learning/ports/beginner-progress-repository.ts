@@ -133,6 +133,29 @@ export interface BeginnerProgressRepository {
   }): Promise<void>;
 
   /**
+   * Record that the learner met a word while reading, and put it on the calendar.
+   *
+   * Separate from `scheduleReview` for a reason that cost a silent failure once:
+   * `scheduleReview` is an UPDATE, and it only works on a row the evidence
+   * function already created. Words tapped while reading have no evidence
+   * behind them by definition — the learner met the word, they did not prove
+   * anything about it — so every such write matched zero rows and was lost
+   * while the page reported success.
+   *
+   * This writes the encounter honestly instead: it raises `exposure_count` and
+   * sets the schedule, and it never touches the evidence columns. A word is
+   * only counted as known when `last_independent_at` is set, which nothing here
+   * does, so meeting a word can never inflate the number the learner is asked
+   * to trust.
+   */
+  recordReadingExposure(input: {
+    readonly ownerUserId: string;
+    readonly itemKey: string;
+    readonly reviewState: unknown;
+    readonly nextReviewAt: string;
+  }): Promise<void>;
+
+  /**
    * Legacy internal primitive retained for compatibility/tests. New learner
    * routes must use a challenge-bound write instead of choosing a word here.
    */

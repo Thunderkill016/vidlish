@@ -141,6 +141,45 @@ export class SupabaseBeginnerProgressRepository
     if (error) throw new Error(`Failed to schedule review: ${error.message}`);
   }
 
+  async recordReadingExposure(input: {
+    ownerUserId: string;
+    itemKey: string;
+    reviewState: unknown;
+    nextReviewAt: string;
+  }) {
+    const itemKey = input.itemKey.toLowerCase();
+    // Read then write rather than an RPC, because adding one needs a migration
+    // and the job that applies migrations to production is currently unable to
+    // run. Two reading sessions racing would lose one exposure count, which is
+    // a wrong number in a field nothing gates on — acceptable next to a feature
+    // that silently saves nothing.
+    const { data: existing, error: readError } = await this.client
+      .from("learning_item_states")
+      .select("exposure_count")
+      .eq("owner_user_id", input.ownerUserId)
+      .eq("item_key", itemKey)
+      .maybeSingle();
+    if (readError) throw new Error(`Failed to read item state: ${readError.message}`);
+
+    const { error } = await this.client.from("learning_item_states").upsert(
+      {
+        owner_user_id: input.ownerUserId,
+        item_key: itemKey,
+        exposure_count: (existing?.exposure_count ?? 0) + 1,
+        last_seen_at: new Date().toISOString(),
+        review_state: input.reviewState,
+        next_review_at: input.nextReviewAt,
+        // Deliberately absent: last_independent_at, attempt_count,
+        // successful_retrievals. Meeting a word proves nothing about knowing
+        // it, and `learner_known_words` counts only rows where
+        // `last_independent_at` is set.
+        source_lesson_version_id: null,
+      },
+      { onConflict: "owner_user_id,item_key" },
+    );
+    if (error) throw new Error(`Failed to record reading exposure: ${error.message}`);
+  }
+
   async createEvidenceChallenge(input: {
     ownerUserId: string;
     kind: BeginnerEvidenceChallengeKind;

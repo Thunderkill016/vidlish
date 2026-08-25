@@ -78,7 +78,11 @@ export async function POST(request: NextRequest) {
     const now = new Date();
     for (const word of chosen) {
       const state = startReview(now);
-      await progress.scheduleReview({
+      // Not `scheduleReview`: that is an UPDATE against a row the evidence
+      // function created, and a word tapped while reading has no evidence
+      // behind it by definition. Calling it here matched zero rows and wrote
+      // nothing while this route reported success.
+      await progress.recordReadingExposure({
         ownerUserId: access.userId,
         itemKey: word.lemma,
         reviewState: state,
