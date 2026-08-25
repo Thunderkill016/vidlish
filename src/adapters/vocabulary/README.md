@@ -1,7 +1,7 @@
 # CEFR-J vocabulary artifact
 
-`cefrj-a1-a2.json` — 2,214 English headwords at CEFR A1 and A2, each with a part
-of speech and a level.
+`cefrj-a1-a2.json` — 2,234 English headwords at CEFR A1 and A2, each with a part
+of speech and a level. Built by `scripts/build-cefrj-catalogue.mjs`.
 
 ## Where it comes from
 
@@ -16,9 +16,27 @@ purposes at no cost, with citation.
 
 - kept only A1 and A2 rows;
 - kept the first spelling of a multi-form headword (`a.m./A.M./am/AM` → `a.m.`);
-- dropped headwords that are not a single lowercase word;
+- kept an entry when its first spelling is a single **alphabetic** word, in any
+  case, and stored it lowercased;
 - a word appearing at both levels is kept at the **earlier** one — it should be
   taught when it is first needed, not twice.
+
+## The filter that cost the catalogue its most important word
+
+The rule above used to read "drop headwords that are not a single **lowercase**
+word". It was written to remove multi-word entries and spelling variants. What it
+actually removed was every capitalised headword, and CEFR-J capitalises the
+pronoun **I**.
+
+That is 2,038,529 occurrences in a 49.7-million-token corpus of spoken English —
+4.1% of everything anyone says. It also took the days of the week, the months,
+`OK`, `TV`, `CD`, `Internet`, `ID` and `PC`: 92 A1/A2 entries.
+
+The damage did not stop at the catalogue. `tatoeba-beginner-sentences.json` keeps
+only sentences whose words are all in the catalogue, so **every first-person
+sentence in English was excluded from the corpus** — 0 of 18,127. A beginner
+could not be shown `I work with computers` or `I don't understand`, which is most
+of what a beginner needs to say. Rebuilding with `I` restored 3,787 of them.
 
 ## Why it is vendored rather than fetched
 
