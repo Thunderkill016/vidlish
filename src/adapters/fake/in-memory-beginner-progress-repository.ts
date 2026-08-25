@@ -8,6 +8,8 @@ import type {
   CalibrationRecord,
 } from "@/modules/learning/ports/beginner-progress-repository";
 
+import { upsertBeginnerReviewSchedule } from "./shared-learning-item-states";
+
 /**
  * The beginner evidence store for development and CI.
  *
@@ -73,6 +75,31 @@ export class InMemoryBeginnerProgressRepository
 
   private key(ownerUserId: string, word: string): string {
     return `${ownerUserId}::${word.toLocaleLowerCase("en-US")}`;
+  }
+
+  private readonly schedules = new Map<
+    string,
+    { reviewState: unknown; nextReviewAt: string }
+  >();
+
+  async reviewSchedule(input: { ownerUserId: string; itemKey: string }) {
+    return this.schedules.get(`${input.ownerUserId}:${input.itemKey.toLowerCase()}`) ?? null;
+  }
+
+  async scheduleReview(input: {
+    ownerUserId: string;
+    itemKey: string;
+    reviewState: unknown;
+    nextReviewAt: string;
+  }) {
+    this.schedules.set(`${input.ownerUserId}:${input.itemKey.toLowerCase()}`, {
+      reviewState: input.reviewState,
+      nextReviewAt: input.nextReviewAt,
+    });
+    // Production writes this to the same row the review queue reads. The fakes
+    // used to be two unconnected maps, which let a test show a word banked and
+    // the queue empty without either being wrong.
+    upsertBeginnerReviewSchedule(input);
   }
 
   async knownWords(ownerUserId: string): Promise<string[]> {

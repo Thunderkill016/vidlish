@@ -24,6 +24,15 @@ export async function resolveLearningReviewPlan(
   );
   if (!state) return null;
 
+  // A word learned on the beginner track has no lesson blueprint behind it, and
+  // that is not the same as having nothing to review. Returning null here meant
+  // every scheduled beginner word was classified as not-actionable and never
+  // surfaced — the schedule existed and nothing ever read it.
+  //
+  // The beginner path serves these itself, from the word alone, so this
+  // resolver says "no blueprint plan" without claiming the item is unreviewable.
+  if (state.sourceLessonVersionId === null) return null;
+
   const blueprint = await resolveOwnedLessonBlueprint({
     ownerUserId,
     lessonVersionId: state.sourceLessonVersionId,

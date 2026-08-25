@@ -1,6 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 
 import { chunkMeaningVi } from "@/modules/curriculum/content";
+import type { ReviewState } from "@/modules/learning/application/review-scheduler";
+import { scheduleBeginnerReview } from "@/modules/learning/application/schedule-beginner-review";
 import { scoreDictation } from "@/modules/learning/application/score-dictation";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
@@ -105,6 +107,28 @@ export async function POST(request: NextRequest) {
       challengeId: challenge.id,
       successful,
       independent: successful && !parsed.data.usedSupport && trusted,
+    });
+
+    // Put the word back on the calendar. Without this the beginner track banked
+    // evidence and left `next_review_at` null, so the word never entered a
+    // review queue and the learner met it once and never again — while FSRS sat
+    // in the codebase driving only the older video-lesson path.
+    const now = new Date();
+    const existing = await progress.reviewSchedule({
+      ownerUserId: access.userId,
+      itemKey: evidence.word,
+    });
+    const scheduled = scheduleBeginnerReview({
+      previous: (existing?.reviewState as ReviewState | null) ?? null,
+      successful,
+      independent: successful && !parsed.data.usedSupport && trusted,
+      now,
+    });
+    await progress.scheduleReview({
+      ownerUserId: access.userId,
+      itemKey: evidence.word,
+      reviewState: scheduled,
+      nextReviewAt: scheduled.due,
     });
 
     const payload = beginnerAttemptResponseSchema.parse({

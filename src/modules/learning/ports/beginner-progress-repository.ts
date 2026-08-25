@@ -104,6 +104,35 @@ export interface BeginnerProgressRepository {
   }): Promise<BeginnerWordEvidence>;
 
   /**
+   * The item's current spacing schedule, or null if it has never been scheduled.
+   *
+   * Needed because scheduling is arithmetic that belongs in the application
+   * layer — FSRS is TypeScript — while the evidence write is a database
+   * function. The route reads the previous state, advances it, and writes the
+   * result back.
+   */
+  reviewSchedule(input: {
+    readonly ownerUserId: string;
+    readonly itemKey: string;
+  }): Promise<{ readonly reviewState: unknown; readonly nextReviewAt: string | null } | null>;
+
+  /**
+   * Record when this item comes back, and the state that decided it.
+   *
+   * Words learned on the beginner track used to be banked and then never
+   * scheduled: nothing set `next_review_at`, so nothing ever put them in a
+   * review queue, so a learner met a word once and never saw it again. Every
+   * measurement in this product assumes 8-12 spaced reviews per item; without
+   * this write there were zero.
+   */
+  scheduleReview(input: {
+    readonly ownerUserId: string;
+    readonly itemKey: string;
+    readonly reviewState: unknown;
+    readonly nextReviewAt: string;
+  }): Promise<void>;
+
+  /**
    * Legacy internal primitive retained for compatibility/tests. New learner
    * routes must use a challenge-bound write instead of choosing a word here.
    */

@@ -5,6 +5,7 @@ import { buildReadingOptions } from "@/modules/curriculum/application/build-read
 import { compileUnitActivity } from "@/modules/curriculum/application/compile-unit-activity";
 import { chunkMeaningVi, foundationUnitById } from "@/modules/curriculum/content";
 import { challengeKindForSkill } from "@/modules/learning/application/challenge-kind-for-skill";
+import { retrieveBeginnerInput } from "@/modules/learning/application/retrieve-beginner-input";
 import { startBeginnerSession } from "@/modules/learning/application/start-beginner-session";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
@@ -96,6 +97,49 @@ export async function POST(request: NextRequest) {
 
     const known = new Set(await progress.knownWords(access.userId));
     const provider = createBeginnerInputProvider();
+
+    // A word whose review has come due is served instead of a new one. Without
+    // this the schedule was written and then ignored: every session handed out
+    // fresh vocabulary while the words closest to being forgotten sat in a
+    // queue nothing read.
+    if (todays.kind === "review_due") {
+      const target = todays.itemKey;
+      const retrieved = retrieveBeginnerInput({
+        target,
+        // The word being reviewed is itself known, so it does not count against
+        // the one-new-word budget of the sentence it appears in.
+        known,
+        candidates: beginnerCandidatesFor(target),
+        wanted: BEGINNER_SENTENCES_PER_SESSION,
+      });
+
+      if (retrieved.source === "retrieved") {
+        // One challenge per sentence, exactly as the new-word path does: the
+        // browser is graded on text it never receives, and a challenge is
+        // single use.
+        const reviewSentences = await Promise.all(
+          retrieved.sentences.map(async (text) => {
+            const challenge = await progress.createEvidenceChallenge({
+              ownerUserId: access.userId,
+              kind: "dictation",
+              word: target,
+              sentence: text,
+            });
+            return { text, challengeId: challenge.id };
+          }),
+        );
+        const payload = beginnerSessionResponseSchema.parse({
+          target,
+          source: "retrieved",
+          sentences: reviewSentences,
+          knownWordCount: known.size,
+        });
+        return NextResponse.json(payload, {
+          status: 200,
+          headers: { "Cache-Control": "private, no-store" },
+        });
+      }
+    }
 
     const outcome = await startBeginnerSession({
       catalogue: beginnerVocabularyCatalogue(),
