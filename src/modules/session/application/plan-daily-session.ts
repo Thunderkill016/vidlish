@@ -25,6 +25,21 @@
  * that needs forty is a session that gets abandoned.
  */
 
+/**
+ * Review and sentence building turned out to be the same mechanic, and noticing
+ * that removed two of the three overlapping surfaces the product owner
+ * complained about.
+ *
+ * Both are a sentence with one word taken out. Review draws its sentences
+ * around words that are due; building draws them around words recently met.
+ * The learner does the same thing in both — retrieve a form from memory with no
+ * hint in the context — which is precisely the condition that beat
+ * context-inference on recall of form, recall of meaning, and recognition in a
+ * new context.
+ *
+ * So they are one step type with two sources, not two features.
+ */
+
 /** The honest daily budget, from the learner. Everything is cut to fit it. */
 export const SESSION_MINUTES = 30;
 

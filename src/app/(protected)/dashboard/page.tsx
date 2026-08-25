@@ -18,6 +18,12 @@ import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime"
 import { createStudyProgressRepository } from "@/platform/study/create-study-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 import { resolveTodaysAction } from "@/platform/learning/resolve-todays-action";
+import { allBeginnerSentences } from "@/adapters/vocabulary/beginner-sentence-catalogue";
+import { readingShelf } from "@/adapters/reading/shelf";
+import { selectClozeItems } from "@/modules/production/application/build-cloze-item";
+import { planDailySession } from "@/modules/session/application/plan-daily-session";
+
+import { DailySessionRunner } from "./_components/daily-session";
 import { Card } from "@/shared/ui/card";
 
 import { TodaysAction } from "./_components/todays-action";
@@ -90,6 +96,40 @@ export default async function DashboardPage() {
   // read it as "you are done" on a day the product simply could not tell.
   const todaysAction =
     todaysActionRead.kind === "ready" ? todaysActionRead.value : null;
+
+  // The session, assembled here rather than in the browser: the sentences a
+  // learner is graded on are chosen by the server, and the review queue is not
+  // something a client should be able to nominate itself into.
+  const known = new Set(knownWords);
+  const dueWords = new Set(
+    scheduledReviews
+      .filter((item) => item.sourceLessonVersionId === null && item.nextReviewAt)
+      .filter((item) => new Date(item.nextReviewAt as string) <= new Date())
+      .map((item) => item.itemKey.toLowerCase()),
+  );
+  const sentences = allBeginnerSentences();
+  const reviewItems = selectClozeItems({
+    sentences: sentences.filter((sentence) =>
+      dueWords.has(sentence.target.toLowerCase()),
+    ),
+    known,
+    wanted: 8,
+  });
+  const buildItems = selectClozeItems({
+    sentences: sentences.filter(
+      (sentence) => !dueWords.has(sentence.target.toLowerCase()),
+    ),
+    known,
+    wanted: 6,
+  });
+  // Least-known text first: it is the one with the most to meet, and reading is
+  // the only step in the session that scales past the authored fifteen hours.
+  const shelfText = readingShelf().flatMap((topic) => topic.texts)[0] ?? null;
+  const sessionPlan = planDailySession({
+    wordsDue: reviewItems.length,
+    paragraphsAvailable: shelfText ? Math.min(shelfText.paragraphs.length, 3) : 0,
+    sentencesAvailable: buildItems.length,
+  });
 
   const broken = unavailablePanels([
     lessonsRead,
@@ -174,6 +214,23 @@ export default async function DashboardPage() {
           </p>
         </Card>
       ) : null}
+
+      <DailySessionRunner
+        payload={{
+          plan: sessionPlan,
+          review: reviewItems,
+          build: buildItems,
+          passage: shelfText
+            ? {
+                textId: shelfText.id,
+                title: shelfText.title,
+                paragraphs: shelfText.paragraphs.slice(0, 3),
+                sourceUrl: shelfText.source.url,
+                sourceLabel: `${shelfText.title} — Simple English Wikipedia`,
+              }
+            : null,
+        }}
+      />
 
       {todaysAction ? (
         <TodaysAction action={todaysAction} />

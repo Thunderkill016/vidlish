@@ -34,12 +34,6 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
-  "src/modules/session/application/plan-daily-session.ts":
-    "The daily session — review, then read, then build — as one ordered run " +
-    "sized to the thirty minutes the learner said he has. Written after the " +
-    "product owner called the site a jumble of eight doors. The navigation is " +
-    "already collapsed to five; the session that replaces the menu still has " +
-    "no surface running it.",
 
   // This list is self-cleaning: an entry has to leave the moment a route
   // reaches it, so it cannot quietly describe a past that is over. The four

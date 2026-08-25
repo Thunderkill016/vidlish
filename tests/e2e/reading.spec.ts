@@ -129,3 +129,23 @@ test("the sentence builder asks the learner to produce, not to recognise", async
   // turn a production task into a listening one.
   await expect(page.getByRole("button", { name: "Nghe câu này" })).toBeVisible();
 });
+
+test("the daily home is one session, not a menu of doors", async ({
+  page,
+}, testInfo) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await signIn(page, `session-${testInfo.project.name}@example.com`);
+  await page.goto("/dashboard");
+
+  // One press starts it. A learner with thirty minutes should not spend any of
+  // them choosing between eight surfaces.
+  const start = page.getByTestId("session-start");
+  await expect(start).toBeVisible();
+  await expect(start.getByRole("button", { name: "Bắt đầu" })).toBeVisible();
+
+  await start.getByRole("button", { name: "Bắt đầu" }).click();
+
+  // Whatever the first step is, it is a step — not another list of links.
+  const running = page.getByTestId("cloze-run").or(page.getByTestId("reading-coverage"));
+  await expect(running.first()).toBeVisible();
+});
