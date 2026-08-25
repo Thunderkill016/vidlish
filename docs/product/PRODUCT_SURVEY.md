@@ -101,6 +101,40 @@ sentences, and FSRS schedules them. What it lacks is the source of sentences:
 right now they come from an authored catalogue rather than from something the
 learner chose to read.
 
+### E. Sentence-level production
+
+Glossika, Clozemaster, Lingvist — and the correction communities, Busuu,
+LangCorrect, Journaly, HiNative.
+
+This is the family that addresses the block this learner actually named:
+**knows the words, cannot assemble them into sentences.**
+
+- **Glossika** works on whole sentences: hear one, say it back, and a spacing
+  algorithm schedules the ones you struggle with. Vocabulary, grammar and
+  pronunciation are never taught separately because the sentence carries all
+  three.
+- **Clozemaster** blanks one word out of a real sentence and makes you supply
+  it. And it changes the metric to match: it **records progress by sentences
+  completed, not words learned.**
+- **The correction sites** all do the same thing from the other end — you write,
+  and native speakers correct it sentence by sentence, explaining why. That
+  supply of correctors is the one thing this product cannot copy.
+
+**Why the cloze mechanic fits this learner specifically**, on three counts at
+once: it is *production*, which is the blocked step; it is *silent*, so it works
+where he usually is; and it is *retrieval from a sparse context*, which is the
+condition that beat context-inference on every retention measure.
+
+**And the honest warning that comes with it.** Across technology-assisted
+vocabulary learning, recognition scores d = 0.69 and production only d = 0.47.
+Production learning is harder and its numbers look worse. But the durability
+runs the other way: form recognition was learned at 18% and had fallen to 6% by
+follow-up, while meaning recall started lower at 9% and *rose* to 12%.
+
+Recognition looks good immediately and drains away. Production looks poor and
+stays. A product that optimises for the number that moves fastest will build the
+wrong thing.
+
 ## What this product already has, in the shape family B needs
 
 | What LingQ-style reading needs | Already in this repo |
