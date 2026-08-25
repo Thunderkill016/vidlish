@@ -54,7 +54,9 @@ export default async function StartPage() {
   return (
     <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold">Bắt đầu từ số 0</h1>
+        <h1 className="text-2xl font-semibold">
+          Hôm nay, nghe một câu để bắt đầu dùng tiếng Anh.
+        </h1>
         <p className="text-sm text-[var(--muted-foreground)]">
           Mỗi câu ở đây chỉ có đúng một từ bạn chưa gặp. Không phải vì dễ hơn —
           mà vì một câu có hai từ mới thì bạn đoán, và đoán thì không để lại gì.

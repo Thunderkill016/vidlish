@@ -1,13 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-async function login(page: Page, email: string) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(email);
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
-}
+import { signIn } from "./_sign-in";
 
 type Sitting = {
   bankVersion: string;
@@ -17,7 +10,7 @@ type Sitting = {
 test("the sitting never sends the sentence the learner is graded on", async ({
   page,
 }, testInfo) => {
-  await login(page, `imitation-${testInfo.project.name}@example.com`);
+  await signIn(page, `imitation-${testInfo.project.name}@example.com`);
 
   const raw = await page.evaluate(async () => {
     const response = await fetch("/api/measure/imitation");
@@ -68,7 +61,7 @@ test("the sitting never sends the sentence the learner is graded on", async ({
 });
 
 test("a sitting taken against another bank is refused", async ({ page }, testInfo) => {
-  await login(page, `imitation-${testInfo.project.name}@example.com`);
+  await signIn(page, `imitation-${testInfo.project.name}@example.com`);
 
   // Two sittings are only comparable if the sentences were the same. Scoring a
   // stale one against today's items would file a number next to the others
@@ -92,7 +85,7 @@ test("a sitting taken against another bank is refused", async ({ page }, testInf
 });
 
 test("too few answers cannot produce a measurement", async ({ page }, testInfo) => {
-  await login(page, `imitation-${testInfo.project.name}@example.com`);
+  await signIn(page, `imitation-${testInfo.project.name}@example.com`);
 
   // A band built on four items moves more on one misheard word than on a month
   // of learning, so it must not be stored at all.

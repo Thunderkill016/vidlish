@@ -1,14 +1,6 @@
 import { expect, test, type Page, type Request } from "@playwright/test";
 
-async function login(page: Page) {
-  const learnerEmail = `measurement-${test.info().project.name}@example.com`;
-  await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(learnerEmail);
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
-}
+import { signIn } from "./_sign-in";
 
 async function mockYouTubeWithManualEnd(page: Page) {
   await page.route("https://www.youtube.com/iframe_api", async (route) => {
@@ -78,7 +70,7 @@ test("Golden measurement separates play start, confirmed end and rendered correc
   page,
 }) => {
   await mockYouTubeWithManualEnd(page);
-  await login(page);
+  await signIn(page, "invited@example.com");
 
   const productBodies: Record<string, unknown>[] = [];
   const supportBodies: Record<string, unknown>[] = [];

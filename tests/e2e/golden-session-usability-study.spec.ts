@@ -1,13 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 
-async function login(page: Page) {
-  await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill("invited@example.com");
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
-}
+import { signIn } from "./_sign-in";
 
 const sessionIds = [
   "11111111-1111-4111-8111-111111111111",
@@ -86,7 +79,7 @@ function participant(index: number) {
 test("internal usability evaluator rejects arbitrary notes, imports five local files and reports the predeclared gate", async ({
   page,
 }) => {
-  await login(page);
+  await signIn(page, "invited@example.com");
   await page.goto("/learning-lab/v2/usability");
 
   await expect(
