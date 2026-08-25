@@ -305,6 +305,85 @@ numbers below come from single-group designs and are marked so.
 | Formulaic chunks → fewer pauses | β = .40, R² = .16 | single study | no |
 | Written corrective feedback, *unfocused* | g = 0.33 | meta-analysis | deliberately not |
 
+## Why learners quit, and why a streak is the wrong answer
+
+This is the failure mode that beats every effect size in this document: a method
+at d = 1.32 that the learner abandons in week two produces nothing. Roughly two
+thirds of online language learners abandon within three months.
+
+The industry answer is streaks, leagues and points. The evidence says they do
+not predict learning, and can cause the very abandonment they are sold to
+prevent.
+
+**They do not predict achievement.** A 2025 multilevel meta-analysis of
+self-determination theory and language achievement found intrinsic regulation
+correlated with L2 achievement at r = .26 and identified regulation at r = .16
+(autonomous motivation overall, r = .23) — while **introjected regulation and
+external regulation were not related to achievement at all**, and neither was
+controlled motivation.
+
+Read the categories carefully, because a streak sits squarely in the two that
+correlate with nothing. Points and leagues are *external* regulation. A streak
+is *introjected* regulation: you continue to avoid the bad feeling of losing it.
+The product is manufacturing guilt and calling it motivation.
+
+**And the attachment is brittle.** A study of 30,000+ Duolingo forum posts over
+nine years plus fifteen interviews with users who had gamed the system found the
+mechanics turned against learning:
+
+- Confidence collapsed. One learner: *"Without cheating, most of my answers were
+  wrong because I'd cheated before to climb the top rungs... that heavily shook
+  my confidence in learning."*
+- Learning became the obstacle. *"I was so obsessed that I was literally seeing
+  real learning as an obstacle to my success in gamification."*
+- Losing the streak ended the account. *"My brother lost his 110-day streak, and
+  now he is an abandoned account."*
+
+That last one is the whole argument. A streak converts every day of past effort
+into something the learner can lose in one night — and when they lose it, the
+sunk investment argues for quitting rather than continuing.
+
+**What this product does instead.** The three needs SDT names are autonomy,
+competence and relatedness, and competence is the one this product can serve
+honestly: the learner needs to see they are capable. So the thing that brings
+them back is evidence that **cannot be lost** — words known, sentences held,
+measured and dated. A count of what you know does not reset at midnight. Missing
+a day makes it older, not smaller.
+
+## Correcting a spoken mistake: prompt, do not supply
+
+Oral corrective feedback works — d = 0.64 across the meta-analysis, and the
+effect held over time. Two findings decide how it should be delivered.
+
+**Prompts beat recasts.** A recast supplies the correct form; a prompt pushes
+the learner to produce it — a clarification request, a repetition of the error,
+an elicitation, a metalinguistic clue. In classroom settings prompts were more
+effective, and the difference was clearest on measures requiring free
+constructed responses, which is the kind of speech this product is trying to
+build.
+
+**Explicit is better now; implicit lasts longer.** Explicit feedback won on
+immediate and short-delayed posttests, but implicit feedback was better
+maintained on long-delayed ones.
+
+So when a learner misses a word, the product should first give them the chance
+to find it — replay the audio, mark where it went wrong, ask again — before
+showing the answer. Handing over the correct form is the easier build and the
+weaker treatment.
+
+## Task-based teaching, and a lesson in reading effect sizes
+
+TBLT — organising instruction around tasks with real outcomes rather than around
+grammar points — is widely reported at **d = 0.93** from a meta-analysis of 52
+studies. A later technical comment identified three problems with it: loose
+inclusion criteria, oversimplified effect size calculation, and neglected
+moderators. Reanalysed under stricter criteria, the effect is **g = 0.61**.
+
+Both numbers describe the same literature. Quote the second. And note what
+happened: the widely-cited figure was a third larger than the defensible one,
+which is the ordinary condition of headline effect sizes and the reason the
+evidence column in the table above exists.
+
 ## The two halves of pronunciation, and the gap between them
 
 These are different problems with different evidence, and the product must not
