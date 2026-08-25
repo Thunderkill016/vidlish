@@ -19,6 +19,7 @@
     "test:e2e": "playwright test",
     "test:db": "supabase test db",
     "audio:curriculum": "node scripts/build-curriculum-audio.mjs",
+    "curriculum": "node scripts/check-curriculum.mjs",
     "db:local": "node scripts/local-schema.mjs",
     "study:golden": "node --import=./scripts/golden-study-preload.mjs scripts/golden-study-harness.mjs"
   },

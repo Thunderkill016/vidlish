@@ -81,6 +81,31 @@ redesign is written down as owed.** A prettier page that drops a shipped
 measurement is a regression even when nothing fails to compile — four such
 regressions reached `main` in one day because nobody had written this down.
 
+### Writing curriculum
+
+`pnpm curriculum` is the whole content step. It parses every unit, refuses a
+unit whose grammar codes are not in the published CEFR-J inventory, refuses a
+line with no recording, refuses a skill with no graded activity, and prints
+coverage per sub-level.
+
+```bash
+pnpm curriculum              # validate and report
+pnpm curriculum --audio      # also render any missing lines
+pnpm curriculum --next 10    # what to write next, in the profile's own order
+```
+
+`--next` exists so an author stops choosing what feels important. The profile
+is sub-levelled by teaching order; the command reads the top of what is still
+owed. Coverage went 67% → 81% of A1 by writing exactly what it named.
+
+The shape of this command is borrowed from Earthworm's course-data pipeline —
+a project that proved content belongs in the toolchain rather than in whoever
+last ran three scripts by hand. None of its code is used: it is AGPL-3.0 and
+this product does not open its source. Its gamification is deliberately not
+borrowed either. Points and leaderboards are seductive detail, and removing
+seductive detail is the largest effect in the multimedia-learning literature
+(g = 1.00): they hold attention and cost comprehension.
+
 ## Working alongside other agents
 
 More than one agent works in this repository, sometimes at the same time. All of

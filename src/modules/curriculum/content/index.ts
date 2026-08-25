@@ -17,6 +17,12 @@ import {
   A1_WHY_BECAUSE,
   A1_YESTERDAY,
 } from "./a1-core-2";
+import {
+  A1_COMPARING,
+  A1_DOING_NOW,
+  A1_HOW_MUCH,
+  A1_JOINING_IDEAS,
+} from "./a1-core-3";
 import { PRE_A1_INTRODUCE_YOURSELF } from "./pre-a1-introduce-yourself";
 import {
   PRE_A1_ASK_FOR_REPEAT,
@@ -47,6 +53,10 @@ const AUTHORED: readonly FoundationUnit[] = [
   A1_WHY_BECAUSE,
   A1_YESTERDAY,
   A1_HOW_OFTEN,
+  A1_JOINING_IDEAS,
+  A1_COMPARING,
+  A1_HOW_MUCH,
+  A1_DOING_NOW,
 ];
 
 export const FOUNDATION_UNITS: readonly FoundationUnit[] = AUTHORED.map(
