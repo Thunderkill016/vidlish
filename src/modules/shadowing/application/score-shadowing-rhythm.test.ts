@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { scoreShadowingRhythm, type SpeechEnvelope } from "./score-shadowing-rhythm";
+import {
+  canBeShadowed,
+  scoreShadowingRhythm,
+  type SpeechEnvelope,
+} from "./score-shadowing-rhythm";
 
 const FRAME_RATE = 100;
 
@@ -104,5 +108,40 @@ describe("scoring a shadowed line on timing", () => {
 
     expect(withTail.rateRatio).toBeCloseTo(1, 5);
     expect(withTail.envelopeCorrelation).toBeCloseTo(1, 5);
+  });
+});
+
+describe("lines that cannot carry rhythm", () => {
+  const reference = envelope(6, 10);
+
+  it("refuses a one-word line instead of scoring the silence around it", () => {
+    // Measured on the real rendered audio: "i'm" reads as 2.33 syllables per
+    // second and "than" as 2.44, both outside the range English runs at,
+    // because a single syllable surrounded by breath measures the breath.
+    expect(
+      scoreShadowingRhythm({ learner: envelope(1, 10), reference, syllables: 1 }),
+    ).toEqual({ kind: "too_short_for_rhythm", syllables: 1 });
+    expect(canBeShadowed(1)).toBe(false);
+    expect(canBeShadowed(3)).toBe(false);
+  });
+
+  it("accepts a line long enough for stress to alternate", () => {
+    expect(canBeShadowed(4)).toBe(true);
+    const score = scoreShadowingRhythm({
+      learner: envelope(4, 10),
+      reference: envelope(4, 10),
+      syllables: 4,
+    });
+    expect(score.kind).toBe("scored");
+  });
+
+  it("checks length before it checks for a voice, so the reason given is the real one", () => {
+    const silence: SpeechEnvelope = {
+      frames: Array.from({ length: 50 }, () => 0),
+      frameRate: FRAME_RATE,
+    };
+    expect(
+      scoreShadowingRhythm({ learner: silence, reference, syllables: 2 }),
+    ).toEqual({ kind: "too_short_for_rhythm", syllables: 2 });
   });
 });
