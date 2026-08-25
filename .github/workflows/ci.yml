@@ -188,7 +188,15 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
       - name: Run product journeys
-        run: pnpm test:e2e
+        run: pnpm test:e2e --grep-invert "survives a panel whose table is missing"
+      - name: Run the degraded-page journey
+        # A separate run because the fault has to be present when the server
+        # starts, and injecting it globally would make every other dashboard
+        # assertion see a degraded page. Same reason `durable_learning` is its
+        # own job.
+        env:
+          FAKE_SPEAKING_QUEUE_FAULT: missing_table
+        run: pnpm test:e2e --project=chromium tests/e2e/dashboard-degrades.spec.ts
       - name: Upload failure evidence
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
@@ -365,3 +373,67 @@ jobs:
               exit 1
             fi
           done
+
+  # Migrations reached production only when somebody remembered to run them by
+  # hand, and three times they were forgotten: `learning_item_states` on 19 Aug,
+  # `learner_known_words()` on 23 Aug, `learning_speaking_attempts` on 25 Aug.
+  # Each time a page the learner needed returned 500 and the only way anyone
+  # found out was the learner hitting the error screen.
+  #
+  # The `database` job already proves every migration applies to a clean
+  # Postgres. This carries the same migrations to production once, on main,
+  # after the whole gate is green — so the schema can no longer drift behind the
+  # code that was just deployed against it.
+  migrate_production:
+    name: Apply migrations to production
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs:
+      - gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Refuse to run without credentials
+        # Failing loudly beats a green job that silently applied nothing, which
+        # is indistinguishable from the drift this exists to stop.
+        env:
+          ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          PROJECT_REF: ${{ secrets.SUPABASE_PROJECT_REF }}
+          DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          missing=""
+          [ -z "$ACCESS_TOKEN" ] && missing="$missing SUPABASE_ACCESS_TOKEN"
+          [ -z "$PROJECT_REF" ] && missing="$missing SUPABASE_PROJECT_REF"
+          [ -z "$DB_PASSWORD" ] && missing="$missing SUPABASE_DB_PASSWORD"
+          if [ -n "$missing" ]; then
+            echo "Missing repository secrets:$missing" >&2
+            exit 1
+          fi
+      - name: Show what is pending before changing anything
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          supabase link --project-ref "${{ secrets.SUPABASE_PROJECT_REF }}"
+          supabase migration list --linked
+      - name: Apply
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: supabase db push --linked --include-all
+      - name: Prove production now matches the repository
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+        run: |
+          # A migration present locally with an empty Remote column means the
+          # push did not take, and the job must not go green on that.
+          if supabase migration list --linked | grep -qE '^\s+[0-9]{14}\s+\|\s+\|'; then
+            echo "Migrations are still pending after the push:" >&2
+            supabase migration list --linked >&2
+            exit 1
+          fi

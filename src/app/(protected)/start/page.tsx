@@ -5,6 +5,7 @@ import {
   readableSentenceCount,
 } from "@/adapters/vocabulary/beginner-sentence-catalogue";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
+import { readPanel } from "@/platform/reliability/read-panel";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
 import { Card } from "@/shared/ui/card";
 
@@ -17,10 +18,35 @@ export default async function StartPage() {
   const access = await (await createIdentityService()).resolveCurrentAccess();
   if (!access) redirect("/sign-in");
 
-  const known = await createBeginnerProgressRepository().knownWords(
-    access.userId,
+  // This one fails closed rather than degrading, and the difference matters.
+  // The dashboard can show an empty list when a panel is unreadable; this page
+  // cannot. Treating an unreadable evidence store as "knows nothing" would
+  // start teaching words the learner already produced and bank a second round
+  // of evidence for them — quietly corrupting the one record the whole product
+  // is built on. Refusing, with the reason on screen, is the honest outcome.
+  const knownRead = await readPanel("từ nền", () =>
+    createBeginnerProgressRepository().knownWords(access.userId),
   );
 
+  if (knownRead.kind === "unavailable") {
+    return (
+      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
+        <h1 className="text-2xl font-semibold">Chưa bắt đầu được lúc này</h1>
+        <Card className="flex flex-col gap-2" data-testid="start-unavailable">
+          <p className="text-sm">
+            Chưa đọc được số từ bạn đã học, nên buổi học chưa thể bắt đầu.
+          </p>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Sản phẩm không đoán bừa là bạn chưa biết gì: làm vậy sẽ dạy lại
+            những từ bạn đã nói ra được, và ghi đè lên chính bằng chứng đó. Thà
+            dừng lại còn hơn làm hỏng tiến độ của bạn.
+          </p>
+        </Card>
+      </main>
+    );
+  }
+
+  const known = knownRead.value;
   const knownSet = new Set(known);
   const readable = readableSentenceCount(knownSet);
   const corpus = beginnerSentenceCatalogueSize();
