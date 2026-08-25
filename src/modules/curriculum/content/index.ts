@@ -3,6 +3,12 @@ import {
   type FoundationUnit,
 } from "@/shared/contracts/curriculum";
 
+import {
+  A1_ASKING_WITH_BE,
+  A1_OTHER_PEOPLE,
+  A1_SAYING_NO,
+  A1_THIS_IS,
+} from "./a1-core";
 import { PRE_A1_INTRODUCE_YOURSELF } from "./pre-a1-introduce-yourself";
 import {
   PRE_A1_ASK_FOR_REPEAT,
@@ -23,6 +29,10 @@ const AUTHORED: readonly FoundationUnit[] = [
   PRE_A1_ASK_FOR_REPEAT,
   PRE_A1_SAY_WHAT_YOU_DO,
   PRE_A1_ASK_WHAT_IT_MEANS,
+  A1_THIS_IS,
+  A1_OTHER_PEOPLE,
+  A1_SAYING_NO,
+  A1_ASKING_WITH_BE,
 ];
 
 export const FOUNDATION_UNITS: readonly FoundationUnit[] = AUTHORED.map(

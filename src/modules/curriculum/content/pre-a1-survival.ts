@@ -30,6 +30,8 @@ export const PRE_A1_ASK_FOR_REPEAT: FoundationUnit = {
     { text: "slowly please", vi: "nói chậm thôi" },
   ],
   grammarFeatures: ["negative with don't"],
+  // CEFR-J: present negative with don't (A1.2), imperative (A1.1).
+  grammarCodes: ["TA.PRESENT.do.NEG", "IMP.V.AFF"],
   inputScenes: [
     { id: "repeat-fast", speaker: "Mai", text: "Sorry, I don't understand.", vi: "Xin lỗi, tôi không hiểu." },
     { id: "repeat-ask", speaker: "Mai", text: "Again please.", vi: "Nói lại giúp tôi." },
@@ -137,6 +139,8 @@ export const PRE_A1_SAY_WHAT_YOU_DO: FoundationUnit = {
     { text: "what do you do", vi: "bạn làm nghề gì" },
   ],
   grammarFeatures: ["present simple for habits", "be + -ing for now"],
+  // CEFR-J: present simple and its question form, present progressive, S+V+O.
+  grammarCodes: ["TA.PRESENT.do.AFF", "TA.PRESENT.do.INT.AFF", "TA.PRPRG.AFF", "VP.SVO.AFF"],
   inputScenes: [
     { id: "do-ask", speaker: "Anna", text: "What do you do?", vi: "Bạn làm nghề gì?" },
     { id: "do-answer", speaker: "Hoang", text: "I write code.", vi: "Tôi viết code." },
@@ -240,6 +244,8 @@ export const PRE_A1_ASK_WHAT_IT_MEANS: FoundationUnit = {
     { text: "how do you say", vi: "nói thế nào" },
   ],
   grammarFeatures: ["wh- question with do/does"],
+  // CEFR-J A1.1: third-person present, How ...?
+  grammarCodes: ["TA.PRESENT.does.AFF", "INT.how"],
   inputScenes: [
     { id: "mean-ask", speaker: "Mai", text: "What does it mean?", vi: "Nó nghĩa là gì?" },
     { id: "mean-idk", speaker: "Tom", text: "I don't know.", vi: "Tôi không biết." },

@@ -101,7 +101,20 @@ export const foundationUnitSchema = z
     /** Unit ids that must be evidenced first. Never "units completed". */
     prerequisites: z.array(z.string()).max(8),
     targetChunks: z.array(chunkSchema).min(1).max(12),
+    /**
+     * Free-text notes for a reader. Not checkable against anything.
+     */
     grammarFeatures: z.array(z.string().min(1).max(80)).max(8),
+    /**
+     * Which items of the published CEFR-J grammar inventory this unit teaches.
+     *
+     * `grammarFeatures` held phrases like `negative with don't`, which reads
+     * well and can be compared with nothing — so "does this course cover A1?"
+     * had no answer. These are shorthand codes from the CEFR-J Grammar Profile,
+     * and a test both rejects a code that does not exist and prints the share
+     * of the A1 inventory the syllabus actually reaches.
+     */
+    grammarCodes: z.array(z.string().min(1).max(40)).max(12).default([]),
     inputScenes: z.array(sceneSchema).min(2).max(20),
     activities: z.array(curriculumActivitySchema).min(3).max(24),
     evidenceCriteria: z.array(evidenceCriterionSchema).min(1).max(12),

@@ -23,6 +23,8 @@ export const PRE_A1_INTRODUCE_YOURSELF: FoundationUnit = {
     { text: "i'm", vi: "tôi là" },
   ],
   grammarFeatures: ["be + noun in first person"],
+  // CEFR-J A1.1: I am, What ...?, my/your.
+  grammarCodes: ["PP.I_am", "INT.what", "PGEN"],
   inputScenes: [
     { id: "scene-hello-anna", speaker: "Anna", text: "Hi, I'm Anna.", vi: "Chào, tôi là Anna." },
     {
