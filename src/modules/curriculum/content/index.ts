@@ -9,6 +9,14 @@ import {
   A1_SAYING_NO,
   A1_THIS_IS,
 } from "./a1-core";
+import {
+  A1_CAN,
+  A1_HOW_OFTEN,
+  A1_THERE_IS,
+  A1_WANT_TO,
+  A1_WHY_BECAUSE,
+  A1_YESTERDAY,
+} from "./a1-core-2";
 import { PRE_A1_INTRODUCE_YOURSELF } from "./pre-a1-introduce-yourself";
 import {
   PRE_A1_ASK_FOR_REPEAT,
@@ -33,6 +41,12 @@ const AUTHORED: readonly FoundationUnit[] = [
   A1_OTHER_PEOPLE,
   A1_SAYING_NO,
   A1_ASKING_WITH_BE,
+  A1_CAN,
+  A1_THERE_IS,
+  A1_WANT_TO,
+  A1_WHY_BECAUSE,
+  A1_YESTERDAY,
+  A1_HOW_OFTEN,
 ];
 
 export const FOUNDATION_UNITS: readonly FoundationUnit[] = AUTHORED.map(

@@ -5,6 +5,11 @@ import { classifyLearningReviewQueue } from "@/modules/learning/application/clas
 import { studyCompletionPercent } from "@/modules/study/application/score-study-progress";
 import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
+import {
+  panelValue,
+  readPanel,
+  unavailablePanels,
+} from "@/platform/reliability/read-panel";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
 import { createLearningReviewRepository } from "@/platform/learning/create-learning-session-repository";
 import { createLearningSpeakingReviewQueueReader } from "@/platform/learning/create-learning-speaking-review-queue-reader";
@@ -38,26 +43,63 @@ export default async function DashboardPage() {
     transcriptRuntime.repository,
   );
 
+  // Six independent reads. They used to share one Promise.all, so a single
+  // missing table returned 500 for the whole page and the learner could not get
+  // in at all — which is exactly what happened when the speaking-attempts table
+  // had never been migrated to production. Each read now fails on its own and
+  // says so, both in the logs and on the page.
   const [
-    lessons,
-    activeJobs,
-    progressSummaries,
-    scheduledReviews,
-    knownWords,
-    speakingQueue,
+    lessonsRead,
+    activeJobsRead,
+    progressRead,
+    scheduledRead,
+    knownWordsRead,
+    speakingRead,
+    todaysActionRead,
   ] = await Promise.all([
-    lessonRepository.listOwned(access.userId),
-    generationRepository.listActiveOwned(access.userId),
-    createStudyProgressRepository(lessonRepository).listOwnedSummaries(
-      access.userId,
+    readPanel("thư viện bài học", () => lessonRepository.listOwned(access.userId)),
+    readPanel("bài đang tạo", () =>
+      generationRepository.listActiveOwned(access.userId),
     ),
-    createLearningReviewRepository().listScheduled(access.userId),
-    createBeginnerProgressRepository().knownWords(access.userId),
-    createLearningSpeakingReviewQueueReader().read(access.userId),
+    readPanel("tiến độ bài học", () =>
+      createStudyProgressRepository(lessonRepository).listOwnedSummaries(
+        access.userId,
+      ),
+    ),
+    readPanel("lịch ôn", () =>
+      createLearningReviewRepository().listScheduled(access.userId),
+    ),
+    readPanel("từ nền", () =>
+      createBeginnerProgressRepository().knownWords(access.userId),
+    ),
+    readPanel("hàng chờ luyện nói", () =>
+      createLearningSpeakingReviewQueueReader().read(access.userId),
+    ),
+    // One question drives the page. Everything below it is detail on the answer.
+    readPanel("việc hôm nay", () => resolveTodaysAction(access.userId)),
   ]);
 
-  // One question drives the page. Everything below it is detail on the answer.
-  const todaysAction = await resolveTodaysAction(access.userId);
+  const lessons = panelValue(lessonsRead, []);
+  const activeJobs = panelValue(activeJobsRead, []);
+  const progressSummaries = panelValue(progressRead, []);
+  const scheduledReviews = panelValue(scheduledRead, []);
+  const knownWords = panelValue(knownWordsRead, []);
+  const speakingQueue = panelValue(speakingRead, { due: [], upcoming: null });
+  // Deliberately not defaulted to "rest". Falling back to "nothing due today"
+  // would answer the page's only question with a guess, and the learner would
+  // read it as "you are done" on a day the product simply could not tell.
+  const todaysAction =
+    todaysActionRead.kind === "ready" ? todaysActionRead.value : null;
+
+  const broken = unavailablePanels([
+    lessonsRead,
+    activeJobsRead,
+    progressRead,
+    scheduledRead,
+    knownWordsRead,
+    speakingRead,
+    todaysActionRead,
+  ]);
 
   const progressByJobId = new Map(
     progressSummaries.map((summary) => [summary.jobId, summary]),
@@ -117,7 +159,36 @@ export default async function DashboardPage() {
         </Link>
       </div>
 
-      <TodaysAction action={todaysAction} />
+      {broken.length > 0 ? (
+        <Card
+          className="border-[var(--danger,#9a4a2f)] bg-[var(--danger-wash,#f8ebe5)]"
+          data-testid="dashboard-degraded"
+        >
+          <p className="text-sm font-semibold">
+            {broken.length} phần của trang này đang không đọc được.
+          </p>
+          <p className="mt-1 text-sm">
+            Phần còn lại vẫn dùng bình thường. Những phần lỗi:{" "}
+            {broken.map((panel) => panel.panel).join(", ")}. Sản phẩm không giấu
+            lỗi và cũng không lấy nó làm lý do để chặn bạn học.
+          </p>
+        </Card>
+      ) : null}
+
+      {todaysAction ? (
+        <TodaysAction action={todaysAction} />
+      ) : (
+        <Card className="flex flex-col gap-2" data-testid="todays-action-unavailable">
+          <p className="text-sm font-semibold">
+            Chưa xác định được việc hôm nay.
+          </p>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Không phải là hôm nay bạn không có gì để làm — là sản phẩm chưa đọc
+            được tiến độ của bạn để quyết định. Nói &ldquo;nghỉ đi&rdquo; lúc này
+            sẽ là nói dối.
+          </p>
+        </Card>
+      )}
 
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.5fr)_minmax(300px,0.85fr)]">
         {continueRow ? (
