@@ -149,12 +149,27 @@ async function fullText(id) {
     return;
   }
 
-  const response = await fetch(pdf, { headers: { "User-Agent": "Mozilla/5.0" } });
-  if (!response.ok) {
-    console.log(`Không tải được (${response.status}): ${pdf}`);
+  // The API calls are retried; this one is not, because it goes to whichever
+  // repository happens to host the paper — a university server that may simply
+  // be down. Letting that throw killed a whole batch download, so it reports
+  // and moves on instead.
+  let bytes;
+  try {
+    const response = await fetch(pdf, {
+      headers: { "User-Agent": "Mozilla/5.0" },
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!response.ok) {
+      console.log(`Không tải được (${response.status}): ${pdf}`);
+      return;
+    }
+    bytes = Buffer.from(await response.arrayBuffer());
+  } catch (error) {
+    const why = error instanceof Error ? error.message : String(error);
+    console.log(`Máy chủ chứa bài không phản hồi (${why}): ${pdf}`);
+    console.log(`  DOI để tra tay: ${work.doi ?? "(không có)"}`);
     return;
   }
-  const bytes = Buffer.from(await response.arrayBuffer());
   const isPdf = bytes.subarray(0, 4).toString() === "%PDF";
   writeFileSync(`${stem}${isPdf ? ".pdf" : ".html"}`, bytes);
 

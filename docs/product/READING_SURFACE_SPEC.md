@@ -22,6 +22,40 @@ statistically significant relationship between comprehension and the density of
 unknown words at all. The question a reading product answers is not "can they
 read this alone" but "can they read this *here*".
 
+## What reading the sources themselves changed
+
+Everything above this section came from web-search summaries. Reading the papers
+turned up three things no summary carried, and two of them move the design.
+
+**The 95% threshold was never a threshold for reading alone.** Laufer and
+Ravenhorst-Kalovski name two: an *optimal* threshold of 8,000 word families
+giving 98% coverage, and a *minimal* one of 4,000–5,000 families giving 95%. And
+the minimal threshold, in their own words, "enables learners to read **with some
+guidance**, and leads to independent reading after 56 academic hours."
+
+So 95% is where a learner can read *with help*. This product's help is a tap that
+gives a Vietnamese meaning and the sound. The threshold the surface has to clear
+is lower than 95%, not equal to it.
+
+**Vocabulary growth helps comprehension even when coverage does not move.**
+Their result: "small increments of vocabulary knowledge contribute to reading
+comprehension even though they hardly improve text coverage." Coverage is a
+coarse instrument that understates what learning a word is worth. A product that
+gated reading on a coverage percentage would be withholding a benefit its own
+metric cannot see.
+
+**Video is a poor first step for a beginner, and now there is a number.**
+Peters and Webb measured incidental vocabulary from watching one full-length TV
+programme: the experimental group learned **4 words on average** (+8.31%) against
+1.5 for controls — significant, F(1,60) = 15.99, p < .0001, with viewing
+explaining 21% of variance.
+
+Four words per episode. And gains rose with prior vocabulary knowledge:
+high-proficiency learners learned significantly more than low-proficiency ones.
+Video rewards the vocabulary you already have, which is exactly what a beginner
+does not have. **Reading with glosses first, video second** — the ordering was a
+hunch before this paragraph and is a measurement after it.
+
 ## Seven decisions the evidence makes for us
 
 ### 1. Vietnamese glosses, not English definitions
