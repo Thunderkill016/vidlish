@@ -1,0 +1,667 @@
+[
+  {
+    "code": "CC",
+    "item": "COORDINATING CONJUNCTIONS",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "CL_after.etc",
+    "item": "SUBORDINATE CLAUSE: after/albeit/although/because/before/despite/except/for/lest/like/once/since/so/than/though/till/unless/until/where/whereas/wheresoever/whether/while/whilst tagged as IN",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "COMP.JJS.RBS.est",
+    "item": "SUPERLATIVE OF SUPERIORITY: -est",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "DT.a.an",
+    "item": "INDEFINITE ARTICLES",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "DT.some.any",
+    "item": "DETERMINERS: some/any",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "DT.the",
+    "item": "DEFINITE ARTICLES",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "DT.this.that_is",
+    "item": "This/That is",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "IMP.V.AFF",
+    "item": "IMPERATIVE: AFFIRMATIVE (lexical verbs)",
+    "sentenceType": "AFF. IMP.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "IN.PREP.GENERAL",
+    "item": "PREPOSITIONS",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "INT.how",
+    "item": "WH- QUESTION: How ...?",
+    "sentenceType": "AFF. INT./NEG. INT.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "INT.how_JJ.RB",
+    "item": "WH- QUESTION: How ADJ/ADV ...?",
+    "sentenceType": "AFF. INT./NEG. INT.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "INT.what",
+    "item": "WH- QUESTION: What ...?",
+    "sentenceType": "AFF. INT./NEG. INT.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PGEN",
+    "item": "my/our/your/her/their (except for 'his' and 'its')",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PHV.V_PART",
+    "item": "PHRASAL VERBS (V+PARTICLE)",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PP.he.she_is",
+    "item": "he/she is",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PP.I_am",
+    "item": "I am",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PP.I_am_not",
+    "item": "I am not",
+    "sentenceType": "NEG. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PP.it_is",
+    "item": "It is",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PP.they_are",
+    "item": "they are",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PP.we_are",
+    "item": "we are",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PPO",
+    "item": "me/us/him/her/them (except for 'you' and 'it')",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PREL.that",
+    "item": "NOMINATIVE RELATIVE PRONOUN:",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PRELO.OMIT",
+    "item": "ELLIPTICAL ACCUSATIVE RELATIVE PRONOUN",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "PREP.STRAND",
+    "item": "PREPOSITION STRANDING",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "RB.INT",
+    "item": "ADVERBS: INTENSIFIERS: extremely/greatly/really/so/terribly/too/unbelievably/very",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "TA.PRESENT.be.AFF",
+    "item": "TENSE/ASPECT: PRESENT (BE)",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "TA.PRESENT.be.INT.AFF",
+    "item": "TENSE/ASPECT: PRESENT (BE)",
+    "sentenceType": "AFF. INT.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "TA.PRESENT.be.NEG",
+    "item": "TENSE/ASPECT: PRESENT (BE)",
+    "sentenceType": "NEG. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "TA.PRESENT.do.AFF",
+    "item": "TENSE/ASPECT: PRESENT (lexical verbs)",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "TA.PRESENT.does.AFF",
+    "item": "TENSE/ASPECT: PRESENT (lexical verbs; third person & singular)",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "TO.to_do",
+    "item": "TO-INFINITIVE: to DO (not preceded by 'not')",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "VG",
+    "item": "V-ING (not preceded by 'not')",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "VP.SVO.AFF",
+    "item": "SENTENCE PATTERN: SUBJECT+V+OBJECT",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.1"
+  },
+  {
+    "code": "CL.that.OMIT",
+    "item": "hope/know/think+CLAUSE (without 'that')",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "CL.when",
+    "item": "ADVERBIAL CLAUSE: when",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "DT.no",
+    "item": "DETERMINER: no",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "EX.there.AFF",
+    "item": "there+be",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "INT.why",
+    "item": "WH- QUESTION: Why ...?",
+    "sentenceType": "AFF. INT./NEG. INT.",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "MD.can.AFF",
+    "item": "MODAL/AUX: can",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "MD.can.INT.AFF",
+    "item": "MODAL/AUX: can",
+    "sentenceType": "AFF. INT.",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "PASS.PRESENT",
+    "item": "PASSIVE: PRESENT",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "PHV.V_PART_PREP",
+    "item": "PHRASAL VERBS (V+PARTICLE+PREP+NP)",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "PIND.nobody.anything.etc",
+    "item": "INDEFINITE PRONOUNS",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "RB.FRQ",
+    "item": "ADVERBS OF FREQUENCY: always/usually/often/frequently/occasionally/sometimes/rarely",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "RB.NEG",
+    "item": "ADVERBS OF NEGATION: never",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "TA.PRESENT.do.INT.AFF",
+    "item": "TENSE/ASPECT: PRESENT (lexicalverbs)",
+    "sentenceType": "AFF. INT.",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "TA.PRESENT.do.NEG",
+    "item": "TENSE/ASPECT: PRESENT (lexical verbs)",
+    "sentenceType": "NEG. DEC.",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "TO.VV_NP_to_do",
+    "item": "VERB OBJECT to DO",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "TO.VV_to_do",
+    "item": "VERB to DO",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "VG.N_VG",
+    "item": "POSTMODIFYING PRESENT",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "VG.VV_VG",
+    "item": "VERB V-ING",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "VP.SVO.INT.AFF",
+    "item": "SENTENCE PATTERN: SUBJECT+V+OBJECT",
+    "sentenceType": "AFF. INT.",
+    "band": "A1",
+    "level": "A1.2"
+  },
+  {
+    "code": "COMP.JJR.RBR.er",
+    "item": "COMPARATIVE OF SUPERIORITY: -er",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "IMP.let's_V.AFF",
+    "item": "let's (not followed by 'not')",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "INT.where",
+    "item": "WH- QUESTION: Where ...?",
+    "sentenceType": "AFF. INT./NEG. INT.",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "PP.are_you",
+    "item": "Are you ...?",
+    "sentenceType": "AFF. INT.",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "PREL.who",
+    "item": "NOMINATIVE RELATIVE PRONOUN: who",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "TA.PAST.be.AFF",
+    "item": "TENSE/ASPECT: PAST (BE)",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "TA.PAST.do.AFF",
+    "item": "TENSE/ASPECT: PRESENT (lexical verbs)",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "TA.PRPRG.AFF",
+    "item": "TENSE/ASPECT: PRESENT PROGRESSIVE",
+    "sentenceType": "AFF. DEC.",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "VG.PREP_VG",
+    "item": "PREP+V-ING",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "VN.N_VN",
+    "item": "POSTMODIFYING PAST PARTICIPLE",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "VN.VN_N",
+    "item": "PREMODIFYING PAST PARTICIPLE",
+    "sentenceType": "",
+    "band": "A1",
+    "level": "A1.3"
+  },
+  {
+    "code": "MD.need.AFF",
+    "item": "MODAL/AUX: need (to)",
+    "sentenceType": "A2.2",
+    "band": "A2",
+    "level": "A2"
+  },
+  {
+    "code": "CAUS.have.let.make",
+    "item": "HAVE/LET/MAKE+NP+INFINITIVE",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "CL.as",
+    "item": "ADVERBIAL CLAUSE: as",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "CL.if",
+    "item": "ADVERBIAL CLAUSE: if",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "CL.that.OBJ",
+    "item": "V+that+CLAUSE",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "COMP.JJS.RBS.most",
+    "item": "SUPERLATIVE OF SUPERIORITY: most+ADJ/ADV",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "DT.another",
+    "item": "DETERMINER: another",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "DT.this.that_N",
+    "item": "This/That N",
+    "sentenceType": "AFF. DEC./NEG. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "INDQ.know.etc",
+    "item": "INDIRECT QUESTION: DECIDE/EXPLAIN/KNOW/LEARN/SEE/UNDERSTAND/WONDER",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "INTF.can_you",
+    "item": "FUNCTIONAL QUESTION: Can you ...?",
+    "sentenceType": "AFF. INT.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "MD.should.AFF",
+    "item": "MODAL/AUX: should",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "MD.would.AFF",
+    "item": "MODAL/AUX: would",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "PASS.PAST.AFF",
+    "item": "PASSIVE: PAST",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "PHV.V_NP_PART",
+    "item": "PHRASAL VERBS (V+NP+PARTICLE)",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "PIND.ones",
+    "item": "INDEFINITE PRONOUN/PROP-WORDS: ones (except for 'one')",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "PREL.what",
+    "item": "COMPOUND RELATIVE PRONOUN:",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "RBREL",
+    "item": "RELATIVE ADVERB: WITH",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "TA.FUT.AFF",
+    "item": "TENSE/ASPECT: FUTURE",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "TA.PAST.be.NEG",
+    "item": "TENSE/ASPECT: PAST (BE)",
+    "sentenceType": "NEG. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "TA.PAST.do.INT.AFF",
+    "item": "TENSE/ASPECT: PRESENT (lexical verbs)",
+    "sentenceType": "AFF. INT.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "TA.PAST.do.NEG",
+    "item": "TENSE/ASPECT: PRESENT (lexical verbs)",
+    "sentenceType": "NEG. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "TA.PASTPRG.AFF",
+    "item": "TENSE/ASPECT: PAST PROGRESSIVE",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "TA.PRPF.AFF",
+    "item": "TENSE/ASPECT: PRESENT PERFECT",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "VG.VG_N",
+    "item": "PREMODIFYING PRESENT PARTICIPLE",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "VP.SVO.NEG",
+    "item": "SENTENCE PATTERN: SUBJECT+V+OBJECT",
+    "sentenceType": "NEG. DEC.",
+    "band": "A2",
+    "level": "A2.1"
+  },
+  {
+    "code": "COMP.JJR.RBR.more",
+    "item": "COMPARATIVE OF SUPERIORITY: more+ADJ/ADV",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.2"
+  },
+  {
+    "code": "INDSP.explain.report.say",
+    "item": "INDIRECT SPEECH: SAY/EXPLAIN/REPORT",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.2"
+  },
+  {
+    "code": "MD.be_going_to.AFF",
+    "item": "MODAL/AUX: be going to",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.2"
+  },
+  {
+    "code": "MD.have_to.AFF",
+    "item": "MODAL/AUX: have to",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.2"
+  },
+  {
+    "code": "MD.will.AFF",
+    "item": "MODAL/AUX: will",
+    "sentenceType": "AFF. DEC.",
+    "band": "A2",
+    "level": "A2.2"
+  },
+  {
+    "code": "QUANT.much",
+    "item": "much UNCOUNTABLE NOUN",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.2"
+  },
+  {
+    "code": "VG.VV_NP_VG",
+    "item": "VERB OBJECT V-ING",
+    "sentenceType": "",
+    "band": "A2",
+    "level": "A2.2"
+  }
+]
