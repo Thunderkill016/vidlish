@@ -9,7 +9,11 @@ import { readPanel } from "@/platform/reliability/read-panel";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
 import { Card } from "@/shared/ui/card";
 
+import { FOUNDATION_UNITS } from "@/modules/curriculum/content";
+import { courseMap } from "@/modules/curriculum/application/course-map";
+
 import { BeginnerSession } from "./_components/beginner-session";
+import { CourseRoadmap } from "./_components/course-roadmap";
 import { CalibrationCheck } from "./_components/calibration-check";
 
 export const dynamic = "force-dynamic";
@@ -49,6 +53,7 @@ export default async function StartPage() {
   const known = knownRead.value;
   const knownSet = new Set(known);
   const readable = readableSentenceCount(knownSet);
+  const map = courseMap(FOUNDATION_UNITS, knownSet);
   const corpus = beginnerSentenceCatalogueSize();
 
   return (
@@ -98,6 +103,12 @@ export default async function StartPage() {
       {/* Only once there is something real to ask about: a check made entirely
           of nonwords measures nothing. */}
       {known.length > 0 ? <CalibrationCheck /> : null}
+
+      {/* The work for right now stays at the top — one thing at a time is the
+          segmenting principle, and it is why this page opens with a single
+          activity. The road goes below it, because a learner who cannot see
+          the road cannot tell progress from repetition. */}
+      <CourseRoadmap map={map} />
     </main>
   );
 }

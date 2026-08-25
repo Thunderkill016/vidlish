@@ -87,3 +87,20 @@ test("a word tapped while reading can be put on the review calendar", async ({
   // told a word is coming back when it is not.
   await expect(page.getByTestId("reading-save-result")).toBeVisible();
 });
+
+test("the roadmap page actually shows the road", async ({ page }, testInfo) => {
+  await signIn(page, `roadmap-${testInfo.project.name}@example.com`);
+  await page.goto("/start");
+
+  // The page was named "Lộ trình" and showed a heading, two counters and one
+  // exercise. Thirty authored units existed and the learner could not see one.
+  const roadmap = page.getByTestId("course-roadmap");
+  await expect(roadmap).toBeVisible();
+  expect(await roadmap.locator("li").count()).toBeGreaterThanOrEqual(30);
+
+  // Exactly one unit is where the learner stands, so "where am I" has an answer.
+  await expect(page.getByTestId("roadmap-unit-current")).toHaveCount(1);
+
+  // A unit is named by what it makes you able to do, not by its grammar.
+  await expect(roadmap.getByText(/^Bài 1 ·/)).toBeVisible();
+});
