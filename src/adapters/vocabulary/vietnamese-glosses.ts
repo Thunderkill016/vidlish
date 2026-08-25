@@ -1,3 +1,4 @@
+import { AUTHORED_GLOSSES } from "./authored-glosses";
 import glosses from "./vietnamese-glosses.json";
 
 /**
@@ -19,9 +20,14 @@ import glosses from "./vietnamese-glosses.json";
 const GLOSSES = glosses as Record<string, readonly string[]>;
 
 export function vietnameseGlossFor(word: string): readonly string[] | null {
-  return GLOSSES[word.toLocaleLowerCase("en-US")] ?? null;
+  const key = word.toLocaleLowerCase("en-US");
+  // Authored first. Where a person has written the meaning of a word the
+  // learner meets in their first week, that beats whatever the scrape found —
+  // the scrape returned the alphabet letter for `i` and the unit of area for
+  // `are`, and a beginner has no way to notice either.
+  return AUTHORED_GLOSSES[key] ?? GLOSSES[key] ?? null;
 }
 
 export function glossedWordCount(): number {
-  return Object.keys(GLOSSES).length;
+  return new Set([...Object.keys(GLOSSES), ...Object.keys(AUTHORED_GLOSSES)]).size;
 }
