@@ -55,18 +55,18 @@
     "@tailwindcss/postcss": "4.3.3",
     "@testing-library/jest-dom": "6.9.1",
     "@testing-library/react": "16.3.2",
-    "@testing-library/user-event": "14.6.1",
+    "@testing-library/user-event": "14.6.6",
     "@types/node": "24.3.0",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",
     "cmu-pronouncing-dictionary": "^3.0.0",
     "eslint": "9.39.3",
-    "eslint-config-next": "16.2.12",
+    "eslint-config-next": "16.3.2",
     "jsdom": "27.0.0",
     "kokoro-js": "^1.2.1",
-    "postcss": "8.5.25",
+    "postcss": "8.5.26",
     "tailwindcss": "4.3.3",
     "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.11"
   }
 }
