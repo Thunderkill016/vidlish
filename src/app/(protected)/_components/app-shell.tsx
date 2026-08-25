@@ -6,6 +6,7 @@ import type { ReactNode } from "react";
 import {
   BookOpenCheck,
   ChartNoAxesCombined,
+  Ear,
   Home,
   LibraryBig,
   RefreshCcw,
@@ -16,6 +17,7 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Hôm nay", icon: Home, match: ["/dashboard"] },
   { href: "/start", label: "Lộ trình", icon: BookOpenCheck, match: ["/start"] },
   { href: "/review", label: "Ôn tập", icon: RefreshCcw, match: ["/review", "/learning-lab/v2"] },
+  { href: "/listen", label: "Luyện tai", icon: Ear, match: ["/listen"] },
   { href: "/library", label: "Thư viện", icon: LibraryBig, match: ["/library", "/lessons"] },
   { href: "/progress", label: "Tiến bộ", icon: ChartNoAxesCombined, match: ["/progress"] },
 ] as const;
