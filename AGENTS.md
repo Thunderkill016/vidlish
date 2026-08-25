@@ -127,6 +127,23 @@ today's worst damage came from that and none of it came from bad code.
   that way. AGENTS.md is an open specification, read by more than twenty coding
   agents; a rule that lives in only one of them is a rule the next agent breaks.
 
+## Writing a specification
+
+Two rules taken from FreeLingo's spec set, because both fix a way agents here
+have actually gone wrong. `docs/product/REPO_SURVEY.md` records what else was
+looked at and rejected.
+
+- **Name the files the spec governs.** Put an `applyTo` line in the frontmatter
+  listing the paths. An agent opening a file should be able to find the spec
+  that binds it without reading every spec.
+- **Write `Out of scope` and mean it.** A spec that lists only what to build
+  leaves the boundary to whoever reads it next, and they will widen it. Every
+  spec here says what it deliberately does not do.
+
+Keep history separate from current state. Feature specs record how something
+came to be built; one document per domain says how it works *today* and is the
+one to trust when they disagree.
+
 ## Shipping means it reaches the learner
 
 A merge is not a delivery. Each of these has failed in production here:
