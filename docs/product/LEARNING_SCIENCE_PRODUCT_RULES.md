@@ -305,6 +305,38 @@ numbers below come from single-group designs and are marked so.
 | Formulaic chunks → fewer pauses | β = .40, R² = .16 | single study | no |
 | Written corrective feedback, *unfocused* | g = 0.33 | meta-analysis | deliberately not |
 
+## The training audio carries the distinction it trains
+
+Everything about the pronunciation trainer can be right — pairs verified against
+CMUdict, four genuinely different voices, an audibility guard on every file —
+and it can still be worthless if the speech model pronounced "pin" and "bin" the
+same way. Nothing in the pipeline would notice: both files exist, both are
+audible, both differ because they are different words.
+
+English lengthens the vowel before a voiced final consonant, by roughly
+50-100 ms. Measuring only the time the speaker was actually making sound:
+
+| Contrast | Voiced-final word longer | Mean difference |
+| --- | --- | --- |
+| final /t/-/d/ | 17 of 20 | +59 ms |
+| final /k/-/g/ | 11 of 12 | +112 ms |
+| final /s/-/z/ | 10 of 12 | +56 ms |
+| **final /s/-/th/** | **0 of 12** | **-47 ms** |
+
+The last row is what makes this evidence rather than a comfortable number.
+/s/-/th/ is voiceless against voiceless, so phonetics predicts *no* length
+difference — and there is none, in the wrong direction, every time. A measure
+that finds its effect everywhere is measuring its own wishful thinking; one that
+finds it only where it should be is measuring the thing.
+
+**And the first version of this measurement was wrong.** It took duration from
+the WAV data chunk, which includes the silence Kokoro pads its output with —
+"pin", "bin" and "mouse" all come back at exactly 64844 bytes. Re-measured on
+voiced time only, the conclusion held and the numbers moved: +70/+162/+90 became
++59/+112/+56, and the control group went from 1 of 12 to 0 of 12. Recorded
+because the failure is general: a duration read off a file is not a duration of
+speech.
+
 ## Why learners quit, and why a streak is the wrong answer
 
 This is the failure mode that beats every effect size in this document: a method
