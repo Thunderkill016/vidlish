@@ -359,6 +359,24 @@ export default async function DashboardPage() {
           </Card>
         )}
 
+        {/* The mobile bottom bar is a five-column grid and full, so this is how
+            Luyện tai reaches a learner on a phone. A page nobody can find has
+            not shipped, whatever the test suite says about it. */}
+        <Card className="space-y-3" data-testid="listen-entry">
+          <p className="text-sm font-semibold text-[var(--accent)]">Luyện tai</p>
+          <h2 className="text-lg font-bold">Nghe ra những âm tiếng Việt không có</h2>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Có những âm tiếng Anh tai bạn chưa tách ra được, không phải vì nghe
+            kém mà vì tiếng Việt không dùng đến chúng. Mỗi lượt vài phút.
+          </p>
+          <Link
+            href="/listen"
+            className="inline-flex min-h-10 items-center text-sm font-semibold text-[var(--primary)]"
+          >
+            Luyện nghe phân biệt âm →
+          </Link>
+        </Card>
+
         <Card className="space-y-3">
           <p className="text-sm font-semibold text-[var(--accent)]">Thư viện</p>
           <h2 className="text-lg font-bold">Quay lại bài cũ bất cứ lúc nào</h2>

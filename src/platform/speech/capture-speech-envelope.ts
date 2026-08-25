@@ -70,7 +70,13 @@ export async function captureSpeechEnvelope(
     const media = navigator.mediaDevices;
     if (!media?.getUserMedia) return null;
     try {
-      stream = await media.getUserMedia({ audio: true });
+      // Echo cancellation on by default: every caller of this measures a voice
+      // while something else may be playing, and speaker bleed would be scored
+      // as the speaker's own rhythm. Noise suppression stays off — it reshapes
+      // the amplitude envelope, which is the signal being measured.
+      stream = await media.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: false },
+      });
     } catch {
       // Denied, or no device. Both mean the same thing to the caller.
       return null;

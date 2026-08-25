@@ -138,7 +138,19 @@ export function ShadowingBlock({
 
     let stream: MediaStream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream = await navigator.mediaDevices.getUserMedia({
+        // Shadowing means speaking *while* the model plays, so the speakers are
+        // live in the same room as the microphone. Without cancellation the
+        // recording contains the model's own voice, and the rhythm score then
+        // measures the reference against a copy of itself — which fails in the
+        // one direction this product must never fail in: it makes the learner
+        // look like they tracked perfectly when they did not.
+        //
+        // Browser echo cancellation is built for exactly this. It is not
+        // perfect, which is why the screen also asks for headphones: with them
+        // the problem does not arise at all.
+        audio: { echoCancellation: true, noiseSuppression: false },
+      });
     } catch {
       setMeasurement({
         kind: "no_microphone",
@@ -271,6 +283,10 @@ function MeasuredStage({
       <div className="flex flex-col gap-2">
         <p className="text-sm">
           Bấm bắt đầu, nghe và nói theo ngay. Bấm xong khi câu kết thúc.
+        </p>
+        <p className="text-xs text-[var(--muted-foreground)]">
+          Nên đeo tai nghe. Không có tai nghe thì micro thu cả tiếng đọc mẫu
+          phát ra loa, và phần đo nhịp sẽ đẹp hơn thực tế.
         </p>
         <Button onClick={onStart}>Bắt đầu nói theo</Button>
       </div>
