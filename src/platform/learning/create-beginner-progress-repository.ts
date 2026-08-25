@@ -33,6 +33,14 @@ export async function createBeginnerProgressRepository(): Promise<BeginnerProgre
   // track would be denied in production — and CI would not notice, because it
   // runs the fake repository.
   //
+  // The same branch also edited an already-applied migration to add
+  // `and owner_user_id = auth.uid()` to `learner_known_words`. Two faults in
+  // one line: a migration that has run in production never runs again, so the
+  // change would only ever exist in fresh databases; and with the admin client
+  // `auth.uid()` is null, so the function returns nothing and every word the
+  // learner has produced disappears. Reverted, with the ownership property it
+  // was reaching for kept on the list below.
+  //
   // Moving to the session client is real work with its own migration and pgTAP:
   // widen the grants, prove the policies, prove a learner cannot write another
   // learner's row. Until then the admin client stays, and the ownership check

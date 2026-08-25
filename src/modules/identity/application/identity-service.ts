@@ -62,6 +62,26 @@ export class IdentityService {
     }
   }
 
+  /**
+   * Sends a learner a link to set a password.
+   *
+   * Deliberately returns nothing and throws nothing for an unknown address: the
+   * caller is anonymous, and a different answer for a known address would let
+   * anyone test a list of emails against this product.
+   */
+  async sendPasswordReset(email: string, redirectTo: string): Promise<void> {
+    try {
+      await this.provider.sendPasswordReset(email, redirectTo);
+    } catch (error) {
+      const productError = toProductError(error);
+      // Rate limiting is real and worth telling the caller about. Everything
+      // else is answered as success for the reason above.
+      if (productError instanceof ProductError && productError.code === "AUTH_RATE_LIMITED") {
+        throw productError;
+      }
+    }
+  }
+
   async signUpWithPassword(
     command: SignUpWithPasswordCommand,
     emailRedirectTo: string,

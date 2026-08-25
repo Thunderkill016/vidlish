@@ -54,6 +54,12 @@ export class FakeIdentityProvider implements IdentityProvider {
     return { sessionCreated: true };
   }
 
+  async sendPasswordReset(): Promise<void> {
+    // The fake adapter has no mailbox. It succeeds so the route and the page
+    // can be exercised, and records nothing: a reset that quietly did something
+    // different from production would be worse than one that does nothing.
+  }
+
   async getCurrentUser(): Promise<IdentityUser | null> {
     const value = this.cookieStore.get(fakeSessionCookieName)?.value;
     if (!value) return null;

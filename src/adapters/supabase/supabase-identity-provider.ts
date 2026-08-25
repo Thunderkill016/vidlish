@@ -39,6 +39,19 @@ export class SupabaseIdentityProvider implements IdentityProvider {
     return { sessionCreated: Boolean(data.session) };
   }
 
+  async sendPasswordReset(email: string, redirectTo: string): Promise<void> {
+    const { error } = await this.client.auth.resetPasswordForEmail(email, {
+      redirectTo,
+    });
+    // Rate limiting is the one failure worth surfacing; anything else is
+    // answered the same way to the caller, because telling an anonymous
+    // request whether an address exists is an account-enumeration oracle.
+    if (error?.status === 429) throw authErrors.rateLimited();
+    if (error && typeof error.status === "number" && error.status >= 500) {
+      throw authErrors.unavailable();
+    }
+  }
+
   async getCurrentUser(): Promise<IdentityUser | null> {
     const { data, error } = await this.client.auth.getClaims();
     if (error || !data?.claims) return null;

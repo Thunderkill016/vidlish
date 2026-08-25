@@ -7,7 +7,8 @@ function provider(overrides: Partial<IdentityProvider> = {}): IdentityProvider {
   return {
     signInWithPassword: vi.fn(async () => undefined),
     signUpWithPassword: vi.fn(async () => ({ sessionCreated: true })),
-    getCurrentUser: vi.fn(async () => ({ id: "user-1", email: "invited@example.com" })),
+    sendPasswordReset: async () => {},
+  getCurrentUser: vi.fn(async () => ({ id: "user-1", email: "invited@example.com" })),
     signOut: vi.fn(async () => undefined),
     ...overrides,
   };
