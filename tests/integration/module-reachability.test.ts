@@ -34,6 +34,14 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
+  "src/modules/shadowing/application/shadowing-stages.ts":
+    "The seven-stage progression is built and tested; no surface runs it yet. " +
+    "Declared here rather than left to be discovered, because a module that is " +
+    "exported and unit-tested still teaches nobody until a route reaches it.",
+  "src/modules/shadowing/application/score-shadowing-rhythm.ts":
+    "The rhythm scorer is built, tested, and checked against all 270 rendered " +
+    "recordings — mean 5.61 syllables per second, which is where English " +
+    "actually runs. Still unreached by any route.",
 
   // This list is self-cleaning: an entry has to leave the moment a route
   // reaches it, so it cannot quietly describe a past that is over. The four

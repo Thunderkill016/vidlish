@@ -85,6 +85,8 @@ export function BeginnerSession() {
     null,
   );
   const [heard, setHeard] = useState("");
+  /** Whether the learner asked for the missing words rather than recalling them. */
+  const [revealed, setRevealed] = useState(false);
   const [result, setResult] = useState<{
     correct: number;
     total: number;
@@ -214,6 +216,7 @@ export function BeginnerSession() {
 
   function nextSentence() {
     if (state.kind !== "ready") return;
+    setRevealed(false);
 
     const step = state.step + 1;
     const items = state.items.map((item) =>
@@ -308,6 +311,12 @@ export function BeginnerSession() {
   if (state.kind === "unit_activity") {
     return (
       <UnitActivity
+        // Keyed so a new activity gets fresh state. Without it the reset relies
+        // on the component happening to unmount between activities, which is
+        // true today only because startSession passes through a loading state —
+        // an accident, and the kind that leaves one learner's revealed answer
+        // showing over the next learner's question.
+        key={state.activity.challengeId ?? state.activity.targets[0]?.text}
         activity={state.activity}
         onNext={() => {
           void startSession();
@@ -487,8 +496,29 @@ export function BeginnerSession() {
             <p className="text-sm" data-testid="dictation-result">
               {result.perfect
                 ? "Đúng cả câu."
-                : `Đúng ${result.correct}/${result.total} chữ. Chưa ra: ${result.missed.join(", ")}`}
+                : revealed
+                  ? `Đúng ${result.correct}/${result.total} chữ. Chưa ra: ${result.missed.join(", ")}`
+                  : `Đúng ${result.correct}/${result.total} chữ.`}
             </p>
+          ) : null}
+          {result && !result.perfect && result.missed.length > 0 && !revealed ? (
+            // Prompt before recast — the same rule as the unit activity. Handing
+            // over the missing words scores the weaker of the two treatments in
+            // the corrective-feedback meta-analysis; asking the learner to
+            // recall them first is the stronger one.
+            <div className="flex flex-col gap-2" data-testid="dictation-prompt">
+              <p className="text-sm text-[var(--muted-foreground)]">
+                Nghe lại và thử nhớ ra trước đã.
+              </p>
+              <div className="flex gap-2">
+                <Button variant="secondary" onClick={() => speak(sentence.text)}>
+                  Nghe lại
+                </Button>
+                <Button variant="secondary" onClick={() => setRevealed(true)}>
+                  Cho xem
+                </Button>
+              </div>
+            </div>
           ) : null}
           <p className="text-sm text-[var(--muted-foreground)]">
             {saveFailed

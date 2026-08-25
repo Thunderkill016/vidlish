@@ -81,6 +81,8 @@ export function UnitActivity({
     { perfect: boolean; missed: string[]; heardBack?: string } | null
   >(null);
   const [saveFailed, setSaveFailed] = useState(false);
+  /** Whether the learner has asked for the missing words rather than recalling them. */
+  const [revealed, setRevealed] = useState(false);
 
   const [micState, setMicState] = useState<
     "idle" | "checking" | "listening" | "blocked"
@@ -296,10 +298,40 @@ export function UnitActivity({
             <p className="text-sm" data-testid="unit-activity-result">
               {outcome.perfect
                 ? "Đúng."
-                : outcome.missed.length > 0
-                  ? `Chưa ra: ${outcome.missed.join(", ")}`
-                  : "Chưa đúng."}
+                : outcome.missed.length === 0
+                  ? "Chưa đúng."
+                  : revealed
+                    ? `Chưa ra: ${outcome.missed.join(", ")}`
+                    : `Còn ${outcome.missed.length} từ chưa ra.`}
             </p>
+          ) : null}
+          {outcome && !outcome.perfect && outcome.missed.length > 0 && !revealed ? (
+            // Prompt before recast. Supplying the missing words is the easier
+            // build and the weaker treatment: across the meta-analysis oral
+            // corrective feedback runs at d = 0.64, and prompts — pushing the
+            // learner to produce the form — beat recasts that hand it over,
+            // most clearly on free constructed responses, which is the kind of
+            // speech this product is trying to build. So the count comes first
+            // and the words only when asked for.
+            <div className="flex flex-col gap-2" data-testid="unit-activity-prompt">
+              <p className="text-sm text-[var(--muted-foreground)]">
+                Nghe lại và thử nhớ ra trước đã. Nhớ lại được thì nhớ lâu hơn
+                đọc thấy.
+              </p>
+              <div className="flex gap-2">
+                {mayHear ? (
+                  <Button
+                    variant="secondary"
+                    onClick={() => playEnglishLines(activity.targets.map((t) => t.text))}
+                  >
+                    Nghe lại
+                  </Button>
+                ) : null}
+                <Button variant="secondary" onClick={() => setRevealed(true)}>
+                  Cho xem
+                </Button>
+              </div>
+            </div>
           ) : null}
           {outcome?.heardBack !== undefined ? (
             <p
