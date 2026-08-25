@@ -98,3 +98,52 @@ difference is that they answer "did the learner attend?" and this one is built
 to answer "can the learner do it?" — and that question is harder to fake.
 
 **What none of them have, and neither do we:** feedback on writing.
+
+---
+
+# Teaching documents, as opposed to code
+
+## Paul Nation's resources — the best source found, and partly blocked
+
+`https://www.wgtn.ac.nz/lals/resources/paul-nations-resources`
+
+From the author of the four strands this codebase enforces in its schema.
+Everything on the page is **CC BY-SA 4.0 or GPL 2/3** — usable commercially,
+with ShareAlike reaching derived files exactly as SUBTLEX and Wiktionary already
+do here.
+
+**The site returns 403 to any non-browser request** (openresty, deliberate). No
+attempt was made to work around it. A person can download these in seconds; an
+agent cannot, and should not try.
+
+Ranked by what this product actually lacks:
+
+1. **`vocabulary-and-the-CEFR.docx`** (18 KB) — relates CEFR levels to
+   vocabulary size and word-family size. This is the authoritative answer to
+   "how many words to reach B1". The figure quoted to the product owner —
+   4,759 words for 95% coverage — was computed here from SUBTLEX, not read from
+   a source. It should be checked against this table and corrected if wrong.
+
+2. **`10000-headwords.zip`** (37 KB) — BNC/COCA first 10,000 **word families**,
+   frequency-ordered. Better than the SUBTLEX spine on the exact point already
+   corrected once in this repo: SUBTLEX counts surface forms, so `go`, `going`
+   and `went` are three separate items, and coverage measured that way
+   understated what a learner knows by ten percentage points.
+
+3. **Speed reading courses and listening fluency exercises** (Sonia Millett) —
+   the gap nobody has named yet. Every authored unit carries a
+   `fluency_development` activity and there is **no material behind any of
+   them**. This is that material.
+
+4. **Survival vocabulary, English** — a beginner list to check the first hundred
+   words the ordering algorithm currently chooses against something authored.
+
+Also on the page: vocabulary size tests, mid-frequency graded readers, and a
+categorised bibliography on vocabulary teaching.
+
+## What to do with them
+
+Ask the product owner to download and drop them in a directory, then build them
+into artifacts the way `scripts/build-cefrj-catalogue.mjs` and
+`scripts/build-spoken-frequency.mjs` already do — vendored, reviewable, cited,
+never fetched at runtime.
