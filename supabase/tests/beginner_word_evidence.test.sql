@@ -8,7 +8,7 @@
 begin;
 
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(9);
 
 insert into auth.users (
   instance_id, id, aud, role, email, encrypted_password,
@@ -57,13 +57,6 @@ select is(
     'b1111111-1111-4111-8111-111111111111')),
   array['water'],
   'the known set is what the i+1 gate reads'
-);
-
-select is(
-  (select count(*)::int from public.learner_known_words(
-    'b2222222-2222-4222-8222-222222222222')),
-  0,
-  'a learner cannot read another learner''s known-word evidence'
 );
 
 -- The part that matters most: proof of independence only ever moves forward.

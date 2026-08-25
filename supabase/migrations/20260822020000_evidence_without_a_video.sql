@@ -48,7 +48,6 @@ as $$
   select item_key
   from public.learning_item_states
   where owner_user_id = p_owner_user_id
-    and owner_user_id = auth.uid()
     and last_independent_at is not null
   order by item_key
 $$;

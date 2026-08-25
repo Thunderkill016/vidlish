@@ -25,7 +25,7 @@ test("the home page survives a panel whose table is missing", async ({
 
   // The rest of the page still works — the library, the progress figures, the
   // review schedule all render.
-  await expect(page.getByRole("heading", { name: "Hôm nay học gì?" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Một bước tiếng Anh vừa sức hôm nay" })).toBeVisible();
 
   // "Today's action" is itself derived from the broken read, so it says it
   // cannot tell. It must not fall back to "nothing due today": the learner
