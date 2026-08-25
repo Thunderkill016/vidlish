@@ -104,3 +104,28 @@ test("the roadmap page actually shows the road", async ({ page }, testInfo) => {
   // A unit is named by what it makes you able to do, not by its grammar.
   await expect(roadmap.getByText(/^Bài 1 ·/)).toBeVisible();
 });
+
+test("the sentence builder asks the learner to produce, not to recognise", async ({
+  page,
+}, testInfo) => {
+  await signIn(page, `build-${testInfo.project.name}@example.com`);
+  await page.goto("/dashboard");
+
+  await expect(page.getByTestId("build-entry")).toBeVisible();
+  await page.getByRole("link", { name: "Ghép câu hôm nay →" }).click();
+
+  await expect(page.getByTestId("builder-prompt")).toBeVisible();
+  // Typed, not chosen: choosing from options is recognition, which is the
+  // thing that already works for this learner.
+  await expect(page.getByTestId("builder-input")).toBeVisible();
+  await expect(page.getByRole("button", { name: /^Nghe/ })).toHaveCount(0);
+
+  await page.getByTestId("builder-input").fill("definitely-wrong");
+  await page.getByRole("button", { name: "Kiểm tra" }).click();
+
+  const feedback = page.getByTestId("builder-feedback");
+  await expect(feedback).toBeVisible();
+  // The sentence is only playable after the attempt — playing it first would
+  // turn a production task into a listening one.
+  await expect(page.getByRole("button", { name: "Nghe câu này" })).toBeVisible();
+});

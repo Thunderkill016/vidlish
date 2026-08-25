@@ -359,6 +359,25 @@ export default async function DashboardPage() {
           </Card>
         )}
 
+        {/* Placed above the others because it is aimed at the one thing the
+            product owner said blocks him — knowing words but not assembling
+            sentences — and because everything else in this product measures
+            recognition, which is not the blocked step. */}
+        <Card className="space-y-3" data-testid="build-entry">
+          <p className="text-sm font-semibold text-[var(--accent)]">Ghép câu</p>
+          <h2 className="text-lg font-bold">Biết từ mà chưa ghép thành câu?</h2>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Một từ bị lấy khỏi câu, bạn tự điền vào — không gợi ý, không đáp án
+            để chọn. Không cần nói ra tiếng, làm được cả ở chỗ đông người.
+          </p>
+          <Link
+            href="/build"
+            className="inline-flex min-h-10 items-center text-sm font-semibold text-[var(--primary)]"
+          >
+            Ghép câu hôm nay →
+          </Link>
+        </Card>
+
         <Card className="space-y-3" data-testid="library-entry">
           <p className="text-sm font-semibold text-[var(--accent)]">Thư viện</p>
           <h2 className="text-lg font-bold">Bài học từ video bạn chọn</h2>
