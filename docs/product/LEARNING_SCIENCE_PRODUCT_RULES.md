@@ -285,7 +285,7 @@ dropped. Read `d` and `g` the usual way: 0.2 small, 0.5 medium, 0.8 large.
 | Pronunciation instruction *with feedback* | d = 0.80–0.89 | partly — measured, not taught |
 | Redundancy (no text under speech) | d = 0.87 | yes — listen before text, and it is recorded |
 | Modality (speech, not printed words) | g = 0.82 | yes — Kokoro audio for every line |
-| **Extensive reading** | **d = 0.57–0.79** | **no** |
+| **Extensive reading** | **d = 1.32** (vocabulary), 0.57–0.79 (reading proficiency) | **no** |
 | Written corrective feedback, *focused* | g = 0.69 | no |
 | Segmenting, learner-paced | d = 0.70–0.79 | yes — one action at a time |
 | **Shadowing (fluency)** | **consistent across every study measuring it** | **no — the machinery exists** |
@@ -294,11 +294,26 @@ dropped. Read `d` and `g` the usual way: 0.2 small, 0.5 medium, 0.8 large.
 
 ### The two largest things not built
 
-**Extensive reading.** d = 0.57–0.79, and the meta-analyses find it positive
-across *every* domain measured — comprehension, vocabulary, decoding speed,
-motivation, writing, and oral proficiency. One intervention, gains in all of
-them. This product has four short reading comprehension checks and nothing that
-could be called reading at volume.
+**Extensive reading.** The largest measured effect in this entire table, and
+the figure had to be corrected by opening the paper.
+
+Search summaries gave d = 0.57–0.79. Those are Jeon & Day and Nakanishi
+measuring *reading proficiency* broadly. The vocabulary-specific meta-analysis
+(ERIC `EJ1179114`, k = 21) reports **d = 1.32 between groups** — larger than
+anything else here, including removing seductive detail.
+
+Two figures from that paper are deliberately **not** quoted. Its pre-post
+contrast (d = 3.26) has no control group. Its headline "huge effect for
+children" (d = 5.18) rests on **k = 1** — a single study, a limitation the
+authors state themselves. Anyone repeating either number is quoting an artefact.
+
+The meta-analyses agree it is positive across *every* domain measured —
+comprehension, vocabulary, decoding speed, motivation, writing, and oral
+proficiency. One intervention, gains in all of them. This product has four short
+reading comprehension checks and nothing that could be called reading at volume.
+
+The same paper's recommendation names the material: **graded readers**. That is
+exactly what Nation publishes free under CC BY-SA.
 
 The material is free and licensed: Nation's mid-frequency graded readers, classic
 fiction and non-fiction rewritten to a known vocabulary size, CC BY-SA. The

@@ -127,6 +127,30 @@ today's worst damage came from that and none of it came from bad code.
   that way. AGENTS.md is an open specification, read by more than twenty coding
   agents; a rule that lives in only one of them is a rule the next agent breaks.
 
+## Reading the research
+
+`node scripts/research/eric.mjs "<query>"` searches ERIC — the US Department of
+Education's index — and `--get <id>` downloads the open full text and converts
+it to layout-preserving text. No key, no login. Downloads land in
+`docs/research/` and are git-ignored.
+
+Use it before quoting a number. Three figures in this repository turned out to
+be wrong when the source was finally opened:
+
+- a repository described everywhere as using spaced repetition, which has none;
+- a vocabulary target this codebase computed itself and then quoted as if
+  published;
+- an extensive-reading effect size taken from a search summary, which measured
+  a different outcome than the one it was being used to justify.
+
+Reading the paper also shows what a summary never does. The same meta-analysis
+that gives extensive reading its headline number also reports a "huge effect for
+children" resting on **one study** — a limitation stated plainly in the paper
+and absent from every summary of it.
+
+**Cite the ERIC id** when a rule rests on a paper, so the next reader can fetch
+the same file rather than trusting the sentence.
+
 ## Writing a specification
 
 Two rules taken from FreeLingo's spec set, because both fix a way agents here

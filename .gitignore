@@ -20,3 +20,6 @@ _bmad-output/*
 benchmark-authoring-results.json
 .vercel
 .env*
+
+# Papers fetched by scripts/research/eric.mjs — sources to read, not artifacts to ship.
+docs/research/
