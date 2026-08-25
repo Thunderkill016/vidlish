@@ -112,9 +112,31 @@ in the most favourable studies.
 
 Reading supplies encounters and meaning-in-context. It cannot supply fourteen
 encounters of a particular word on schedule. That is what the spaced repetition
-already in this repo is for: **every word the learner taps becomes a review item,
-carrying the sentence they met it in.** Reading finds the word; FSRS guarantees
-the repetitions reading leaves to chance.
+already in this repo is for: every word the learner taps becomes a review item.
+Reading finds the word; FSRS guarantees the repetitions reading leaves to chance.
+
+**But the review must not replay the sentence they met it in, and this is the
+opposite of the obvious design.** Carrying the original sentence into review felt
+right and was written into an earlier draft of this document. The evidence says
+it would hurt.
+
+Three experiments compared practising a new word in an *informative* context,
+where its meaning could be inferred, against an *uninformative* one that forced
+the learner to retrieve it from memory. The informative context helped
+comprehension during practice — and later recall of form, recall of meaning, and
+recognition in a new context were all **better after retrieval practice than
+after context-inference practice**. The sparse context won because it triggered
+retrieval.
+
+So the two moments want opposite things:
+
+| Moment | Context | Why |
+| --- | --- | --- |
+| First encounter, while reading | rich — the real sentence, plus the gloss | comprehension |
+| Review, later | sparse — enough to disambiguate, never enough to give it away | retention |
+
+A review that shows the original sentence lets the learner infer instead of
+retrieve. That reads as kindness and costs them the word.
 
 ### 7. Volume is the point, and it should be visible
 
@@ -138,8 +160,12 @@ here; it is not a guarantee of a large gain in everything.
 
 1. Render real text word by word, each word carrying its status for this learner:
    never seen / learning / known.
-2. One tap on a word: Vietnamese meaning, its audio, the sentence it sits in, and
-   a way to mark it known.
+2. One tap on a word: Vietnamese meaning, its audio, and a way to mark it known —
+   shown **at the word, not in a margin or side panel**. Comparing in-text against
+   marginal glosses, the in-text group carried measurably lower cognitive load and
+   comprehended better: separating a word from its gloss splits attention and
+   spends working memory on bridging the gap. A sidebar is the easier layout and
+   the worse one.
 3. Play any line, and the whole text.
 4. Show words read and words known. Both only grow.
 5. Send every tapped word into FSRS with its sentence.

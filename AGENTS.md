@@ -158,6 +158,26 @@ method from the calendar. Headline effect sizes are routinely a third larger
 than the defensible ones — TBLT is quoted at d = 0.93 and survives reanalysis at
 g = 0.61. When you cite a number here, cite the design with it.
 
+**Read the source, not a summary of it.** Product owner's standing instruction,
+25/08/2026: research before building, and invent nothing. A web-search result is
+a small model's paraphrase of titles and snippets — it carries the number and
+drops the design. Three conclusions in this repo were wrong until the paper was
+opened: an effect size taken from the wrong meta-analysis; the 95% coverage
+figure read as a threshold for reading alone when its own authors define it as
+the threshold for reading *with guidance*; and a vowel-length measurement taken
+off a file's byte count instead of off the time the speaker was audible.
+
+`scripts/research/scholar.mjs` walks the citation graph — `--cites` for who
+contradicts a paper, `--refs` for what it rests on, `--get` for the full text.
+`scripts/research/eric.mjs` covers education full texts. Use them before writing
+a threshold, a parameter, or a claim.
+
+And where something cannot be derived, do not pick an answer. English does not
+let you recover a base form from a stem — `walked`, `hoped` and `stopped` undo
+their suffix three different ways — so `read-passage.ts` returns every candidate
+and lets the learner's own vocabulary decide. Guessing one produced three failing
+tests and would have shown known words as new.
+
 ## Writing a specification
 
 Two rules taken from FreeLingo's spec set, because both fix a way agents here
