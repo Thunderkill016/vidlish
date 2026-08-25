@@ -34,13 +34,6 @@ const SRC = "src";
  * becomes reachable, which stops the list from quietly rotting into a lie.
  */
 const NOT_YET_WIRED: Record<string, string> = {
-  "src/modules/reading/application/read-passage.ts":
-    "The reading surface's arithmetic: splits a passage so every word can be " +
-    "tapped, and matches inflections against what the learner knows. Measured " +
-    "on a real Simple English Wikipedia article against the 2,234-word " +
-    "catalogue, handling inflections took coverage from 77.1% to 85.9% — nearly " +
-    "one running word in eleven had been wrongly shown as new. No route renders " +
-    "it yet, so it teaches nobody until one does.",
 
   // This list is self-cleaning: an entry has to leave the moment a route
   // reaches it, so it cannot quietly describe a past that is over. The four

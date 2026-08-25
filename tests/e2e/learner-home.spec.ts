@@ -38,7 +38,12 @@ test("dashboard gives the learner a clear daily home on mobile", async ({ page }
   await expect(mobileNav.getByRole("link", { name: "Tạo bài" })).toHaveCount(0);
   await expect(mobileNav.getByRole("link", { name: "Hôm nay" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Lộ trình" })).toBeVisible();
-  await expect(mobileNav.getByRole("link", { name: "Thư viện" })).toBeVisible();
+  // The video library gave its thumb slot to reading: reading is the daily hour
+  // that has to fill the 500 Cambridge puts between zero and B2, while a video
+  // lesson is made occasionally. It stays one tap from this page.
+  await expect(mobileNav.getByRole("link", { name: "Đọc" })).toBeVisible();
+  await expect(mobileNav.getByRole("link", { name: "Thư viện" })).toHaveCount(0);
+  await expect(page.getByTestId("library-entry")).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Ôn tập" })).toBeVisible();
   await expect(mobileNav.getByRole("link", { name: "Tiến bộ" })).toBeVisible();
 });

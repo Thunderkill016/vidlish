@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import {
   BookOpenCheck,
+  BookOpen,
   ChartNoAxesCombined,
   Ear,
   Home,
@@ -17,13 +18,23 @@ const NAV_ITEMS = [
   { href: "/dashboard", label: "Hôm nay", icon: Home, match: ["/dashboard"] },
   { href: "/start", label: "Lộ trình", icon: BookOpenCheck, match: ["/start"] },
   { href: "/review", label: "Ôn tập", icon: RefreshCcw, match: ["/review", "/learning-lab/v2"] },
+  { href: "/read", label: "Đọc", icon: BookOpen, match: ["/read"] },
   // Desktop only. The mobile bar is a five-column grid and the labels already
-  // truncate at 11px; a sixth item drops onto a second row of a fixed bottom
-  // bar. Luyện tai is a learning activity rather than a top-level section, so
-  // it is reached from the daily home on small screens instead of competing for
-  // a thumb slot with the five sections.
+  // truncate at 11px; a sixth item drops onto a second row of a fixed bottom bar
+  // and covers content.
+  //
+  // Reading takes the thumb slot and the video library gives it up, because the
+  // two are used at different rates: reading is the daily hour that has to fill
+  // the 500 Cambridge puts between zero and B2, while a video lesson is made
+  // occasionally. Both remain one tap from the daily home.
   { href: "/listen", label: "Luyện tai", icon: Ear, match: ["/listen"], desktopOnly: true },
-  { href: "/library", label: "Thư viện", icon: LibraryBig, match: ["/library", "/lessons"] },
+  {
+    href: "/library",
+    label: "Thư viện",
+    icon: LibraryBig,
+    match: ["/library", "/lessons"],
+    desktopOnly: true,
+  },
   { href: "/progress", label: "Tiến bộ", icon: ChartNoAxesCombined, match: ["/progress"] },
 ] as const;
 

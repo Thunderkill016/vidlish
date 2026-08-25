@@ -359,6 +359,21 @@ export default async function DashboardPage() {
           </Card>
         )}
 
+        <Card className="space-y-3" data-testid="library-entry">
+          <p className="text-sm font-semibold text-[var(--accent)]">Thư viện</p>
+          <h2 className="text-lg font-bold">Bài học từ video bạn chọn</h2>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Thư viện nhường chỗ trên thanh dưới cho phần Đọc, vì đọc là việc hằng ngày
+            còn bài từ video thì thỉnh thoảng mới tạo. Nó vẫn ở đây, cách một lần chạm.
+          </p>
+          <Link
+            href="/library"
+            className="inline-flex min-h-10 items-center text-sm font-semibold text-[var(--primary)]"
+          >
+            Mở thư viện →
+          </Link>
+        </Card>
+
         {/* The mobile bottom bar is a five-column grid and full, so this is how
             Luyện tai reaches a learner on a phone. A page nobody can find has
             not shipped, whatever the test suite says about it. */}
