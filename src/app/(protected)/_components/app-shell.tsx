@@ -3,79 +3,27 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import {
+  BookOpenCheck,
+  ChartNoAxesCombined,
+  Home,
+  LibraryBig,
+  RefreshCcw,
+  type LucideIcon,
+} from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/dashboard", label: "Tổng quan", glyph: "home", match: ["/dashboard"] },
-  { href: "/start", label: "Từ số 0", glyph: "review", match: ["/start"] },
-  { href: "/create", label: "Tạo bài", glyph: "plus", match: ["/create", "/jobs"] },
-  { href: "/library", label: "Thư viện", glyph: "library", match: ["/library", "/lessons"] },
-  { href: "/review", label: "Ôn tập", glyph: "review", match: ["/review", "/learning-lab/v2"] },
-  { href: "/progress", label: "Tiến bộ", glyph: "progress", match: ["/progress"] },
+  { href: "/dashboard", label: "Hôm nay", icon: Home, match: ["/dashboard"] },
+  { href: "/start", label: "Lộ trình", icon: BookOpenCheck, match: ["/start"] },
+  { href: "/review", label: "Ôn tập", icon: RefreshCcw, match: ["/review", "/learning-lab/v2"] },
+  { href: "/library", label: "Thư viện", icon: LibraryBig, match: ["/library", "/lessons"] },
+  { href: "/progress", label: "Tiến bộ", icon: ChartNoAxesCombined, match: ["/progress"] },
 ] as const;
 
-const MOBILE_NAV_ITEMS = NAV_ITEMS.filter((item) => item.href !== "/create");
-
-type GlyphName = (typeof NAV_ITEMS)[number]["glyph"];
-
-function NavGlyph({ name }: { name: GlyphName }) {
-  const common = {
-    width: 20,
-    height: 20,
-    viewBox: "0 0 24 24",
-    fill: "none",
-    stroke: "currentColor",
-    strokeWidth: 1.8,
-    strokeLinecap: "round" as const,
-    strokeLinejoin: "round" as const,
-    "aria-hidden": true,
-  };
-
-  if (name === "home") {
-    return (
-      <svg {...common}>
-        <path d="M3.5 10.5 12 3.5l8.5 7" />
-        <path d="M5.5 9.5v10h13v-10" />
-        <path d="M9.5 19.5v-6h5v6" />
-      </svg>
-    );
-  }
-  if (name === "plus") {
-    return (
-      <svg {...common}>
-        <path d="M12 5v14M5 12h14" />
-        <rect x="3" y="3" width="18" height="18" rx="5" />
-      </svg>
-    );
-  }
-  if (name === "library") {
-    return (
-      <svg {...common}>
-        <path d="M5 4.5h11.5a2 2 0 0 1 2 2v13H7a2 2 0 0 1-2-2z" />
-        <path d="M7 4.5v15M9.5 8h6" />
-      </svg>
-    );
-  }
-  if (name === "review") {
-    return (
-      <svg {...common}>
-        <path d="M4.5 7.5h10a5 5 0 0 1 0 10H9" />
-        <path d="m7.5 4.5-3 3 3 3" />
-        <path d="M12 10.5v4l2.5 1.5" />
-      </svg>
-    );
-  }
-  return (
-    <svg {...common}>
-      <path d="M5 19V9M12 19V5M19 19v-7" />
-      <path d="M3 19.5h18" />
-    </svg>
-  );
-}
+type NavigationItem = (typeof NAV_ITEMS)[number] & { icon: LucideIcon };
 
 function pathMatches(pathname: string, prefixes: readonly string[]) {
-  return prefixes.some(
-    (prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`),
-  );
+  return prefixes.some((prefix) => pathname === prefix || pathname.startsWith(`${prefix}/`));
 }
 
 function AccountMenu({ email }: { email: string }) {
@@ -93,12 +41,12 @@ function AccountMenu({ email }: { email: string }) {
         </span>
       </summary>
       <div className="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-[var(--border)] bg-[var(--card)] p-3 shadow-[var(--shadow-card)] lg:bottom-0 lg:left-full lg:right-auto lg:top-auto lg:mb-0 lg:ml-2 lg:mt-0">
-        <p
-          className="mb-3 truncate text-xs text-[var(--muted-foreground)]"
-          title={email}
-        >
+        <p className="mb-3 truncate text-xs text-[var(--muted-foreground)]" title={email}>
           {email}
         </p>
+        <Link href="/account" className="mb-1 flex min-h-11 items-center rounded-xl px-3 text-sm font-semibold hover:bg-[var(--muted)]">
+          Bảo mật tài khoản
+        </Link>
         <form action="/api/auth/sign-out" method="post">
           <button
             type="submit"
@@ -112,13 +60,7 @@ function AccountMenu({ email }: { email: string }) {
   );
 }
 
-export function AppShell({
-  children,
-  email,
-}: {
-  children: ReactNode;
-  email: string;
-}) {
+export function AppShell({ children, email }: { children: ReactNode; email: string }) {
   const pathname = usePathname();
 
   return (
@@ -129,15 +71,13 @@ export function AppShell({
             href="/dashboard"
             className="rounded-lg text-xl font-bold tracking-tight text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
-            Vidlish
+            Nếp
           </Link>
         </div>
-        <nav
-          aria-label="Điều hướng chính"
-          className="flex-1 space-y-1 px-3 pb-20 pt-2"
-        >
+        <nav aria-label="Điều hướng chính" className="flex-1 space-y-1 px-3 pb-20 pt-2">
           {NAV_ITEMS.map((item) => {
             const active = pathMatches(pathname, item.match);
+            const Icon = (item as NavigationItem).icon;
             return (
               <Link
                 key={item.href}
@@ -149,7 +89,7 @@ export function AppShell({
                     : "text-[var(--muted-foreground)] hover:bg-[var(--muted)] hover:text-[var(--foreground)]"
                 }`}
               >
-                <NavGlyph name={item.glyph} />
+                <Icon aria-hidden="true" size={20} strokeWidth={1.8} />
                 {item.label}
               </Link>
             );
@@ -167,11 +107,11 @@ export function AppShell({
             href="/dashboard"
             className="rounded-lg text-lg font-bold text-[var(--primary)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
           >
-            Vidlish
+            Nếp
           </Link>
         </header>
 
-        <main className="mx-auto min-w-0 max-w-7xl overflow-x-clip px-4 py-6 pb-28 sm:px-6 sm:py-8 lg:px-8 lg:pb-12">
+        <main className="mx-auto min-w-0 max-w-7xl overflow-x-clip px-4 py-6 pb-28 sm:px-6 sm:py-8 sm:pb-28 lg:px-8 lg:pb-12">
           {children}
         </main>
       </div>
@@ -180,20 +120,19 @@ export function AppShell({
         aria-label="Điều hướng chính trên di động"
         className="fixed inset-x-0 bottom-0 z-40 grid grid-cols-5 border-t border-[var(--border)] bg-[var(--card)] px-1 pb-[max(0.35rem,env(safe-area-inset-bottom))] pt-1 lg:hidden"
       >
-        {MOBILE_NAV_ITEMS.map((item) => {
+        {NAV_ITEMS.map((item) => {
           const active = pathMatches(pathname, item.match);
+          const Icon = (item as NavigationItem).icon;
           return (
             <Link
               key={item.href}
               href={item.href}
               aria-current={active ? "page" : undefined}
               className={`flex min-h-14 min-w-0 flex-col items-center justify-center gap-1 overflow-hidden rounded-xl px-1 text-[11px] font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] ${
-                active
-                  ? "text-[var(--primary)]"
-                  : "text-[var(--muted-foreground)]"
+                active ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"
               }`}
             >
-              <NavGlyph name={item.glyph} />
+              <Icon aria-hidden="true" size={20} strokeWidth={1.8} />
               <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );

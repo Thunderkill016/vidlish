@@ -49,8 +49,6 @@ Set these values only in the isolated preview runtime:
 
 ```text
 AUTH_ADAPTER=fake
-AUTH_FAKE_CODE=123456
-TEST_BETA_EMAILS=learning-preview@example.com
 
 LEARNING_SESSION_REPOSITORY=supabase
 LEARNING_LAB_V2_LESSON_VERSION_ID=77777777-7777-4777-8777-777777777777

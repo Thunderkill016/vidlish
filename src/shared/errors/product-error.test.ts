@@ -8,9 +8,9 @@ import {
 
 describe("ProductError", () => {
   it("exposes only the stable public contract", () => {
-    expect(authErrors.cooldown().toPublic()).toEqual({
-      code: "AUTH_CODE_COOLDOWN",
-      messageVi: "Vui lòng chờ trước khi yêu cầu mã mới.",
+    expect(authErrors.rateLimited().toPublic()).toEqual({
+      code: "AUTH_RATE_LIMITED",
+      messageVi: "Bạn đã thử quá nhiều lần. Hãy chờ một lúc rồi thử lại.",
       retryable: true,
       action: "retry",
     });

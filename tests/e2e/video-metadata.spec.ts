@@ -2,11 +2,11 @@ import { expect, test } from "@playwright/test";
 
 async function login(page: import("@playwright/test").Page) {
   await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill("invited@example.com");
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
+  await page.getByLabel("Email").fill("invited@example.com");
+  await page.getByRole("textbox", { name: "Mật khẩu", exact: true }).fill("a long enough password");
+  await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await expect(page).toHaveURL(/\/start$/);
+  await page.goto("/create");
 }
 
 async function prepareConfirmedDraft(
@@ -101,7 +101,7 @@ test("selects CEFR and keeps readiness invalidation rules", async ({ page }) => 
   await confirm.click();
   const draft = page.getByTestId("confirmed-lesson-draft");
   await expect(draft).toContainText("Sẵn sàng tạo bài học");
-  await expect(draft).toContainText("trình độ B2");
+  await expect(draft).toContainText("mức B2");
   await expect(draft).toContainText("không lưu video");
   await expect(page.getByRole("button", { name: "Tạo bài học" })).toBeVisible();
   expect(jobRequests).toEqual([]);

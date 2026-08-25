@@ -1,10 +1,33 @@
 @import "tailwindcss";
 
-@theme {
+@theme inline {
   --font-sans: var(--font-app-sans), "Segoe UI", -apple-system, BlinkMacSystemFont,
     Roboto, "Noto Sans", "Helvetica Neue", sans-serif;
   --font-mono: var(--font-app-mono), "SF Mono", "Cascadia Mono", Menlo, Consolas,
     monospace;
+
+  /* shadcn components consume semantic Tailwind colours. Map them to Nếp's
+     existing tokens so every primitive shares one theme rather than shipping a
+     second palette beside the learner UI. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--muted);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
 }
 
 :root {
@@ -18,11 +41,14 @@
   --border-strong: #c3ccdf;
 
   --primary: #4338ca;
+  --primary-foreground: #ffffff;
   --primary-hover: #3730a3;
   --primary-wash: #ecebfb;
   --accent: #0f766e;
   --accent-wash: #e2f2f0;
   --ring: #4338ca;
+  --destructive: #b42318;
+  --destructive-foreground: #ffffff;
 
   --evidence: #a1560a;
   --evidence-wash: #fdf1e0;
@@ -50,11 +76,14 @@
     --border-strong: #3b4762;
 
     --primary: #93a0ff;
+    --primary-foreground: #101427;
     --primary-hover: #b3bcff;
     --primary-wash: #1e2340;
     --accent: #63d9c8;
     --accent-wash: #102b2a;
     --ring: #93a0ff;
+    --destructive: #ffb4ab;
+    --destructive-foreground: #4d0705;
 
     --evidence: #e9ab5e;
     --evidence-wash: #2a2016;

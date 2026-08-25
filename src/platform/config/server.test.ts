@@ -124,3 +124,18 @@ describe("the lesson model", () => {
     await expect(loadConfig({ LESSON_MODEL_ID: "" })).rejects.toThrow();
   });
 });
+
+describe("Gemini TTS configuration", () => {
+  it("is off until an operator deliberately enables it", async () => {
+    const config = await loadConfig({ GEMINI_TTS_ENABLED: undefined });
+    expect(config.GEMINI_TTS_ENABLED).toBe(false);
+    expect(config.GEMINI_TTS_MODEL_ID).toBe("gemini-3.1-flash-tts-preview");
+    expect(config.GEMINI_TTS_VOICE).toBe("Kore");
+  });
+
+  it("requires a Gemini key when TTS is enabled", async () => {
+    await expect(
+      loadConfig({ GEMINI_TTS_ENABLED: "true", GEMINI_API_KEY: undefined }),
+    ).rejects.toThrow(/Gemini TTS requires GEMINI_API_KEY/i);
+  });
+});

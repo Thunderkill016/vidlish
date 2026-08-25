@@ -312,7 +312,7 @@ export function LessonView({
           </Section>
 
           <p className="rounded-xl border border-[var(--evidence-border)] bg-[var(--evidence-wash)] p-3 text-xs leading-5 text-[var(--evidence)]">
-            Nguồn thật: mọi câu trích dẫn hiển thị ở đây được lấy trực tiếp từ lời thoại đã được Vidlish cho phép dùng trong video.
+            Nguồn thật: mọi câu trích dẫn hiển thị ở đây được lấy trực tiếp từ lời thoại đã được Nếp cho phép dùng trong video.
           </p>
         </main>
       </div>

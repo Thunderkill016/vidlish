@@ -2,11 +2,11 @@ import { expect, test, type Page } from "@playwright/test";
 
 async function login(page: Page, email = "invited@example.com") {
   await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(email);
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("textbox", { name: "Mật khẩu", exact: true }).fill("a long enough password");
+  await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await expect(page).toHaveURL(/\/start$/);
+  await page.goto("/create");
 }
 
 async function createLesson(page: Page): Promise<string> {

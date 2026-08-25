@@ -132,7 +132,7 @@ export class SupabaseLessonRepository implements LessonRepository {
 
   async listOwned(ownerUserId: string): Promise<LessonSummary[]> {
     // Only the fields the library renders. The explicit limit is a product
-    // choice for the private beta shelf, not an accidental Data API truncation.
+    // choice for a bounded learner library, not an accidental Data API truncation.
     const result = await this.client
       .from("lessons")
       .select(

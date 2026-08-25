@@ -51,6 +51,22 @@ describe("selectNextVocabulary", () => {
     ]);
   });
 
+  it("respects the reviewed A0 order before generic CEFR ordering", () => {
+    // The first footholds are authored as a connected language path. A generic
+    // determiner must not jump in front merely because its POS ranks higher.
+    const next = selectNextVocabulary({
+      catalogue: [
+        entry("the", "determiner"),
+        { ...entry("hello", "interjection"), curriculumOrder: 1 },
+        { ...entry("i", "pronoun"), curriculumOrder: 2 },
+      ],
+      known: new Set(),
+      limit: 3,
+    });
+
+    expect(next.map((item) => item.word)).toEqual(["hello", "i", "the"]);
+  });
+
   it("skips what the learner already has evidence for", () => {
     const next = selectNextVocabulary({
       catalogue: [entry("the", "determiner"), entry("a", "determiner")],

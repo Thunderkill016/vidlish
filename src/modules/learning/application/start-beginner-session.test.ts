@@ -55,6 +55,32 @@ describe("startBeginnerSession", () => {
     expect(generate).not.toHaveBeenCalled();
   });
 
+  it("keeps an authored A0 item out of retrieval and generation", async () => {
+    const generate = vi.fn(async () => ["I am a."]);
+    const result = await startBeginnerSession({
+      catalogue: [
+        {
+          word: "a",
+          pos: "determiner",
+          cefr: "A1",
+          curriculumOrder: 1,
+          introduceOnItsOwn: true,
+        },
+      ],
+      known: new Set(["i", "am", "here"]),
+      candidatesFor: () => ["I am a."],
+      generate,
+      wanted: 3,
+    });
+
+    expect(result).toEqual({
+      kind: "introduce_word",
+      target: "a",
+      knownWordCount: 3,
+    });
+    expect(generate).not.toHaveBeenCalled();
+  });
+
   it("generates when the corpus cannot reach the target", async () => {
     const generate = vi.fn(async () => ["I have the water.", "The water is water."]);
     const result = await startBeginnerSession({

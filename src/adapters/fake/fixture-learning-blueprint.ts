@@ -248,7 +248,7 @@ export function createFixtureLearningBlueprint(): LessonBlueprintV2 {
         feedback: {
           goalVi: "Chọn bước ôn lại dựa trên trải nghiệm vừa học.",
           nextStepVi:
-            "Vidlish sẽ dùng lựa chọn này cho lượt ôn tiếp theo.",
+            "Nếp sẽ dùng lựa chọn này cho lượt ôn tiếp theo.",
         },
       },
     ],

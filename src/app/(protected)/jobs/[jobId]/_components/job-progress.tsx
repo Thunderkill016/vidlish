@@ -170,7 +170,7 @@ export function JobProgress({
               Video chưa đủ tiếng Anh gốc
             </h2>
             <p role="alert" className="text-sm text-[var(--foreground)]">
-              Vidlish không tìm thấy một phần lời nói tiếng Anh gốc đủ dài và rõ để tạo bài học có căn cứ.
+              Nếp không tìm thấy một phần lời nói tiếng Anh gốc đủ dài và rõ để tạo bài học có căn cứ.
             </p>
             <p className="text-sm text-[var(--muted-foreground)]">
               Từ tiếng Anh xuất hiện rời rạc, phụ đề dịch hoặc nội dung lồng tiếng không được dùng thay cho lời nói nguồn.
@@ -195,10 +195,10 @@ export function JobProgress({
               Video quá ngắn để tạo bài học đáng tin cậy
             </h2>
             <p role="alert" className="text-sm text-[var(--foreground)]">
-              Vidlish đã lấy được lời thoại, nhưng phần tiếng Anh rõ ràng chưa đủ dài để chọn mục tiêu học và tạo hoạt động có căn cứ.
+              Nếp đã lấy được lời thoại, nhưng phần tiếng Anh rõ ràng chưa đủ dài để chọn mục tiêu học và tạo hoạt động có căn cứ.
             </p>
             <p className="text-sm text-[var(--muted-foreground)]">
-              Hãy chọn video có hơn khoảng một phút lời nói tiếng Anh liên tục. Vidlish không kéo dài bài học bằng nội dung AI tự bịa chỉ để xử lý được Shorts.
+              Hãy chọn video có hơn khoảng một phút lời nói tiếng Anh liên tục. Nếp không kéo dài bài học bằng nội dung AI tự bịa chỉ để xử lý được Shorts.
             </p>
           </div>
           <Button
@@ -218,7 +218,7 @@ export function JobProgress({
           <div className="space-y-2">
             <h2 className="text-xl font-semibold">Chưa soạn được bài học</h2>
             <p role="alert" className="text-sm text-[var(--foreground)]">
-              Vidlish đã lấy được lời thoại nhưng chưa soạn xong bài học cho video này.
+              Nếp đã lấy được lời thoại nhưng chưa soạn xong bài học cho video này.
             </p>
             <p className="text-sm text-[var(--muted-foreground)]">
               Video vẫn dùng được. Bạn thử lại ngay được, và lần này thường sẽ xong.
@@ -241,7 +241,7 @@ export function JobProgress({
           <div className="space-y-2">
             <h2 className="text-xl font-semibold">Chưa lấy được lời thoại</h2>
             <p role="alert" className="text-sm text-[var(--foreground)]">
-              Vidlish đã thử mọi cách hiện có nhưng không lấy được lời thoại của video này.
+              Nếp đã thử mọi cách hiện có nhưng không lấy được lời thoại của video này.
             </p>
             <p className="text-sm text-[var(--muted-foreground)]">
               Điều này không có nghĩa video sai ngôn ngữ. Video có phụ đề thường xử lý được ngay.
@@ -285,7 +285,7 @@ export function JobProgress({
             </p>
             {retryDispatchError ? (
               <p className="text-sm font-medium text-red-700 dark:text-red-300">
-                Vidlish chưa thể thử lại lúc này. Job vẫn được lưu.
+                Nếp chưa thể thử lại lúc này. Job vẫn được lưu.
               </p>
             ) : null}
           </div>
@@ -317,7 +317,7 @@ export function JobProgress({
             </p>
           ) : pollError ? (
             <p className="text-sm text-[var(--muted-foreground)]">
-              Chưa thể cập nhật ngay. Vidlish sẽ tự thử lại.
+              Chưa thể cập nhật ngay. Nếp sẽ tự thử lại.
             </p>
           ) : null}
         </div>

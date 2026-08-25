@@ -56,7 +56,7 @@ export function DelayedReviewLab() {
         throw new Error(
           response.status === 409
             ? "Chưa có mục ôn tập nào đến hạn."
-            : "Vidlish chưa thể mở phiên ôn tập.",
+            : "Nếp chưa thể mở phiên ôn tập.",
         );
       }
       const parsed = learningReviewStartResponseSchema.parse(body);
@@ -89,7 +89,7 @@ export function DelayedReviewLab() {
         }),
       });
       const body = (await response.json()) as unknown;
-      if (!response.ok) throw new Error("Vidlish chưa kiểm tra được lần nhớ lại.");
+      if (!response.ok) throw new Error("Nếp chưa kiểm tra được lần nhớ lại.");
       const parsed = learningReviewAttemptResponseSchema.parse(body);
       if (
         parsed.evaluation.step !== "recall" ||
@@ -140,7 +140,7 @@ export function DelayedReviewLab() {
         }),
       });
       const body = (await response.json()) as unknown;
-      if (!response.ok) throw new Error("Vidlish chưa lưu được lần transfer này.");
+      if (!response.ok) throw new Error("Nếp chưa lưu được lần transfer này.");
       const parsed = learningReviewAttemptResponseSchema.parse(body);
       if (
         parsed.evaluation.step !== "transfer" ||
@@ -179,7 +179,7 @@ export function DelayedReviewLab() {
           <p className="text-sm font-semibold text-[var(--accent)]">Phiên thứ hai</p>
           <h2 className="mt-1 text-2xl font-bold">Kiểm tra điều còn nhớ sau delay</h2>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-            Vidlish chỉ mở phiên này khi scheduler server xác nhận item đã đến hạn. Bước đầu không gửi đáp án xuống trước khi tự nhớ.
+            Nếp chỉ mở phiên này khi scheduler server xác nhận item đã đến hạn. Bước đầu không gửi đáp án xuống trước khi tự nhớ.
           </p>
         </div>
         {error ? <p role="alert" className="text-sm font-semibold text-[var(--evidence)]">{error}</p> : null}
@@ -201,7 +201,7 @@ export function DelayedReviewLab() {
         <p className="text-sm font-semibold text-[var(--solved)]">Delayed evidence đã lưu</p>
         <h2 className="text-2xl font-bold">Phiên ôn đã hoàn tất</h2>
         <p className="max-w-2xl text-sm leading-6 text-[var(--muted-foreground)]">
-          Vidlish đã ghi nhận một changed-context check sau thời gian trì hoãn và đã tạo lịch tiếp theo. Đây vẫn không phải tuyên bố rằng item đã “mastered”.
+          Nếp đã ghi nhận một changed-context check sau thời gian trì hoãn và đã tạo lịch tiếp theo. Đây vẫn không phải tuyên bố rằng item đã “mastered”.
         </p>
       </Card>
     );

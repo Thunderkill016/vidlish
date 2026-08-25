@@ -11,11 +11,11 @@ import { expect, test } from "@playwright/test";
 async function login(page: import("@playwright/test").Page) {
   const learnerEmail = `v2lab-${test.info().project.name}@example.com`;
   await page.goto("/sign-in");
-  await page.getByLabel("Email được mời").fill(learnerEmail);
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
+  await page.getByLabel("Email").fill(learnerEmail);
+  await page.getByRole("textbox", { name: "Mật khẩu", exact: true }).fill("a long enough password");
+  await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await expect(page).toHaveURL(/\/start$/);
+  await page.goto("/create");
 }
 
 /**

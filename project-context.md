@@ -91,7 +91,7 @@ Provider changes belong in adapters/composition roots, not in use cases.
 
 ## Current implementation decisions
 
-- Auth: Supabase Google OAuth + six-digit email OTP.
+- Auth: Supabase email-password sign-in/sign-up, email confirmation/recovery and optional TOTP MFA.
 - Private beta: server-managed Postgres allowlist.
 - Metadata: YouTube Data API v3 `videos.list`.
 - Native captions: Supadata `mode=native` only on Free plan.

@@ -53,14 +53,14 @@ const invalidUrlError: PublicProductError = {
 
 const genericMetadataError: PublicProductError = {
   code: "VIDEO_METADATA_FAILED",
-  messageVi: "Vidlish chưa thể kiểm tra video. Hãy thử lại.",
+  messageVi: "Nếp chưa thể kiểm tra video. Hãy thử lại.",
   retryable: true,
   action: "retry",
 };
 
 const genericJobError: PublicProductError = {
   code: "JOB_CREATE_FAILED",
-  messageVi: "Vidlish chưa thể bắt đầu tạo bài học. Hãy thử lại.",
+  messageVi: "Nếp chưa thể bắt đầu tạo bài học. Hãy thử lại.",
   retryable: true,
   action: "retry",
 };
@@ -185,7 +185,7 @@ export function VideoUrlForm() {
         status: "error",
         error: {
           ...genericMetadataError,
-          messageVi: "Không thể kết nối tới Vidlish. Hãy thử lại.",
+          messageVi: "Không thể kết nối tới Nếp. Hãy thử lại.",
         },
       });
     }
@@ -294,7 +294,7 @@ export function VideoUrlForm() {
             </Button>
           </div>
           <p id="video-url-help" className="text-sm text-[var(--muted-foreground)]">
-            Hỗ trợ link xem video, youtu.be, Shorts và embed.
+            Hỗ trợ link xem video, link ngắn youtu.be, Shorts và link nhúng.
           </p>
         </div>
 
@@ -354,8 +354,8 @@ export function VideoUrlForm() {
               className="text-sm text-[var(--muted-foreground)]"
             >
               {cefrLevel
-                ? `Video đã kiểm tra và trình độ ${cefrLevel} đã được chọn.`
-                : "Chọn một trình độ để xác nhận lựa chọn."}
+                ? `Nếp đã kiểm tra video và bạn đã chọn mức ${cefrLevel}.`
+                : "Chọn một mức để xác nhận lựa chọn."}
             </p>
             <Button
               type="button"
@@ -378,11 +378,11 @@ export function VideoUrlForm() {
             <div className="space-y-1">
               <h2 className="text-xl font-semibold">Sẵn sàng tạo bài học</h2>
               <p className="text-sm text-[var(--muted-foreground)]">
-                Video và trình độ {confirmedDraft.cefrLevel} đã được xác nhận trong phiên này.
+                Video và mức {confirmedDraft.cefrLevel} đã được xác nhận trong phiên này.
               </p>
             </div>
             <p className="text-sm text-[var(--muted-foreground)]">
-              Vidlish không lưu video. Video vẫn cần đủ lời nói tiếng Anh gốc; không phải mọi video công khai đều tạo được bài học.
+              Nếp không lưu video. Video vẫn cần đủ lời nói tiếng Anh gốc; không phải mọi video công khai đều tạo được bài học.
             </p>
             {jobState.status === "error" ? (
               <p id="job-create-error" role="alert" className="text-sm font-medium text-red-700 dark:text-red-300">

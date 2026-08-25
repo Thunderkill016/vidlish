@@ -17,7 +17,7 @@ export function CefrSelector({
           Trình độ tiếng Anh của bạn
         </h2>
         <p id="cefr-help" className="text-sm text-[var(--muted-foreground)]">
-          Chọn một mức để Vidlish điều chỉnh độ khó của bài học.
+          Chọn một mức để Nếp điều chỉnh độ khó của bài học.
         </p>
       </div>
 

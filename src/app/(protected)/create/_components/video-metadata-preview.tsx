@@ -37,14 +37,14 @@ export function VideoMetadataPreview({
           </div>
         ) : null}
         <div className="min-w-0 space-y-2 p-5">
-          <p className="text-sm font-semibold text-[var(--accent)]">Video có thể tiếp tục</p>
+          <p className="text-sm font-semibold text-[var(--accent)]">Video này có thể dùng</p>
           <h2 className="break-words text-lg font-bold leading-snug">{metadata.title}</h2>
           <p className="break-words text-sm text-[var(--muted-foreground)]">
             {metadata.channelName}
             {duration ? ` · ${duration}` : ""}
           </p>
           <p className="text-sm text-[var(--muted-foreground)]">
-            Vidlish sẽ kiểm tra transcript và nội dung tiếng Anh ở các bước sau.
+            Nếp sẽ kiểm tra phần nói và nội dung tiếng Anh ở bước tiếp theo.
           </p>
         </div>
       </div>

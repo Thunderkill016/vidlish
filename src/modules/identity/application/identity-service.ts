@@ -1,24 +1,22 @@
 import type { CurrentAccess } from "@/modules/identity/domain/identity-user";
-import type { BetaAccessRepository } from "@/modules/identity/ports/beta-access-repository";
 import type { IdentityProvider } from "@/modules/identity/ports/identity-provider";
 import {
   emailSchema,
-  requestLoginCodeSchema,
   sanitizeIntendedPath,
-  verifyLoginCodeSchema,
-  type RequestLoginCodeCommand,
-  type VerifyLoginCodeCommand,
+  signInWithPasswordSchema,
+  signUpWithPasswordSchema,
+  type SignInWithPasswordCommand,
+  type SignUpWithPasswordCommand,
 } from "@/shared/contracts/auth";
 import { authErrors, ProductError, toProductError } from "@/shared/errors/product-error";
 
-export type RequestLoginCodeResult = { status: "accepted" };
-export type VerifyLoginCodeResult = { redirectTo: string };
+export type PasswordSignInResult = { redirectTo: string; requiresMfaChallenge: boolean };
+export type PasswordSignUpResult =
+  | { status: "confirmation_required" }
+  | ({ status: "signed_in" } & PasswordSignInResult);
 
 export class IdentityService {
-  constructor(
-    private readonly provider: IdentityProvider,
-    private readonly betaAccess: BetaAccessRepository,
-  ) {}
+  constructor(private readonly provider: IdentityProvider) {}
 
   private async bestEffortSignOut(): Promise<void> {
     try {
@@ -28,48 +26,62 @@ export class IdentityService {
     }
   }
 
-  async requestLoginCode(command: RequestLoginCodeCommand): Promise<RequestLoginCodeResult> {
-    const parsed = requestLoginCodeSchema.safeParse(command);
-    if (!parsed.success) throw authErrors.invalidEmail();
+  private async verifiedPasswordSession(
+    email: string,
+    intendedPath: string | undefined,
+  ): Promise<PasswordSignInResult> {
+    const user = await this.provider.getCurrentUser();
+    const currentEmail = user ? emailSchema.safeParse(user.email) : null;
 
-    const { email } = parsed.data;
-    const isAllowed = await this.betaAccess.isActive(email);
-
-    if (!isAllowed) {
-      return { status: "accepted" };
+    if (!user || !currentEmail?.success || currentEmail.data !== email) {
+      await this.bestEffortSignOut();
+      throw authErrors.invalidCredentials();
     }
 
+    return {
+      redirectTo: sanitizeIntendedPath(intendedPath),
+      requiresMfaChallenge: (await this.provider.requiresMfaChallenge?.()) ?? false,
+    };
+  }
+
+  async signInWithPassword(command: SignInWithPasswordCommand): Promise<PasswordSignInResult> {
+    const parsed = signInWithPasswordSchema.safeParse(command);
+    if (!parsed.success) {
+      const hasEmailError = parsed.error.issues.some((issue) => issue.path[0] === "email");
+      throw hasEmailError ? authErrors.invalidEmail() : authErrors.invalidPassword();
+    }
+
+    const { email, password, intendedPath } = parsed.data;
+
     try {
-      await this.provider.requestCode(email);
-      return { status: "accepted" };
+      await this.provider.signInWithPassword(email, password);
+      return await this.verifiedPasswordSession(email, intendedPath);
     } catch (error) {
+      if (error instanceof ProductError) throw error;
       throw toProductError(error);
     }
   }
 
-  async verifyLoginCode(command: VerifyLoginCodeCommand): Promise<VerifyLoginCodeResult> {
-    const parsed = verifyLoginCodeSchema.safeParse(command);
-    if (!parsed.success) throw authErrors.invalidCode();
+  async signUpWithPassword(
+    command: SignUpWithPasswordCommand,
+    emailRedirectTo: string,
+  ): Promise<PasswordSignUpResult> {
+    const parsed = signUpWithPasswordSchema.safeParse(command);
+    if (!parsed.success) {
+      const hasEmailError = parsed.error.issues.some((issue) => issue.path[0] === "email");
+      throw hasEmailError ? authErrors.invalidEmail() : authErrors.invalidPassword();
+    }
 
-    const { email, code, intendedPath } = parsed.data;
-    if (!(await this.betaAccess.isActive(email))) throw authErrors.invalidCode();
+    const { email, password, intendedPath } = parsed.data;
 
     try {
-      await this.provider.verifyCode(email, code);
-      const user = await this.provider.getCurrentUser();
-      const currentEmail = user ? emailSchema.safeParse(user.email) : null;
+      const outcome = await this.provider.signUpWithPassword(email, password, emailRedirectTo);
+      if (!outcome.sessionCreated) return { status: "confirmation_required" };
 
-      if (!user || !currentEmail?.success || currentEmail.data !== email) {
-        await this.bestEffortSignOut();
-        throw authErrors.invalidCode();
-      }
-
-      if (!(await this.betaAccess.isActive(email))) {
-        await this.bestEffortSignOut();
-        throw authErrors.revoked();
-      }
-
-      return { redirectTo: sanitizeIntendedPath(intendedPath) };
+      return {
+        status: "signed_in",
+        ...(await this.verifiedPasswordSession(email, intendedPath)),
+      };
     } catch (error) {
       if (error instanceof ProductError) throw error;
       throw toProductError(error);
@@ -81,19 +93,27 @@ export class IdentityService {
     if (!user) return null;
 
     const parsedEmail = emailSchema.safeParse(user.email);
-    if (!parsedEmail.success || !(await this.betaAccess.isActive(parsedEmail.data))) {
+    if (!parsedEmail.success) {
       await this.bestEffortSignOut();
       return null;
     }
 
+    // An AAL1 session after this account has enrolled a factor is not enough to
+    // read learner data. Do not sign it out: the sign-in page needs the session
+    // to complete its TOTP challenge and upgrade it to AAL2.
+    if (await this.requiresMfaChallenge()) return null;
+
     return {
       userId: user.id,
       email: parsedEmail.data,
-      betaAccess: "active",
     };
   }
 
   async signOut(): Promise<void> {
     await this.provider.signOut();
+  }
+
+  async requiresMfaChallenge(): Promise<boolean> {
+    return (await this.provider.requiresMfaChallenge?.()) ?? false;
   }
 }

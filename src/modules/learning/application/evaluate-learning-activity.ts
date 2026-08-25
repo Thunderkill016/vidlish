@@ -110,7 +110,7 @@ export function evaluateLearningActivity(
       verdict: "self_check",
       goalVi: activity.feedback.goalVi,
       evidenceVi:
-        "Đây là câu trả lời mở. Vidlish không gắn nhãn đúng hoặc sai; hãy đối chiếu với tiêu chí sau khi bạn đã tự viết.",
+        "Đây là câu trả lời mở. Nếp không gắn nhãn đúng hoặc sai; hãy đối chiếu với tiêu chí sau khi bạn đã tự viết.",
       nextStepVi: activity.feedback.nextStepVi,
       evidenceRefs: activity.evidence,
       checkedCriteria,
