@@ -23,6 +23,12 @@ import {
   A1_HOW_MUCH,
   A1_JOINING_IDEAS,
 } from "./a1-core-3";
+import {
+  A1_DID_YOU,
+  A1_IT_WAS_DONE,
+  A1_WHEN_AND_ANYONE,
+  A1_WHICH_ONE,
+} from "./a1-core-4";
 import { PRE_A1_INTRODUCE_YOURSELF } from "./pre-a1-introduce-yourself";
 import {
   PRE_A1_ASK_FOR_REPEAT,
@@ -57,6 +63,10 @@ const AUTHORED: readonly FoundationUnit[] = [
   A1_COMPARING,
   A1_HOW_MUCH,
   A1_DOING_NOW,
+  A1_WHICH_ONE,
+  A1_WHEN_AND_ANYONE,
+  A1_IT_WAS_DONE,
+  A1_DID_YOU,
 ];
 
 export const FOUNDATION_UNITS: readonly FoundationUnit[] = AUTHORED.map(
