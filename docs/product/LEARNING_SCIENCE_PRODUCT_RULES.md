@@ -269,3 +269,72 @@ Technical vocabulary is not in the A1/A2 catalogue, and it is a comparatively cl
 The reasoning is that `you`, `the`, `to` and `it` are needed by every English sentence including every sentence about code, and a learner who has technical nouns without them can label things but cannot say anything. Three hundred is where the corpus measurements show retrieval covering most targets, so it is also where the product stops depending on generated sentences.
 
 Product consequence: do not add a technical word list to the beginner catalogue. When the layer is built, it is gated on evidence — three hundred words produced unaided — not on time spent or sessions completed.
+
+---
+
+## Methods ranked by measured effect, and what this product does about each
+
+Searched without a target on 25/08/2026. Only interventions with a published
+meta-analytic effect size are listed; everything that came back as opinion was
+dropped. Read `d` and `g` the usual way: 0.2 small, 0.5 medium, 0.8 large.
+
+| Method | Effect | Built here? |
+| --- | --- | --- |
+| Remove seductive detail | g = 1.00 | yes — no points, no streaks, no leaderboard |
+| Explicit over implicit instruction | d ≈ 1.0 | yes — every unit states what it teaches |
+| Pronunciation instruction *with feedback* | d = 0.80–0.89 | partly — measured, not taught |
+| Redundancy (no text under speech) | d = 0.87 | yes — listen before text, and it is recorded |
+| Modality (speech, not printed words) | g = 0.82 | yes — Kokoro audio for every line |
+| **Extensive reading** | **d = 0.57–0.79** | **no** |
+| Written corrective feedback, *focused* | g = 0.69 | no |
+| Segmenting, learner-paced | d = 0.70–0.79 | yes — one action at a time |
+| **Shadowing (fluency)** | **consistent across every study measuring it** | **no — the machinery exists** |
+| Spacing with FSRS over SM-2 | 20–30% fewer reviews, same retention | yes |
+| Written corrective feedback, *unfocused* | g = 0.33 | deliberately not |
+
+### The two largest things not built
+
+**Extensive reading.** d = 0.57–0.79, and the meta-analyses find it positive
+across *every* domain measured — comprehension, vocabulary, decoding speed,
+motivation, writing, and oral proficiency. One intervention, gains in all of
+them. This product has four short reading comprehension checks and nothing that
+could be called reading at volume.
+
+The material is free and licensed: Nation's mid-frequency graded readers, classic
+fiction and non-fiction rewritten to a known vocabulary size, CC BY-SA. The
+vocabulary gate this product already computes is exactly what picks the right
+reader for a learner.
+
+**Shadowing.** Hear a sentence, say it back immediately, matching rhythm and
+stress. Every study in the 2025 systematic review that measured fluency found
+gains, and **lower-proficiency learners gain the most** — which is this learner.
+
+The whole apparatus already exists: recorded audio, on-device recognition,
+word-error-rate scoring against a held target. Elicited imitation *is* shadowing;
+it is currently used only to measure. Turning the same loop into practice is
+small work with a large effect.
+
+One honesty limit to carry into the copy: shadowing reliably improves
+comprehensibility and prosody, and its effect on **accentedness is weak and
+inconsistent**. Do not tell a learner this will make them sound native.
+
+### A correction to earlier advice in this file
+
+Writing feedback has been listed here as a top gap. The evidence does not support
+that ranking *for this learner*: proficiency is the strongest moderator of
+written corrective feedback, and **advanced learners benefit more than
+beginners**. At A1–A2 it should sit below extensive reading and shadowing.
+
+When it is built, the design is already decided by the numbers: **focused
+feedback, g = 0.69, beats unfocused feedback, g = 0.33, by more than double.**
+Correct one thing at a time. Marking every error in a beginner's writing is not
+twice the help, it is a third of it.
+
+### Sources
+
+[Extensive reading meta-analysis (Jeon & Day; Nakanishi)](https://onlinelibrary.wiley.com/doi/10.1002/tesq.157) ·
+[Learning a language through reading, 2025](https://link.springer.com/article/10.1007/s10648-025-10068-6) ·
+[Shadowing for pronunciation: systematic review](https://www.tandfonline.com/doi/full/10.1080/29984475.2025.2546827) ·
+[Written corrective feedback meta-analysis](https://tesl-ej.org/wordpress/issues/volume24/ej95/ej95a3/) ·
+[Bayesian meta-analysis of WCF](https://journals.sagepub.com/doi/10.1177/13621688221147374) ·
+[Pronunciation instruction meta-analysis](https://www.researchgate.net/publication/274178849_The_Effectiveness_of_Second_Language_Pronunciation_Instruction_A_Meta-Analysis)
