@@ -23,19 +23,29 @@ const POINTS = 64;
 /** How much of the curve counts as "the half the contrast lives in". */
 const HALF = POINTS / 2;
 
-/** Seconds of audio, read from the WAV header without decoding samples. */
-function durationOf(path) {
-  const buffer = readFileSync(path);
-  let offset = 12;
-  let rate = 24_000;
-  while (offset < buffer.length - 8) {
-    const id = buffer.toString("ascii", offset, offset + 4);
-    const size = buffer.readUInt32LE(offset + 4);
-    if (id === "fmt ") rate = buffer.readUInt32LE(offset + 12);
-    if (id === "data") return size / 2 / rate;
-    offset += 8 + size + (size % 2);
+/**
+ * Seconds during which the speaker was actually making sound.
+ *
+ * Not the file's duration. Kokoro pads its output to a fixed frame count —
+ * "pin", "bin" and "mouse" all come back at exactly 64844 bytes — so file
+ * length measures the padding, not the speech. The first version of this check
+ * divided the data chunk by the sample rate, and the vowel-length differences
+ * it reported were partly an artefact of that. The conclusion survived the
+ * correction; the numbers moved.
+ */
+function voicedSeconds(path) {
+  const samples = decodeWav(path);
+  const perFrame = 240; // 10 ms at 24 kHz
+  const frames = [];
+  for (let start = 0; start + perFrame <= samples.length; start += perFrame) {
+    let sum = 0;
+    for (let i = 0; i < perFrame; i += 1) sum += samples[start + i] ** 2;
+    frames.push(Math.sqrt(sum / perFrame));
   }
-  return 0;
+  const peak = Math.max(...frames);
+  if (peak === 0) return 0;
+  const floor = peak * 0.1;
+  return frames.filter((frame) => frame >= floor).length / 100;
 }
 
 function decodeWav(path) {
@@ -133,7 +143,7 @@ console.log(
 // length difference there. A measure that finds the effect everywhere is
 // measuring its own wishful thinking; one that finds it only where it should be
 // is measuring the thing.
-console.log("\nĐộ dài nguyên âm trước âm cuối kêu");
+console.log("\nĐộ dài nguyên âm trước âm cuối kêu (chỉ tính lúc có tiếng)");
 for (const block of blocks) {
   const id = block.split('"')[0];
   if (!/position: "final"/.test(block)) continue;
@@ -143,8 +153,8 @@ for (const block of blocks) {
   const deltas = [];
   for (const [, a, b] of pairs) {
     for (const voice of Object.keys(manifest[a] ?? {})) {
-      const da = durationOf(`public${manifest[a][voice]}`);
-      const db = durationOf(`public${manifest[b][voice]}`);
+      const da = voicedSeconds(`public${manifest[a][voice]}`);
+      const db = voicedSeconds(`public${manifest[b][voice]}`);
       total += 1;
       if (db > da) longer += 1;
       deltas.push(db - da);
