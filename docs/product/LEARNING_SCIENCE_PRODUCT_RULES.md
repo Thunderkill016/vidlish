@@ -320,6 +320,37 @@ fiction and non-fiction rewritten to a known vocabulary size, CC BY-SA. The
 vocabulary gate this product already computes is exactly what picks the right
 reader for a learner.
 
+**Measured, and it does not work yet.** Two openly-licensed sources were tested
+against the current 2,234-word catalogue, counting a word as known if it or a
+simple inflection of it is in the catalogue:
+
+| Source | Paragraphs ≥ 90% known | ≥ 95% known |
+| --- | --- | --- |
+| Aesop's Fables (Gutenberg, public domain) | 5 of 290 | **0** |
+| Simple English Wikipedia, *Computer programming* | 6 of 18 | **0** |
+
+Simple English Wikipedia averages 84.2% coverage. Extensive reading needs
+95–98%: below that the learner stops to look words up and it stops being
+extensive reading.
+
+So **no naturally-occurring English is usable for this learner yet**, however
+simple it looks. Aesop reads as a children's book and is far above A2. This is
+precisely the gap graded readers exist to fill — they are written *to* a
+vocabulary size rather than found at one — and it is why Nation had to rewrite
+the classics rather than link to them.
+
+Three ways forward, in order of honesty:
+
+1. **Nation's mid-frequency readers**, CC BY-SA, written to 4,000/6,000/8,000
+   word levels. Behind the IP block; a person can download them in seconds.
+2. **Grow the catalogue first.** At roughly 4,000–5,000 words Simple English
+   Wikipedia would likely clear the threshold, and it covers this learner's own
+   subject matter.
+3. Generate graded text — available, and the option this product trusts least
+   for beginner input, for the reasons already written down here.
+
+Until one of those lands, extensive reading is a plan, not a feature. Say so.
+
 **Shadowing.** Hear a sentence, say it back immediately, matching rhythm and
 stress. Every study in the 2025 systematic review that measured fluency found
 gains, and **lower-proficiency learners gain the most** — which is this learner.
