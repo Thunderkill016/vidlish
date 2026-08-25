@@ -3,8 +3,10 @@ import "server-only";
 import { createHash } from "node:crypto";
 
 import type { IdentityUser } from "@/modules/identity/domain/identity-user";
-import type { IdentityProvider } from "@/modules/identity/ports/identity-provider";
-import { authErrors } from "@/shared/errors/product-error";
+import type {
+  IdentityProvider,
+  PasswordSignUpOutcome,
+} from "@/modules/identity/ports/identity-provider";
 import type { CookieStoreLike } from "@/adapters/fake/cookie-store";
 
 /**
@@ -31,18 +33,9 @@ export function fakeUserId(email: string): string {
 export const fakeSessionCookieName = "vidlish_test_session";
 
 export class FakeIdentityProvider implements IdentityProvider {
-  constructor(
-    private readonly cookieStore: CookieStoreLike,
-    private readonly validCode: string,
-  ) {}
+  constructor(private readonly cookieStore: CookieStoreLike) {}
 
-  async requestCode(): Promise<void> {
-    return undefined;
-  }
-
-  async verifyCode(email: string, code: string): Promise<void> {
-    if (code !== this.validCode) throw authErrors.invalidCode();
-
+  private establishSession(email: string): void {
     this.cookieStore.set(fakeSessionCookieName, encodeURIComponent(email), {
       httpOnly: true,
       sameSite: "lax",
@@ -50,6 +43,15 @@ export class FakeIdentityProvider implements IdentityProvider {
       path: "/",
       maxAge: 60 * 60,
     });
+  }
+
+  async signInWithPassword(email: string): Promise<void> {
+    this.establishSession(email);
+  }
+
+  async signUpWithPassword(email: string): Promise<PasswordSignUpOutcome> {
+    this.establishSession(email);
+    return { sessionCreated: true };
   }
 
   async getCurrentUser(): Promise<IdentityUser | null> {

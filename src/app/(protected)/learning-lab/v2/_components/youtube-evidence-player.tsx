@@ -108,7 +108,7 @@ function playerErrorMessage(code: number | undefined): string {
       return "Video không còn tồn tại hoặc đang riêng tư.";
     case 101:
     case 150:
-      return "Chủ video không cho phép phát video này trong Vidlish.";
+      return "Chủ video không cho phép phát video này trong Nếp.";
     case 153:
       return "YouTube từ chối request vì thiếu thông tin nhận diện nguồn phát.";
     default:

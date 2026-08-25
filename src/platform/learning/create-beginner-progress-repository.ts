@@ -1,8 +1,8 @@
 import "server-only";
 
 import { InMemoryBeginnerProgressRepository } from "@/adapters/fake/in-memory-beginner-progress-repository";
-import { getAdminSupabaseClient } from "@/adapters/supabase/admin-client";
 import { SupabaseBeginnerProgressRepository } from "@/adapters/supabase/beginner-progress-repository";
+import { createServerSupabaseClient } from "@/adapters/supabase/server-client";
 import type { BeginnerProgressRepository } from "@/modules/learning/ports/beginner-progress-repository";
 
 type BeginnerProgressGlobal = typeof globalThis & {
@@ -21,16 +21,17 @@ function fakeRepository(): InMemoryBeginnerProgressRepository {
   return progressGlobal.__vidlishFakeBeginnerProgressRepository;
 }
 
-export function createBeginnerProgressRepository(): BeginnerProgressRepository {
-  // Deliberately the same switch the learning session repository uses, so a
-  // deployment cannot end up with real sessions writing to a fake evidence
-  // store — which would lose exactly the evidence the product is built on.
+export async function createBeginnerProgressRepository(): Promise<BeginnerProgressRepository> {
+  // The learner's own server-side Supabase client carries their verified
+  // session into the RPC. Using a service client here would make `auth.uid()`
+  // unavailable to the database policy and turn an ownership invariant into
+  // a promise made only by application code.
   const value =
     process.env.LEARNING_SESSION_REPOSITORY ??
     (process.env.NODE_ENV === "production" ? "supabase" : "fake");
 
   if (value === "supabase") {
-    return new SupabaseBeginnerProgressRepository(getAdminSupabaseClient());
+    return new SupabaseBeginnerProgressRepository(await createServerSupabaseClient());
   }
 
   const isCi = process.env.CI === "true" || process.env.CI === "1";

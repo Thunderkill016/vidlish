@@ -2,11 +2,11 @@ import { z } from "zod";
 
 export const productErrorCodeSchema = z.enum([
   "AUTH_EMAIL_INVALID",
-  "AUTH_CODE_INVALID_OR_EXPIRED",
-  "AUTH_CODE_COOLDOWN",
+  "AUTH_PASSWORD_INVALID",
+  "AUTH_CREDENTIALS_INVALID",
+  "AUTH_RATE_LIMITED",
   "AUTH_TEMPORARILY_UNAVAILABLE",
   "AUTH_SESSION_REQUIRED",
-  "AUTH_BETA_ACCESS_REVOKED",
   "AUTH_REQUEST_REJECTED",
   "VIDEO_URL_INVALID",
   "VIDEO_NOT_FOUND",
@@ -79,23 +79,29 @@ export class ProductError extends Error {
 export const authErrors = {
   invalidEmail: () =>
     new ProductError("AUTH_EMAIL_INVALID", "Email không hợp lệ.", false),
-  invalidCode: () =>
+  invalidPassword: () =>
     new ProductError(
-      "AUTH_CODE_INVALID_OR_EXPIRED",
-      "Mã đăng nhập không đúng hoặc đã hết hạn. Hãy kiểm tra lại hoặc yêu cầu mã mới.",
+      "AUTH_PASSWORD_INVALID",
+      "Mật khẩu cần ít nhất 12 ký tự.",
       false,
     ),
-  cooldown: () =>
+  invalidCredentials: () =>
     new ProductError(
-      "AUTH_CODE_COOLDOWN",
-      "Vui lòng chờ trước khi yêu cầu mã mới.",
+      "AUTH_CREDENTIALS_INVALID",
+      "Email hoặc mật khẩu không đúng.",
+      false,
+    ),
+  rateLimited: () =>
+    new ProductError(
+      "AUTH_RATE_LIMITED",
+      "Bạn đã thử quá nhiều lần. Hãy chờ một lúc rồi thử lại.",
       true,
       "retry",
     ),
   unavailable: () =>
     new ProductError(
       "AUTH_TEMPORARILY_UNAVAILABLE",
-      "Vidlish chưa thể xử lý yêu cầu đăng nhập. Hãy thử lại sau ít phút.",
+      "Nếp chưa thể xử lý yêu cầu đăng nhập. Hãy thử lại sau ít phút.",
       true,
       "retry",
     ),
@@ -104,13 +110,6 @@ export const authErrors = {
       "AUTH_SESSION_REQUIRED",
       "Phiên đăng nhập không còn hiệu lực. Hãy đăng nhập lại.",
       false,
-    ),
-  revoked: () =>
-    new ProductError(
-      "AUTH_BETA_ACCESS_REVOKED",
-      "Quyền truy cập private beta không còn hiệu lực.",
-      false,
-      "contact_support",
     ),
   rejected: () =>
     new ProductError("AUTH_REQUEST_REJECTED", "Yêu cầu không hợp lệ.", false),
@@ -132,13 +131,13 @@ export const videoErrors = {
   private: () =>
     new ProductError(
       "VIDEO_PRIVATE",
-      "Video này đang ở chế độ riêng tư và không thể dùng trong Vidlish.",
+      "Video này đang ở chế độ riêng tư và không thể dùng trong Nếp.",
       false,
     ),
   restricted: () =>
     new ProductError(
       "VIDEO_RESTRICTED",
-      "Video này không cho phép phát trong Vidlish hoặc bị giới hạn tại khu vực hiện tại.",
+      "Video này không cho phép phát trong Nếp hoặc bị giới hạn tại khu vực hiện tại.",
       false,
     ),
   unavailable: () =>
@@ -151,8 +150,8 @@ export const videoErrors = {
     new ProductError(
       "VIDEO_METADATA_FAILED",
       retryable
-        ? "Vidlish chưa thể kiểm tra video. Hãy thử lại."
-        : "Vidlish chưa thể kiểm tra video do cấu hình dịch vụ.",
+        ? "Nếp chưa thể kiểm tra video. Hãy thử lại."
+        : "Nếp chưa thể kiểm tra video do cấu hình dịch vụ.",
       retryable,
       retryable ? "retry" : undefined,
     ),
@@ -169,7 +168,7 @@ export const videoErrors = {
   transcriptUnavailable: () =>
     new ProductError(
       "TRANSCRIPT_UNAVAILABLE",
-      "Vidlish chưa lấy được lời thoại của video này. Hãy thử một video khác.",
+      "Nếp chưa lấy được lời thoại của video này. Hãy thử một video khác.",
       false,
       "choose_another_video",
     ),
@@ -207,14 +206,14 @@ export const generationErrors = {
   createFailed: () =>
     new ProductError(
       "JOB_CREATE_FAILED",
-      "Vidlish chưa thể bắt đầu tạo bài học. Hãy thử lại.",
+      "Nếp chưa thể bắt đầu tạo bài học. Hãy thử lại.",
       true,
       "retry",
     ),
   statusFailed: () =>
     new ProductError(
       "JOB_STATUS_FAILED",
-      "Vidlish chưa thể tải tiến trình lúc này. Hãy thử lại.",
+      "Nếp chưa thể tải tiến trình lúc này. Hãy thử lại.",
       true,
       "retry",
     ),
@@ -233,7 +232,7 @@ export const studyErrors = {
   saveFailed: () =>
     new ProductError(
       "STUDY_PROGRESS_FAILED",
-      "Vidlish chưa lưu được tiến độ học. Kết quả trên màn hình vẫn được giữ, hãy thử lại.",
+      "Nếp chưa lưu được tiến độ học. Kết quả trên màn hình vẫn được giữ, hãy thử lại.",
       true,
       "retry",
     ),
@@ -249,7 +248,7 @@ export const reviewErrors = {
   progressFailed: () =>
     new ProductError(
       "REVIEW_PROGRESS_FAILED",
-      "Vidlish chưa xử lý được phiên ôn tập. Hãy thử lại.",
+      "Nếp chưa xử lý được phiên ôn tập. Hãy thử lại.",
       true,
       "retry",
     ),

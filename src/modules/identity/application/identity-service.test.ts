@@ -1,71 +1,101 @@
 import { describe, expect, it, vi } from "vitest";
 
 import { IdentityService } from "@/modules/identity/application/identity-service";
-import type { BetaAccessRepository } from "@/modules/identity/ports/beta-access-repository";
 import type { IdentityProvider } from "@/modules/identity/ports/identity-provider";
 
 function provider(overrides: Partial<IdentityProvider> = {}): IdentityProvider {
   return {
-    requestCode: vi.fn(async () => undefined),
-    verifyCode: vi.fn(async () => undefined),
+    signInWithPassword: vi.fn(async () => undefined),
+    signUpWithPassword: vi.fn(async () => ({ sessionCreated: true })),
     getCurrentUser: vi.fn(async () => ({ id: "user-1", email: "invited@example.com" })),
     signOut: vi.fn(async () => undefined),
     ...overrides,
   };
 }
 
-function accessRepository(values: boolean[]): BetaAccessRepository {
-  let index = 0;
-  return {
-    isActive: vi.fn(async () => values[Math.min(index++, values.length - 1)] ?? false),
-  };
-}
-
 describe("IdentityService", () => {
-  it("returns the same public result while skipping the provider for denied email", async () => {
-    const deniedProvider = provider();
-    const deniedService = new IdentityService(deniedProvider, accessRepository([false]));
-    const allowedProvider = provider();
-    const allowedService = new IdentityService(allowedProvider, accessRepository([true]));
-
-    const denied = await deniedService.requestLoginCode({ email: "learner@example.com" });
-    const allowed = await allowedService.requestLoginCode({ email: "invited@example.com" });
-
-    expect(denied).toEqual(allowed);
-    expect(deniedProvider.requestCode).not.toHaveBeenCalled();
-    expect(allowedProvider.requestCode).toHaveBeenCalledOnce();
-  });
-
-  it("rechecks beta access after verification and signs out a revoked session", async () => {
+  it("authenticates a valid email and password", async () => {
     const identityProvider = provider();
-    const service = new IdentityService(identityProvider, accessRepository([true, false]));
+    const service = new IdentityService(identityProvider);
 
     await expect(
-      service.verifyLoginCode({
+      service.signInWithPassword({
         email: "invited@example.com",
-        code: "123456",
+        password: "a long enough password",
+      }),
+    ).resolves.toEqual({ redirectTo: "/start", requiresMfaChallenge: false });
+    expect(identityProvider.signInWithPassword).toHaveBeenCalledWith(
+      "invited@example.com",
+      "a long enough password",
+    );
+  });
+
+  it("signs out when a password-authenticated session belongs to another email", async () => {
+    const identityProvider = provider({
+      getCurrentUser: vi.fn(async () => ({ id: "user-1", email: "other@example.com" })),
+    });
+    const service = new IdentityService(identityProvider);
+
+    await expect(
+      service.signInWithPassword({
+        email: "learner@example.com",
+        password: "a long enough password",
         intendedPath: "/library",
       }),
-    ).rejects.toMatchObject({ code: "AUTH_BETA_ACCESS_REVOKED" });
+    ).rejects.toMatchObject({ code: "AUTH_CREDENTIALS_INVALID" });
     expect(identityProvider.signOut).toHaveBeenCalledOnce();
   });
 
-  it("returns sanitized redirect for an allowed verified user", async () => {
-    const service = new IdentityService(provider(), accessRepository([true, true]));
+  it("returns a sanitized redirect for a password-authenticated user", async () => {
+    const service = new IdentityService(provider());
     await expect(
-      service.verifyLoginCode({
+      service.signInWithPassword({
         email: "invited@example.com",
-        code: "123456",
+        password: "a long enough password",
         intendedPath: "https://evil.example",
       }),
-    ).resolves.toEqual({ redirectTo: "/create" });
+    ).resolves.toEqual({ redirectTo: "/start", requiresMfaChallenge: false });
   });
 
-  it("removes access when the current session email is no longer allowlisted", async () => {
-    const identityProvider = provider();
-    const service = new IdentityService(identityProvider, accessRepository([false]));
+  it("requires a second factor only when the provider reports an AAL2 upgrade", async () => {
+    const service = new IdentityService(provider({ requiresMfaChallenge: vi.fn(async () => true) }));
+    await expect(
+      service.signInWithPassword({
+        email: "invited@example.com",
+        password: "a long enough password",
+      }),
+    ).resolves.toEqual({ redirectTo: "/start", requiresMfaChallenge: true });
+  });
+
+  it("does not disclose whether an email already has an account during sign-up", async () => {
+    const service = new IdentityService(
+      provider({ signUpWithPassword: vi.fn(async () => ({ sessionCreated: false })) }),
+    );
+
+    await expect(
+      service.signUpWithPassword(
+        {
+          email: "learner@example.com",
+          password: "a long enough password",
+          passwordConfirmation: "a long enough password",
+        },
+        "https://nep.example/auth/callback?next=/start",
+      ),
+    ).resolves.toEqual({ status: "confirmation_required" });
+  });
+
+  it("removes access when the current session has no valid email", async () => {
+    const identityProvider = provider({
+      getCurrentUser: vi.fn(async () => ({ id: "user-1", email: "not-an-email" })),
+    });
+    const service = new IdentityService(identityProvider);
 
     await expect(service.resolveCurrentAccess()).resolves.toBeNull();
     expect(identityProvider.signOut).toHaveBeenCalledOnce();
+  });
+
+  it("denies protected access until an enrolled factor has raised the session to AAL2", async () => {
+    const service = new IdentityService(provider({ requiresMfaChallenge: vi.fn(async () => true) }));
+    await expect(service.resolveCurrentAccess()).resolves.toBeNull();
   });
 });

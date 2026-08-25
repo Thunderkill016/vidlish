@@ -2,8 +2,6 @@ import "server-only";
 
 import { z } from "zod";
 
-import { registeredGeminiModelSupports } from "@/platform/ai/gemini-model-registry";
-
 const serverConfigSchema = z
   .object({
     NODE_ENV: z.enum(["development", "test", "production"]),
@@ -13,8 +11,6 @@ const serverConfigSchema = z
       .transform((value) => value === "true" || value === "1"),
     AUTH_ADAPTER: z.enum(["supabase", "fake"]).default("supabase"),
     SUPABASE_SECRET_KEY: z.string().min(1),
-    AUTH_FAKE_CODE: z.string().regex(/^\d{6}$/).default("123456"),
-    TEST_BETA_EMAILS: z.string().default("invited@example.com"),
     VIDEO_METADATA_ADAPTER: z.enum(["youtube", "fixture"]).default("fixture"),
     YOUTUBE_DATA_API_KEY: z.string().min(1).optional(),
     YOUTUBE_VIEWER_REGION: z.string().regex(/^[A-Z]{2}$/).default("VN"),
@@ -75,13 +71,25 @@ const serverConfigSchema = z
      * rejected lesson costs its whole generation, so the cheapest model per
      * token is not the cheapest per accepted lesson.
      *
-     * Keep one explicitly selected production model. The capability registry
-     * can reject a registered endpoint that is known not to author lessons, but
-     * it deliberately does not auto-route or silently fall back to another
-     * model when quota/availability changes.
-     */
+     * `gemini-3.7-flash` is $0.75 / $3.75 per million against Flash-Lite's
+     * $0.30 / $2.50 — roughly a cent and a half more per lesson, against a
+     * generation thrown away. It is also cheaper than `gemini-3.5-flash`
+     * ($1.50 / $9.00), so this is not simply "spend more".
+    */
     LESSON_MODEL_ID: z.string().min(1).default("gemini-3.7-flash"),
     GEMINI_API_KEY: z.string().min(1).optional(),
+    // A fixed, reviewed A0 audio set is safe to synthesize through Gemini.
+    // Keep it opt-in because Preview availability and free-tier quota are not
+    // a production availability guarantee.
+    GEMINI_TTS_ENABLED: z
+      .enum(["true", "false"])
+      .default("false")
+      .transform((value) => value === "true"),
+    GEMINI_TTS_MODEL_ID: z
+      .string()
+      .min(1)
+      .default("gemini-3.1-flash-tts-preview"),
+    GEMINI_TTS_VOICE: z.string().min(1).default("Kore"),
   })
   .superRefine((value, context) => {
     if (
@@ -178,20 +186,11 @@ const serverConfigSchema = z
           "The fixture learning authoring provider cannot run in production.",
       });
     }
-
-    const geminiAuthoringEnabled =
-      value.LESSON_PROVIDER === "gemini" ||
-      value.LEARNING_AUTHORING_PROVIDER === "gemini";
-    if (
-      geminiAuthoringEnabled &&
-      registeredGeminiModelSupports(value.LESSON_MODEL_ID, "lesson_authoring") ===
-        false
-    ) {
+    if (value.GEMINI_TTS_ENABLED && !value.GEMINI_API_KEY) {
       context.addIssue({
         code: "custom",
-        path: ["LESSON_MODEL_ID"],
-        message:
-          "The registered Gemini model does not support Vidlish lesson authoring.",
+        path: ["GEMINI_TTS_ENABLED"],
+        message: "Gemini TTS requires GEMINI_API_KEY when it is enabled.",
       });
     }
   });
@@ -212,8 +211,6 @@ export function getServerConfig(): ServerConfig {
     AUTH_ADAPTER: process.env.AUTH_ADAPTER,
     SUPABASE_SECRET_KEY:
       process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY,
-    AUTH_FAKE_CODE: process.env.AUTH_FAKE_CODE,
-    TEST_BETA_EMAILS: process.env.TEST_BETA_EMAILS,
     VIDEO_METADATA_ADAPTER:
       process.env.VIDEO_METADATA_ADAPTER ??
       (isProduction ? "youtube" : undefined),
@@ -243,6 +240,9 @@ export function getServerConfig(): ServerConfig {
     LEARNING_AUTHORING_PROVIDER: process.env.LEARNING_AUTHORING_PROVIDER,
     LESSON_MODEL_ID: process.env.LESSON_MODEL_ID,
     GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+    GEMINI_TTS_ENABLED: process.env.GEMINI_TTS_ENABLED,
+    GEMINI_TTS_MODEL_ID: process.env.GEMINI_TTS_MODEL_ID,
+    GEMINI_TTS_VOICE: process.env.GEMINI_TTS_VOICE,
   });
 
   if (!result.success) {

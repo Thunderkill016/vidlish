@@ -10,9 +10,8 @@
  * LICENCE — READ BEFORE MONETISING. The upstream author permits educational,
  * personal and research use under the LDC licence, Norvig's MIT licence for his
  * contributions, and US fair use, and explicitly does NOT recommend commercial
- * use without licensing the corpus from the LDC. Vidlish is a private beta with
- * no payments, which is inside that permission. Charging for Vidlish requires
- * replacing this list first — that is why the lookup sits behind
+ * use without licensing the corpus from the LDC. Nếp currently has no payment
+ * flow; charging for Nếp requires replacing this list first — that is why the lookup sits behind
  * `EnglishFrequencyRanking` rather than being called directly.
  *
  * Trimmed to 8000 entries: that is the vocabulary size research associates with

@@ -70,7 +70,7 @@ describe("VideoUrlForm", () => {
           JSON.stringify({
             error: {
               code: "VIDEO_METADATA_FAILED",
-              messageVi: "Vidlish chưa thể kiểm tra video. Hãy thử lại.",
+              messageVi: "Nếp chưa thể kiểm tra video. Hãy thử lại.",
               retryable: true,
               action: "retry",
             },
@@ -148,9 +148,7 @@ describe("VideoUrlForm", () => {
     expect(screen.getByTestId("confirmed-lesson-draft")).toHaveTextContent(
       "Sẵn sàng tạo bài học",
     );
-    expect(screen.getByTestId("confirmed-lesson-draft")).toHaveTextContent(
-      "trình độ B1",
-    );
+    expect(screen.getByTestId("confirmed-lesson-draft")).toHaveTextContent("mức B1");
     expect(screen.getByRole("button", { name: "Tạo bài học" })).toBeVisible();
     expect(fetchMock).toHaveBeenCalledOnce();
 

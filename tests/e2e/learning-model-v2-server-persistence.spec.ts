@@ -15,12 +15,12 @@ const PRIVATE_DELAYED_TRANSFER_TEXT =
 async function login(page: Page) {
   await page.goto("/sign-in");
   await page
-    .getByLabel("Email được mời")
+    .getByLabel("Email")
     .fill("learning-preview@example.com");
-  await page.getByRole("button", { name: "Gửi mã đăng nhập" }).click();
-  await page.getByLabel("Mã đăng nhập gồm 6 chữ số").fill("123456");
-  await page.getByRole("button", { name: "Đăng nhập" }).click();
-  await expect(page).toHaveURL(/\/create$/);
+  await page.getByRole("textbox", { name: "Mật khẩu", exact: true }).fill("a long enough password");
+  await page.getByRole("button", { name: "Đăng nhập", exact: true }).click();
+  await expect(page).toHaveURL(/\/start$/);
+  await page.goto("/create");
 }
 
 async function mockYouTubeIframeApi(page: Page) {

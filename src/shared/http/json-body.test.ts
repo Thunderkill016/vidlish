@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest";
 import { readAuthJsonBody } from "@/shared/http/json-body";
 
 function request(body: string, contentType = "application/json") {
-  return new NextRequest("https://app.vidlish.example/api/auth/request-code", {
+  return new NextRequest("https://app.vidlish.example/api/auth/sign-in", {
     method: "POST",
     headers: {
       "content-type": contentType,

@@ -17,8 +17,8 @@ const mono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Vidlish",
-  description: "Any English video. Your English lesson.",
+  title: "Nếp | Tiếng Anh thành nếp",
+  description: "Học tiếng Anh từ số 0: hiểu thật, nhớ lâu, dùng được.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

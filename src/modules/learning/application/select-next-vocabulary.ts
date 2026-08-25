@@ -33,6 +33,16 @@ export type VocabularyEntry = {
   word: string;
   pos: string;
   cefr: string;
+  /**
+   * A reviewed curriculum can reserve its opening sequence before the generic
+   * CEFR catalogue. Absent means this item belongs to the generic catalogue.
+   */
+  curriculumOrder?: number;
+  /**
+   * No i+1 sentence can honestly introduce this item with the language that
+   * precedes it, so the session must use controlled audio/meaning first.
+   */
+  introduceOnItsOwn?: boolean;
 };
 
 /**
@@ -76,6 +86,7 @@ const POS_PRIORITY: Record<string, number> = {
 const UNRANKED_POS = 6;
 const LEVEL_ORDER: Record<string, number> = { A1: 0, A2: 1, B1: 2, B2: 3 };
 const UNRANKED_LEVEL = 9;
+const NO_CURRICULUM_ORDER = Number.MAX_SAFE_INTEGER;
 
 export function selectNextVocabulary(input: {
   catalogue: readonly VocabularyEntry[];
@@ -95,6 +106,11 @@ export function compareTeachingOrder(
   left: VocabularyEntry,
   right: VocabularyEntry,
 ): number {
+  const byCurriculum =
+    (left.curriculumOrder ?? NO_CURRICULUM_ORDER) -
+    (right.curriculumOrder ?? NO_CURRICULUM_ORDER);
+  if (byCurriculum !== 0) return byCurriculum;
+
   const byLevel =
     (LEVEL_ORDER[left.cefr] ?? UNRANKED_LEVEL) -
     (LEVEL_ORDER[right.cefr] ?? UNRANKED_LEVEL);

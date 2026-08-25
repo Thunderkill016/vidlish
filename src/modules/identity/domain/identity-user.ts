@@ -6,5 +6,4 @@ export type IdentityUser = {
 export type CurrentAccess = {
   userId: string;
   email: string;
-  betaAccess: "active";
 };

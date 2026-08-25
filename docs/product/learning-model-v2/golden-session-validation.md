@@ -1,24 +1,20 @@
 # Golden Session Validation Protocol
 
-**Status:** P0 Gate 5 product-validation contract — technically runnable, learner evidence pending  
-**Current branch:** `main`  
-**Related:** `docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`, `docs/product/learning-model-v2/golden-session-usability-runbook.md`, specs 004–005
+**Status:** later-path, video-specific validation contract
+**Source branch:** `design/learning-model-v2`  
+**Related:** `docs/product/VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`, issue #47
 
 ---
 
 ## 1. Purpose
 
-This protocol defines the smallest source-grounded Vidlish experience that must be tested with real learners before the product advances to the larger learner cohort, provider economics, billing, or rollout gates.
-
-It is intentionally a **narrow validation instrument**. The overall Vidlish mission now includes a learner starting from zero and beginner comprehensible input; this protocol does not redefine that mission. It keeps one predeclared B1 source-grounded journey stable so the five-person Gate 5 result remains interpretable.
+This protocol defines the bounded video-path experience to validate only after a learner has graduated past the A0 foundation. The A0 product direction and first-session contract are in [`../VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md`](../VIDLISH_PRODUCT_BUSINESS_MASTER_PLAN.md).
 
 The purpose is not to prove durable language acquisition from one five-minute lesson. It is to verify that the product can create a clear, understandable first-session learning gain and a reason to return.
 
 The tested promise is:
 
-> A Vietnamese B1 learner who normally depends on English captions can use Vidlish to understand one real source moment, retrieve one useful expression, use it in a changed context, and know what will be reviewed next.
-
-Do not change the persona, source, target item, or thresholds merely to make the current Gate 5 easier to pass.
+> A Vietnamese B1 learner who normally depends on English captions can use Nếp to understand one real source moment, retrieve one useful expression, use it in a changed context, and know what will be reviewed next.
 
 ---
 
@@ -34,7 +30,7 @@ Do not change the persona, source, target item, or thresholds merely to make the
 - prefers balanced support;
 - is not being assessed for certification.
 
-This is a narrow validation persona, not a claim that the product only serves developers, B1 learners, or video-first learners.
+This is a narrow validation persona, not a claim that the product only serves developers.
 
 ---
 
@@ -56,7 +52,7 @@ Target language item:
 - contextual meaning: belonging to a group or organization;
 - communicative function: introducing affiliation or team membership.
 
-The source is suitable for this internal validation because it is represented by a canonical fixture, the speaker is clear, and the target function fits the chosen learner persona.
+The source is suitable for the first internal validation because it is already represented by a canonical fixture, the speaker is clear, and the target function fits the chosen learner persona.
 
 ---
 
@@ -88,16 +84,16 @@ Ask:
 
 The second answer may be optional/free recall for manual observation and does not need to be persisted as unrestricted text.
 
-Record through the approved study boundary:
+Record locally/in the moderated protocol:
 
 - first-listen gist result;
 - whether the learner recognized `a member of`;
 - replay count before support;
-- learner confidence as self-report only where the protocol asks for it.
+- learner's own confidence as self-report only.
 
 ### Step 2 — Progressive support
 
-Support opens in this order and only after learner action:
+Support must open in this order and only after a learner action:
 
 1. replay;
 2. concise context hint;
@@ -111,7 +107,7 @@ The UI must make the next support option understandable without exposing all lat
 Record:
 
 - maximum support level opened;
-- time spent before support requests where available;
+- time spent before each support request;
 - whether the learner opened support intentionally or because the flow was unclear.
 
 ### Step 3 — Notice
@@ -134,8 +130,8 @@ Requirements:
 
 - learner attempts before answer reveal;
 - first failure opens a partial hint, not the full answer;
-- full answer appears only after the configured attempt boundary;
-- correct response proceeds without unnecessary repetition.
+- full answer is bounded and appears only after the configured attempt boundary;
+- a correct response proceeds without unnecessary repetition.
 
 ### Step 5 — Changed-context use
 
@@ -143,14 +139,14 @@ Scenario:
 
 > Bạn vừa tham gia một dự án mới. Hãy giới thiệu bạn thuộc nhóm nào bằng tiếng Anh.
 
-The learner response is checked with bounded criteria rather than an unconstrained model claim:
+The learner's response should be checked with criteria, not fake-graded by an LLM:
 
 - communicates membership/affiliation;
 - contains an appropriate group or team;
 - is understandable enough for the task;
 - is not required to copy the source organization.
 
-Any example shown after the attempt must be labelled as a new example, not a quote from the video.
+Example appears only after attempt and must be labelled as a new example, not a quote from the video.
 
 ### Step 6 — Retry after correction
 
@@ -158,7 +154,7 @@ If a correction is shown, require the learner to attempt the complete changed-co
 
 Limit to one or two high-impact corrections.
 
-Reading the correction is not completion.
+The flow must not treat reading the correction as completion.
 
 ### Step 7 — After check
 
@@ -171,51 +167,50 @@ Record:
 - after-listen gist result;
 - recognition of the target;
 - support still required;
-- changed-context completion/attempt evidence;
-- learner statement about whether the original audio sounds clearer only as self-report, not as mastery proof.
+- changed-context completion;
+- learner's own statement of whether the original audio now sounds clearer.
 
 ### Step 8 — Honest finish
 
 Suggested copy:
 
-> Bạn đã hoàn thành lần luyện đầu. Vidlish sẽ đưa cách diễn đạt này trở lại trong một tình huống khác để kiểm tra xem bạn còn nhớ và dùng được không.
+> Bạn đã hoàn thành lần luyện đầu. Nếp sẽ đưa cách diễn đạt này trở lại trong một tình huống khác để kiểm tra xem bạn còn nhớ và dùng được không.
 
 Do not display `mastered`, `fluent`, or a percentage implying durable ability.
 
 ---
 
-## 6. Required measurable meanings
+## 6. Required product events
 
-Names may evolve, but the system/protocol must be able to distinguish the meanings needed for Gate 5, including:
+Names may change during implementation, but the following meanings must be measurable:
 
-- session viewed/started;
-- first source play;
-- first gist attempt/outcome;
-- support requested and support level;
-- retrieval attempt/outcome and attempt number;
-- correction/retry;
+- session viewed;
+- first source play completed;
+- first gist attempted;
+- first gist outcome;
+- support requested with support level;
+- target notice viewed;
+- retrieval attempted;
+- retrieval outcome and attempt number;
+- correction shown;
+- mandatory retry attempted;
 - changed-context transfer attempted;
-- after-listen check;
-- session completed or abandoned;
-- elapsed time where the measurement contract supports it;
+- transfer criteria self-check completed;
+- after-listen check attempted;
+- session completed;
+- session abandoned with last activity and elapsed time;
 - player/transcript/runtime error.
 
-The automated Gate 5 evaluator does **not** infer moderator-only observations from telemetry.
+Privacy boundary:
 
-Privacy boundary for study/evaluation data:
-
-- no email or direct identity in participant records;
-- no source transcript text copied into analytics/study records merely for convenience;
-- no raw open learner response or raw audio in the bounded Gate 5 evaluator payload;
-- use pseudonymous participant codes, IDs, bounded enums, counts, timings, and outcome categories.
-
-Product-level permission to store learner writing/speech for future writing/speaking functionality does not broaden this specific Gate 5 study contract.
+- do not place raw open responses, raw audio, recognized speech, source transcript text, email, or other personal information in analytics events;
+- use IDs, bounded enums, counts, timings, and outcome categories.
 
 ---
 
 ## 7. Internal five-person usability protocol
 
-Recruit five people matching the persona as closely as practical. Avoid explaining the intended flow before they use it.
+Recruit five people matching as much of the persona as possible. Avoid explaining the intended flow before they use it.
 
 ### Moderator introduction
 
@@ -223,107 +218,91 @@ Recruit five people matching the persona as closely as practical. Avoid explaini
 
 ### Observe without helping unless blocked
 
-Record bounded observations required by the current evaluator/runbook, including:
+Record:
 
 - whether the learner understands the initial promise;
-- whether the learner can complete without moderator instruction;
-- whether they can restate the lesson goal in their own words;
+- whether they know to listen before looking for text;
 - whether support controls are discoverable;
 - whether they understand why an answer remains hidden;
 - whether feedback is actionable;
-- whether retry/changed-context use is understandable;
-- before/after target recognition level;
-- whether any product mechanic blocks progress;
-- severe grounding, answer-exposure, or misleading-mastery defects;
-- technical problems on mobile/desktop.
-
-Free-form qualitative notes may be kept outside the automated evaluator with unnecessary PII avoided.
+- whether mandatory retry feels useful or punitive;
+- whether changed-context use is understandable;
+- whether the final message is credible;
+- exact abandonment/confusion points;
+- technical problems on mobile and desktop.
 
 ### Post-session questions
 
-Behavior-focused prompts may include:
+Ask behavior-focused questions:
 
 1. Đoạn nào khiến bạn thấy mình nghe rõ hơn so với lúc đầu?
 2. Không nhìn lại bài, bạn còn nhớ cách nói mình thuộc một nhóm không?
 3. Bước nào khó hiểu hoặc thừa nhất?
-4. Bạn có muốn dùng Vidlish với video của chính mình không? Bạn sẽ dùng video nào?
-5. Ngày mai Vidlish nhắc ôn lại đoạn này, bạn có quay lại không? Vì sao?
+4. Bạn có muốn dùng Nếp với video của chính mình không? Bạn sẽ dùng video nào?
+5. Ngày mai Nếp nhắc ôn lại đoạn này, bạn có quay lại không? Vì sao?
 6. Điều gì phải tốt hơn để bạn sẵn sàng trả tiền?
 
 Do not treat positive verbal intent as payment evidence.
 
-Operational details for running/capturing each participant live in:
-
-```text
-docs/product/learning-model-v2/golden-session-usability-runbook.md
-```
-
 ---
 
-## 8. Predeclared Gate 5 acceptance thresholds
+## 8. Initial acceptance thresholds
 
-These are internal hypotheses to force a decision, not industry benchmarks or claims of language-learning effectiveness.
+These are internal hypotheses to force a decision, not industry benchmarks or claims of learning effectiveness.
 
 For the five-person usability pass:
 
 - at least 4/5 complete without moderator instruction;
 - at least 4/5 can state the lesson goal in their own words;
 - at least 4/5 successfully attempt changed-context use;
-- no participant is blocked by player, support, feedback, retry, transfer, navigation, or another flow mechanic covered by the current bounded block categories;
+- no participant is blocked by player, support, feedback, or retry mechanics;
 - no severe grounding, answer-exposure, or misleading-mastery defect;
 - median session time stays within approximately 4–8 minutes;
 - at least 3/5 show improved target recognition on the final hidden-caption replay.
 
-The current evaluator is fail-closed where its contract requires durable measurement and moderator observation. Missing evidence is not converted into a pass.
-
-Failure means fix the observed journey before adding provider/product complexity.
+Failure means fix the journey before adding provider complexity.
 
 For the later 20–50 learner cohort, define thresholds before launch for:
 
-- first-session completion;
+- first-lesson completion;
 - before/after recognition gain;
-- second session within seven days;
+- second lesson within seven days;
 - delayed-review return;
 - serious lesson defect rate;
 - week-two active use.
 
-Do not use generation count or signup count as primary learning success evidence.
+Do not use generation count or signup count as primary success evidence.
 
 ---
 
 ## 9. What this protocol does not prove
 
-A successful five-person study does not prove:
+A successful internal session does not prove:
 
 - long-term retention;
-- transfer to real conversation broadly;
-- the zero-beginner path is validated;
+- transfer to real conversation;
 - willingness to pay;
 - scalable unit economics;
 - legal clearance for arbitrary YouTube content;
-- authoring-model reliability across broad source distributions;
+- model-generated lesson quality;
 - support for Shorts, long videos, multilingual sources, or noisy entertainment content.
 
 Those require separate gates in the Product & Business Master Plan.
 
 ---
 
-## 10. Technical readiness and current gate state
+## 10. Implementation gate
 
-The technical readiness conditions previously listed for this protocol are now implemented and have exact-head CI evidence through specs 003–005.
+The golden session is ready for the five-person test only when:
 
-In particular, PR #128 exact head `51c4ff44bb85fca8cee4f8b39a7e90297fe43d69` passed CI #474 / run `32571811299`, including durable Supabase and Chromium coverage for the local participant capture/ownership boundary, and was squash-merged as `fdbee37bd3b1eca473b3c25f65eece772251d987`.
+- runtime consumes the progressive-support policy;
+- answer/reveal boundaries are enforced server/shared-side;
+- correction requires retry;
+- transfer declares a real changed dimension;
+- after-listen check exists;
+- completion language is honest;
+- privacy-safe events are inspectable;
+- desktop and mobile Chromium journeys pass;
+- no provider call or production database is required for the internal test.
 
-The internal study can be run with:
-
-```bash
-pnpm study:golden
-```
-
-Technical readiness is **not** the product result.
-
-Current next evidence:
-
-> Run five genuine participants through the unchanged protocol, capture one bounded record per clean cycle, then evaluate the five records against the predeclared thresholds.
-
-Do not fabricate participant records, substitute fixture journeys, or declare Gate 5 passed from CI.
+This is the next learning-product deliverable.

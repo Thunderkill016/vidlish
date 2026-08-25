@@ -1,12 +1,8 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { isNonword } from "@/adapters/vocabulary/nonword-catalogue";
+import { isNonword, sampleNonwords } from "@/adapters/vocabulary/nonword-catalogue";
 import { assessSelfReportReliability } from "@/modules/learning/application/assess-self-report-reliability";
 import { createIdentityService } from "@/platform/identity/create-identity-service";
-import {
-  answersMatchCalibrationItems,
-  beginnerCalibrationItemsForKnown,
-} from "@/platform/learning/beginner-calibration-items";
 import { createBeginnerProgressRepository } from "@/platform/learning/create-beginner-progress-repository";
 import {
   beginnerCalibrationItemsSchema,
@@ -18,6 +14,10 @@ import { readAuthJsonBody } from "@/shared/http/json-body";
 import { productErrorResponse } from "@/shared/http/product-error-response";
 import { assertSameOrigin } from "@/shared/http/same-origin";
 
+/** Real words the learner claims, mixed with words that cannot be known. */
+const REAL_ITEMS = 7;
+const NONWORD_ITEMS = 3;
+
 export async function GET(request: NextRequest) {
   try {
     // No same-origin assertion here, unlike POST. Browsers omit the Origin
@@ -28,9 +28,20 @@ export async function GET(request: NextRequest) {
     const access = await (await createIdentityService()).resolveCurrentAccess();
     if (!access) throw authErrors.sessionRequired();
 
-    const progress = createBeginnerProgressRepository();
+    const progress = await createBeginnerProgressRepository();
     const known = await progress.knownWords(access.userId);
-    const items = beginnerCalibrationItemsForKnown(known);
+    const words = known.slice(0, REAL_ITEMS);
+    // Seeded by how far the learner has come, so the same check is stable while
+    // they are on it and different once they have moved on.
+    const fakes = sampleNonwords(NONWORD_ITEMS, known.length);
+
+    // Interleaved rather than appended: three unknown-looking items in a row at
+    // the end tell the learner exactly which ones to say no to.
+    const items: string[] = [];
+    const pool = [...words, ...fakes];
+    for (let index = 0; index < pool.length; index += 1) {
+      items.splice((index * 7) % (items.length + 1), 0, pool[index]);
+    }
 
     const payload = beginnerCalibrationItemsSchema.parse({ items });
     return NextResponse.json(payload, {
@@ -53,18 +64,8 @@ export async function POST(request: NextRequest) {
     );
     if (!parsed.success) throw authErrors.rejected();
 
-    const progress = createBeginnerProgressRepository();
-    const known = await progress.knownWords(access.userId);
-    const expectedItems = beginnerCalibrationItemsForKnown(known);
-    if (!answersMatchCalibrationItems(expectedItems, parsed.data.answers)) {
-      // The server, not the browser, owns which trials this calibration is
-      // about. Substituting one easy real-looking item for a nonword would make
-      // an unreliable self-report look trustworthy forever.
-      throw authErrors.rejected();
-    }
-
-    // Which items were real is decided here, from the server catalogue, never
-    // from a classification supplied by the request.
+    // Which items were real is decided here, from the artifact, never from the
+    // request. That is the whole security of the mechanism.
     const trials = parsed.data.answers.map((answer) => ({
       item: answer.item,
       isNonword: isNonword(answer.item),
@@ -77,6 +78,7 @@ export async function POST(request: NextRequest) {
     const nonwordTrials = trials.filter((trial) => trial.isNonword);
     const wordTrials = trials.filter((trial) => !trial.isNonword);
 
+    const progress = await createBeginnerProgressRepository();
     await progress.recordCalibration({
       ownerUserId: access.userId,
       wordTrials: wordTrials.length,

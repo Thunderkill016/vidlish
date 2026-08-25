@@ -7,7 +7,7 @@ import { ENGLISH_FREQUENCY_RANKED } from "../data/english-frequency-ranked";
  * on lexical coverage puts 95% at the threshold for minimal comprehension and
  * 98% at comprehension without support; authentic video needs roughly 7000 word
  * families to reach 98%. A learner around B1 sits near 3000, so most real
- * YouTube speech lands *below* the minimum threshold for the learners Vidlish
+ * YouTube speech lands *below* the minimum threshold for the learners Nếp
  * serves. Without measuring it, the pipeline cannot tell an appropriate video
  * from an impossible one, and cannot decide how much support to show.
  *
@@ -36,7 +36,8 @@ const ASSUMED_VOCABULARY_BY_CEFR = {
 export type CoverageCefrLevel = keyof typeof ASSUMED_VOCABULARY_BY_CEFR;
 
 /**
- * Coverage thresholds are modality-specific, and Vidlish is a viewing product.
+ * Coverage thresholds are modality-specific, and Nếp's later video path is a
+ * viewing product.
  *
  * The literature separates three numbers: roughly 98% for reading, 95% for
  * listening, and around 90% for viewing — audiovisual input carries imagery

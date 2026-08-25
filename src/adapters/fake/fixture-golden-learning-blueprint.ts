@@ -37,7 +37,7 @@ export function createGoldenSessionLearningBlueprint(): LessonBlueprintV2 {
   exit.feedback = {
     goalVi: "So sánh khả năng nhận ra câu nguồn trước và sau vòng học.",
     nextStepVi:
-      "Vidlish sẽ đưa cụm này trở lại trong một input hoặc bối cảnh khác để kiểm tra trí nhớ sau thời gian trì hoãn.",
+      "Nếp sẽ đưa cụm này trở lại trong một input hoặc bối cảnh khác để kiểm tra trí nhớ sau thời gian trì hoãn.",
   };
 
   return lessonBlueprintV2Schema.parse(blueprint);

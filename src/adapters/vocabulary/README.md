@@ -1,3 +1,17 @@
+# Nếp Starter Catalogue
+
+`starter-catalogue.ts` — 30 reviewed A0 items for a Vietnamese adult starting
+from zero. Each item carries Vietnamese meaning, a can-do outcome, a
+pronunciation cue and either a controlled individual introduction or three
+authored i+1 sentences. It is versioned source code, not model output: the
+runtime serves these 30 items before the generic catalogue and never calls a
+model for them.
+
+The regression test checks the exact order, unique vocabulary and that every
+authored sentence has exactly its target as the one new word.
+
+---
+
 # CEFR-J vocabulary artifact
 
 `cefrj-a1-a2.json` — 2,234 English headwords at CEFR A1 and A2, each with a part
@@ -93,10 +107,11 @@ where exactly one word is new:
 | 200         | 31,154           | 47 / 50                 |
 | 800         | 126,187          | 44 / 50                 |
 
-So retrieval cannot cover the beginning. Generation is **required** for roughly
-the first fifty words and becomes the exception after that — it is not a rare
-fallback, and planning as though it were would leave a learner with nothing to
-read on their first day.
+This measurement describes the generic CEFR-J order alone. It cannot cover the
+beginning. Nếp therefore supplies the first 30 items as a reviewed authored
+catalogue rather than filling that gap with model text. Beyond that opening,
+generation remains a bounded fallback when retrieval cannot provide an i+1
+batch; it is never used to change or fill the 30 authored items.
 
 ## What it cannot supply
 
