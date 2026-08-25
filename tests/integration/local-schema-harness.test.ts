@@ -98,4 +98,11 @@ describe("local schema harness", () => {
     ]);
     expect(result.ok, result.output).toBe(true);
   }, HARNESS_TIMEOUT_MS);
+
+  it("holds the guards on the imitation measurement table", () => {
+    const result = runHarness(undefined, [
+      "scripts/checks/imitation-measurement-guards.sql",
+    ]);
+    expect(result.ok, result.output).toBe(true);
+  }, HARNESS_TIMEOUT_MS);
 });
