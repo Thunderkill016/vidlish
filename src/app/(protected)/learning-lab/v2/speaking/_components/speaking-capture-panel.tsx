@@ -265,7 +265,7 @@ export function SpeakingCapturePanel({
         <p className="text-sm leading-6 text-[var(--muted-foreground)]">
           Thu ít nhất một câu, nghe lại hết bản thu rồi tự xác nhận. Nếu đây là
           lần speaking đầu tiên của tình huống sau ít nhất 24 giờ, server có thể
-          ghi là bạn tự làm. Nhưng "tự làm" ở đây vẫn là bạn TỰ ĐÁNH GIÁ, chưa
+          ghi là bạn tự làm. Nhưng &ldquo;tự làm&rdquo; ở đây vẫn là bạn TỰ ĐÁNH GIÁ, chưa
           ai chấm — không phải điểm phát âm, càng không phải đã thạo. Tiếng nói chỉ nằm trong
           browser và request speaking hiện tại; local probe nếu được hỗ trợ chỉ
           đọc cùng live track trên thiết bị. Supabase không lưu audio hay transcript.

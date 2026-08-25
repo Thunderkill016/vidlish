@@ -58,7 +58,7 @@ export default async function ReviewPage() {
         <p className="max-w-3xl text-[var(--muted-foreground)]">
           Phần ôn từ chạy bằng máy xếp lịch thật. Phần ôn nói là một hàng chờ
           dựng riêng từ việc bạn học xong bài nào và đã nói lại lần nào, chứ
-          không bị nhét vào lịch ôn từ hay đổi thành "đã thạo".
+          không bị nhét vào lịch ôn từ hay đổi thành &ldquo;đã thạo&rdquo;.
         </p>
       </div>
 

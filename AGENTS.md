@@ -366,6 +366,19 @@ Do not let UI-local state become authority for durable learning evidence.
 
 For application/UI-only changes, run the smallest relevant tests first, then the full gate before merge.
 
+**`pnpm test:e2e` passing locally is not the e2e suite passing.** Thirteen tests
+carry a `test.skip` guarded on `NEXT_PUBLIC_SUPABASE_URL` and
+`SUPABASE_SECRET_KEY`, so on a machine without them the run reports green while
+skipping every test that touches the real database. CI runs them in the
+`durable_learning` job with `LEARNING_SESSION_REPOSITORY: supabase`. A local run
+that says "79 passed, 13 skipped" has told you nothing about those thirteen —
+read the skip count, not just the pass count.
+
+**And `pnpm lint` is not `biome check`.** The repository runs both: Biome owns
+formatting, ESLint owns the React rules. Formatting clean says nothing about
+`react/no-unescaped-entities`, which is exactly what a straight quote in
+Vietnamese prose trips.
+
 Canonical commands:
 
 ```bash
