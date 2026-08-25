@@ -58,6 +58,67 @@ explanations for early learning where they are needed. Where an older rule in
 this file conflicts with those, the decision wins and the rule needs rewriting —
 say so rather than quietly following the stale one.
 
+## Product direction
+
+Decided by the product owner on 25/08/2026. It is written here because two
+agents spent a day building in opposite directions without it.
+
+**The product teaches English from zero to real use, and it proves it.** Two
+paths, both kept:
+
+1. **The zero path** (`/start`, `/measure`) — an authored syllabus checked
+   against the CEFR-J grammar inventory, met one new word at a time, with
+   evidence and spaced review. This is the main path.
+2. **The video path** (`/create`, `/lessons`, `learning-lab`) — lessons built
+   from a learner's own YouTube sources. Kept and developed further, not
+   deprecated.
+
+The product is named **Nếp**. Copy and visual identity follow the Nếp direction;
+the repository slug remains `vidlish` until a rename is done deliberately.
+
+Where a redesign and a working behaviour collide, **the behaviour wins and the
+redesign is written down as owed.** A prettier page that drops a shipped
+measurement is a regression even when nothing fails to compile — four such
+regressions reached `main` in one day because nobody had written this down.
+
+## Working alongside other agents
+
+More than one agent works in this repository, sometimes at the same time. All of
+today's worst damage came from that and none of it came from bad code.
+
+- **Never assume the working tree is yours.** Run `git status` before touching
+  anything. If it holds uncommitted work you did not write, do not stash it, do
+  not reset it, do not check out over it. Snapshot it (`git stash create` plus a
+  tag, and a tar of untracked files, which `stash create` does not include) and
+  work in a separate `git worktree`.
+- **`main` is the only integration point.** Long-lived side branches diverge
+  faster than they deliver: the branch that rebranded this product sat for three
+  days, reached 51 commits behind, and cost a full day to land.
+- **Read the diff before every commit.** `git add -A` followed by an unread
+  commit silently reverted five files here once. If you need to inspect another
+  base, use a separate worktree rather than checking out over your own.
+- **One contract, not one per tool.** `CLAUDE.md`, `GEMINI.md` and
+  `.github/copilot-instructions.md` are pointers to this file and must stay
+  that way. AGENTS.md is an open specification, read by more than twenty coding
+  agents; a rule that lives in only one of them is a rule the next agent breaks.
+
+## Shipping means it reaches the learner
+
+A merge is not a delivery. Each of these has failed in production here:
+
+- **Migrations do not reach production by being merged.** Nine were missing on
+  25/08, and pages had already died three separate times for the same reason —
+  `learning_item_states` on 19/08, `learner_known_words()` on 23/08,
+  `learning_speaking_attempts` on 25/08. CI proves migrations apply to a
+  throwaway database and says nothing about the real one. Check
+  `supabase migration list --linked`: an empty Remote column is a feature that
+  does not exist for the learner.
+- **A 200 on a static asset is not a working page.** After a deploy, read the
+  runtime errors, not the status code of a `.wav` file. A page returning 500 for
+  every signed-in learner served its assets perfectly.
+- **A green CI job that applied nothing is indistinguishable from drift.** Any
+  automation that syncs an environment must fail when it cannot act.
+
 ## Authority order
 
 Before changing product behavior, read these in order:
