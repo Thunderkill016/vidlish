@@ -278,19 +278,108 @@ Searched without a target on 25/08/2026. Only interventions with a published
 meta-analytic effect size are listed; everything that came back as opinion was
 dropped. Read `d` and `g` the usual way: 0.2 small, 0.5 medium, 0.8 large.
 
-| Method | Effect | Built here? |
+**Read the evidence column before the effect column.** A controlled
+comparison at g = 0.67 is stronger evidence than an uncontrolled pre/post at
+d = 1.50, because everyone improves over ten weeks and a study with no control
+group cannot separate the method from the calendar. Several of the largest
+numbers below come from single-group designs and are marked so.
+
+| Method | Effect | Evidence | Built here? |
+| --- | --- | --- | --- |
+| Remove seductive detail | g = 1.00 | meta-analysis | yes — no points, no streaks, no leaderboard |
+| **Extensive reading** | **d = 1.32** (vocabulary) | meta-analysis, k = 21 | **no — no usable material at this vocabulary size, measured** |
+| Explicit over implicit instruction | d ≈ 1.0 | meta-analysis | yes — every unit states what it teaches |
+| Redundancy (no text under speech) | d = 0.87 | meta-analysis | yes — listen before text, and it is recorded |
+| Modality (speech, not printed words) | g = 0.82 | meta-analysis | yes — Kokoro audio for every line |
+| Pronunciation instruction *with feedback* | d = 0.80–0.89 | meta-analysis | partly — measured, not taught |
+| L2 phonetic training, overall | d = 0.76 | meta-analysis | in progress — HVPT |
+| **HVPT — hearing the sounds** | **g = 0.92** pre/post, **g = 0.67 controlled** | meta-analysis, **79 studies** | **no — highest-quality evidence unbuilt** |
+| Segmenting, learner-paced | d = 0.70–0.79 | meta-analysis | yes — one action at a time |
+| Written corrective feedback, *focused* | g = 0.69 | meta-analysis | no |
+| **Shadowing — intonation** | d = 1.50 | **one group, no control, n = 30** | **yes — built, staged** |
+| **Shadowing — linking / stress** | d = 1.16 / 1.08 | same study, same limitation | **yes** |
+| **Shadowing — unscripted speech** | d = 1.24 | same study, same limitation | **yes** |
+| HVPT → *production* of trained items | +10.5% | meta-analysis | — see the warning below |
+| HVPT → *production* of untrained items | +4.5% | meta-analysis | — does not generalise |
+| Spacing with FSRS over SM-2 | 20–30% fewer reviews, same retention | 700M+ real reviews | yes |
+| Formulaic chunks → fewer pauses | β = .40, R² = .16 | single study | no |
+| Written corrective feedback, *unfocused* | g = 0.33 | meta-analysis | deliberately not |
+
+## The two halves of pronunciation, and the gap between them
+
+These are different problems with different evidence, and the product must not
+blur them.
+
+**Prosody — the music.** Shadowing moves it: intonation d = 1.50, linking
+d = 1.16, stress d = 1.08, and it carried into unscripted speech at d = 1.24
+(Vietnamese A2 learners, ten weeks). Large, and from a one-group design with no
+control, so treat it as "worth building" rather than as a number to quote.
+
+**Segments — the individual sounds.** Shadowing does *not* move these:
+Niimoto 2022 found no significant difference in segmental production.
+High variability phonetic training does, and has the best evidence of anything
+in this document — a meta-analysis of **79 studies**, g = 0.92 pre/post and
+g = 0.67 against a control group, with gains retained long-term and some
+generalisation to sounds never trained on.
+
+**The gap.** HVPT trains *perception*. Its transfer to *production* is real but
+small and does not travel: +10.5% on the exact items trained, +4.5% on untrained
+items, with **no strong support for long-term retention of the production gain
+and no generalisation to untrained stimuli**.
+
+So the honest claim, and the only one this product may make: HVPT will teach the
+learner to **hear** a distinction they currently cannot hear. It will not
+reliably teach them to say it. Selling perception training as an accent fix is
+the exact illusion this document exists to prevent.
+
+Two design facts fall out of the same meta-analysis, and both are cheap here:
+
+- **Three talkers is enough.** Talker count between 3 and 30 did not predict
+  production transfer. Kokoro ships multiple voices, so the variability HVPT
+  requires costs nothing but build time.
+- **Explain the sound first.** Presenting phonetic information about the target
+  before perception training *optimises* transfer to production. The explanation
+  is not preamble; it is part of the treatment.
+
+## What a Vietnamese speaker actually gets wrong
+
+HVPT only helps if it trains the right contrasts, and "the right contrasts"
+depends on the first language. Measured on 36 Vietnamese university learners
+(Can Tho University Journal of Science 14(3), 2022):
+
+| Cluster | Most common error | Share |
 | --- | --- | --- |
-| Remove seductive detail | g = 1.00 | yes — no points, no streaks, no leaderboard |
-| Explicit over implicit instruction | d ≈ 1.0 | yes — every unit states what it teaches |
-| Pronunciation instruction *with feedback* | d = 0.80–0.89 | partly — measured, not taught |
-| Redundancy (no text under speech) | d = 0.87 | yes — listen before text, and it is recorded |
-| Modality (speech, not printed words) | g = 0.82 | yes — Kokoro audio for every line |
-| **Extensive reading** | **d = 1.32** (vocabulary), 0.57–0.79 (reading proficiency) | **no** |
-| Written corrective feedback, *focused* | g = 0.69 | no |
-| Segmenting, learner-paced | d = 0.70–0.79 | yes — one action at a time |
-| **Shadowing (fluency)** | **consistent across every study measuring it** | **no — the machinery exists** |
-| Spacing with FSRS over SM-2 | 20–30% fewer reviews, same retention | yes |
-| Written corrective feedback, *unfocused* | g = 0.33 | deliberately not |
+| Two consonants | **Feature change** | **77.4%** |
+| | Deletion (of the *first* consonant, 55 of 56) | 22.2% |
+| | Epenthesis | 0.4% |
+| Three consonants | **Deletion** (first: 77, second: 56, third: 1) | **78.2%** |
+| | Feature change | 16.6% |
+| | Epenthesis | 5.2% |
+
+The strategy **flips with cluster length**: at two consonants the learner
+changes a sound, at three they drop one. And the feature that changes is
+specific — voiceless plosives /p/, /t/, /k/ in clusters like /tr/, /pl/, /kr/,
+because Vietnamese permits aspiration only slightly and only on an alveolar.
+Vietnamese also has no final consonant clusters at all, and a much smaller set
+of permitted final consonants than English.
+
+That is a training list, not a generality: aspiration of /p/ /t/ /k/, final
+consonants, and clusters — in that order, since it is the largest measured error
+category. One study, n = 36, a regional journal: enough to aim the first version
+at, not enough to defend as settled.
+
+## Fluency comes from chunks, and shows up in the pauses
+
+Formulaic sequences — prefabricated wholes retrieved rather than assembled —
+significantly predicted speech fluency (β = .40, R² = .16). The mechanism is
+specific and useful: they reduced **pausing**, and did **not** raise speech
+rate, with the effect strongest on long sentences.
+
+That matters for what this product already measures. The rhythm scorer built for
+shadowing reads the amplitude envelope, and pauses are exactly what an envelope
+shows. Fewer and shorter gaps in the same sentence is a visible, honest fluency
+signal — and it is not the same thing as talking faster, which the evidence says
+chunks do not cause.
 
 ### The two largest things not built
 
