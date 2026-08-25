@@ -42,10 +42,12 @@ const STATUS_CLASS: Record<WordStatus, string> = {
 };
 
 export function PassageReader({
+  textId,
   paragraphs,
   known,
   learning,
 }: {
+  textId: string;
   paragraphs: readonly string[];
   known: readonly string[];
   learning: readonly string[];
@@ -55,6 +57,8 @@ export function PassageReader({
   // proving anything about it, and the evidence model has no row for "looked at".
   const [met, setMet] = useState<ReadonlySet<string>>(() => new Set(learning));
   const [open, setOpen] = useState<string | null>(null);
+  const [saving, setSaving] = useState<"idle" | "saving" | "done" | "failed">("idle");
+  const [saved, setSaved] = useState<{ enqueued: number; skipped: number } | null>(null);
 
   const sets = useMemo(() => ({ known: knownSet, learning: met }), [knownSet, met]);
   const rendered = useMemo(
@@ -82,6 +86,28 @@ export function PassageReader({
     });
   }
 
+  async function save() {
+    setSaving("saving");
+    try {
+      const response = await fetch("/api/reading/met", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ textId, tapped: [...met] }),
+      });
+      if (!response.ok) throw new Error(String(response.status));
+      const body = (await response.json()) as {
+        enqueued: string[];
+        skippedForCapacity: number;
+      };
+      setSaved({ enqueued: body.enqueued.length, skipped: body.skippedForCapacity });
+      setSaving("done");
+    } catch {
+      // Fail visibly. A learner who thinks a word is scheduled and finds it
+      // never returns has been told something untrue about their own progress.
+      setSaving("failed");
+    }
+  }
+
   return (
     <div className="flex flex-col gap-5">
       <Card className="flex flex-col gap-2" data-testid="reading-coverage">
@@ -97,6 +123,50 @@ export function PassageReader({
           95% là ngưỡng đọc <em>một mình</em> — còn ở đây bạn chạm một cái là ra nghĩa.
         </p>
       </Card>
+
+      {met.size > 0 ? (
+        <Card className="flex flex-col gap-3" data-testid="reading-save">
+          <p className="text-sm">
+            Bạn đã tra <strong>{met.size}</strong> từ trong bài này.
+          </p>
+          {/* Reading finds words at about one in twelve, and a word needs more
+              than eight encounters before its form sticks. Without this write
+              every word looked up here would be understood once and lost. */}
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Tra một từ không làm bạn nhớ nó. Một từ cần hơn tám lần gặp mới nhớ nổi
+            mặt chữ, và hơn mười bốn lần mới nhớ nghĩa — nhiều hơn số lần một bài
+            báo cho bạn. Đưa vào lịch ôn thì chúng quay lại đúng lúc sắp quên.
+          </p>
+          {saved ? (
+            <p className="text-sm" data-testid="reading-save-result">
+              Đã đưa <strong>{saved.enqueued}</strong> từ vào lịch ôn.
+              {saved.skipped > 0 ? (
+                <>
+                  {" "}
+                  Còn <strong>{saved.skipped}</strong> từ chưa nhận, vì mỗi ngày chỉ
+                  nên nhận khoảng tám từ mới — quá mức đó là tự tạo một đống nợ ôn
+                  không trả nổi. Chúng vẫn ở đây khi bạn quay lại.
+                </>
+              ) : null}
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              <Button
+                onClick={() => void save()}
+                disabled={saving === "saving"}
+              >
+                {saving === "saving" ? "Đang lưu…" : "Đưa vào lịch ôn"}
+              </Button>
+              {saving === "failed" ? (
+                <p className="text-sm text-[var(--muted-foreground)]">
+                  Chưa lưu được. Những từ này chưa vào lịch ôn — sản phẩm không nói
+                  dối rằng đã ghi.
+                </p>
+              ) : null}
+            </div>
+          )}
+        </Card>
+      ) : null}
 
       {rendered.map((tokens, paragraphIndex) => (
         <div

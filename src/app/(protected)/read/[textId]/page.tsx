@@ -35,7 +35,12 @@ export default async function ReadTextPage({
         <h1 className="text-3xl font-bold tracking-tight">{text.title}</h1>
       </div>
 
-      <PassageReader paragraphs={text.paragraphs} known={known} learning={[]} />
+      <PassageReader
+        textId={text.id}
+        paragraphs={text.paragraphs}
+        known={known}
+        learning={[]}
+      />
 
       {/* Attribution ships with the text rather than being remembered later:
           Simple English Wikipedia is CC BY-SA 4.0, verified against the site's

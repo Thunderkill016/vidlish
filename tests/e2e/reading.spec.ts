@@ -67,3 +67,23 @@ test("reading is reachable from the phone's bottom bar", async ({ page }, testIn
   await expect(mobileNav.getByRole("link", { name: "Đọc" })).toBeVisible();
   await expect(page.getByTestId("library-entry")).toBeVisible();
 });
+
+test("a word tapped while reading can be put on the review calendar", async ({
+  page,
+}, testInfo) => {
+  await signIn(page, `read-enqueue-${testInfo.project.name}@example.com`);
+  await page.goto("/read");
+  await page.getByRole("link", { name: "Đọc bài này →" }).first().click();
+
+  // Nothing to save until something has been met.
+  await expect(page.getByTestId("reading-save")).toHaveCount(0);
+
+  await page.locator('[data-testid^="reading-word-"]').first().click();
+  await expect(page.getByTestId("reading-save")).toBeVisible();
+
+  await page.getByRole("button", { name: "Đưa vào lịch ôn" }).click();
+  // Reading finds a word; the schedule supplies the eight-plus encounters that
+  // reading leaves to chance. If this write is silently lost, the learner is
+  // told a word is coming back when it is not.
+  await expect(page.getByTestId("reading-save-result")).toBeVisible();
+});
