@@ -18,8 +18,14 @@
  *   2. **Read.** Where new words and chunks are met at all, and the only step
  *      that scales past the fifteen hours of authored material.
  *   3. **Build sentences.** The blocked step for this learner, in his own
- *      words: knows the words, cannot assemble them. Last because it works on
- *      what the first two just supplied.
+ *      words: knows the words, cannot assemble them. It works on what the first
+ *      two just supplied.
+ *   4. **Recall whole chunks.** The hardest step, and last for that reason.
+ *      Formulaic sequences predicted fluency by reducing *pauses* rather than
+ *      raising speech rate — and a pause is where assembly happens. It matters
+ *      more here than for most learners: Vietnamese has no conjugation, no
+ *      articles and no plural inflection, so a stored chunk carries machinery
+ *      the first language never supplied.
  *
  * Sized to thirty minutes because that is the figure he gave, and a session
  * that needs forty is a session that gets abandoned.
@@ -43,7 +49,7 @@
 /** The honest daily budget, from the learner. Everything is cut to fit it. */
 export const SESSION_MINUTES = 30;
 
-export type SessionStepKind = "review" | "read" | "build";
+export type SessionStepKind = "review" | "read" | "build" | "chunk";
 
 export type SessionStep = {
   readonly kind: SessionStepKind;
@@ -67,12 +73,18 @@ export type DailySession = {
  * with a large backlog and leave no new input at all. A learner who only ever
  * clears a queue never meets anything.
  */
-const BUDGET: Record<SessionStepKind, number> = { review: 10, read: 12, build: 8 };
+const BUDGET: Record<SessionStepKind, number> = {
+  review: 8,
+  read: 10,
+  build: 6,
+  chunk: 6,
+};
 
 export function planDailySession(input: {
   readonly wordsDue: number;
   readonly paragraphsAvailable: number;
   readonly sentencesAvailable: number;
+  readonly chunksAvailable?: number;
 }): DailySession {
   const steps: SessionStep[] = [];
 
@@ -103,6 +115,16 @@ export function planDailySession(input: {
       items: input.sentencesAvailable,
       reasonVi:
         "Bạn nói mình biết từ mà chưa ghép thành câu. Phần này bắt bạn tự bật ra, không cho chọn đáp án.",
+    });
+  }
+
+  if ((input.chunksAvailable ?? 0) > 0) {
+    steps.push({
+      kind: "chunk",
+      minutes: BUDGET.chunk,
+      items: input.chunksAvailable ?? 0,
+      reasonVi:
+        "Cả cụm, không phải từng từ. Người có sẵn “nice to meet you” trong đầu thì bật ra được ngay; người lắp bốn chữ lại thì ngắt — và chỗ ngắt chính là chỗ đang lắp.",
     });
   }
 

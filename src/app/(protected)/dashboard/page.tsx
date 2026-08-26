@@ -20,7 +20,9 @@ import { createTranscriptRuntime } from "@/platform/transcript/create-transcript
 import { resolveTodaysAction } from "@/platform/learning/resolve-todays-action";
 import { allBeginnerSentences } from "@/adapters/vocabulary/beginner-sentence-catalogue";
 import { readingShelf } from "@/adapters/reading/shelf";
+import { selectChunkRecall } from "@/modules/production/application/build-chunk-recall";
 import { selectClozeItems } from "@/modules/production/application/build-cloze-item";
+import { FOUNDATION_UNITS } from "@/modules/curriculum/content";
 import { planDailySession } from "@/modules/session/application/plan-daily-session";
 
 import { DailySessionRunner } from "./_components/daily-session";
@@ -125,10 +127,16 @@ export default async function DashboardPage() {
   // Least-known text first: it is the one with the most to meet, and reading is
   // the only step in the session that scales past the authored fifteen hours.
   const shelfText = readingShelf().flatMap((topic) => topic.texts)[0] ?? null;
+  const chunkItems = selectChunkRecall({
+    units: FOUNDATION_UNITS,
+    known,
+    wanted: 5,
+  });
   const sessionPlan = planDailySession({
     wordsDue: reviewItems.length,
     paragraphsAvailable: shelfText ? Math.min(shelfText.paragraphs.length, 3) : 0,
     sentencesAvailable: buildItems.length,
+    chunksAvailable: chunkItems.length,
   });
 
   const broken = unavailablePanels([
@@ -220,6 +228,7 @@ export default async function DashboardPage() {
           plan: sessionPlan,
           review: reviewItems,
           build: buildItems,
+          chunks: chunkItems,
           passage: shelfText
             ? {
                 textId: shelfText.id,

@@ -2,7 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import { SESSION_MINUTES, hasWork, planDailySession } from "./plan-daily-session";
 
-const full = { wordsDue: 12, paragraphsAvailable: 8, sentencesAvailable: 20 };
+const full = {
+  wordsDue: 12,
+  paragraphsAvailable: 8,
+  sentencesAvailable: 20,
+  chunksAvailable: 6,
+};
 
 describe("planning the thirty minutes the learner actually has", () => {
   it("runs review, then reading, then building — in that order", () => {
@@ -12,6 +17,7 @@ describe("planning the thirty minutes the learner actually has", () => {
       "review",
       "read",
       "build",
+      "chunk",
     ]);
   });
 
@@ -30,12 +36,17 @@ describe("planning the thirty minutes the learner actually has", () => {
 
   it("drops a step that has nothing in it rather than showing an empty one", () => {
     const noReview = planDailySession({ ...full, wordsDue: 0 });
-    expect(noReview.steps.map((step) => step.kind)).toEqual(["read", "build"]);
+    expect(noReview.steps.map((step) => step.kind)).toEqual([
+      "read",
+      "build",
+      "chunk",
+    ]);
 
     const readingOnly = planDailySession({
       wordsDue: 0,
       paragraphsAvailable: 4,
       sentencesAvailable: 0,
+      chunksAvailable: 0,
     });
     expect(readingOnly.steps.map((step) => step.kind)).toEqual(["read"]);
   });
@@ -46,6 +57,7 @@ describe("planning the thirty minutes the learner actually has", () => {
       wordsDue: 0,
       paragraphsAvailable: 0,
       sentencesAvailable: 0,
+      chunksAvailable: 0,
     });
     expect(empty.steps).toEqual([]);
     expect(hasWork(empty)).toBe(false);
