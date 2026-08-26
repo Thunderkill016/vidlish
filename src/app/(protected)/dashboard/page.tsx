@@ -26,6 +26,7 @@ import {
 } from "@/modules/reading/application/passage-from-lesson";
 import { selectChunkRecall } from "@/modules/production/application/build-chunk-recall";
 import { selectClozeItems } from "@/modules/production/application/build-cloze-item";
+import { selectTransferProbes } from "@/modules/production/application/build-transfer-probe";
 import { FOUNDATION_UNITS } from "@/modules/curriculum/content";
 import { planDailySession } from "@/modules/session/application/plan-daily-session";
 
@@ -155,6 +156,11 @@ export default async function DashboardPage() {
     known,
     wanted: 5,
   });
+  const transferProbes = selectTransferProbes({
+    units: FOUNDATION_UNITS,
+    known,
+    wanted: 3,
+  });
   const sessionPlan = planDailySession({
     wordsDue: reviewItems.length,
     paragraphsAvailable: videoPassage
@@ -164,6 +170,7 @@ export default async function DashboardPage() {
         : 0,
     sentencesAvailable: buildItems.length,
     chunksAvailable: chunkItems.length,
+    transferProbesAvailable: transferProbes.length,
   });
 
   const broken = unavailablePanels([
@@ -256,6 +263,7 @@ export default async function DashboardPage() {
           review: reviewItems,
           build: buildItems,
           chunks: chunkItems,
+          transfer: transferProbes,
           passage: videoPassage
             ? {
                 textId: `lesson-${videoPassage.lesson.jobId}`,

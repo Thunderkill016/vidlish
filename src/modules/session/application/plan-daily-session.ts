@@ -49,7 +49,7 @@
 /** The honest daily budget, from the learner. Everything is cut to fit it. */
 export const SESSION_MINUTES = 30;
 
-export type SessionStepKind = "review" | "read" | "build" | "chunk";
+export type SessionStepKind = "review" | "read" | "build" | "chunk" | "transfer";
 
 export type SessionStep = {
   readonly kind: SessionStepKind;
@@ -76,8 +76,9 @@ export type DailySession = {
 const BUDGET: Record<SessionStepKind, number> = {
   review: 8,
   read: 10,
-  build: 6,
-  chunk: 6,
+  build: 4,
+  chunk: 4,
+  transfer: 4,
 };
 
 export function planDailySession(input: {
@@ -85,6 +86,7 @@ export function planDailySession(input: {
   readonly paragraphsAvailable: number;
   readonly sentencesAvailable: number;
   readonly chunksAvailable?: number;
+  readonly transferProbesAvailable?: number;
 }): DailySession {
   const steps: SessionStep[] = [];
 
@@ -125,6 +127,16 @@ export function planDailySession(input: {
       items: input.chunksAvailable ?? 0,
       reasonVi:
         "Cả cụm, không phải từng từ. Người có sẵn “nice to meet you” trong đầu thì bật ra được ngay; người lắp bốn chữ lại thì ngắt — và chỗ ngắt chính là chỗ đang lắp.",
+    });
+  }
+
+  if ((input.transferProbesAvailable ?? 0) > 0) {
+    steps.push({
+      kind: "transfer",
+      minutes: BUDGET.transfer,
+      items: input.transferProbesAvailable ?? 0,
+      reasonVi:
+        "Ngữ cảnh mới chưa từng thấy. Dùng cụm từ đã học vào một tình huống khác để chứng minh bạn dùng được thật.",
     });
   }
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import type { ChunkRecallItem } from "@/modules/production/application/build-chunk-recall";
 import type { ClozeItem } from "@/modules/production/application/build-cloze-item";
+import type { TransferProbe } from "@/modules/production/application/build-transfer-probe";
 import type { DailySession } from "@/modules/session/application/plan-daily-session";
 import { Button } from "@/shared/ui/button";
 import { Card } from "@/shared/ui/card";
@@ -11,6 +12,7 @@ import { Card } from "@/shared/ui/card";
 import { ChunkRun } from "./chunk-run";
 import { ClozeRun } from "./cloze-run";
 import { PassageRun } from "./passage-run";
+import { TransferRun } from "./transfer-run";
 
 /**
  * The thirty minutes, as one thing the learner presses once.
@@ -32,6 +34,7 @@ export type SessionPayload = {
   readonly review: readonly ClozeItem[];
   readonly build: readonly ClozeItem[];
   readonly chunks: readonly ChunkRecallItem[];
+  readonly transfer: readonly TransferProbe[];
   readonly passage: {
     readonly textId: string;
     readonly title: string;
@@ -41,13 +44,14 @@ export type SessionPayload = {
   } | null;
 };
 
-type Stage = "idle" | "review" | "read" | "build" | "chunk" | "done";
+type Stage = "idle" | "review" | "read" | "build" | "chunk" | "transfer" | "done";
 
 export function DailySessionRunner({ payload }: { payload: SessionPayload }) {
   const [stage, setStage] = useState<Stage>("idle");
   const [reviewed, setReviewed] = useState(0);
   const [built, setBuilt] = useState(0);
   const [chunks, setChunks] = useState(0);
+  const [transferred, setTransferred] = useState(0);
 
   const order: Stage[] = payload.plan.steps.map((step) =>
     step.kind === "review"
@@ -56,7 +60,9 @@ export function DailySessionRunner({ payload }: { payload: SessionPayload }) {
         ? "read"
         : step.kind === "build"
           ? "build"
-          : "chunk",
+          : step.kind === "chunk"
+            ? "chunk"
+            : "transfer",
   );
 
   function advance(from: Stage) {
@@ -101,7 +107,9 @@ export function DailySessionRunner({ payload }: { payload: SessionPayload }) {
                       ? "Đọc một đoạn thật"
                       : step.kind === "build"
                         ? `Ghép ${step.items} câu`
-                        : `Nói cả cụm — ${step.items} cụm`}
+                        : step.kind === "chunk"
+                          ? `Nói cả cụm — ${step.items} cụm`
+                          : `Tình huống mới — ${step.items} cụm`}
                   <span className="ml-2 font-normal text-[var(--muted-foreground)]">
                     {step.minutes} phút
                   </span>
@@ -172,12 +180,24 @@ export function DailySessionRunner({ payload }: { payload: SessionPayload }) {
     );
   }
 
+  if (stage === "transfer") {
+    return (
+      <TransferRun
+        items={payload.transfer}
+        onFinish={(correct: number) => {
+          setTransferred(correct);
+          advance("transfer");
+        }}
+      />
+    );
+  }
+
   return (
     <Card className="flex flex-col gap-3" data-testid="session-done">
       <h2 className="text-2xl font-bold">Xong buổi hôm nay.</h2>
       <p className="text-sm">
         Ôn đúng <strong>{reviewed}</strong> từ · ghép được{" "}
-        <strong>{built}</strong> câu · nói được <strong>{chunks}</strong> cụm.
+        <strong>{built}</strong> câu · nói được <strong>{chunks}</strong> cụm · dùng đúng <strong>{transferred}</strong> tình huống mới.
       </p>
       {/* Sentences produced, not minutes spent or screens visited. A count of
           what the learner did is the only number here that means anything. */}

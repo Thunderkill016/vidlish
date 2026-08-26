@@ -7,17 +7,20 @@ const full = {
   paragraphsAvailable: 8,
   sentencesAvailable: 20,
   chunksAvailable: 6,
+  transferProbesAvailable: 3,
 };
 
 describe("planning the thirty minutes the learner actually has", () => {
-  it("runs review, then reading, then building — in that order", () => {
+  it("runs review, then reading, then building, then chunks, then transfer — in that order", () => {
     // Review first because it is the part with a deadline. Building last
-    // because it works on what the first two just supplied.
+    // because it works on what the first two just supplied. Transfer probe
+    // tests applying chunks to unseen situations.
     expect(planDailySession(full).steps.map((step) => step.kind)).toEqual([
       "review",
       "read",
       "build",
       "chunk",
+      "transfer",
     ]);
   });
 
@@ -40,6 +43,7 @@ describe("planning the thirty minutes the learner actually has", () => {
       "read",
       "build",
       "chunk",
+      "transfer",
     ]);
 
     const readingOnly = planDailySession({
