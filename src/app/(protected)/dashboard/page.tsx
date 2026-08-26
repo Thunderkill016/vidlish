@@ -20,6 +20,10 @@ import { createTranscriptRuntime } from "@/platform/transcript/create-transcript
 import { resolveTodaysAction } from "@/platform/learning/resolve-todays-action";
 import { allBeginnerSentences } from "@/adapters/vocabulary/beginner-sentence-catalogue";
 import { readingShelf } from "@/adapters/reading/shelf";
+import {
+  isReadablePassage,
+  passageFromCitations,
+} from "@/modules/reading/application/passage-from-lesson";
 import { selectChunkRecall } from "@/modules/production/application/build-chunk-recall";
 import { selectClozeItems } from "@/modules/production/application/build-cloze-item";
 import { FOUNDATION_UNITS } from "@/modules/curriculum/content";
@@ -124,8 +128,27 @@ export default async function DashboardPage() {
     known,
     wanted: 6,
   });
-  // Least-known text first: it is the one with the most to meet, and reading is
-  // the only step in the session that scales past the authored fifteen hours.
+  // The learner's own video comes first when there is one. Interest is the one
+  // moderator no design substitutes for, and every citation was checked against
+  // the transcript allowlist before it was stored — so these are real words
+  // from a video he chose, not text a model wrote about it. The curated shelf
+  // is the fallback, because someone with no lessons still has to read today.
+  const ownLesson = lessons[0] ?? null;
+  const ownPassage = ownLesson
+    ? await readPanel("bài đọc từ video", async () => {
+        const full = await lessonRepository.findOwnedByJobId(
+          ownLesson.jobId,
+          access.userId,
+        );
+        return full ? passageFromCitations(full.citations) : null;
+      })
+    : null;
+  const videoPassage =
+    ownPassage && ownPassage.kind === "ready" && ownPassage.value &&
+    isReadablePassage(ownPassage.value)
+      ? { lesson: ownLesson, passage: ownPassage.value }
+      : null;
+
   const shelfText = readingShelf().flatMap((topic) => topic.texts)[0] ?? null;
   const chunkItems = selectChunkRecall({
     units: FOUNDATION_UNITS,
@@ -134,7 +157,11 @@ export default async function DashboardPage() {
   });
   const sessionPlan = planDailySession({
     wordsDue: reviewItems.length,
-    paragraphsAvailable: shelfText ? Math.min(shelfText.paragraphs.length, 3) : 0,
+    paragraphsAvailable: videoPassage
+      ? Math.min(videoPassage.passage.paragraphs.length, 4)
+      : shelfText
+        ? Math.min(shelfText.paragraphs.length, 3)
+        : 0,
     sentencesAvailable: buildItems.length,
     chunksAvailable: chunkItems.length,
   });
@@ -229,15 +256,23 @@ export default async function DashboardPage() {
           review: reviewItems,
           build: buildItems,
           chunks: chunkItems,
-          passage: shelfText
+          passage: videoPassage
             ? {
-                textId: shelfText.id,
-                title: shelfText.title,
-                paragraphs: shelfText.paragraphs.slice(0, 3),
-                sourceUrl: shelfText.source.url,
-                sourceLabel: `${shelfText.title} — Simple English Wikipedia`,
+                textId: `lesson-${videoPassage.lesson.jobId}`,
+                title: videoPassage.lesson.titleVi,
+                paragraphs: videoPassage.passage.paragraphs.slice(0, 4),
+                sourceUrl: `/lessons/${videoPassage.lesson.jobId}`,
+                sourceLabel: `${videoPassage.lesson.videoTitle} — ${videoPassage.lesson.channelName}`,
               }
-            : null,
+            : shelfText
+              ? {
+                  textId: shelfText.id,
+                  title: shelfText.title,
+                  paragraphs: shelfText.paragraphs.slice(0, 3),
+                  sourceUrl: shelfText.source.url,
+                  sourceLabel: `${shelfText.title} — Simple English Wikipedia`,
+                }
+              : null,
         }}
       />
 

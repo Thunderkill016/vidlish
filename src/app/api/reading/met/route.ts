@@ -2,6 +2,10 @@ import { type NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 import { shelfTextById } from "@/adapters/reading/shelf";
+import { passageFromCitations } from "@/modules/reading/application/passage-from-lesson";
+import { createGenerationRepository } from "@/platform/generation/create-generation-runtime";
+import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime";
+import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 import {
   countOccurrences,
   selectWordsToEnqueue,
@@ -46,8 +50,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "invalid_request" }, { status: 400 });
     }
 
-    const text = shelfTextById(parsed.data.textId);
-    if (!text) return NextResponse.json({ error: "unknown_text" }, { status: 404 });
+    // Two kinds of passage reach this route, and only one is on the shelf. A
+    // reading step can also be built from the citations of the learner's own
+    // video lesson, and those ids are prefixed. Handling only the shelf would
+    // have made every word tapped in his own material fail to save — silently
+    // from his side, since the page would just say it could not.
+    const paragraphs = parsed.data.textId.startsWith("lesson-")
+      ? await lessonParagraphs(parsed.data.textId.slice("lesson-".length), access.userId)
+      : (shelfTextById(parsed.data.textId)?.paragraphs ?? null);
+    if (!paragraphs) {
+      return NextResponse.json({ error: "unknown_text" }, { status: 404 });
+    }
 
     const progress = await createBeginnerProgressRepository();
     const tapped = [...new Set(parsed.data.tapped.map((word) => word.toLowerCase()))];
@@ -66,7 +79,7 @@ export async function POST(request: NextRequest) {
 
     const chosen = selectWordsToEnqueue({
       tapped,
-      occurrences: countOccurrences(readPassage(text.paragraphs.join("\n"))),
+      occurrences: countOccurrences(readPassage(paragraphs.join("\n"))),
       alreadyScheduled: scheduled,
       // Capped per request rather than per day, because nothing in the
       // repository counts how many new items a learner has already taken on
@@ -103,4 +116,24 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     return productErrorResponse(error);
   }
+}
+
+/**
+ * The readable lines of a lesson the learner owns.
+ *
+ * Ownership is checked by the repository, not here: a job id in a request body
+ * is a claim, and reading another learner's lesson would leak what they are
+ * studying.
+ */
+async function lessonParagraphs(
+  jobId: string,
+  ownerUserId: string,
+): Promise<readonly string[] | null> {
+  const generation = createGenerationRepository();
+  const transcripts = createTranscriptRuntime(generation);
+  const lessons = createLessonRepository(generation, transcripts.repository);
+  const lesson = await lessons.findOwnedByJobId(jobId, ownerUserId);
+  if (!lesson) return null;
+  const passage = passageFromCitations(lesson.citations);
+  return passage.paragraphs.length > 0 ? passage.paragraphs : null;
 }
