@@ -18,6 +18,18 @@ import { createLessonRepository } from "@/platform/lesson/create-lesson-runtime"
 import { createStudyProgressRepository } from "@/platform/study/create-study-runtime";
 import { createTranscriptRuntime } from "@/platform/transcript/create-transcript-runtime";
 import { resolveTodaysAction } from "@/platform/learning/resolve-todays-action";
+import { allBeginnerSentences } from "@/adapters/vocabulary/beginner-sentence-catalogue";
+import { readingShelf } from "@/adapters/reading/shelf";
+import {
+  isReadablePassage,
+  passageFromCitations,
+} from "@/modules/reading/application/passage-from-lesson";
+import { selectChunkRecall } from "@/modules/production/application/build-chunk-recall";
+import { selectClozeItems } from "@/modules/production/application/build-cloze-item";
+import { FOUNDATION_UNITS } from "@/modules/curriculum/content";
+import { planDailySession } from "@/modules/session/application/plan-daily-session";
+
+import { DailySessionRunner } from "./_components/daily-session";
 import { Card } from "@/shared/ui/card";
 
 import { TodaysAction } from "./_components/todays-action";
@@ -90,6 +102,69 @@ export default async function DashboardPage() {
   // read it as "you are done" on a day the product simply could not tell.
   const todaysAction =
     todaysActionRead.kind === "ready" ? todaysActionRead.value : null;
+
+  // The session, assembled here rather than in the browser: the sentences a
+  // learner is graded on are chosen by the server, and the review queue is not
+  // something a client should be able to nominate itself into.
+  const known = new Set(knownWords);
+  const dueWords = new Set(
+    scheduledReviews
+      .filter((item) => item.sourceLessonVersionId === null && item.nextReviewAt)
+      .filter((item) => new Date(item.nextReviewAt as string) <= new Date())
+      .map((item) => item.itemKey.toLowerCase()),
+  );
+  const sentences = allBeginnerSentences();
+  const reviewItems = selectClozeItems({
+    sentences: sentences.filter((sentence) =>
+      dueWords.has(sentence.target.toLowerCase()),
+    ),
+    known,
+    wanted: 8,
+  });
+  const buildItems = selectClozeItems({
+    sentences: sentences.filter(
+      (sentence) => !dueWords.has(sentence.target.toLowerCase()),
+    ),
+    known,
+    wanted: 6,
+  });
+  // The learner's own video comes first when there is one. Interest is the one
+  // moderator no design substitutes for, and every citation was checked against
+  // the transcript allowlist before it was stored — so these are real words
+  // from a video he chose, not text a model wrote about it. The curated shelf
+  // is the fallback, because someone with no lessons still has to read today.
+  const ownLesson = lessons[0] ?? null;
+  const ownPassage = ownLesson
+    ? await readPanel("bài đọc từ video", async () => {
+        const full = await lessonRepository.findOwnedByJobId(
+          ownLesson.jobId,
+          access.userId,
+        );
+        return full ? passageFromCitations(full.citations) : null;
+      })
+    : null;
+  const videoPassage =
+    ownPassage && ownPassage.kind === "ready" && ownPassage.value &&
+    isReadablePassage(ownPassage.value)
+      ? { lesson: ownLesson, passage: ownPassage.value }
+      : null;
+
+  const shelfText = readingShelf().flatMap((topic) => topic.texts)[0] ?? null;
+  const chunkItems = selectChunkRecall({
+    units: FOUNDATION_UNITS,
+    known,
+    wanted: 5,
+  });
+  const sessionPlan = planDailySession({
+    wordsDue: reviewItems.length,
+    paragraphsAvailable: videoPassage
+      ? Math.min(videoPassage.passage.paragraphs.length, 4)
+      : shelfText
+        ? Math.min(shelfText.paragraphs.length, 3)
+        : 0,
+    sentencesAvailable: buildItems.length,
+    chunksAvailable: chunkItems.length,
+  });
 
   const broken = unavailablePanels([
     lessonsRead,
@@ -174,6 +249,32 @@ export default async function DashboardPage() {
           </p>
         </Card>
       ) : null}
+
+      <DailySessionRunner
+        payload={{
+          plan: sessionPlan,
+          review: reviewItems,
+          build: buildItems,
+          chunks: chunkItems,
+          passage: videoPassage
+            ? {
+                textId: `lesson-${videoPassage.lesson.jobId}`,
+                title: videoPassage.lesson.titleVi,
+                paragraphs: videoPassage.passage.paragraphs.slice(0, 4),
+                sourceUrl: `/lessons/${videoPassage.lesson.jobId}`,
+                sourceLabel: `${videoPassage.lesson.videoTitle} — ${videoPassage.lesson.channelName}`,
+              }
+            : shelfText
+              ? {
+                  textId: shelfText.id,
+                  title: shelfText.title,
+                  paragraphs: shelfText.paragraphs.slice(0, 3),
+                  sourceUrl: shelfText.source.url,
+                  sourceLabel: `${shelfText.title} — Simple English Wikipedia`,
+                }
+              : null,
+        }}
+      />
 
       {todaysAction ? (
         <TodaysAction action={todaysAction} />
@@ -358,6 +459,40 @@ export default async function DashboardPage() {
             </Link>
           </Card>
         )}
+
+        {/* Placed above the others because it is aimed at the one thing the
+            product owner said blocks him — knowing words but not assembling
+            sentences — and because everything else in this product measures
+            recognition, which is not the blocked step. */}
+        <Card className="space-y-3" data-testid="build-entry">
+          <p className="text-sm font-semibold text-[var(--accent)]">Ghép câu</p>
+          <h2 className="text-lg font-bold">Biết từ mà chưa ghép thành câu?</h2>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Một từ bị lấy khỏi câu, bạn tự điền vào — không gợi ý, không đáp án
+            để chọn. Không cần nói ra tiếng, làm được cả ở chỗ đông người.
+          </p>
+          <Link
+            href="/build"
+            className="inline-flex min-h-10 items-center text-sm font-semibold text-[var(--primary)]"
+          >
+            Ghép câu hôm nay →
+          </Link>
+        </Card>
+
+        <Card className="space-y-3" data-testid="library-entry">
+          <p className="text-sm font-semibold text-[var(--accent)]">Thư viện</p>
+          <h2 className="text-lg font-bold">Bài học từ video bạn chọn</h2>
+          <p className="text-sm text-[var(--muted-foreground)]">
+            Thư viện nhường chỗ trên thanh dưới cho phần Đọc, vì đọc là việc hằng ngày
+            còn bài từ video thì thỉnh thoảng mới tạo. Nó vẫn ở đây, cách một lần chạm.
+          </p>
+          <Link
+            href="/library"
+            className="inline-flex min-h-10 items-center text-sm font-semibold text-[var(--primary)]"
+          >
+            Mở thư viện →
+          </Link>
+        </Card>
 
         {/* The mobile bottom bar is a five-column grid and full, so this is how
             Luyện tai reaches a learner on a phone. A page nobody can find has

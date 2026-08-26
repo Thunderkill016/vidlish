@@ -86,12 +86,21 @@ export class InMemoryBeginnerProgressRepository
     return this.schedules.get(`${input.ownerUserId}:${input.itemKey.toLowerCase()}`) ?? null;
   }
 
+  private readonly exposures = new Map<string, number>();
+
   async scheduleReview(input: {
     ownerUserId: string;
     itemKey: string;
     reviewState: unknown;
     nextReviewAt: string;
   }) {
+    // Production runs an UPDATE against a row the evidence function created, so
+    // a word with no evidence behind it is silently not scheduled. The fake used
+    // to accept anything, which made it *kinder* than production — and a kinder
+    // fake is a test suite that cannot see the bug. A reading feature shipped
+    // green here and would have written nothing at all against Supabase.
+    if (!this.hasItem(input.ownerUserId, input.itemKey)) return;
+
     this.schedules.set(`${input.ownerUserId}:${input.itemKey.toLowerCase()}`, {
       reviewState: input.reviewState,
       nextReviewAt: input.nextReviewAt,
@@ -100,6 +109,36 @@ export class InMemoryBeginnerProgressRepository
     // used to be two unconnected maps, which let a test show a word banked and
     // the queue empty without either being wrong.
     upsertBeginnerReviewSchedule(input);
+  }
+
+  /** Whether any row exists for this item — evidence or a reading encounter. */
+  private hasItem(ownerUserId: string, itemKey: string): boolean {
+    const word = itemKey.toLowerCase();
+    if (this.exposures.has(`${ownerUserId}:${word}`)) return true;
+    return [...this.rows.entries()].some(
+      ([key, row]) => key.startsWith(`${ownerUserId}::`) && row.word === word,
+    );
+  }
+
+  async recordReadingExposure(input: {
+    ownerUserId: string;
+    itemKey: string;
+    reviewState: unknown;
+    nextReviewAt: string;
+  }) {
+    const word = input.itemKey.toLowerCase();
+    const key = `${input.ownerUserId}:${word}`;
+    this.exposures.set(key, (this.exposures.get(key) ?? 0) + 1);
+    this.schedules.set(key, {
+      reviewState: input.reviewState,
+      nextReviewAt: input.nextReviewAt,
+    });
+    upsertBeginnerReviewSchedule(input);
+  }
+
+  /** How many times a word was met while reading. Never evidence of knowing it. */
+  exposureCount(ownerUserId: string, itemKey: string): number {
+    return this.exposures.get(`${ownerUserId}:${itemKey.toLowerCase()}`) ?? 0;
   }
 
   async knownWords(ownerUserId: string): Promise<string[]> {

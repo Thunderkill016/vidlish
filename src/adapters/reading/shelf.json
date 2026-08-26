@@ -1,0 +1,336 @@
+[
+  {
+    "topic": "Máy tính và phần mềm",
+    "texts": [
+      {
+        "id": "simplewiki-31531",
+        "title": "Computer programming",
+        "paragraphs": [
+          "Computer programming is the process of telling a computer to do certain things by giving it instructions. These instructions are called programs. A person who writes instructions is a computer programmer. The instructions come from different programming languages, that can be written differently, like: C, Pascal, Lisp, OCaml, or Python. Sometimes, programmers use special software, such as integrated development environments (IDEs), which have many special parts, including a text editor, to help them to type and edit programs.",
+          "Computers can understand instructions, if those instructions are written in machine code, meaning long patterns of ones and zeroes. Writing a whole program in machine code would take a long time, so instructions are written in special programming languages that are easier for people to understand. The computer converts that into \"computer form\" instructions (in other words, machine code) so the computer can follow them. The instructions can also be written in an assembly language, which is almost the same as machine code but a little easier to understand.",
+          "Converting a program from its original programming language to machine code is called \"compiling\" the program. Not all languages need to be compiled. Some languages, called interpreted languages, use interpreters instead. An interpreter is a program specially written to read a programming language and execute its instructions right away. For example, Python and JavaScript use interpreters.",
+          "A variable is what programmers call a little piece of data, like a number or someone's username. Programming languages usually have a few different built-in types of variables.",
+          "Conditionals are parts of the program that work if something the program can check to see whether it is true. If that part is not true, then the program won't make it happen. A conditional is often done with an \"If Statement\".",
+          "Here is an example of an if statement in the Perl programming language.  What it does is it checks to see if the name variable is Bill.  If the name variable is Bill, then it will print out the words \"Hi Bill!\".",
+          "Sometimes, a programmer might want to have the if statement do something else if the first part of it is not true.  This is known as an else block.  Here is an example of an else block in the Perl programming language.",
+          "And sometimes, the programmer might want to have multiple things for the if statement to do.  For example, they may have the if block run if something is true, but will have parts of the if statement known as else if blocks that will run if the first part doesn't work, but if it works somewhere else.  In the Perl programming language, else if is spelled like this, \"elsif.\"  Other languages might have it spelled like \"else if\" however.  But for Perl, it is spelled like \"elsif.\"  Else If blocks will only run if their condition is true, just like the first if block. An if statement can have as many else if statements as the programmer needs.  If the if block, and none of the else if blocks are true, then the plain \"else\" statement will be used by the program.",
+          "In programming, loops are used to run some code repeatedly. The simplest kind of loop is a so-called while-loop, which repeats until its condition is not true anymore. Here is an example in from the C programming language.",
+          "A while loop always checks first if a condition is fulfilled before the code in it is ever run. There also exists something similar, called a do-while-loop, which is guaranteed to run its code at least once and only checks its condition after the code in it has run to decide if it should run again:A more versatile kind of loop is the for-loop. It is used in many C-family languages such as: Java, D, or V (Vlang). A C-style for-loop takes three expressions, which are separated by semicolons (;):",
+          "The first expression is a piece of code that is run before the loop first runs any code or checks its condition. Here, it \"initializes\" a new variable i with the \"type\" int, which is an integer (whole number). It is set to 0. The second expression is the condition the loop checks before it runs its code. If this condition is not met, the loop has ended. The third expression is a piece of code which is run after every iteration of the loop, that means every time after the code in the loop has run. i++ is just another way to write i = i + 1, which increases the value of i by 1. To sum it up, the for-loop above can also be written as:This will display the message \"Hi!\" ten times.",
+          "In the program, a comment is information that is meant to be read by people who are reading the program.  Comments have a special symbol in front of them that tells the computer that they are comments and should not be read as code.",
+          "Comments are used to explain how a certain part of a program works.  This is helpful when multiple people are working on the same program, and if they need to work on a section where someone else was working on.  If the programmer that was working on it first left behind comments for any other programmer that works on it later, it will help them know faster what is going on in the program.",
+          "Here is an example of programming comments in the C programming language.  In C and many C-family languages, the two slash symbols \"//\" known as a forward slashes, are used.  With the comments, a person can read the code and know what is going on.",
+          "Sometimes, a programmer may need to remove something from the code, but for many different reasons, they may not want to just simply delete it.  An easy solution is to use the comment symbol.  The computer will think that the code is just comments, rather than actual code, but the programmer will still be able to see it and read it.",
+          "Here is an example of that in the Perl programming language.  In Perl, the \"#\" symbol is used for comments, instead of forward slashes \"//\" like in the C programming language.",
+          "Computer programmers make mistakes when writing codes. The mistakes are called bugs and cause the program to follow the wrong instructions. Debugging is the process of finding and fixing the mistakes. To debug code is to find such mistakes.",
+          "There are many debugging methods. Software such as text editors and IDEs have tools that can detect specific mistakes in the codes before the program is executed. Programmers can also use programs called debuggers. A debugger can run a program step by step and track how values of specific variables change when the program is running. Programmers can use a debugger to find where the mistake happened in the code."
+        ],
+        "words": 1147,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Computer_programming",
+          "revision": 10735198,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      },
+      {
+        "id": "simplewiki-2957",
+        "title": "Computer program",
+        "paragraphs": [
+          "A computer program is a list of instructions that tell a computer what to do. Everything a computer does is done by the instructions of a program. The first computers were made with only one built-in program, but today's computers have memory, which can be used to store many different programs. John von Neumann, a mathematician born in Hungary, came up with this idea in the late 1940s.",
+          "A computer program is usually stored as a file on the computer's hard drive. The file contains a list of instructions. When the user runs the program, the computer reads the file does what the instructions tell it to do. These instructions can be very simple, like \"add these numbers together\" or \"save these letters\". A computer program is written by a programmer, who combines many of these simple instructions to do complicated things, like talking to the computer's screen and telling it to show a video.",
+          "The main part of the computer, the processor, is built to understand instructions written in machine code, meaning very long patterns of ones and zeroes. This is hard for humans to understand, so computer programmers write in a programming language, such as BASIC, C, or Java. Once the program is written, the programmer uses a compiler to turn it into machine code so the computer can read it.",
+          "There are also bad programs, called malware, written by people who want to do bad things to a computer. Some are spyware, trying to steal information from the computer. Some try to damage the data stored on the hard drive. Some others send users to web sites that offer to sell them things. Some are computer viruses or ransomware."
+        ],
+        "words": 282,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Computer_program",
+          "revision": 10732765,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      },
+      {
+        "id": "simplewiki-1987",
+        "title": "Software",
+        "paragraphs": [
+          "Computer software, also called software, is a set of instructions and documentation that tells a computer what to do or how to perform a task. Software includes all different programs on a computer, such as applications and the operating system. Applications are programs that are designed to perform a specific operation, such as a game or a word processor. The operating system (e.g., macOS, Microsoft Windows, Android and various Linux distributions) is a type of software that is used as a platform for running the applications, and controls all user interface tools including display and the keyboard.",
+          "The word software was first used in the late 1960s to emphasize on its difference from computer hardware, which can be physically observed by the user. Software is a set of instructions that the computer follows. Before compact discs (CDs) or development of the Internet age, software was used on various computer data storage media tools like paper punch cards, magnetic discs or magnetic tapes.",
+          "The word firmware is sometimes used to describe a style of software that is made specifically for a particular type of computer or an electronic device and is usually stored on a Flash memory or ROM chip in the computer. Firmware usually refers to a piece of software that directly controls a piece of hardware. The firmware for a CD drive or the firmware for a modem are examples of firmware implementation.",
+          "Today, software has become an important part of our lives. Software is used everywhere. Software engineers are responsible for producing fault-free software, which has become an essential part of our daily lives. Changeability and conformity are two of the main properties of software design. There are also different processing models for designing software including Build and Fix, Waterfall and Agile software processing design methods.",
+          "The  different types of software can be put into categories based on common function, type, or field of use. There are three broad classifications:",
+          "Application software are the computer programs for performing user tasks, such as word processing and web browsers.",
+          "System software is used to start and run computer systems and networks. This includes operating systems.",
+          "Computer programming tools (also known as development software) are used to create application and system software. This is done by translating and combining computer program source code and libraries into executable RAMs. These include compiler and linker."
+        ],
+        "words": 392,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Software",
+          "revision": 10730468,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      },
+      {
+        "id": "simplewiki-112",
+        "title": "Computer",
+        "paragraphs": [
+          "A computer is a machine that uses electronics to input, process, store, and output data. Data is information such as numbers, words, and lists. Input of data means to read information from a keyboard, a storage device like a hard drive, or a sensor. The computer processes or changes the data by following the instructions in software programs. A computer program is a list of instructions the computer has to perform. Programs usually perform mathematical calculations, modify data, or move it around. The data is then saved on a storage device, shown on a display, or sent to another computer. Computers can be connected together to form a network such as the internet, allowing the computers to communicate with each other.",
+          "The processor of a computer is made from integrated circuits (chips) that contains many transistors. Most computers are digital, which means that they represent information using binary digits, or bits. Computers come in different shapes and sizes, depending on the brand, model, and purpose. They range from small computers, such as smartphones and laptops, to large computers, such as supercomputers.",
+          "Two things that often define a computer are that it responds to a specific instruction set in a well-defined manner, and that it can execute a stored list of instructions called a program. There are four main actions in a computer: inputting, storing, outputting and processing.",
+          "Modern computers can do billions of calculations in a second. Being able to calculate many times per second allows modern computers to multi-task, which means they can do many different tasks at the same time. Computers do many different jobs where automation is useful. Some examples are controlling traffic lights, vehicles, security systems, washing machines and digital televisions.",
+          "Computers can be designed to do almost anything with certain information.  Computers are used to control large and small machines that, in the past, were controlled by humans. Billions of people have a personal computer at home or at work. They are used for things such as calculation, listening to music, reading, writing, or playing games.",
+          "Modern computers are electronic computer hardware. They do mathematical arithmetic very quickly, but computers do not really \"think.\" They only follow the instructions in their software programs. The software uses the hardware when the user gives it instructions and produces useful outputs.",
+          "Computers are controlled with user interfaces. Input devices which include keyboards, computer mice, buttons, and touch screens, etc.computer are electronic computer hardware.",
+          "Computer programs are designed or written by computer programmers. A few programmers write programs in the computer's own language, called machine code. Most programs are written using a programming language like: C, Fortran, JavaScript, Lisp, and Pascal. These programming languages are more like the language with which one talks and writes every day. The compiler converts the user's instructions into binary code (machine code) that the computer will understand and do what is needed.",
+          "In 1837, Charles Babbage proposed the first general mechanical computer, the Analytical Engine. The Analytical Engine contained an Arithmetic Logic Unit, basic flow control, punched cards, and integrated memory. It is the first general-purpose computer concept that could be used for many things and not only one particular program. However, this computer was never built while Charles Babbage was alive, because he didn't have enough money. In 1910, Henry Babbage, Charles Babbage's youngest son, was able to finish a part of this machine and do basic calculations.",
+          "Before the computer era there were machines that could do the same thing over and over again, like a music box. People began to want to be able to tell their machine to do different things. For example, they wanted to tell the music box to play different music every time. This part of computer history is called the \"history of programmable machines\", which in simple words means \"the history of machines that I can order to do different things if I know how to speak their language.\"",
+          "One of the first examples of programmable machines was built by Hero of Alexandria (c. 10–70 AD). He built a mechanical theater which performed a play lasting 10 minutes and was operated by a complex system of ropes and drums. These ropes and drums were the language of the machine- they told what the machine did and when. Some people argue that this is the first programmable machine.",
+          "Some people disagree on which early computer is programmable. Many say the \"castle clock\", an astronomical clock invented by Al-Jazari in 1206, is the first known programmable analog computer. The length of day and night could be adjusted every day in order to account for the changing lengths of day and night throughout the year. Some count this daily adjustment as computer programming.",
+          "Others say the first computer was made by Charles Babbage. Ada Lovelace is considered to be the first programmer.",
+          "At the end of the Middle Ages, people started thinking math and engineering were more important. In 1623, Wilhelm Schickard made a mechanical calculator. Other Europeans made more calculators after him. They were not modern computers because they could only add, subtract, and multiply- you could not change what they did to make them do something like play Tetris. Because of this, we say they were not programmable. Now engineers use computers to design and plan.",
+          "In 1801, Joseph Marie Jacquard used punched paper cards to tell his textile loom what kind of pattern to weave. He could use punch cards to tell the loom what to do, and he could change the punch cards, which means he could program the loom to weave the pattern he wanted. This means the loom was programmable. At the end of the 1800s Herman Hollerith invented the recording of data on a medium that could then be read by a machine, developing punched card data processing technology for the 1890 U.S. census. His tabulating machines read and summarized data stored on punched cards and they began use for government and commercial data processing.",
+          "Charles Babbage wanted to make a similar machine that could calculate. He called it \"The Analytical Engine\". Because Babbage did not have enough money and always changed his design when he had a better idea, he never built his Analytical Engine.",
+          "As time went on, computers were used more. People get bored easily doing the same thing over and over. Imagine spending your life writing things down on index cards, storing them, and then having to go find them again. The U.S. Census Bureau in 1890 had hundreds of people doing just that. It was expensive, and reports took a long time. Then an engineer worked out how to make machines do a lot of the work. Herman Hollerith invented a tabulating machine that would automatically add up information that the Census bureau collected. The Computing Tabulating Recording Corporation (which later became IBM) made his machines. They leased the machines instead of selling them. Makers of machines had long helped their users understand and repair them, and CTR's tech support was especially good.",
+          "Because of machines like this, new ways of talking to these machines were invented, and new types of machines were invented, and eventually the computer as we know it was born.",
+          "In the first half of the 20th century, scientists started using computers, mostly because scientists had a lot of math to figure out and wanted to spend more of their time thinking about science questions instead of spending hours adding numbers together. For example, if they had to launch a rocket ship, they needed to do a lot of math to make sure the rocket worked right. So they put together computers. These analog computers used analog circuits, which made them very hard to program. In the 1930s, they invented digital computers, and soon made them easier to program. However this is not the case as many consecutive attempts have been made to bring arithmetic logic to l3.Analog computers are mechanical or electronic devices which solve problems.Some are used to control machines as well.",
+          "Scientists figured out how to make and use digital computers in the 1930s to 1940s. Scientists made a lot of digital computers, and as they did, they figured out how to ask them the right sorts of questions to get the most out of them. Here are a few of the computers they built:",
+          "Konrad Zuse's electromechanical \"Z machines\". The Z3 (1941) was the first working machine that used binary arithmetic. Binary arithmetic means using \"Yes\" and \"No.\" to add numbers together. You could also program it. In 1998 the Z3 was proved to be Turing complete. Turing complete means that it is possible to tell this particular computer anything that it is mathematically possible to tell a computer. It is the world's first modern computer.",
+          "The non-programmable Atanasoff–Berry Computer (1941) which used vacuum tubes to store \"yes\" and \"no\" answers, and regenerative capacitor memory.",
+          "The Harvard Mark I (1944), A big computer that you could kind of program.",
+          "The U.S. Army's Ballistics Research Laboratory ENIAC (1946), which could add numbers the way people do (using the numbers 0 through 9) and is sometimes called the first general purpose electronic computer (since Konrad Zuse's Z3 of 1941 used electromagnets instead of electronics). At first, however, the only way to reprogram ENIAC was by rewiring it.",
+          "Several developers of ENIAC saw its problems. They invented a way to for a computer to remember what they had told it, and a way to change what it remembered. This is known as \"stored program architecture\" or von Neumann architecture. John von Neumann talked about this design in the paper First Draft of a Report on the EDVAC, distributed in 1945. A number of projects to develop computers based on the stored-program architecture started around this time. The first of these was completed in Great Britain. The first to be demonstrated working was the Manchester Small-Scale Experimental Machine (SSEM or \"Baby\"), while the EDSAC, completed a year after SSEM, was the first really useful computer that used the stored program design. Shortly afterwards, the machine originally described by von Neumann's paper—EDVAC—was completed but was not ready for two years.",
+          "Nearly all modern computers use the stored-program architecture. It has become the main concept which defines a modern computer. The technologies used to build computers have changed since the 1940s, but many current computers still use the von-Neumann architecture.",
+          "In the 1950s computers were built out of mostly vacuum tubes. Transistors replaced vacuum tubes in the 1960s because they were smaller and cheaper. They also need less power and do not break down as much as vacuum tubes. In the 1970s, technologies were based on integrated circuits. Microprocessors, such as the Intel 4004 made computers smaller, cheaper, faster and more reliable. By the 1980s, microcontrollers became small and cheap enough to replace mechanical controls in things like washing machines. The 1980s also saw home computers and personal computers. With the evolution of the Internet, personal computers are becoming as common as the television and the telephone in the household.",
+          "In 2005 Nokia started to call some of its mobile phones (the N-series) \"multimedia computers\" and after the launch of the Apple iPhone in 2007, many are now starting to add the smartphone category among \"real\" computers. In 2008, if smartphones are included in the numbers of computers in the world, the biggest computer maker by units sold, was no longer Hewlett-Packard, but rather Nokia.",
+          "A \"desktop computer\" is a small machine that has a screen (which is not part of the computer). Most people keep them on top of a desk, which is why they are called \"desktop computers.\" \"Laptop computers\" are computers small enough to fit on your lap. This makes them easy to carry around. Both laptops and desktops are called personal computers, because one person at a time uses them for things like playing music, surfing the web, or playing video games.",
+          "There are larger computers that can be used by multiple people at the same time. These are called \"mainframes,\" and these computers do all the things that make things like the internet work. You can think of a personal computer like this: the personal computer is like your skin: you can see it, other people can see it, and through your skin you feel wind, water, air, and the rest of the world. A mainframe is more like your internal organs: you never see them, and you barely even think about them, but if they suddenly went missing, you would have some very big problems.",
+          "An embedded computer, also called an embedded system is a computer that does one thing and one thing only, and usually does it very well. For example, an alarm clock is an embedded computer. It tells the time. Unlike your personal computer, you cannot use your clock to play Tetris. Because of this, we say that embedded computers cannot be programmed because you cannot install more programs on your clock. Some mobile phones, automatic teller machines, microwave ovens, CD players and cars are operated by embedded computers.",
+          "All-in-one computers are desktop computers that have all of the computer's inner mechanisms in the same case as the monitor. Apple has made several popular examples of all-in-one computers, such as the original Macintosh of the mid-1980s and the iMac of the late 1990s and 2000s.",
+          "Computers store data and the instructions as numbers, because computers can do things with numbers very quickly. These data are stored as binary symbols (1s and 0s). A 1 or a 0 symbol stored by a computer is called a bit, which comes from the words binary digit. Computers can use many bits together to represent instructions and the data that these instructions use. A list of instructions is called a program and is stored on the computer's hard disk. Computers work through the program by using a central processing unit, and they use fast memory called RAM (also known as Random Access Memory) as a space to store the instructions and data while they are doing this. When the computer wants to store the results of the program for later, it uses the hard disk because things stored on a hard disk can still be remembered after the computer is turned off.",
+          "An operating system tells the computer how to understand what jobs it has to do, how to do these jobs, and how to tell people the results. Millions of computers may be using the same operating system, while each computer can have its own application programs to do what its user needs. Using the same operating systems makes it easy to learn how to use computers for new things. A user who needs to use a computer for something different, can learn how to use a new application program. Some operating systems can have simple command lines or a fully user-friendly GUI.",
+          "One of the most important jobs that computers do for people is helping with communication. Communication is how people share information. Computers have helped people move forward in science, medicine, business, and learning, because they let experts from anywhere in the world work with each other and share information. They also let other people communicate with each other, do their jobs almost anywhere, learn about almost anything, or share their opinions with each other. The Internet is the thing that lets people communicate between their computers. The Internet also allows the computer user to play an Online game.",
+          "A computer is now almost always an electronic device. It usually contains materials that will become electronic waste when discarded. When a new computer is bought in some places, laws require that the cost of its waste management must also be paid for. This is called product stewardship.",
+          "Computers can become obsolete quickly, depending on what programs the user runs. Very often, they are thrown away within two or three years, because some newer programs require a more powerful computer. This makes the problem worse, so computer recycling happens a lot. Many projects try to send working computers to developing nations so they can be re-used and will not become waste as quickly, as most people do not need to run new programs. Some computer parts, such as hard drives, can break easily. When these parts end up in the landfill, they can put poisonous chemicals like lead into the ground-water. Hard drives can also contain secret information like credit card numbers. If the hard drive is not erased before being thrown away, an identity thief can get the information from the hard drive, even if the drive doesn't work, and use it, for example, to steal money from the previous owner's bank account.",
+          "Computers come in different forms, but most of them have a common design.",
+          "All computers have some kind of data bus which lets them get inputs or output things to the environment.",
+          "All computers have some form of memory. These are usually chips (integrated circuits) which can hold information.",
+          "Many computers have some kind of sensors, which lets them get input from their environment.",
+          "Many computers have some kind of display device, which lets them show output. They may also have other peripheral devices connected.",
+          "A computer has several main parts. When comparing a computer to a human body, the CPU is like a brain. It does most of the thinking and tells the rest of the computer how to work. The CPU is on the Motherboard, which is like the skeleton. It provides the basis for where the other parts go, and carries the nerves that connect them to each other and the CPU. The motherboard is connected to a power supply, which provides electricity to the entire computer. The various drives (CD drive, floppy drive, and on many newer computers, USB flash drive) act like eyes, ears, and fingers, and allow the computer to read different types of storage, in the same way that a human can read different types of books. The hard drive is like a human's memory, and keeps track of all the data stored on the computer. Most computers have a sound card or another method of making sound, which is like vocal cords, or a voice box. Connected to the sound card are speakers, which are like a mouth, and are where the sound comes out. Computers might also have a graphics card, which helps the computer to create visual effects, such as 3D environments, or more realistic colors, and more powerful graphics cards can make more realistic or more advanced images, in the same way a well trained artist can."
+        ],
+        "words": 3095,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Computer",
+          "revision": 10923914,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      },
+      {
+        "id": "simplewiki-362",
+        "title": "Internet",
+        "paragraphs": [
+          "The Internet is the world’s largest global communication network for computers and other devices.",
+          "It connects many smaller networks from homes, schools, businesses, and governments. These networks share different kinds of information. The short form of the Internet is “the Net.” One of its most popular services is the World Wide Web, which is used by billions of people every day.",
+          "The Internet was developed in the United States by the Department of Defence Advanced Research Projects Agency (DARPA). The Internet was first connected in October 1969 and was called ARPANET. The World Wide Web was created at CERN in Switzerland in 1990 by a British (UK) scientist named Tim Berners-Lee.",
+          "Some websites and tools are free, while others may show ads to earn money. There are also ongoing debates about censorship and freedom of speech on the Internet.",
+          "The Internet is used for many things, such as electronic mail, online chat, file transfer and other documents of the World Wide Web.",
+          "The most used service on the Internet is the World Wide Web (which is also called the \"Web\" or “www”). The web contains websites, including social media, blogs, and wikis like Wikipedia. Webpages on the Internet can be seen and read by anyone (unless the page needs a password, or it is blocked).",
+          "The second biggest use of the Internet is to send and receive e-mail. E-mail is private and goes from one user to another. Instant messaging is similar to email, but allows two or more people to chat to each other faster.",
+          "Some governments think the internet is a bad thing, and block all or part of it.  For example, the Chinese government thinks that Wikipedia is bad, so often no one in China can read it or add to it. Another example of the internet being blocked is in North Korea. Some parents and schools block parts of the Internet they think are bad for children to see.",
+          "The Internet makes communication easy. Yet, communication can be dangerous, too. People often send secret information, and sometimes other people can steal that information. They can use the Internet to spread lies, steal secrets, or give dangerously bad advice. For example, Facebook has had some problems with privacy settings.",
+          "Some websites may trick people into downloading viruses that can harm a computer, or spyware that spies on its users (looks at what they are doing and tells someone else).",
+          "In internet chatrooms, people might be preying on others or trying to stalk or abuse them.",
+          "The Internet contains content that many people find offensive, as well as content intended to be offensive.",
+          "Criminals may steal people's personal information or trick people into sending them money.",
+          "The Internet is a worldwide network of interconnected computer networks that transmit data by packet switching using the standard Internet Protocol (IP). It is a \"network of networks\" that has millions of interconnected smaller domestic, academic, business, and government networks, which together carry various information and services, such as electronic mail, online chat, file transfer, and the interlinked Web pages and other documents of the World Wide Web. The general public are allowed to use the internet, in almost all countries.",
+          "Critical Internet infrastructure, the physical systems that provide internet communication. It includes networking cables (picture), cellular towers (picture), server, internet exchange points (picture), data centers, and individual computers."
+        ],
+        "words": 557,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Internet",
+          "revision": 10916887,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      }
+    ]
+  },
+  {
+    "topic": "Đời sống hằng ngày",
+    "texts": [
+      {
+        "id": "simplewiki-280",
+        "title": "Food",
+        "paragraphs": [
+          "Food is what people and apes eat to live. Every organism needs energy to carry on with the process of living which comes from food. Food usually comes from animals and plants. It is eaten by living thngs to provide energy and nutrition. Food contains the nutrition that people need to be healthy. The consumption of food is normally enjoyable to humans.",
+          "It contains protein, fat, carbohydrates, vitamins, water and minerals. Liquids used for energy and nutrition are often called \"drinks\". If someone cannot afford food they go hungry and could die.",
+          "Food for humans is mostly made through farming or gardening. It includes animal and vegetable sources. Some people refuse to eat food from animal origin, like meat, eggs, and products with milk in them. Not eating meat is called vegetarianism. Not eating or using any animal products is called veganism.",
+          "Food produced by farmers or gardeners can be changed by industrial processes (the food industry). Processed food usually contains several natural ingredients and food additives (such as preservatives, antioxidants, emulsifiers, flavor enhancers). For example, bread is processed food.",
+          "Food processing at home is done in the kitchen, by the cook. The cook sometimes uses a cookbook. Examples of cooking utensils are pressure cookers, pots, and frying pans.",
+          "Food can also be prepared and served in restaurants or refectory (in particular for children in school).",
+          "The utensils used may be a plate, knife, fork, chopsticks, spoon, bowl, or spork.",
+          "Many people do not grow their own food. They have to buy food that was grown by someone else. People buy most of their food in shops or markets. But some people still grow most or all of their own food.",
+          "People may buy food and take it home to cook it. They may buy food that is ready to eat from a street vendor or a restaurant.",
+          "Other countries have their own way of eating food. An example of an ethnic food is Mexican food.",
+          "Originally, people got food as hunter-gatherers. The agricultural revolution changed that. Farmers grew crops including those invented and improved by selective breeding. These improvements, for example the invention of maize, allowed feeding more people, and further improvements gave it a better taste.",
+          "Food shortage has been a big problem throughout history. Many people do not have enough money to buy the food that they need. Bad weather or other problems sometimes destroy the growing food in one part of the world. When people do not have enough food, we say that they are hungry. If they do not eat enough food for a long time, they will become sick and die from starvation. In areas where many people do not have enough food, we say that there is famine there.",
+          "Food and water can make people sick if it is contaminated by microorganisms, bad metals, or chemicals.",
+          "If people do not eat the right foods, they can become sick.",
+          "If people do not eat enough protein, they get the disease called kwashiorkor.",
+          "If they do not eat enough vitamin B1 (thiamine), they get the disease called beriberi.",
+          "If they do not eat enough vitamin C, they get the disease called scurvy.",
+          "If children do not eat enough vitamin D, they get the disease called rickets.",
+          "People may often have a variety of eating disorders that cause them to either eat too much, or not be able to eat certain things or amounts. Common diseases like Coeliac disease or food allergies cause people to experience ill effects from consuming certain foods that are normally safe. If people eat too much food, they can become overweight or obese. This causes numerous health problems. On the other hand, eating too little food, from lack of access or anorexia could cause malnutrition. Therefore, people have to balance the amount, the nutrition, and the type of food to be healthy.",
+          "Many cultures or religions have food taboos. That means they have rules what people should not eat, or how the food has to be prepared. Examples of religious food rules are the Kashrut of Judaism and the Halal of Islam, that say that pig meat cannot be eaten. In Hinduism, eating beef is not allowed. Some Christians are vegetarian (someone who does not eat meat) because of their religious beliefs. For example, Seventh-day Adventist Church recommends vegetarianism."
+        ],
+        "words": 718,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Food",
+          "revision": 10968432,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      },
+      {
+        "id": "simplewiki-22224",
+        "title": "Sleep",
+        "paragraphs": [
+          "Sleep (also called napping) is a state of resting. It happens in most animals, including humans. To sleep is to be unconscious.",
+          "During deep sleep, most of the muscles that animals can control are not active, but resting to regain the energy they need for the next time they wake up. When asleep, humans cannot tell what is happening around them. Like most animals, healthy sleep in humans most often happens at night.",
+          "When something is asleep, it cannot react like it would if it was awake. However, waking up from sleep is easier than waking up from hibernation or a coma. All mammals and birds, as well as many reptiles, amphibians and fish have a sleep cycle. In humans and many other animals, regular sleep is essential for survival.",
+          "It seems that all animals with complex brains have sleep. We know that sleep is extremely important to human health and well-being. Humans and animals need sleep but we do not know exactly why.  If one is tired (from not getting enough sleep), one will not be able to function properly in common activities. Being sleep-deprived leads to struggling to remember information, changing one's mood, energy, health, focus and a number of other effects. This is why people are told to not drive or use big machines when they feel tired. Sleep deprivation (not allowing a person enough sleep) can even be used as torture. Sleep deprivation causes negative effects for the person such as: irritability (annoyed mood), forgetting things or amnesia, and some pains (for example back ache or neck pain) in different areas of the body. Also, the immune system normally releases compounds known as cytokines which are used to help fight inflammation and infection. If a person does not get enough sleep, their body cannot protect them from illness. The body may not have time to complete memory recollection, muscle repair, and release hormones that regulate growth and appetite.",
+          "During daytime, the Sun is out, and most people are awake. People work, go to school, or complete daily errands and activities. Some people sleep for a short time in the early afternoon for a quick rest—or because they are not able to sleep during the day. This is called a nap. A good nap should is recommended to last between 15 and 30 minutes. Naps that are 30–60 minutes can make someone feel dazed, confused, and less focused. It can also make it harder to sleep at night.",
+          "In some countries, most notably where the weather is warm, there is a tradition to take a nap early in the afternoon. This tradition is called siesta. It is most common in Spain and Latin America. Some stores and services close while their owners and/or employees take their siesta. It is common because the day gets hottest when the sun is up in the sky and strong. Therefore, people do their activities early in the morning and later in the evening, when it is cooler.",
+          "Most of what is said above applies widely in the animal kingdom. However, some primitive animals do not appear to sleep, or more correctly, sleep has never been shown. Some animals sleep as we do, at night, but some sleep during the day and are instead active at night. This is called being nocturnal. Mammals spend much of their early evolution sleeping during the day and being active at night.",
+          "The word \"sleep\" comes from the old Old Germanic verbs for sleep. In Old and Middle High German, it was called \"SLAF\". The original meaning of the word was \"to slap\", which was related to the word for \"flabby\" (not hard or firm).",
+          "Many words related to \"sleep\" have very different meanings. For example, \"sleep\" may be used to mean death, so that \"putting an animal to sleep\" means to kill the animal without pain. \"Sleep with someone\" can also have a sexual meaning. This is called a euphemism, because people do not want to say the actual word they mean.",
+          "Sleep helps the brain function. The details are not fully understood, but it is important to get enough sleep for the body and the brain to be healthy and to work properly. In general, animals (and people) sleep at periodic intervals, such as once a day. Certain animals send out signals to the others that they will soon go to sleep. Yawning is such a signal.",
+          "Both humans and many animals sleep about once a day. Some animals, such as cats, sleep many times a day for short periods up to 15 hours a day (or even longer).",
+          "When people sleep, they often have dreams. Probably some animals do, too.",
+          "Not only people sleep, but all mammals and birds, and most fish, reptiles and other animals also too.",
+          "Stage 1: The lightest sleep of NREM (Non-Rapid Eye Movement) sleep which is the process of falling asleep.",
+          "Stage 2: The first stage of NREM sleep; the beginning of falling asleep including regular breathing and heart rates, the body temperature dropping, and becoming disconnected with the environment.",
+          "Stages 3: Deep NREM sleep which involves delta waves or slow waves. It is difficult to wake one up in the course of this stage as they are in deep sleep. Common disorders that occur during this stage are sleepwalking and talking.",
+          "Stage 4: The dreaming stage in which brain waves are more vigorous with rapid eye movement. Awakenings are more common in REM (Rapid Eye Movement) sleep as opposed to NREM.",
+          "While humans sleep, REM and NREM are sleep patterns that help with long-term memory, remembering information, procedural memory, and creative thinking.",
+          "In mammals and birds, sleep can be divided into two categories. In one of them, the eyes move rapidly. It is called REM-sleep (rapid eye movement). Most dreams take place in this phase as the body becomes relaxed and the eyes move while sleeping. This phase helps prepare one for the next day. REM-sleep occurs normally at intervals throughout the night, and the periods of REM-sleep increase in length in the second half of the night. It is often encountered 90 minutes after falling asleep, and continues to occur every 90 minutes. REM-sleep was first discovered in 1952–53.",
+          "REM sleep is found in mammals and songbirds, but is \"poorly established\" in reptiles and fish. According to a survey:",
+          "\"This remarkable similarity of characteristics may have resulted from a convergent evolution in mammals and songbirds\".",
+          "The other category, where this movement of the eyes does not happen, is called NREM-sleep (Non-REM sleep). In general, dreams do not occur during this time. There are three or four stages of NREM-sleep. Stage I is just barely sleeping, or dozing. Stage II is also light sleep. Normally, in adult humans, about half of the time spent asleep is spent in light sleep. Stages III and IV are called deep sleep. Deep sleep is necessary for growth and healing. It can be quite difficult to awaken someone who is in stage III or stage IV sleep. Sometimes, stages III and IV are combined and called stage III.",
+          "Adult humans normally sleep in cycles of 90 to 110 minutes each. The night's sleep can be 4 or 5 of these cycles. Each cycle includes, in this order: stage I, stage II, stage III (IV), and REM.",
+          "Getting the appropriate amount of sleep is extremely important, as it could affect one's body and increase the chances of serious health problems. For each age group, there are different amounts of sleep that are recommended:",
+          "The timing of sleep and the amount of it are both important. Both are different for different people and is based on the circadian rhythm.",
+          "How much sleep is enough also depends on age. Children need more sleep than adults. Newborn babies sleep about 18 hours per day. Small babies sleep many times a day, and human babies do not develop circadian rhythms before they are 3 – 4 months old. At the age of 1 year, a baby sleeps for about 14 hours.",
+          "A nine-year-old girl should sleep about 9–10 hours per day and teenagers also need that much sleep. Women who sleep less than about 9 hours a day perform worse than those who sleep that long.",
+          "Poor habits could affect one’s sleep schedule in many ways without taking notice. Some habits that can disrupt sleep are:",
+          "A good night's sleep is extremely important for one's quality of life. However, people may have trouble sometimes going to sleep, staying asleep or getting enough sleep. This usually means that they are too sleepy in the daytime.",
+          "There are many things that influence sleep. Also some substances, called stimulants – coffee is an example – can cause poor sleep. When people have just eaten something, the body is busy digesting what they have eaten. This can cause poor sleep, too. Worrying and stress can also cause poor sleep.",
+          "There are many diseases that cause poor sleep. Fever can lead to bad dreams. Poor sleep can be a side effect of some medications.",
+          "Sleep disorders directly influence how a person sleeps. Examples of sleep disorders are narcolepsy, sleep apnea and circadian rhythm sleep disorders.",
+          "Restless leg syndrome is a need to move one's leg while resting. Having the urge to move one's feet during the night may affect the ability to fall and stay asleep",
+          "Sleep specialists - doctors specialized in sleeping problems - often suggest better sleep hygiene to people with sleeping problems. Sleep hygiene means things people can try, such as:",
+          "eat dinner at least 3 hours before bedtime so the digestive system has time to break it down.",
+          "\"It's the little things: daily routines\". The Whole Child - For Early Care Providers. Public Broadcasting Service (PBS)."
+        ],
+        "words": 1619,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Sleep",
+          "revision": 10963291,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      },
+      {
+        "id": "simplewiki-3399",
+        "title": "Weather",
+        "paragraphs": [
+          "Weather is the day-to-day or hour-to-hour change in the atmosphere. Weather includes wind, lightning, storms, hurricanes, tornadoes, rain, hail, snow, and lots more. Energy from the Sun affects the weather too.",
+          "Climate tells us what kinds of weather usually happen in an area at different times of the year.",
+          "Changes in weather can affect the mood and life of many living things. People wear different clothes and do different things in different weather conditions. They also choose different  food in different seasons.",
+          "Weather stations around the world measure different parts of weather. Ways to measure weather are wind speed, wind direction, temperature and humidity. People try to use these measurements to make weather forecasts for the future.  These people are  scientists that are called meteorologists. They use computers to build large mathematical models to follow weather trends.",
+          "Severe weather can hurt people and their property. It can also just be a bother. Some examples of severe weather are:",
+          "Weather happens because different parts of the Earth get different amounts of heat from the Sun. This makes different climates. The tropics get the most heat because the Sun shines straight down on them, while the poles get the least heat because the Sun shines on them from a low angle. Warmer air is lighter than cooler air and rises higher in the sky by convection.",
+          "The air always has some water mixed with it. This is called humidity. When it cools, the water can change from a gas to a liquid through condensation. Then the water can fall from the sky as rain or snow. After the air rises, it gets colder and goes back towards the ground. Because the air lost its water before, it is dry when it comes back to the ground. When two air masses of different temperatures meet, this is called a warm front or cold front. The ways that the air moves around the Earth are called atmospheric circulation."
+        ],
+        "words": 324,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Weather",
+          "revision": 10942452,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      },
+      {
+        "id": "simplewiki-479",
+        "title": "Money",
+        "paragraphs": [
+          "Money, also sometimes called currency, can be defined as anything that people use to buy goods and services. Money is what many people receive for selling their own things or services.",
+          "There are lots of different kinds of money in the world. Most countries have their own kind of money, such as the United States dollar or the Iranian rial.",
+          "The idea of bartering things is very old. A long time ago, people did not buy or sell with money. Instead, they traded one thing for another to get what they wanted or needed. One person who owned many cows could trade with another person who had a lot of wheat. Each would trade a little of what he had with the other. This would support the people on his farm. Other things that were easier to carry around than cows also came to be held as valuable. This gave rise to trade items such as jewelry and spices.",
+          "When people changed from trading in things like, for example, cows and wheat to using money instead, they needed things that would last a long time. They must still have a known value, and could be carried around. The first country in the world to make metal coins was called Lydia. These first appeared during the 7th century BC, in the western part of what is now Turkey. The Lydian coins were made of a weighed amount of precious metal and were stamped with a picture of a lion. This idea soon spread to Greece, the rest of the Mediterranean, and the rest of the world. Coins were all made to the same size and shape. In some parts of the world, different things have been used as money, like clam shells or blocks of salt.",
+          "Besides being easier to carry than cows, using money had many other advantages. Money is easier to divide than many trade goods. If someone owns cows, and wants to trade for only \"half a cow's worth\" of wheat, he probably does not want to cut his cow in half. But if he sells his cow for money, and buys wheat with money, he can get exactly the amount he wants.",
+          "Cows die, and wheat rots. But money lasts longer than most trade goods. If someone sells a cow for money, he can save that money away until he needs it. He can always leave it to his children when he dies. It can last a very long time, and he can use it at any time.",
+          "Not every cow is as good as another cow. Some cows are sick and old, and others are healthy and young. Some wheat is good and other wheat is moldy or stale. So if a person trades cows for wheat, he might have a hard time arguing over how much wheat each cow is worth. However, money is standard. That means one dollar is worth the same as another dollar. It is easier to add up and count money, than to add up the value of different cows or amounts of wheat.",
+          "Later, after coins had been used for hundreds of years, paper money started out as a promise to pay in coin, much like an \"I.O.U.\" note. The first true paper money was used in China in the 10th century AD. Paper money was also printed in Sweden between 1660 and 1664. Both times, it did not work well, and had to be stopped because the banks kept running out of coins to pay on the notes. Massachusetts Bay Colony printed paper money in the 1690s. This time, the use became more common.",
+          "Today, most of what people think of as money is not even things you can hold. It is numbers in bank accounts, saved in computer memories. Many people still feel more comfortable using coins and paper, and do not totally trust using electronic money on a computer memory.",
+          "Many types of money have been used at different times in history. These are:",
+          "Commodity money can be used for other purposes besides serving as a medium of exchange. We say it possesses intrinsic value, because it is useful or valuable by itself. Some examples of commodity money are cattle, silk, gold and silver. Convertible paper money is money that is convertible into gold and silver. Gold and Silver certificates are convertible paper money as they can be fully convertible into gold and silver.",
+          "Inconvertible money is money that cannot be converted into gold and silver. Notes and coins are inconvertible money. They are inconvertible and are declared by the government money. Such fiat money is a country's legal tender. Today, notes and coins are the currencies used in bank deposits.",
+          "Ferguson, Niall (2008). The Ascent of Money: A Financial History of the World. Allen Lane. ISBN 9781846141065",
+          "Davies, Glyn (2010). History of Money: From Ancient Times to the Present Day (Fourth ed.). University of Wales Press. ISBN 9780708317174",
+          "Linguistic and Commodity Exchanges by Elmer G. Wiens. Examines the structural differences between barter and monetary commodity exchanges and oral and written linguistic exchanges."
+        ],
+        "words": 846,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Money",
+          "revision": 10770702,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      },
+      {
+        "id": "simplewiki-3284",
+        "title": "Family",
+        "paragraphs": [
+          "A family is a group of people who, in most cases, live together. They share their money and food and are supposed to take care of one another. Its members are either genetically related (like brother and sister) or legally bound to each other, for example by marriage. In many cultures, the members of a family have the same or a similar surname.",
+          "The family in accordance to the Catholic doctrine is treated in many articles of the Catechism of the Catholic Church starting from the article 2201.",
+          "A family is said to be society's smallest unit, its nucleus. Family life is more private and intimate than public life. But in most countries there are laws for it. For example, there are restrictions for marrying within the family and bans for having a sexual relationship with relatives, especially with children.",
+          "A nuclear family is made up of parents and one or more children living together.",
+          "A single-parent family is one where there is one parent and one or more children.",
+          "An extended family or joint families means father, mother, daughters, sons, grandparents, uncles, aunts, cousins, nieces and nephews. In many countries including China, Pakistan and India, extended or joint families traditionally live together.",
+          "Both the \"nuclear family\" and the \"single-parent family\" are also called the \"immediate family\".",
+          "Foster families are families where a child lives with and is cared for by people who are not his or her biological parents."
+        ],
+        "words": 240,
+        "source": {
+          "url": "https://simple.wikipedia.org/wiki/Family",
+          "revision": 10765037,
+          "licence": {
+            "name": "Creative Commons Attribution-Share Alike 4.0",
+            "url": "https://creativecommons.org/licenses/by-sa/4.0/"
+          }
+        }
+      }
+    ]
+  }
+]

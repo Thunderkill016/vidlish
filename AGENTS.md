@@ -58,6 +58,41 @@ explanations for early learning where they are needed. Where an older rule in
 this file conflicts with those, the decision wins and the rule needs rewriting —
 say so rather than quietly following the stale one.
 
+## The goal
+
+Decided 26/08/2026, after the product owner said the site had become a jumble
+with no clear product. He was right, and the cause was that this file had a
+*direction* and eight documents of *principles* but no **goal** — so every
+method with good evidence opened its own door, and the product grew to eighteen
+learner-facing routes with three separate review surfaces.
+
+In curriculum design terms this is the step the whole model hangs off. Write it
+before adding anything.
+
+> **Nếp gives one Vietnamese learner thirty minutes a day that end in a sentence
+> they produced themselves — and proves, with evidence they can inspect, that
+> they could not have produced it last month.**
+
+Every word of that is load-bearing:
+
+- **Thirty minutes** is the budget he actually has. A session that needs forty
+  is a session that gets abandoned. At this rate B2 is about three years, and
+  the product's job at that horizon is to waste nothing.
+- **End in a sentence they produced** because production is the blocked step, in
+  his own words: knows the words, cannot assemble them. Vietnamese has no verb
+  conjugation, no articles and no plural inflection — the assembly machinery is
+  absent from his first language, not merely unpractised.
+- **Not motivation.** Vietnamese learners in the interview study showed high
+  motivation and still stalled, because the interference was structural. Streaks
+  and points address a problem this learner does not have, and external and
+  introjected regulation were unrelated to achievement anyway.
+- **Evidence they can inspect** is the one thing no competitor does. Known-word
+  counts elsewhere mean "did not click on it". Here they mean produced unaided.
+
+**The test for any new surface:** does it take part in that thirty minutes? If
+it needs its own door on the bar, it is competing with the session rather than
+serving it, and the answer is usually no.
+
 ## Product direction
 
 Decided by the product owner on 25/08/2026. It is written here because two
@@ -157,6 +192,26 @@ everyone improves over ten weeks, and a single-group design cannot separate the
 method from the calendar. Headline effect sizes are routinely a third larger
 than the defensible ones — TBLT is quoted at d = 0.93 and survives reanalysis at
 g = 0.61. When you cite a number here, cite the design with it.
+
+**Read the source, not a summary of it.** Product owner's standing instruction,
+25/08/2026: research before building, and invent nothing. A web-search result is
+a small model's paraphrase of titles and snippets — it carries the number and
+drops the design. Three conclusions in this repo were wrong until the paper was
+opened: an effect size taken from the wrong meta-analysis; the 95% coverage
+figure read as a threshold for reading alone when its own authors define it as
+the threshold for reading *with guidance*; and a vowel-length measurement taken
+off a file's byte count instead of off the time the speaker was audible.
+
+`scripts/research/scholar.mjs` walks the citation graph — `--cites` for who
+contradicts a paper, `--refs` for what it rests on, `--get` for the full text.
+`scripts/research/eric.mjs` covers education full texts. Use them before writing
+a threshold, a parameter, or a claim.
+
+And where something cannot be derived, do not pick an answer. English does not
+let you recover a base form from a stem — `walked`, `hoped` and `stopped` undo
+their suffix three different ways — so `read-passage.ts` returns every candidate
+and lets the learner's own vocabulary decide. Guessing one produced three failing
+tests and would have shown known words as new.
 
 ## Writing a specification
 
