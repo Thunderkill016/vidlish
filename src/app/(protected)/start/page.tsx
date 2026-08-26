@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { BookOpen, CheckCircle, Headphones, Sparkles } from "lucide-react";
 
 import {
   beginnerSentenceCatalogueSize,
@@ -22,22 +23,16 @@ export default async function StartPage() {
   const access = await (await createIdentityService()).resolveCurrentAccess();
   if (!access) redirect("/sign-in");
 
-  // This one fails closed rather than degrading, and the difference matters.
-  // The dashboard can show an empty list when a panel is unreadable; this page
-  // cannot. Treating an unreadable evidence store as "knows nothing" would
-  // start teaching words the learner already produced and bank a second round
-  // of evidence for them — quietly corrupting the one record the whole product
-  // is built on. Refusing, with the reason on screen, is the honest outcome.
   const knownRead = await readPanel("từ nền", async () =>
-(await createBeginnerProgressRepository()).knownWords(access.userId),
+    (await createBeginnerProgressRepository()).knownWords(access.userId),
   );
 
   if (knownRead.kind === "unavailable") {
     return (
-      <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-        <h1 className="text-2xl font-semibold">Chưa bắt đầu được lúc này</h1>
-        <Card className="flex flex-col gap-2" data-testid="start-unavailable">
-          <p className="text-sm">
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 py-6">
+        <h1 className="text-2xl font-bold tracking-tight">Chưa bắt đầu được lúc này</h1>
+        <Card className="flex flex-col gap-3 border-[var(--destructive)]/30 bg-[var(--destructive)]/5" data-testid="start-unavailable">
+          <p className="text-sm font-semibold text-[var(--destructive)]">
             Chưa đọc được số từ bạn đã học, nên buổi học chưa thể bắt đầu.
           </p>
           <p className="text-sm text-[var(--muted-foreground)]">
@@ -57,58 +52,84 @@ export default async function StartPage() {
   const corpus = beginnerSentenceCatalogueSize();
 
   return (
-    <main className="mx-auto flex w-full max-w-2xl flex-col gap-6 px-4 py-10">
-      <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold">
-          Hôm nay, nghe một câu để bắt đầu dùng tiếng Anh.
+    <div className="mx-auto flex w-full max-w-3xl flex-col gap-8">
+      {/* Header section */}
+      <header className="space-y-3">
+        <div className="inline-flex items-center gap-2 rounded-full bg-[var(--primary-wash)] px-3.5 py-1 text-xs font-bold text-[var(--primary)]">
+          <Headphones size={14} />
+          <span>LỘ TRÌNH TỪ SỐ 0</span>
+        </div>
+        <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl">
+          Nghe một câu để bắt đầu dùng tiếng Anh
         </h1>
-        <p className="text-sm text-[var(--muted-foreground)]">
-          Mỗi câu ở đây chỉ có đúng một từ bạn chưa gặp. Không phải vì dễ hơn —
-          mà vì một câu có hai từ mới thì bạn đoán, và đoán thì không để lại gì.
+        <p className="text-sm leading-relaxed text-[var(--muted-foreground)] max-w-2xl">
+          Mỗi câu ở đây chỉ có đúng một từ bạn chưa gặp (nguyên lý i+1). Không phải vì dễ hơn —
+          mà vì một câu có hai từ mới thì bạn sẽ đoán, và đoán thì không chuyển thành phản xạ được.
         </p>
       </header>
 
-      <Card className="flex flex-col gap-1">
-        <span className="text-sm text-[var(--muted-foreground)]">
-          Số từ bạn đã tự nói ra được, không mở trợ giúp
-        </span>
-        <span className="text-3xl font-semibold tabular-nums">
-          {known.length}
-        </span>
-        <span className="text-xs text-[var(--muted-foreground)]">
-          Đây là con số quyết định câu tiếp theo bạn gặp. Không phải số buổi
-          học, không phải chuỗi ngày liên tiếp.
-        </span>
-      </Card>
+      {/* Metric Cards Grid */}
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card className="relative overflow-hidden border-[var(--border)] p-5 space-y-2 hover:border-[var(--primary)]/40 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
+              Vốn từ tự sản sinh
+            </span>
+            <CheckCircle size={18} className="text-[var(--solved)]" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-extrabold tracking-tight tabular-nums text-[var(--foreground)]">
+              {known.length}
+            </span>
+            <span className="text-xs font-medium text-[var(--muted-foreground)]">từ đã tự nói được</span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+            Tự nói ra không mở gợi ý. Quyết định câu tiếp theo bạn gặp.
+          </p>
+        </Card>
 
-      <Card className="flex flex-col gap-1">
-        <span className="text-sm text-[var(--muted-foreground)]">
-          Số câu bạn đọc được trọn vẹn, không có chữ nào lạ
-        </span>
-        <span className="text-3xl font-semibold tabular-nums">
-          {readable.toLocaleString("vi-VN")}
-          <span className="text-base font-normal text-[var(--muted-foreground)]">
-            {" / "}
-            {corpus.toLocaleString("vi-VN")}
-          </span>
-        </span>
-        <span className="text-xs text-[var(--muted-foreground)]">
-          Đếm trên kho câu do người viết. Con số này chỉ nhúc nhích khi bạn học
-          được thêm, nên nó không tự đẹp lên vì bạn mở ứng dụng nhiều hơn.
-        </span>
-      </Card>
+        <Card className="relative overflow-hidden border-[var(--border)] p-5 space-y-2 hover:border-[var(--accent)]/40 transition-colors">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-[var(--muted-foreground)] uppercase tracking-wider">
+              Khả năng đọc hiểu
+            </span>
+            <BookOpen size={18} className="text-[var(--accent)]" />
+          </div>
+          <div className="flex items-baseline gap-2">
+            <span className="text-4xl font-extrabold tracking-tight tabular-nums text-[var(--foreground)]">
+              {readable.toLocaleString("vi-VN")}
+            </span>
+            <span className="text-xs font-medium text-[var(--muted-foreground)]">
+              / {corpus.toLocaleString("vi-VN")} câu trọn vẹn
+            </span>
+          </div>
+          <p className="text-[11px] leading-relaxed text-[var(--muted-foreground)]">
+            Số câu bạn đọc hiểu 100% không có từ lạ trong kho câu chuẩn.
+          </p>
+        </Card>
+      </div>
 
-      <BeginnerSession />
+      {/* Main Beginner Interactive Session */}
+      <section className="space-y-3">
+        <BeginnerSession />
+      </section>
 
-      {/* Only once there is something real to ask about: a check made entirely
-          of nonwords measures nothing. */}
+      {/* Calibration Check if applicable */}
       {known.length > 0 ? <CalibrationCheck /> : null}
 
-      {/* The work for right now stays at the top — one thing at a time is the
-          segmenting principle, and it is why this page opens with a single
-          activity. The road goes below it, because a learner who cannot see
-          the road cannot tell progress from repetition. */}
-      <CourseRoadmap map={map} />
-    </main>
+      {/* Roadmap Component */}
+      <section className="space-y-4 pt-4 border-t border-[var(--border)]">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-[var(--primary)]" />
+            <h2 className="text-xl font-bold tracking-tight">Cây Kỹ Năng & Lộ Trình 30 Unit</h2>
+          </div>
+          <p className="text-xs text-[var(--muted-foreground)]">
+            Từng chặng từ Pre-A1 Sinh tồn đến A1 Giao tiếp và A2 Thực tế công việc.
+          </p>
+        </div>
+        <CourseRoadmap map={map} />
+      </section>
+    </div>
   );
 }

@@ -222,22 +222,24 @@ export default async function DashboardPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between border-b border-[var(--border)] pb-6">
         <div className="space-y-2">
-          <p className="text-sm font-semibold text-[var(--accent)]">Hôm nay</p>
-          <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
+          <div className="inline-flex items-center gap-2 rounded-full bg-[var(--accent-wash)] px-3 py-1 text-xs font-bold text-[var(--accent)]">
+            <span>HÔM NAY · 30 PHÚT THÀNH NẾP</span>
+          </div>
+          <h1 className="text-3xl font-extrabold tracking-tight sm:text-4xl text-[var(--foreground)]">
             Một bước tiếng Anh vừa sức hôm nay
           </h1>
-          <p className="max-w-2xl text-[var(--muted-foreground)]">
-            Một việc mỗi lần, chọn theo bằng chứng bạn để lại — không phải theo
-            thứ bạn thấy dễ nhất.
+          <p className="max-w-2xl text-sm leading-relaxed text-[var(--muted-foreground)]">
+            Mỗi ngày một việc, chọn theo bằng chứng bạn để lại — không phải theo
+            thứ bạn thấy dễ nhất hay trắc nghiệm ngẫu nhiên.
           </p>
         </div>
         <Link
           href="/create"
-          className="inline-flex min-h-11 items-center justify-center rounded-xl bg-[var(--primary)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors hover:bg-[var(--primary-hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)]"
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-[var(--primary)] px-4.5 py-2 text-sm font-bold text-white shadow-sm transition-all hover:bg-[var(--primary-hover)] hover:shadow focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ring)] shrink-0"
         >
-          + Tạo bài từ video
+          <span>+ Tạo bài từ video</span>
         </Link>
       </div>
 
