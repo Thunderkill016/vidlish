@@ -1,0 +1,195 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-app-sans), "Segoe UI", -apple-system, BlinkMacSystemFont,
+    Roboto, "Noto Sans", "Helvetica Neue", sans-serif;
+  --font-mono: var(--font-app-mono), "SF Mono", "Cascadia Mono", Menlo, Consolas,
+    monospace;
+
+  /* shadcn components consume semantic Tailwind colours. */
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--foreground);
+  --color-popover: var(--card);
+  --color-popover-foreground: var(--foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--muted);
+  --color-secondary-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--border);
+  --color-ring: var(--ring);
+}
+
+:root {
+  --background: #f8fafc;
+  --foreground: #0f172a;
+  --card: #ffffff;
+  --muted: #f1f5f9;
+  --muted-foreground: #475569;
+  --faint-foreground: #94a3b8;
+  --border: #e2e8f0;
+  --border-strong: #cbd5e1;
+
+  --primary: #4f46e5;
+  --primary-foreground: #ffffff;
+  --primary-hover: #4338ca;
+  --primary-wash: #eef2ff;
+  --accent: #0d9488;
+  --accent-hover: #0f766e;
+  --accent-wash: #f0fdfa;
+  --ring: #4f46e5;
+  --destructive: #dc2626;
+  --destructive-foreground: #ffffff;
+
+  --evidence: #d97706;
+  --evidence-wash: #fffbeb;
+  --evidence-border: #fcd34d;
+
+  --solved: #059669;
+  --solved-wash: #ecfdf5;
+  --revealed: #b45309;
+  --revealed-wash: #fef3c7;
+
+  --radius: 16px;
+  --radius-sm: 10px;
+  --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.05), 0 10px 25px -5px rgb(0 0 0 / 0.05);
+  --shadow-float: 0 20px 35px -10px rgb(0 0 0 / 0.08), 0 1px 3px 0 rgb(0 0 0 / 0.04);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #090d16;
+    --foreground: #f8fafc;
+    --card: #111827;
+    --muted: #1e293b;
+    --muted-foreground: #94a3b8;
+    --faint-foreground: #64748b;
+    --border: #1f293d;
+    --border-strong: #334155;
+
+    --primary: #818cf8;
+    --primary-foreground: #090d16;
+    --primary-hover: #a5b4fc;
+    --primary-wash: #1e1b4b;
+    --accent: #2dd4bf;
+    --accent-hover: #5eead4;
+    --accent-wash: #042f2e;
+    --ring: #818cf8;
+    --destructive: #f87171;
+    --destructive-foreground: #450a0a;
+
+    --evidence: #fbbf24;
+    --evidence-wash: #271a06;
+    --evidence-border: #78350f;
+
+    --solved: #34d399;
+    --solved-wash: #062b1d;
+    --revealed: #f59e0b;
+    --revealed-wash: #2e1c07;
+
+    --shadow-card: 0 1px 3px 0 rgb(0 0 0 / 0.4), 0 15px 30px -10px rgb(0 0 0 / 0.6);
+    --shadow-float: 0 20px 40px -10px rgb(0 0 0 / 0.8);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: var(--background);
+  color-scheme: light dark;
+}
+
+body {
+  min-height: 100vh;
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+  letter-spacing: -0.025em;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: var(--primary-wash);
+  color: var(--foreground);
+}
+
+/* Glassmorphic utilities */
+.glass-panel {
+  background: rgba(255, 255, 255, 0.75);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border);
+}
+
+@media (prefers-color-scheme: dark) {
+  .glass-panel {
+    background: rgba(17, 24, 39, 0.75);
+  }
+}
+
+.gradient-text-primary {
+  background: linear-gradient(135deg, var(--primary) 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.gradient-text-accent {
+  background: linear-gradient(135deg, var(--accent) 0%, #10b981 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Micro-animations */
+@keyframes subtle-float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-4px);
+  }
+}
+
+.animate-subtle-float {
+  animation: subtle-float 4s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
