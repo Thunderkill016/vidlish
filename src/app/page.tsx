@@ -4,8 +4,8 @@ import { useEffect, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import * as C from "@/engine/core.js";
 import { createFsrsAdapter } from "@/engine/fsrs-adapter.js";
-import DictationExercise from "@/components/exercises/DictationExercise";
-import WordBankExercise from "@/components/exercises/WordBankExercise";
+import { DictationExercise } from "@/components/exercises/DictationExercise";
+import { WordBankExercise } from "@/components/exercises/WordBankExercise";
 
 export default function V4EnginePage() {
   const [db, setDb] = useState<any>(null);
